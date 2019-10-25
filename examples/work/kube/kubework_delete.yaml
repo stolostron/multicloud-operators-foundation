@@ -1,0 +1,19 @@
+# This work is used to delete nginx deployment in clusters cluster0
+apiVersion: mcm.ibm.com/v1alpha1
+kind: Work
+metadata:
+  name: nginx-work-delete
+  namespace: cluster0
+spec:
+  cluster:
+    name: cluster0
+  type: Action
+  actionType: Delete
+  kube:
+    resource: deployment
+    namespace: default
+    template:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: nginx-deployment

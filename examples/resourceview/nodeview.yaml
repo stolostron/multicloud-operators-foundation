@@ -1,0 +1,14 @@
+# This resourceview is to get node with lable role=master from all clusters
+apiVersion: mcm.ibm.com/v1alpha1
+kind: ResourceView
+metadata:
+  labels:
+    name: getmasternode
+  name: getmasternode
+spec:
+  summaryOnly: true
+  scope:
+    resource: nodes
+    labelSelector:
+      matchLabels:
+        role: master

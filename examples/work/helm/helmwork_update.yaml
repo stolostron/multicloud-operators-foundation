@@ -1,0 +1,16 @@
+# This work is used to update nginx-lego in clusters cluster0
+apiVersion: mcm.ibm.com/v1alpha1
+kind: Work
+metadata:
+  name: nginx-update
+  namespace: cluster0
+spec:
+  cluster:
+    name: cluster0
+  type: Action
+  actionType: Update
+  helm:
+    releaseName: nginx-lego
+    chartURL: https://kubernetes-charts.storage.googleapis.com/nginx-lego-0.2.1.tgz
+    namespace: kube-system
+

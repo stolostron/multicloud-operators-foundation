@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcm-serviceregistry
+  namespace: multicloud-endpoint
+  labels:
+    app: mcm-serviceregistry
+    controlledby: connectionmanager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcm-serviceregistry
+  template:
+    metadata:
+      labels:
+        app: mcm-serviceregistry
+    spec:
+      serviceAccountName: klusterlet-sa
+      containers:
+      - name: mcm-serviceregistry
+        image: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry
+        args:
+          - "/mcm-service-registry-plugin"
+          - "--dns-suffix=mcm.svc"
+          - "--dns-configmap=multicloud-endpoint/mcm-serviceregistry-coredns"
+          - "--hub-cluster-kubeconfig=/var/run/hub-kubeconfig/kubeconfig"
+          - "--member-cluster-name=cluster0"
+          - "--member-cluster-namespace=cluster0"
+          - "--plugins=kube-service"
+        volumeMounts:
+          - name: klusterlet-config
+            mountPath: /var/run/hub-kubeconfig
+      volumes:
+        - name: klusterlet-config
+          secret:
+            secretName: mcm-connmgr-hub-kubeconfig

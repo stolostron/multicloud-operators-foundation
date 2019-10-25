@@ -1,0 +1,11 @@
+.envrc
+cover.out
+cover.html
+.project
+output
+apiserver.local.config
+.api_violation.report
+vendor
+generate_exes
+generate_files
+.idea
