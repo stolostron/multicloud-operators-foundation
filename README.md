@@ -309,3 +309,4 @@ export TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdF9oYXNoIjoiZjQ2ODcxMWRjZD
 
 curl -k -H "Authorization: Bearer $TOKEN " https://9.30.183.32:8001/apis/mcm.ibm.com/v1alpha1/namespaces/cluster0/clusterstatuses/cluster0/log/kube-system/tiller-deploy-8f484458-jp5fp/tiller
 ```
+
