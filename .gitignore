@@ -1,6 +1,3 @@
-.envrc
-cover.out
-cover.html
 .project
 output
 apiserver.local.config
