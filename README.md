@@ -1,5 +1,5 @@
-<p align="center"><a href="http://35.227.205.240/?job=build_multicloud-operators-foundation_postsubmit">
-<img alt="Build Status" src="http://35.227.205.240/badge.svg?jobs=build_multicloud-operators-foundation_postsubmit">
+<p align="center"><a href="http://35.227.205.240/?job=build-multicloud-operators-foundation_postsubmit">
+<img alt="Build Status" src="http://35.227.205.240/badge.svg?jobs=build-multicloud-operators-foundation_postsubmit">
 </a>
 </p>
 
