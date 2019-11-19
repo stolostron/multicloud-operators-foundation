@@ -28,6 +28,10 @@ You can use `ko` to deploy multicloud manager with the following step.
 > * Go version needs >= go1.11.  
 > * Need `export GO111MODULE=on` if Go version is go1.11 or go1.12.  
 > * Need to clone the repo to `$GOPATH/src/github.com/` before deploy.
+> * If deploy on OCP, needs to run the following command beforehand
+```
+oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default
+```
 
 1. Install deployment tool **ko**
     > More information see https://github.com/google/ko
@@ -309,4 +313,3 @@ export TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdF9oYXNoIjoiZjQ2ODcxMWRjZD
 
 curl -k -H "Authorization: Bearer $TOKEN " https://9.30.183.32:8001/apis/mcm.ibm.com/v1alpha1/namespaces/cluster0/clusterstatuses/cluster0/log/kube-system/tiller-deploy-8f484458-jp5fp/tiller
 ```
-
