@@ -22,43 +22,54 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequest":     schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequest(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestList": schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestSpec": schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinStatus":      schema_pkg_apis_mcm_v1alpha1_ClusterJoinStatus(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterRestOptions":     schema_pkg_apis_mcm_v1alpha1_ClusterRestOptions(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatus":          schema_pkg_apis_mcm_v1alpha1_ClusterStatus(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusList":      schema_pkg_apis_mcm_v1alpha1_ClusterStatusList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusSpec":      schema_pkg_apis_mcm_v1alpha1_ClusterStatusSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmRelease":            schema_pkg_apis_mcm_v1alpha1_HelmRelease(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmReleaseSpec":        schema_pkg_apis_mcm_v1alpha1_HelmReleaseSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmWorkSpec":           schema_pkg_apis_mcm_v1alpha1_HelmWorkSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.KubeWorkSpec":           schema_pkg_apis_mcm_v1alpha1_KubeWorkSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceFilter":         schema_pkg_apis_mcm_v1alpha1_ResourceFilter(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceView":           schema_pkg_apis_mcm_v1alpha1_ResourceView(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewList":       schema_pkg_apis_mcm_v1alpha1_ResourceViewList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResult":     schema_pkg_apis_mcm_v1alpha1_ResourceViewResult(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResultList": schema_pkg_apis_mcm_v1alpha1_ResourceViewResultList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewSpec":       schema_pkg_apis_mcm_v1alpha1_ResourceViewSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewStatus":     schema_pkg_apis_mcm_v1alpha1_ResourceViewStatus(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResultHelmList":         schema_pkg_apis_mcm_v1alpha1_ResultHelmList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewCondition":          schema_pkg_apis_mcm_v1alpha1_ViewCondition(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewFilter":             schema_pkg_apis_mcm_v1alpha1_ViewFilter(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Work":                   schema_pkg_apis_mcm_v1alpha1_Work(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkList":               schema_pkg_apis_mcm_v1alpha1_WorkList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSet":                schema_pkg_apis_mcm_v1alpha1_WorkSet(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetList":            schema_pkg_apis_mcm_v1alpha1_WorkSetList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetSpec":            schema_pkg_apis_mcm_v1alpha1_WorkSetSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetStatus":          schema_pkg_apis_mcm_v1alpha1_WorkSetStatus(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec":               schema_pkg_apis_mcm_v1alpha1_WorkSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkStatus":             schema_pkg_apis_mcm_v1alpha1_WorkStatus(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkTemplateSpec":       schema_pkg_apis_mcm_v1alpha1_WorkTemplateSpec(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequest":                                                   schema_k8sio_api_certificates_v1beta1_CertificateSigningRequest(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestCondition":                                          schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestCondition(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestList":                                               schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestList(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestSpec":                                               schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestSpec(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestStatus":                                             schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestStatus(ref),
-		"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource":                                                         schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterConditionFilter":  schema_pkg_apis_mcm_v1alpha1_ClusterConditionFilter(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequest":      schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequest(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestList":  schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestList(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestSpec":  schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestSpec(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinStatus":       schema_pkg_apis_mcm_v1alpha1_ClusterJoinStatus(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterRestOptions":      schema_pkg_apis_mcm_v1alpha1_ClusterRestOptions(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatus":           schema_pkg_apis_mcm_v1alpha1_ClusterStatus(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusList":       schema_pkg_apis_mcm_v1alpha1_ClusterStatusList(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusSpec":       schema_pkg_apis_mcm_v1alpha1_ClusterStatusSpec(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmRelease":             schema_pkg_apis_mcm_v1alpha1_HelmRelease(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmReleaseSpec":         schema_pkg_apis_mcm_v1alpha1_HelmReleaseSpec(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmWorkSpec":            schema_pkg_apis_mcm_v1alpha1_HelmWorkSpec(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.KubeWorkSpec":            schema_pkg_apis_mcm_v1alpha1_KubeWorkSpec(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBinding":        schema_pkg_apis_mcm_v1alpha1_PlacementBinding(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBindingList":    schema_pkg_apis_mcm_v1alpha1_PlacementBindingList(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicy":         schema_pkg_apis_mcm_v1alpha1_PlacementPolicy(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyDecision": schema_pkg_apis_mcm_v1alpha1_PlacementPolicyDecision(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyList":     schema_pkg_apis_mcm_v1alpha1_PlacementPolicyList(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyRef":      schema_pkg_apis_mcm_v1alpha1_PlacementPolicyRef(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicySpec":     schema_pkg_apis_mcm_v1alpha1_PlacementPolicySpec(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyStatus":   schema_pkg_apis_mcm_v1alpha1_PlacementPolicyStatus(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceFilter":          schema_pkg_apis_mcm_v1alpha1_ResourceFilter(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint":            schema_pkg_apis_mcm_v1alpha1_ResourceHint(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceView":            schema_pkg_apis_mcm_v1alpha1_ResourceView(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewList":        schema_pkg_apis_mcm_v1alpha1_ResourceViewList(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResult":      schema_pkg_apis_mcm_v1alpha1_ResourceViewResult(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResultList":  schema_pkg_apis_mcm_v1alpha1_ResourceViewResultList(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewSpec":        schema_pkg_apis_mcm_v1alpha1_ResourceViewSpec(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewStatus":      schema_pkg_apis_mcm_v1alpha1_ResourceViewStatus(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResultHelmList":          schema_pkg_apis_mcm_v1alpha1_ResultHelmList(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Subject":                 schema_pkg_apis_mcm_v1alpha1_Subject(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewCondition":           schema_pkg_apis_mcm_v1alpha1_ViewCondition(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewFilter":              schema_pkg_apis_mcm_v1alpha1_ViewFilter(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Work":                    schema_pkg_apis_mcm_v1alpha1_Work(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkList":                schema_pkg_apis_mcm_v1alpha1_WorkList(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSet":                 schema_pkg_apis_mcm_v1alpha1_WorkSet(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetList":             schema_pkg_apis_mcm_v1alpha1_WorkSetList(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetSpec":             schema_pkg_apis_mcm_v1alpha1_WorkSetSpec(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetStatus":           schema_pkg_apis_mcm_v1alpha1_WorkSetStatus(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec":                schema_pkg_apis_mcm_v1alpha1_WorkSpec(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkStatus":              schema_pkg_apis_mcm_v1alpha1_WorkStatus(ref),
+		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkTemplateSpec":        schema_pkg_apis_mcm_v1alpha1_WorkTemplateSpec(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequest":                                                    schema_k8sio_api_certificates_v1beta1_CertificateSigningRequest(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestCondition":                                           schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestCondition(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestList":                                                schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestList(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestSpec":                                                schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestSpec(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestStatus":                                              schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestStatus(ref),
+		"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource":                                                          schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
 		"k8s.io/api/core/v1.Affinity":                                                         schema_k8sio_api_core_v1_Affinity(ref),
 		"k8s.io/api/core/v1.AttachedVolume":                                                   schema_k8sio_api_core_v1_AttachedVolume(ref),
 		"k8s.io/api/core/v1.AvoidPods":                                                        schema_k8sio_api_core_v1_AvoidPods(ref),
@@ -308,6 +319,30 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1.KubernetesAPIEndpoints":    schema_pkg_apis_clusterregistry_v1alpha1_KubernetesAPIEndpoints(ref),
 		"k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1.ObjectReference":           schema_pkg_apis_clusterregistry_v1alpha1_ObjectReference(ref),
 		"k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1.ServerAddressByClientCIDR": schema_pkg_apis_clusterregistry_v1alpha1_ServerAddressByClientCIDR(ref),
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_ClusterConditionFilter(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
 	}
 }
 
@@ -920,6 +955,370 @@ func schema_pkg_apis_mcm_v1alpha1_KubeWorkSpec(ref common.ReferenceCallback) com
 	}
 }
 
+func schema_pkg_apis_mcm_v1alpha1_PlacementBinding(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"subjects": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Subjects holds references to the objects the role applies to.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Subject"),
+									},
+								},
+							},
+						},
+					},
+					"placementRef": {
+						SchemaProps: spec.SchemaProps{
+							Description: "PlacementPolicyRef references a PlacementPolicy",
+							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyRef"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyRef", "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Subject", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_PlacementBindingList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of Cluster objects.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBinding"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_PlacementPolicy(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec of Node Template",
+							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicySpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "keep consistency with fed resource",
+							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicySpec", "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_PlacementPolicyDecision(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"clusterName": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"clusterNamespace": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_PlacementPolicyList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of Cluster objects.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicy"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_PlacementPolicyRef(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "PlacementPolicyRef contains information that points to the Placement policy being used",
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the PlacementPolicy instance",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind of object being referenced. Values defined by this API group are \"Deployable\" and \"ComplianceResource\".",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiGroup": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIGroup holds the API group of the referenced subject.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_PlacementPolicySpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"replicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Deprecated since 3.1.2: replaced by ClusterReplicas",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"resourceSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Deprecated since 3.1.2: replaced by resource hint",
+							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint"),
+						},
+					},
+					"clusterSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Deprecated since 3.1.2: replaced by resource hint",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+						},
+					},
+					"clusterReplicas": {
+						SchemaProps: spec.SchemaProps{
+							Description: "////////////////////////////////////////////////////////////////////////// number of replicas Application wants to",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"clusterNames": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Target Clusters",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+					"clusterLabels": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Target Cluster is a selector of cluster",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+						},
+					},
+					"clusterConditions": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterConditionFilter"),
+									},
+								},
+							},
+						},
+					},
+					"resourceHint": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Select Resource",
+							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint"),
+						},
+					},
+					"compliances": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Set ComplianceFilters",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Type:   []string{"string"},
+										Format: "",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterConditionFilter", "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_PlacementPolicyStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"decisions": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyDecision"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyDecision"},
+	}
+}
+
 func schema_pkg_apis_mcm_v1alpha1_ResourceFilter(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -1000,6 +1399,30 @@ func schema_pkg_apis_mcm_v1alpha1_ResourceFilter(ref common.ReferenceCallback) c
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_ResourceHint(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+					"order": {
+						SchemaProps: spec.SchemaProps{
+							Type:   []string{"string"},
+							Format: "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
 	}
 }
 
@@ -1317,6 +1740,40 @@ func schema_pkg_apis_mcm_v1alpha1_ResultHelmList(ref common.ReferenceCallback) c
 		},
 		Dependencies: []string{
 			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmRelease", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_Subject(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Subject contains a reference to a placed object",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind of object being referenced. Values defined by this API group are \"Deployable\" and \"ComplianceResource\".",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiGroup": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIGroup holds the API group of the referenced subject.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the object being referenced.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
 	}
 }
 

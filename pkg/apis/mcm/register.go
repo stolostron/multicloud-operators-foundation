@@ -53,6 +53,10 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ResourceViewResultList{},
 		&ClusterJoinRequest{},
 		&ClusterJoinRequestList{},
+		&PlacementBinding{},
+		&PlacementBindingList{},
+		&PlacementPolicy{},
+		&PlacementPolicyList{},
 		&ClusterRestOptions{},
 	)
 	return nil

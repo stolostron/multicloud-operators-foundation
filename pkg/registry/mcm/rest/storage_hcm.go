@@ -13,6 +13,8 @@ import (
 	clusterjoinstorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/mcm/clusterjoinrequest/etcd"
 	clusterstatusstorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/mcm/clusterstatus/etcd"
 	clusterstatusrest "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/mcm/clusterstatus/rest"
+	placementbindingstorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/mcm/placementbinding/etcd"
+	placementpolicystorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/mcm/placementpolicy/etcd"
 	resourceviewstorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/mcm/resourceview/etcd"
 	workstorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/mcm/work/etcd"
 	workresultstorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/mcm/work/mongo"
@@ -96,6 +98,13 @@ func (p RESTStorageProvider) v1alpha1Storage(
 	clusterjoinStorage, clusterjoinStatusStorage := clusterjoinstorage.NewREST(optsGetter)
 	storage["clusterjoinrequests"] = clusterjoinStorage
 	storage["clusterjoinrequests/status"] = clusterjoinStatusStorage
+
+	placementpolicyStorage, placementpolicyStatusStorage := placementpolicystorage.NewREST(optsGetter)
+	storage["placementpolicies"] = placementpolicyStorage
+	storage["placementpolicies/status"] = placementpolicyStatusStorage
+
+	placementBindingStorage := placementbindingstorage.NewREST(optsGetter)
+	storage["placementbindings"] = placementBindingStorage
 
 	return storage
 }

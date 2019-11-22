@@ -26,6 +26,14 @@ func (c *FakeMcmV1alpha1) ClusterStatuses(namespace string) v1alpha1.ClusterStat
 	return &FakeClusterStatuses{c, namespace}
 }
 
+func (c *FakeMcmV1alpha1) PlacementBindings(namespace string) v1alpha1.PlacementBindingInterface {
+	return &FakePlacementBindings{c, namespace}
+}
+
+func (c *FakeMcmV1alpha1) PlacementPolicies(namespace string) v1alpha1.PlacementPolicyInterface {
+	return &FakePlacementPolicies{c, namespace}
+}
+
 func (c *FakeMcmV1alpha1) ResourceViews(namespace string) v1alpha1.ResourceViewInterface {
 	return &FakeResourceViews{c, namespace}
 }

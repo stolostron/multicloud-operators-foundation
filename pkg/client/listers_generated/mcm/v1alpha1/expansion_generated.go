@@ -20,6 +20,22 @@ type ClusterStatusListerExpansion interface{}
 // ClusterStatusNamespaceLister.
 type ClusterStatusNamespaceListerExpansion interface{}
 
+// PlacementBindingListerExpansion allows custom methods to be added to
+// PlacementBindingLister.
+type PlacementBindingListerExpansion interface{}
+
+// PlacementBindingNamespaceListerExpansion allows custom methods to be added to
+// PlacementBindingNamespaceLister.
+type PlacementBindingNamespaceListerExpansion interface{}
+
+// PlacementPolicyListerExpansion allows custom methods to be added to
+// PlacementPolicyLister.
+type PlacementPolicyListerExpansion interface{}
+
+// PlacementPolicyNamespaceListerExpansion allows custom methods to be added to
+// PlacementPolicyNamespaceLister.
+type PlacementPolicyNamespaceListerExpansion interface{}
+
 // ResourceViewListerExpansion allows custom methods to be added to
 // ResourceViewLister.
 type ResourceViewListerExpansion interface{}

@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"
 	runtime "k8s.io/apimachinery/pkg/runtime"
+	clusterregistryv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
 
 func init() {
@@ -27,6 +28,16 @@ func init() {
 // RegisterConversions adds conversion functions to the given scheme.
 // Public to allow building arbitrary schemes.
 func RegisterConversions(s *runtime.Scheme) error {
+	if err := s.AddGeneratedConversionFunc((*ClusterConditionFilter)(nil), (*mcm.ClusterConditionFilter)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ClusterConditionFilter_To_mcm_ClusterConditionFilter(a.(*ClusterConditionFilter), b.(*mcm.ClusterConditionFilter), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*mcm.ClusterConditionFilter)(nil), (*ClusterConditionFilter)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_mcm_ClusterConditionFilter_To_v1alpha1_ClusterConditionFilter(a.(*mcm.ClusterConditionFilter), b.(*ClusterConditionFilter), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*ClusterJoinRequest)(nil), (*mcm.ClusterJoinRequest)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_ClusterJoinRequest_To_mcm_ClusterJoinRequest(a.(*ClusterJoinRequest), b.(*mcm.ClusterJoinRequest), scope)
 	}); err != nil {
@@ -147,6 +158,86 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddGeneratedConversionFunc((*PlacementBinding)(nil), (*mcm.PlacementBinding)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_PlacementBinding_To_mcm_PlacementBinding(a.(*PlacementBinding), b.(*mcm.PlacementBinding), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*mcm.PlacementBinding)(nil), (*PlacementBinding)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_mcm_PlacementBinding_To_v1alpha1_PlacementBinding(a.(*mcm.PlacementBinding), b.(*PlacementBinding), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*PlacementBindingList)(nil), (*mcm.PlacementBindingList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_PlacementBindingList_To_mcm_PlacementBindingList(a.(*PlacementBindingList), b.(*mcm.PlacementBindingList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*mcm.PlacementBindingList)(nil), (*PlacementBindingList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_mcm_PlacementBindingList_To_v1alpha1_PlacementBindingList(a.(*mcm.PlacementBindingList), b.(*PlacementBindingList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*PlacementPolicy)(nil), (*mcm.PlacementPolicy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_PlacementPolicy_To_mcm_PlacementPolicy(a.(*PlacementPolicy), b.(*mcm.PlacementPolicy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*mcm.PlacementPolicy)(nil), (*PlacementPolicy)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_mcm_PlacementPolicy_To_v1alpha1_PlacementPolicy(a.(*mcm.PlacementPolicy), b.(*PlacementPolicy), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*PlacementPolicyDecision)(nil), (*mcm.PlacementPolicyDecision)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_PlacementPolicyDecision_To_mcm_PlacementPolicyDecision(a.(*PlacementPolicyDecision), b.(*mcm.PlacementPolicyDecision), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*mcm.PlacementPolicyDecision)(nil), (*PlacementPolicyDecision)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_mcm_PlacementPolicyDecision_To_v1alpha1_PlacementPolicyDecision(a.(*mcm.PlacementPolicyDecision), b.(*PlacementPolicyDecision), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*PlacementPolicyList)(nil), (*mcm.PlacementPolicyList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_PlacementPolicyList_To_mcm_PlacementPolicyList(a.(*PlacementPolicyList), b.(*mcm.PlacementPolicyList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*mcm.PlacementPolicyList)(nil), (*PlacementPolicyList)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_mcm_PlacementPolicyList_To_v1alpha1_PlacementPolicyList(a.(*mcm.PlacementPolicyList), b.(*PlacementPolicyList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*PlacementPolicyRef)(nil), (*mcm.PlacementPolicyRef)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_PlacementPolicyRef_To_mcm_PlacementPolicyRef(a.(*PlacementPolicyRef), b.(*mcm.PlacementPolicyRef), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*mcm.PlacementPolicyRef)(nil), (*PlacementPolicyRef)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_mcm_PlacementPolicyRef_To_v1alpha1_PlacementPolicyRef(a.(*mcm.PlacementPolicyRef), b.(*PlacementPolicyRef), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*PlacementPolicySpec)(nil), (*mcm.PlacementPolicySpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_PlacementPolicySpec_To_mcm_PlacementPolicySpec(a.(*PlacementPolicySpec), b.(*mcm.PlacementPolicySpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*mcm.PlacementPolicySpec)(nil), (*PlacementPolicySpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_mcm_PlacementPolicySpec_To_v1alpha1_PlacementPolicySpec(a.(*mcm.PlacementPolicySpec), b.(*PlacementPolicySpec), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*PlacementPolicyStatus)(nil), (*mcm.PlacementPolicyStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_PlacementPolicyStatus_To_mcm_PlacementPolicyStatus(a.(*PlacementPolicyStatus), b.(*mcm.PlacementPolicyStatus), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*mcm.PlacementPolicyStatus)(nil), (*PlacementPolicyStatus)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_mcm_PlacementPolicyStatus_To_v1alpha1_PlacementPolicyStatus(a.(*mcm.PlacementPolicyStatus), b.(*PlacementPolicyStatus), scope)
+	}); err != nil {
+		return err
+	}
 	if err := s.AddGeneratedConversionFunc((*ResourceFilter)(nil), (*mcm.ResourceFilter)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_v1alpha1_ResourceFilter_To_mcm_ResourceFilter(a.(*ResourceFilter), b.(*mcm.ResourceFilter), scope)
 	}); err != nil {
@@ -154,6 +245,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*mcm.ResourceFilter)(nil), (*ResourceFilter)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_mcm_ResourceFilter_To_v1alpha1_ResourceFilter(a.(*mcm.ResourceFilter), b.(*ResourceFilter), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*ResourceHint)(nil), (*mcm.ResourceHint)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_ResourceHint_To_mcm_ResourceHint(a.(*ResourceHint), b.(*mcm.ResourceHint), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*mcm.ResourceHint)(nil), (*ResourceHint)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_mcm_ResourceHint_To_v1alpha1_ResourceHint(a.(*mcm.ResourceHint), b.(*ResourceHint), scope)
 	}); err != nil {
 		return err
 	}
@@ -224,6 +325,16 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}
 	if err := s.AddGeneratedConversionFunc((*mcm.ResultHelmList)(nil), (*ResultHelmList)(nil), func(a, b interface{}, scope conversion.Scope) error {
 		return Convert_mcm_ResultHelmList_To_v1alpha1_ResultHelmList(a.(*mcm.ResultHelmList), b.(*ResultHelmList), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*Subject)(nil), (*mcm.Subject)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_v1alpha1_Subject_To_mcm_Subject(a.(*Subject), b.(*mcm.Subject), scope)
+	}); err != nil {
+		return err
+	}
+	if err := s.AddGeneratedConversionFunc((*mcm.Subject)(nil), (*Subject)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_mcm_Subject_To_v1alpha1_Subject(a.(*mcm.Subject), b.(*Subject), scope)
 	}); err != nil {
 		return err
 	}
@@ -338,6 +449,28 @@ func RegisterConversions(s *runtime.Scheme) error {
 		return err
 	}
 	return nil
+}
+
+func autoConvert_v1alpha1_ClusterConditionFilter_To_mcm_ClusterConditionFilter(in *ClusterConditionFilter, out *mcm.ClusterConditionFilter, s conversion.Scope) error {
+	out.Type = clusterregistryv1alpha1.ClusterConditionType(in.Type)
+	out.Status = v1.ConditionStatus(in.Status)
+	return nil
+}
+
+// Convert_v1alpha1_ClusterConditionFilter_To_mcm_ClusterConditionFilter is an autogenerated conversion function.
+func Convert_v1alpha1_ClusterConditionFilter_To_mcm_ClusterConditionFilter(in *ClusterConditionFilter, out *mcm.ClusterConditionFilter, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ClusterConditionFilter_To_mcm_ClusterConditionFilter(in, out, s)
+}
+
+func autoConvert_mcm_ClusterConditionFilter_To_v1alpha1_ClusterConditionFilter(in *mcm.ClusterConditionFilter, out *ClusterConditionFilter, s conversion.Scope) error {
+	out.Type = clusterregistryv1alpha1.ClusterConditionType(in.Type)
+	out.Status = v1.ConditionStatus(in.Status)
+	return nil
+}
+
+// Convert_mcm_ClusterConditionFilter_To_v1alpha1_ClusterConditionFilter is an autogenerated conversion function.
+func Convert_mcm_ClusterConditionFilter_To_v1alpha1_ClusterConditionFilter(in *mcm.ClusterConditionFilter, out *ClusterConditionFilter, s conversion.Scope) error {
+	return autoConvert_mcm_ClusterConditionFilter_To_v1alpha1_ClusterConditionFilter(in, out, s)
 }
 
 func autoConvert_v1alpha1_ClusterJoinRequest_To_mcm_ClusterJoinRequest(in *ClusterJoinRequest, out *mcm.ClusterJoinRequest, s conversion.Scope) error {
@@ -690,6 +823,220 @@ func Convert_mcm_KubeWorkSpec_To_v1alpha1_KubeWorkSpec(in *mcm.KubeWorkSpec, out
 	return autoConvert_mcm_KubeWorkSpec_To_v1alpha1_KubeWorkSpec(in, out, s)
 }
 
+func autoConvert_v1alpha1_PlacementBinding_To_mcm_PlacementBinding(in *PlacementBinding, out *mcm.PlacementBinding, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	out.Subjects = *(*[]mcm.Subject)(unsafe.Pointer(&in.Subjects))
+	if err := Convert_v1alpha1_PlacementPolicyRef_To_mcm_PlacementPolicyRef(&in.PlacementPolicyRef, &out.PlacementPolicyRef, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_PlacementBinding_To_mcm_PlacementBinding is an autogenerated conversion function.
+func Convert_v1alpha1_PlacementBinding_To_mcm_PlacementBinding(in *PlacementBinding, out *mcm.PlacementBinding, s conversion.Scope) error {
+	return autoConvert_v1alpha1_PlacementBinding_To_mcm_PlacementBinding(in, out, s)
+}
+
+func autoConvert_mcm_PlacementBinding_To_v1alpha1_PlacementBinding(in *mcm.PlacementBinding, out *PlacementBinding, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	out.Subjects = *(*[]Subject)(unsafe.Pointer(&in.Subjects))
+	if err := Convert_mcm_PlacementPolicyRef_To_v1alpha1_PlacementPolicyRef(&in.PlacementPolicyRef, &out.PlacementPolicyRef, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_mcm_PlacementBinding_To_v1alpha1_PlacementBinding is an autogenerated conversion function.
+func Convert_mcm_PlacementBinding_To_v1alpha1_PlacementBinding(in *mcm.PlacementBinding, out *PlacementBinding, s conversion.Scope) error {
+	return autoConvert_mcm_PlacementBinding_To_v1alpha1_PlacementBinding(in, out, s)
+}
+
+func autoConvert_v1alpha1_PlacementBindingList_To_mcm_PlacementBindingList(in *PlacementBindingList, out *mcm.PlacementBindingList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]mcm.PlacementBinding)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_PlacementBindingList_To_mcm_PlacementBindingList is an autogenerated conversion function.
+func Convert_v1alpha1_PlacementBindingList_To_mcm_PlacementBindingList(in *PlacementBindingList, out *mcm.PlacementBindingList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_PlacementBindingList_To_mcm_PlacementBindingList(in, out, s)
+}
+
+func autoConvert_mcm_PlacementBindingList_To_v1alpha1_PlacementBindingList(in *mcm.PlacementBindingList, out *PlacementBindingList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]PlacementBinding)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_mcm_PlacementBindingList_To_v1alpha1_PlacementBindingList is an autogenerated conversion function.
+func Convert_mcm_PlacementBindingList_To_v1alpha1_PlacementBindingList(in *mcm.PlacementBindingList, out *PlacementBindingList, s conversion.Scope) error {
+	return autoConvert_mcm_PlacementBindingList_To_v1alpha1_PlacementBindingList(in, out, s)
+}
+
+func autoConvert_v1alpha1_PlacementPolicy_To_mcm_PlacementPolicy(in *PlacementPolicy, out *mcm.PlacementPolicy, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_v1alpha1_PlacementPolicySpec_To_mcm_PlacementPolicySpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_v1alpha1_PlacementPolicyStatus_To_mcm_PlacementPolicyStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_v1alpha1_PlacementPolicy_To_mcm_PlacementPolicy is an autogenerated conversion function.
+func Convert_v1alpha1_PlacementPolicy_To_mcm_PlacementPolicy(in *PlacementPolicy, out *mcm.PlacementPolicy, s conversion.Scope) error {
+	return autoConvert_v1alpha1_PlacementPolicy_To_mcm_PlacementPolicy(in, out, s)
+}
+
+func autoConvert_mcm_PlacementPolicy_To_v1alpha1_PlacementPolicy(in *mcm.PlacementPolicy, out *PlacementPolicy, s conversion.Scope) error {
+	out.ObjectMeta = in.ObjectMeta
+	if err := Convert_mcm_PlacementPolicySpec_To_v1alpha1_PlacementPolicySpec(&in.Spec, &out.Spec, s); err != nil {
+		return err
+	}
+	if err := Convert_mcm_PlacementPolicyStatus_To_v1alpha1_PlacementPolicyStatus(&in.Status, &out.Status, s); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Convert_mcm_PlacementPolicy_To_v1alpha1_PlacementPolicy is an autogenerated conversion function.
+func Convert_mcm_PlacementPolicy_To_v1alpha1_PlacementPolicy(in *mcm.PlacementPolicy, out *PlacementPolicy, s conversion.Scope) error {
+	return autoConvert_mcm_PlacementPolicy_To_v1alpha1_PlacementPolicy(in, out, s)
+}
+
+func autoConvert_v1alpha1_PlacementPolicyDecision_To_mcm_PlacementPolicyDecision(in *PlacementPolicyDecision, out *mcm.PlacementPolicyDecision, s conversion.Scope) error {
+	out.ClusterName = in.ClusterName
+	out.ClusterNamespace = in.ClusterNamespace
+	return nil
+}
+
+// Convert_v1alpha1_PlacementPolicyDecision_To_mcm_PlacementPolicyDecision is an autogenerated conversion function.
+func Convert_v1alpha1_PlacementPolicyDecision_To_mcm_PlacementPolicyDecision(in *PlacementPolicyDecision, out *mcm.PlacementPolicyDecision, s conversion.Scope) error {
+	return autoConvert_v1alpha1_PlacementPolicyDecision_To_mcm_PlacementPolicyDecision(in, out, s)
+}
+
+func autoConvert_mcm_PlacementPolicyDecision_To_v1alpha1_PlacementPolicyDecision(in *mcm.PlacementPolicyDecision, out *PlacementPolicyDecision, s conversion.Scope) error {
+	out.ClusterName = in.ClusterName
+	out.ClusterNamespace = in.ClusterNamespace
+	return nil
+}
+
+// Convert_mcm_PlacementPolicyDecision_To_v1alpha1_PlacementPolicyDecision is an autogenerated conversion function.
+func Convert_mcm_PlacementPolicyDecision_To_v1alpha1_PlacementPolicyDecision(in *mcm.PlacementPolicyDecision, out *PlacementPolicyDecision, s conversion.Scope) error {
+	return autoConvert_mcm_PlacementPolicyDecision_To_v1alpha1_PlacementPolicyDecision(in, out, s)
+}
+
+func autoConvert_v1alpha1_PlacementPolicyList_To_mcm_PlacementPolicyList(in *PlacementPolicyList, out *mcm.PlacementPolicyList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]mcm.PlacementPolicy)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_v1alpha1_PlacementPolicyList_To_mcm_PlacementPolicyList is an autogenerated conversion function.
+func Convert_v1alpha1_PlacementPolicyList_To_mcm_PlacementPolicyList(in *PlacementPolicyList, out *mcm.PlacementPolicyList, s conversion.Scope) error {
+	return autoConvert_v1alpha1_PlacementPolicyList_To_mcm_PlacementPolicyList(in, out, s)
+}
+
+func autoConvert_mcm_PlacementPolicyList_To_v1alpha1_PlacementPolicyList(in *mcm.PlacementPolicyList, out *PlacementPolicyList, s conversion.Scope) error {
+	out.ListMeta = in.ListMeta
+	out.Items = *(*[]PlacementPolicy)(unsafe.Pointer(&in.Items))
+	return nil
+}
+
+// Convert_mcm_PlacementPolicyList_To_v1alpha1_PlacementPolicyList is an autogenerated conversion function.
+func Convert_mcm_PlacementPolicyList_To_v1alpha1_PlacementPolicyList(in *mcm.PlacementPolicyList, out *PlacementPolicyList, s conversion.Scope) error {
+	return autoConvert_mcm_PlacementPolicyList_To_v1alpha1_PlacementPolicyList(in, out, s)
+}
+
+func autoConvert_v1alpha1_PlacementPolicyRef_To_mcm_PlacementPolicyRef(in *PlacementPolicyRef, out *mcm.PlacementPolicyRef, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Kind = in.Kind
+	out.APIGroup = in.APIGroup
+	return nil
+}
+
+// Convert_v1alpha1_PlacementPolicyRef_To_mcm_PlacementPolicyRef is an autogenerated conversion function.
+func Convert_v1alpha1_PlacementPolicyRef_To_mcm_PlacementPolicyRef(in *PlacementPolicyRef, out *mcm.PlacementPolicyRef, s conversion.Scope) error {
+	return autoConvert_v1alpha1_PlacementPolicyRef_To_mcm_PlacementPolicyRef(in, out, s)
+}
+
+func autoConvert_mcm_PlacementPolicyRef_To_v1alpha1_PlacementPolicyRef(in *mcm.PlacementPolicyRef, out *PlacementPolicyRef, s conversion.Scope) error {
+	out.Name = in.Name
+	out.Kind = in.Kind
+	out.APIGroup = in.APIGroup
+	return nil
+}
+
+// Convert_mcm_PlacementPolicyRef_To_v1alpha1_PlacementPolicyRef is an autogenerated conversion function.
+func Convert_mcm_PlacementPolicyRef_To_v1alpha1_PlacementPolicyRef(in *mcm.PlacementPolicyRef, out *PlacementPolicyRef, s conversion.Scope) error {
+	return autoConvert_mcm_PlacementPolicyRef_To_v1alpha1_PlacementPolicyRef(in, out, s)
+}
+
+func autoConvert_v1alpha1_PlacementPolicySpec_To_mcm_PlacementPolicySpec(in *PlacementPolicySpec, out *mcm.PlacementPolicySpec, s conversion.Scope) error {
+	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
+	if err := Convert_v1alpha1_ResourceHint_To_mcm_ResourceHint(&in.ResourceSelector, &out.ResourceSelector, s); err != nil {
+		return err
+	}
+	out.ClustersSelector = (*metav1.LabelSelector)(unsafe.Pointer(in.ClustersSelector))
+	out.ClusterReplicas = (*int32)(unsafe.Pointer(in.ClusterReplicas))
+	out.ClusterNames = *(*[]string)(unsafe.Pointer(&in.ClusterNames))
+	out.ClusterLabels = (*metav1.LabelSelector)(unsafe.Pointer(in.ClusterLabels))
+	out.ClusterConditions = *(*[]mcm.ClusterConditionFilter)(unsafe.Pointer(&in.ClusterConditions))
+	if err := Convert_v1alpha1_ResourceHint_To_mcm_ResourceHint(&in.ResourceHint, &out.ResourceHint, s); err != nil {
+		return err
+	}
+	out.ComplianceNames = *(*[]string)(unsafe.Pointer(&in.ComplianceNames))
+	return nil
+}
+
+// Convert_v1alpha1_PlacementPolicySpec_To_mcm_PlacementPolicySpec is an autogenerated conversion function.
+func Convert_v1alpha1_PlacementPolicySpec_To_mcm_PlacementPolicySpec(in *PlacementPolicySpec, out *mcm.PlacementPolicySpec, s conversion.Scope) error {
+	return autoConvert_v1alpha1_PlacementPolicySpec_To_mcm_PlacementPolicySpec(in, out, s)
+}
+
+func autoConvert_mcm_PlacementPolicySpec_To_v1alpha1_PlacementPolicySpec(in *mcm.PlacementPolicySpec, out *PlacementPolicySpec, s conversion.Scope) error {
+	out.Replicas = (*int32)(unsafe.Pointer(in.Replicas))
+	if err := Convert_mcm_ResourceHint_To_v1alpha1_ResourceHint(&in.ResourceSelector, &out.ResourceSelector, s); err != nil {
+		return err
+	}
+	out.ClustersSelector = (*metav1.LabelSelector)(unsafe.Pointer(in.ClustersSelector))
+	out.ClusterReplicas = (*int32)(unsafe.Pointer(in.ClusterReplicas))
+	out.ClusterNames = *(*[]string)(unsafe.Pointer(&in.ClusterNames))
+	out.ClusterLabels = (*metav1.LabelSelector)(unsafe.Pointer(in.ClusterLabels))
+	out.ClusterConditions = *(*[]ClusterConditionFilter)(unsafe.Pointer(&in.ClusterConditions))
+	if err := Convert_mcm_ResourceHint_To_v1alpha1_ResourceHint(&in.ResourceHint, &out.ResourceHint, s); err != nil {
+		return err
+	}
+	out.ComplianceNames = *(*[]string)(unsafe.Pointer(&in.ComplianceNames))
+	return nil
+}
+
+// Convert_mcm_PlacementPolicySpec_To_v1alpha1_PlacementPolicySpec is an autogenerated conversion function.
+func Convert_mcm_PlacementPolicySpec_To_v1alpha1_PlacementPolicySpec(in *mcm.PlacementPolicySpec, out *PlacementPolicySpec, s conversion.Scope) error {
+	return autoConvert_mcm_PlacementPolicySpec_To_v1alpha1_PlacementPolicySpec(in, out, s)
+}
+
+func autoConvert_v1alpha1_PlacementPolicyStatus_To_mcm_PlacementPolicyStatus(in *PlacementPolicyStatus, out *mcm.PlacementPolicyStatus, s conversion.Scope) error {
+	out.Decisions = *(*[]mcm.PlacementPolicyDecision)(unsafe.Pointer(&in.Decisions))
+	return nil
+}
+
+// Convert_v1alpha1_PlacementPolicyStatus_To_mcm_PlacementPolicyStatus is an autogenerated conversion function.
+func Convert_v1alpha1_PlacementPolicyStatus_To_mcm_PlacementPolicyStatus(in *PlacementPolicyStatus, out *mcm.PlacementPolicyStatus, s conversion.Scope) error {
+	return autoConvert_v1alpha1_PlacementPolicyStatus_To_mcm_PlacementPolicyStatus(in, out, s)
+}
+
+func autoConvert_mcm_PlacementPolicyStatus_To_v1alpha1_PlacementPolicyStatus(in *mcm.PlacementPolicyStatus, out *PlacementPolicyStatus, s conversion.Scope) error {
+	out.Decisions = *(*[]PlacementPolicyDecision)(unsafe.Pointer(&in.Decisions))
+	return nil
+}
+
+// Convert_mcm_PlacementPolicyStatus_To_v1alpha1_PlacementPolicyStatus is an autogenerated conversion function.
+func Convert_mcm_PlacementPolicyStatus_To_v1alpha1_PlacementPolicyStatus(in *mcm.PlacementPolicyStatus, out *PlacementPolicyStatus, s conversion.Scope) error {
+	return autoConvert_mcm_PlacementPolicyStatus_To_v1alpha1_PlacementPolicyStatus(in, out, s)
+}
+
 func autoConvert_v1alpha1_ResourceFilter_To_mcm_ResourceFilter(in *ResourceFilter, out *mcm.ResourceFilter, s conversion.Scope) error {
 	out.LabelSelector = (*metav1.LabelSelector)(unsafe.Pointer(in.LabelSelector))
 	out.FieldSelector = in.FieldSelector
@@ -726,6 +1073,28 @@ func autoConvert_mcm_ResourceFilter_To_v1alpha1_ResourceFilter(in *mcm.ResourceF
 // Convert_mcm_ResourceFilter_To_v1alpha1_ResourceFilter is an autogenerated conversion function.
 func Convert_mcm_ResourceFilter_To_v1alpha1_ResourceFilter(in *mcm.ResourceFilter, out *ResourceFilter, s conversion.Scope) error {
 	return autoConvert_mcm_ResourceFilter_To_v1alpha1_ResourceFilter(in, out, s)
+}
+
+func autoConvert_v1alpha1_ResourceHint_To_mcm_ResourceHint(in *ResourceHint, out *mcm.ResourceHint, s conversion.Scope) error {
+	out.Type = mcm.ResourceType(in.Type)
+	out.Order = mcm.SelectionOrder(in.Order)
+	return nil
+}
+
+// Convert_v1alpha1_ResourceHint_To_mcm_ResourceHint is an autogenerated conversion function.
+func Convert_v1alpha1_ResourceHint_To_mcm_ResourceHint(in *ResourceHint, out *mcm.ResourceHint, s conversion.Scope) error {
+	return autoConvert_v1alpha1_ResourceHint_To_mcm_ResourceHint(in, out, s)
+}
+
+func autoConvert_mcm_ResourceHint_To_v1alpha1_ResourceHint(in *mcm.ResourceHint, out *ResourceHint, s conversion.Scope) error {
+	out.Type = ResourceType(in.Type)
+	out.Order = SelectionOrder(in.Order)
+	return nil
+}
+
+// Convert_mcm_ResourceHint_To_v1alpha1_ResourceHint is an autogenerated conversion function.
+func Convert_mcm_ResourceHint_To_v1alpha1_ResourceHint(in *mcm.ResourceHint, out *ResourceHint, s conversion.Scope) error {
+	return autoConvert_mcm_ResourceHint_To_v1alpha1_ResourceHint(in, out, s)
 }
 
 func autoConvert_v1alpha1_ResourceView_To_mcm_ResourceView(in *ResourceView, out *mcm.ResourceView, s conversion.Scope) error {
@@ -900,6 +1269,30 @@ func autoConvert_mcm_ResultHelmList_To_v1alpha1_ResultHelmList(in *mcm.ResultHel
 // Convert_mcm_ResultHelmList_To_v1alpha1_ResultHelmList is an autogenerated conversion function.
 func Convert_mcm_ResultHelmList_To_v1alpha1_ResultHelmList(in *mcm.ResultHelmList, out *ResultHelmList, s conversion.Scope) error {
 	return autoConvert_mcm_ResultHelmList_To_v1alpha1_ResultHelmList(in, out, s)
+}
+
+func autoConvert_v1alpha1_Subject_To_mcm_Subject(in *Subject, out *mcm.Subject, s conversion.Scope) error {
+	out.Kind = in.Kind
+	out.APIGroup = in.APIGroup
+	out.Name = in.Name
+	return nil
+}
+
+// Convert_v1alpha1_Subject_To_mcm_Subject is an autogenerated conversion function.
+func Convert_v1alpha1_Subject_To_mcm_Subject(in *Subject, out *mcm.Subject, s conversion.Scope) error {
+	return autoConvert_v1alpha1_Subject_To_mcm_Subject(in, out, s)
+}
+
+func autoConvert_mcm_Subject_To_v1alpha1_Subject(in *mcm.Subject, out *Subject, s conversion.Scope) error {
+	out.Kind = in.Kind
+	out.APIGroup = in.APIGroup
+	out.Name = in.Name
+	return nil
+}
+
+// Convert_mcm_Subject_To_v1alpha1_Subject is an autogenerated conversion function.
+func Convert_mcm_Subject_To_v1alpha1_Subject(in *mcm.Subject, out *Subject, s conversion.Scope) error {
+	return autoConvert_mcm_Subject_To_v1alpha1_Subject(in, out, s)
 }
 
 func autoConvert_v1alpha1_ViewCondition_To_mcm_ViewCondition(in *ViewCondition, out *mcm.ViewCondition, s conversion.Scope) error {

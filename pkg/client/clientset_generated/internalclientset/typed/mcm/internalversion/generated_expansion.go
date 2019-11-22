@@ -12,6 +12,10 @@ type ClusterJoinRequestExpansion interface{}
 
 type ClusterStatusExpansion interface{}
 
+type PlacementBindingExpansion interface{}
+
+type PlacementPolicyExpansion interface{}
+
 type ResourceViewExpansion interface{}
 
 type WorkExpansion interface{}

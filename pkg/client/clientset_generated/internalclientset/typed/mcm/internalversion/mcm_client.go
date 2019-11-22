@@ -17,6 +17,8 @@ type McmInterface interface {
 	RESTClient() rest.Interface
 	ClusterJoinRequestsGetter
 	ClusterStatusesGetter
+	PlacementBindingsGetter
+	PlacementPoliciesGetter
 	ResourceViewsGetter
 	WorksGetter
 	WorkSetsGetter
@@ -33,6 +35,14 @@ func (c *McmClient) ClusterJoinRequests() ClusterJoinRequestInterface {
 
 func (c *McmClient) ClusterStatuses(namespace string) ClusterStatusInterface {
 	return newClusterStatuses(c, namespace)
+}
+
+func (c *McmClient) PlacementBindings(namespace string) PlacementBindingInterface {
+	return newPlacementBindings(c, namespace)
+}
+
+func (c *McmClient) PlacementPolicies(namespace string) PlacementPolicyInterface {
+	return newPlacementPolicies(c, namespace)
 }
 
 func (c *McmClient) ResourceViews(namespace string) ResourceViewInterface {
