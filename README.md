@@ -11,8 +11,16 @@ This is a guide on how to build and deploy multicloud manager from code.
 Prerequisite:
 - ko, download at [ko](https://github.com/google/ko)
 
-### Building
+### Setup
 Create a directory `$GOPATH/github.ibm.com/IBMPrivateCloud`, and clone the code into the directory.
+
+Populate the vendor directory. If neccessary, set environment variable `GO111MODULE=on`.
+
+```
+# go mod vendor
+```
+
+### Build
 Run the following after cloning/pulling/making a change.
 
 ```
