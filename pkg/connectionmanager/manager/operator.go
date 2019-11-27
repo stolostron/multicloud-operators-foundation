@@ -48,7 +48,7 @@ func NewOperator(
 	btsec := genericConfig.BootstrapSecret
 	_, bootstrapServer, err := operatorapi.LoadBootstrapServerInfo(btsec, scgetter, clusterName, clusterNamespace)
 	if err != nil {
-		klog.Errorf("failed to load bootstrap server")
+		klog.Errorf("failed to load bootstrap server: %s", err)
 	}
 
 	operator := &Operator{
