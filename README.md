@@ -70,7 +70,13 @@ oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:def
 
 3. Install on managed cluster
 
-    Create bootstrap secret `klusterlet-bootstrap` in `default` namespace using the `kubeconfig` of hub cluster.
+    Create bootstrap secret `klusterlet-bootstrap` in `default` namespace using a kubeconfig file with any authenticated hub cluster user. If the kubeconfig file includes keys, like `client-certificate` and `client-key`, which reference to local certification files, replace them with `client-certificate-data` and `client-key-data`. The corresponding values of these keys can be obtained with the command below.
+
+    ```
+    # cat /path/to/cert/file | base64 --wrap=0
+    ```
+
+    And then create the secret.
 
     ```
     # kubectl create secret generic klusterlet-bootstrap --from-file=kubeconfig=/<path>/kubeconfig -n default
