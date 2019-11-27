@@ -197,6 +197,9 @@ func (r *StatusREST) Update(ctx context.Context, name string, objInfo rest.Updat
 				Labels:    updatedWork.Labels,
 			},
 		}
+		if resultData.Labels == nil {
+			resultData.Labels = make(map[string]string)
+		}
 		resultData.Labels[mcm.ClusterLabel] = updatedWork.Spec.Cluster.Name
 		// If the status is no nil, put the result into mongo
 		if updatedWork.Status.Result.Raw != nil {
