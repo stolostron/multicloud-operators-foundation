@@ -12,9 +12,9 @@ Prerequisite:
 - ko, download at [ko](https://github.com/google/ko)
 
 ### Setup
-Create a directory `$GOPATH/github.ibm.com/IBMPrivateCloud`, and clone the code into the directory.
+Create a directory `$GOPATH/src/github.ibm.com/IBMPrivateCloud`, and clone the code into the directory.
 
-Populate the vendor directory. If neccessary, set environment variable `GO111MODULE=on`.
+Populate the vendor directory. If necessary, set environment variable `GO111MODULE=on`.
 
 ```
 # go mod vendor
@@ -35,11 +35,21 @@ You can use `ko` to deploy multicloud manager with the following step.
 > Note:   
 > * Go version needs >= go1.11.  
 > * Need `export GO111MODULE=on` if Go version is go1.11 or go1.12.  
-> * Need to clone the repo to `$GOPATH/src/github.com/` before deploy.
-> * If deploy on OCP, needs to run the following command beforehand
-```
-oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default
-```
+> * The best practice is to configure persistent volume for ETCD and MongoDB StatefulSet.  
+>   * The yaml file of ETCD StatefulSet is `deploy/hub/200-etcd.yaml`. And the mountPath is:
+>       ```
+>       volumeMounts:
+>       - mountPath: /etcd-data
+>       ```
+>   * The yaml file of MongoDB StatefulSet is `deploy/hub/200-mongo.yaml`. And the mountPath is:
+>       ```
+>       volumeMounts:
+>       - mountPath: /data/db
+>       ```
+> * If deploy on OCP, needs to run the following command beforehand.
+>    ```
+>    oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default
+>    ```
 
 1. Install deployment tool **ko**
     > More information see https://github.com/google/ko
