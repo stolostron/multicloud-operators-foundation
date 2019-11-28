@@ -53,6 +53,11 @@ else
     $(error "This system's OS $(LOCAL_OS) isn't recognized/supported")
 endif
 
+# Use podman if available, otherwise use docker
+ifeq ($(CONTAINER_ENGINE),)
+	CONTAINER_ENGINE = $(shell podman version > /dev/null && echo podman || echo docker)
+endif
+
 .PHONY: all work fmt check coverage lint test build images build-push-images
 
 all: fmt check test coverage build images
@@ -173,17 +178,17 @@ serviceregistry:
 # images section
 ############################################################
 
-images: build build-push-images
+images: build-push-images
 
 ifeq ($(BUILD_LOCALLY),0)
     export CONFIG_DOCKER_TARGET = config-docker
 endif
 
 build-push-images: $(CONFIG_DOCKER_TARGET)
-	@docker build . -f Dockerfile -t $(REGISTRY)/$(IMG):$(VERSION)
-	@docker tag $(REGISTRY)/$(IMG):$(VERSION) $(REGISTRY)/$(IMG):latest
-	@docker push $(REGISTRY)/$(IMG):$(VERSION)
-	@docker push $(REGISTRY)/$(IMG):latest
+	@$(CONTAINER_ENGINE) build . -f Dockerfile -t $(REGISTRY)/$(IMG):$(VERSION)
+	@$(CONTAINER_ENGINE) tag $(REGISTRY)/$(IMG):$(VERSION) $(REGISTRY)/$(IMG):latest
+	@$(CONTAINER_ENGINE) push $(REGISTRY)/$(IMG):$(VERSION)
+	@$(CONTAINER_ENGINE) push $(REGISTRY)/$(IMG):latest
 
 ############################################################
 # clean section

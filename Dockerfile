@@ -1,3 +1,8 @@
-FROM registry.access.redhat.com/ubi7/ubi-minimal:7.7-98
+FROM docker.io/openshift/origin-release:golang-1.12 AS builder
+WORKDIR /go/src/github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/
+COPY . .
+RUN make build
+RUN mv output /
 
-COPY output/mcm-apiserver output/mcm-webhook output/mcm-controller output/klusterlet output/klusterlet-connectionmanager output/serviceregistry /
+FROM registry.access.redhat.com/ubi7/ubi-minimal:7.7-98
+COPY --from=builder output/mcm-apiserver output/mcm-webhook output/mcm-controller output/klusterlet output/klusterlet-connectionmanager output/serviceregistry /
