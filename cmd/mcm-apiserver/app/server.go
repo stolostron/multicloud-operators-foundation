@@ -108,7 +108,6 @@ func withCacheControlHandler(handler http.Handler) http.Handler {
 // NonBlockingRun runs the specified APIServer and configures it to
 // stop with the given channel.
 func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
-
 	// set defaults
 	if err := s.GenericServerRunOptions.DefaultAdvertiseAddress(s.SecureServing.SecureServingOptions); err != nil {
 		return err
@@ -310,16 +309,20 @@ func buildAdmission(s *options.ServerRunOptions,
 	client internalclientset.Interface, sharedInformers informers.SharedInformerFactory,
 	kubeClient kubeclientset.Interface, kubeSharedInformers kubeinformers.SharedInformerFactory,
 	clusterClient clusterclient.Interface, clusterInformers clusterinformers.SharedInformerFactory) (admission.Interface, error) {
-
 	admissionControlPluginNames := s.Admission.EnablePlugins
 	klog.Infof("Admission control plugin names: %v", admissionControlPluginNames)
 	var err error
 
 	pluginInitializer := hadmission.NewPluginInitializer(
 		client, sharedInformers, kubeClient, kubeSharedInformers, clusterClient, clusterInformers)
-	admissionConfigProvider, err := admission.ReadAdmissionConfiguration(admissionControlPluginNames, s.Admission.ConfigFile, api.Scheme)
+	admissionConfigProvider, err := admission.ReadAdmissionConfiguration(
+		admissionControlPluginNames, s.Admission.ConfigFile, api.Scheme)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read plugin config: %v", err)
 	}
-	return s.Admission.Plugins.NewFromPlugins(admissionControlPluginNames, admissionConfigProvider, pluginInitializer, admission.DecoratorFunc(admissionmetrics.WithControllerMetrics))
+	return s.Admission.Plugins.NewFromPlugins(
+		admissionControlPluginNames,
+		admissionConfigProvider,
+		pluginInitializer,
+		admission.DecoratorFunc(admissionmetrics.WithControllerMetrics))
 }

@@ -13,7 +13,6 @@ import (
 	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
 	hcmfake "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
 	csrv1beta1 "k8s.io/api/certificates/v1beta1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	certutil "k8s.io/client-go/util/cert"
@@ -58,7 +57,7 @@ func newRequestName(key []byte) string {
 	return DigestedName(key, subject)
 }
 
-func newTestBootStrap(t *testing.T, secret *corev1.Secret, request *v1alpha1.ClusterJoinRequest) *BootStrapper {
+func newTestBootStrap(request *v1alpha1.ClusterJoinRequest) *BootStrapper {
 	fakehcmClient := hcmfake.NewSimpleClientset(request)
 
 	return NewBootStrapper(fakehcmClient, "localhost", "test", "test", nil, nil)
@@ -83,17 +82,7 @@ func TestBootStrapWithNoSecret(t *testing.T) {
 		},
 	}
 
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-secret",
-			Namespace: "test-secret",
-		},
-		Data: map[string][]byte{
-			"tls.key": key,
-		},
-	}
-
-	bootstrapper := newTestBootStrap(t, secret, hcmjoin)
+	bootstrapper := newTestBootStrap(hcmjoin)
 	_, _, _, err = bootstrapper.LoadClientCert()
 	if err != nil {
 		t.Errorf("Failed to load config: %v", err)
@@ -119,18 +108,7 @@ func TestBootStrapWithSecret(t *testing.T) {
 		},
 	}
 
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-secret",
-			Namespace: "test-secret",
-		},
-		Data: map[string][]byte{
-			"tls.key": key,
-			"tls.crt": cert,
-		},
-	}
-
-	bootstrapper := newTestBootStrap(t, secret, hcmjoin)
+	bootstrapper := newTestBootStrap(hcmjoin)
 	_, _, _, err = bootstrapper.LoadClientCert()
 	if err != nil {
 		t.Errorf("Failed to load config: %v", err)
@@ -153,15 +131,7 @@ func TestBootStrapWithDeny(t *testing.T) {
 		},
 	}
 
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-secret",
-			Namespace: "test-secret",
-		},
-		Data: map[string][]byte{},
-	}
-
-	bootstrapper := newTestBootStrap(t, secret, hcmjoin)
+	bootstrapper := newTestBootStrap(hcmjoin)
 	_, _, _, err = bootstrapper.LoadClientCert()
 	if err == nil {
 		t.Errorf("request is not denied: %v", err)

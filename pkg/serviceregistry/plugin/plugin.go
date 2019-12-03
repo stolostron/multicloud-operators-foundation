@@ -6,7 +6,7 @@
 package plugin
 
 import (
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
 )
 
@@ -35,7 +35,7 @@ type ServiceLocation struct {
 	ClusterInfo ClusterInfo
 }
 
-// Plugin registers annotated resouce as an endpoints to hub cluster and (or) discovers other member cluster's resouces from hub
+// Plugin registers annotated resource as an endpoints to hub cluster and (or) discovers other member cluster's resouces from hub
 // cluster as an endpoints
 type Plugin interface {
 	// GetType returns the type of current plugin
@@ -45,14 +45,14 @@ type Plugin interface {
 	// them to registry handler to register them to hub cluster
 	RegisterAnnotatedResouceHandler(registryHandler cache.ResourceEventHandlerFuncs)
 
-	// SyncRegisteredEndpoints synchronizes the annotated resouces and their correponding registered endpoints and returns the
+	// SyncRegisteredEndpoints synchronizes the annotated resouces and their corresponding registered endpoints and returns the
 	// changed endpoints to create, delete or update
 	SyncRegisteredEndpoints(registeredEndpoints []*v1.Endpoints) (toCreate, toDelete, toUpdate []*v1.Endpoints)
 
 	// DiscoveryRequired returns a flag to mark the plugin needs to handle the hub cluster auto discovered endpoints
 	DiscoveryRequired() bool
 
-	// SyncDiscoveredResouces synchronizes the hub discovered resources (as endpoints), if plugin want to record these resouce to
+	// SyncDiscoveredResouces synchronizes the hub discovered resources (as endpoints), if plugin want to record these resource to
 	// CoreDNS, this method must set dnsRequired with true and returns the resource locations
 	SyncDiscoveredResouces(discoveredEndpoints []*v1.Endpoints) (dnsRequired bool, locations []*ServiceLocation)
 }

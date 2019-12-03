@@ -18,7 +18,6 @@ import (
 	informers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 	clusterv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
@@ -35,8 +34,8 @@ var (
 	alwaysReady = func() bool { return true }
 )
 
-func newTestController(initialObjects ...runtime.Object) (*workSetController, *fake.Clientset, *clusterfake.Clientset, error) {
-	clientset := fake.NewSimpleClientset(initialObjects...)
+func newTestController() (*workSetController, *fake.Clientset) {
+	clientset := fake.NewSimpleClientset()
 	informerFactory := informers.NewSharedInformerFactory(clientset, time.Minute*10)
 
 	clusterFakeClient := clusterfake.NewSimpleClientset()
@@ -52,7 +51,7 @@ func newTestController(initialObjects ...runtime.Object) (*workSetController, *f
 		clusterInformerFactory.Clusterregistry().V1alpha1().Clusters().Informer().GetStore(),
 		informerFactory.Mcm().V1alpha1().WorkSets().Informer().GetStore(),
 		informerFactory.Mcm().V1alpha1().Works().Informer().GetStore(),
-	}, clientset, clusterFakeClient, nil
+	}, clientset
 }
 
 func newCluster(name, namespace string, status clusterv1alpha1.ClusterConditionType, labels map[string]string) *clusterv1alpha1.Cluster {
@@ -64,7 +63,7 @@ func newCluster(name, namespace string, status clusterv1alpha1.ClusterConditionT
 		},
 		Status: clusterv1alpha1.ClusterStatus{
 			Conditions: []clusterv1alpha1.ClusterCondition{
-				clusterv1alpha1.ClusterCondition{
+				{
 					Type: status,
 				},
 			},
@@ -137,10 +136,7 @@ func TestFilterCluster(t *testing.T) {
 	cluster2 := newCluster("cluster2", "cluster2", "", map[string]string{})
 	workset := newWorkset("workset1", "workset1")
 
-	manager, client, _, err := newTestController()
-	if err != nil {
-		t.Fatalf("error creating resource workset controller: %v", err)
-	}
+	manager, client := newTestController()
 
 	manager.clusterStore.Add(cluster1)
 	manager.clusterStore.Add(cluster2)
@@ -168,7 +164,7 @@ func TestGetClustersToWorks(t *testing.T) {
 	work1 := newWork("work1", "work1", "cluster1", "workset1", "workset1")
 	work2 := newWork("work2", "work2", "cluster2", "workset1", "workset1")
 	workset := newWorkset("workset1", "workset1")
-	manager, _, _, _ := newTestController()
+	manager, _ := newTestController()
 
 	manager.workStore.Add(work1)
 	manager.workStore.Add(work2)
@@ -184,7 +180,7 @@ func TestGetClustersToWorks(t *testing.T) {
 }
 
 func TestWorksShouldBeOnClusters(t *testing.T) {
-	manager, _, _, _ := newTestController()
+	manager, _ := newTestController()
 
 	cluster1 := newCluster("cluster1", "cluster1", clusterv1alpha1.ClusterOK, map[string]string{})
 	cluster2 := newCluster("cluster2", "cluster2", clusterv1alpha1.ClusterOK, map[string]string{})
@@ -222,11 +218,10 @@ func TestWorksShouldBeOnClusters(t *testing.T) {
 	if len(workToUpdate) != 1 {
 		t.Errorf("getClustersToWorks() workToUpdate = %v, want %v", len(workToUpdate), 1)
 	}
-
 }
 
 func TestAddWork(t *testing.T) {
-	manager, _, _, _ := newTestController()
+	manager, _ := newTestController()
 	work := newWork("work1", "work1", "cluster1", "view1", "view1")
 	manager.addWork(work)
 	if manager.workqueue.Len() != 0 {
@@ -241,7 +236,7 @@ func TestAddWork(t *testing.T) {
 }
 
 func TestUpdateWork(t *testing.T) {
-	manager, _, _, _ := newTestController()
+	manager, _ := newTestController()
 	work := newWork("work1", "work1", "cluster1", "view1", "view1")
 	manager.updateWork(work, work)
 	if manager.workqueue.Len() != 0 {
@@ -261,11 +256,10 @@ func TestUpdateWork(t *testing.T) {
 	if manager.workqueue.Len() != 2 {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 2)
 	}
-
 }
 
 func TestDeleteWork(t *testing.T) {
-	manager, _, _, _ := newTestController()
+	manager, _ := newTestController()
 	work := newWork("work1", "work1", "cluster1", "view1", "view1")
 	manager.deleteWork(work)
 	if manager.workqueue.Len() != 1 {

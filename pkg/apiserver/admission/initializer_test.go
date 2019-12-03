@@ -49,7 +49,6 @@ func TestWantHCMClientSet(t *testing.T) {
 	if WantInternalHCMClientSet.cs != nil {
 		t.Errorf("fake testing error")
 	}
-
 }
 
 type WantInternalHCMInformerFactory struct {

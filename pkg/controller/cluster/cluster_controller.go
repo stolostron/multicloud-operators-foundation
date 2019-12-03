@@ -113,5 +113,4 @@ func (c *ClusterController) clusterHealthCheck() {
 			}
 		}
 	}
-	return
 }

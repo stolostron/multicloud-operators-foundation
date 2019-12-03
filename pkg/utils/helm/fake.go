@@ -6,7 +6,8 @@
 // OCO Source Materials
 // 5737-E67
 // (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
-// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been deposited with the U.S. Copyright Office.
+// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been
+// deposited with the U.S. Copyright Office.
 
 // Licensed Materials - Property of IBM
 // (c) Copyright IBM Corporation 2018. All Rights Reserved.
@@ -81,14 +82,14 @@ func (hc *FakeHelmControl) UpdateHelmRelease(
 }
 
 // GetHelmReleases ...
-func (hc *FakeHelmControl) GetHelmReleases(nameFilter string, codes []release.Status_Code, namespace string, limit int) (*rls.ListReleasesResponse, error) {
-
+func (hc *FakeHelmControl) GetHelmReleases(
+	nameFilter string, codes []release.Status_Code, namespace string, limit int) (*rls.ListReleasesResponse, error) {
 	var listRelOptions []helm.ReleaseListOption
 	if nameFilter != "" {
 		listRelOptions = append(listRelOptions, helm.ReleaseListFilter(nameFilter))
 	}
 
-	if codes != nil && len(codes) > 0 {
+	if len(codes) > 0 {
 		listRelOptions = append(listRelOptions, helm.ReleaseListStatuses(codes))
 	}
 

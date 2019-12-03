@@ -77,7 +77,7 @@ type WorkStatus struct {
 	// Reason is the reason of the current status
 	Reason string `json:"reason,omitempty"`
 
-	// WorkResult refernce the related result of the work
+	// WorkResult references the related result of the work
 	Result runtime.RawExtension `json:"result,omitempty"`
 
 	// LastUpdateTime is the last status update time

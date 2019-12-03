@@ -6,7 +6,8 @@
 // OCO Source Materials
 // 5737-E67
 // (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
-// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been deposited with the U.S. Copyright Office.
+// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been
+// deposited with the U.S. Copyright Office.
 
 // Licensed Materials - Property of IBM
 // (c) Copyright IBM Corporation 2018. All Rights Reserved.
@@ -95,7 +96,7 @@ func searchTillerPodIP(client kubernetes.Interface) (string, error) {
 	}
 
 	if len(pods.Items) < 1 {
-		return "", fmt.Errorf("Failed to find tiller service")
+		return "", fmt.Errorf("failed to find tiller service")
 	}
 
 	for _, item := range pods.Items {
@@ -113,11 +114,10 @@ func searchTillerPodIP(client kubernetes.Interface) (string, error) {
 		}
 	}
 
-	return "", fmt.Errorf("Failed to find working tiller")
+	return "", fmt.Errorf("failed to find working tiller")
 }
 
 func searchTillerEndpoint(client kubernetes.Interface) (string, error) {
-
 	var ip string
 	var port string
 	options := metav1.ListOptions{LabelSelector: tillerLabels.AsSelector().String()}
@@ -127,7 +127,7 @@ func searchTillerEndpoint(client kubernetes.Interface) (string, error) {
 	}
 
 	if len(services.Items) < 1 {
-		return "", fmt.Errorf("Failed to find tiller service")
+		return "", fmt.Errorf("failed to find tiller service")
 	}
 
 	for _, item := range services.Items {
@@ -179,7 +179,7 @@ func searchTillerEndpoint(client kubernetes.Interface) (string, error) {
 	}
 
 	if ip == "" {
-		return "", fmt.Errorf("Failed to find working tiller")
+		return "", fmt.Errorf("failed to find working tiller")
 	}
 
 	return ip + ":" + port, nil
@@ -257,7 +257,7 @@ func ConnectToTiller(endpoint, key, cert, ca string, fromcfg bool) (*helm.Client
 }
 
 //Download HelmRepo
-func (hc *HelmControl) downloadRepo(repoNamespace string, helmspec v1alpha1.HelmWorkSpec) (string, error) {
+func (hc *HelmControl) downloadRepo(helmspec v1alpha1.HelmWorkSpec) (string, error) {
 	var chartPath string
 	var err error
 	var inSecure bool
@@ -283,7 +283,7 @@ func (hc *HelmControl) downloadRepo(repoNamespace string, helmspec v1alpha1.Helm
 
 //CreateHelmRelease create a helm release
 func (hc *HelmControl) CreateHelmRelease(releaseName string, helmreponNamespace string, helmspec v1alpha1.HelmWorkSpec) (*rls.InstallReleaseResponse, error) {
-	chartPath, err := hc.downloadRepo(helmreponNamespace, helmspec)
+	chartPath, err := hc.downloadRepo(helmspec)
 	if err != nil {
 		return nil, err
 	}
@@ -306,8 +306,9 @@ func (hc *HelmControl) CreateHelmRelease(releaseName string, helmreponNamespace 
 }
 
 // UpdateHelmRelease updates a helmrelease
-func (hc *HelmControl) UpdateHelmRelease(releaseName string, helmreponNamespace string, helmspec v1alpha1.HelmWorkSpec) (*rls.UpdateReleaseResponse, error) {
-	chartPath, err := hc.downloadRepo(helmreponNamespace, helmspec)
+func (hc *HelmControl) UpdateHelmRelease(
+	releaseName string, helmreponNamespace string, helmspec v1alpha1.HelmWorkSpec) (*rls.UpdateReleaseResponse, error) {
+	chartPath, err := hc.downloadRepo(helmspec)
 	if err != nil {
 		return nil, err
 	}
@@ -327,13 +328,14 @@ func (hc *HelmControl) UpdateHelmRelease(releaseName string, helmreponNamespace 
 }
 
 // GetHelmReleases ...
-func (hc *HelmControl) GetHelmReleases(nameFilter string, codes []release.Status_Code, namespace string, limit int) (*rls.ListReleasesResponse, error) {
+func (hc *HelmControl) GetHelmReleases(
+	nameFilter string, codes []release.Status_Code, namespace string, limit int) (*rls.ListReleasesResponse, error) {
 	var listRelOptions []helm.ReleaseListOption
 	if nameFilter != "" {
 		listRelOptions = append(listRelOptions, helm.ReleaseListFilter(nameFilter))
 	}
 
-	if codes != nil && len(codes) > 0 {
+	if len(codes) > 0 {
 		listRelOptions = append(listRelOptions, helm.ReleaseListStatuses(codes))
 	}
 

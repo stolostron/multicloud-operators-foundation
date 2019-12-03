@@ -106,13 +106,17 @@ func (s *Server) InstallAuthFilter() {
 		// Authorize
 		decision, _, err := s.auth.Authorize(attrs)
 		if err != nil {
-			msg := fmt.Sprintf("Authorization error (user=%s, verb=%s, resource=%s, subresource=%s)", attrs.GetUser().GetName(), attrs.GetVerb(), attrs.GetResource(), attrs.GetSubresource())
+			msg := fmt.Sprintf(
+				"Authorization error (user=%s, verb=%s, resource=%s, subresource=%s)",
+				attrs.GetUser().GetName(), attrs.GetVerb(), attrs.GetResource(), attrs.GetSubresource())
 			klog.Errorf(msg, err)
 			resp.WriteErrorString(http.StatusInternalServerError, msg)
 			return
 		}
 		if decision != authorizer.DecisionAllow {
-			msg := fmt.Sprintf("Forbidden (user=%s, verb=%s, resource=%s, subresource=%s)", attrs.GetUser().GetName(), attrs.GetVerb(), attrs.GetResource(), attrs.GetSubresource())
+			msg := fmt.Sprintf(
+				"Forbidden (user=%s, verb=%s, resource=%s, subresource=%s)",
+				attrs.GetUser().GetName(), attrs.GetVerb(), attrs.GetResource(), attrs.GetSubresource())
 			klog.V(2).Info(msg)
 			resp.WriteErrorString(http.StatusForbidden, msg)
 			return

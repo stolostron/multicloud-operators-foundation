@@ -6,7 +6,8 @@
 // OCO Source Materials
 // 5737-E67
 // (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
-// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been deposited with the U.S. Copyright Office.
+// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been
+// deposited with the U.S. Copyright Office.
 
 package rest
 
@@ -28,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
-// Interface to call kubernetes api
+// KubeControlInterface to call kubernetes api
 type KubeControlInterface interface {
 	// Create creates an object
 	Create(namespace string, raw runtime.RawExtension, deco func(obj runtime.Object) runtime.Object) (runtime.Object, error)
@@ -67,7 +68,8 @@ func NewRestKubeControl(mapper *Mapper, config *rest.Config) *RestKubeControl {
 	}
 }
 
-func (r *RestKubeControl) Create(namespace string, raw runtime.RawExtension, deco func(obj runtime.Object) runtime.Object) (runtime.Object, error) {
+func (r *RestKubeControl) Create(
+	namespace string, raw runtime.RawExtension, deco func(obj runtime.Object) runtime.Object) (runtime.Object, error) {
 	obj := &unstructured.Unstructured{}
 	err := json.Unmarshal(raw.Raw, obj)
 	if err != nil {
@@ -98,7 +100,8 @@ func (r *RestKubeControl) Create(namespace string, raw runtime.RawExtension, dec
 }
 
 // Get a resource
-func (r *RestKubeControl) Get(gvk *schema.GroupVersionKind, resource, namespace, name string, serverPrint bool) (runtime.Object, error) {
+func (r *RestKubeControl) Get(
+	gvk *schema.GroupVersionKind, resource, namespace, name string, serverPrint bool) (runtime.Object, error) {
 	var mapping *meta.RESTMapping
 	var err error
 
@@ -118,7 +121,8 @@ func (r *RestKubeControl) Get(gvk *schema.GroupVersionKind, resource, namespace,
 }
 
 // List resources
-func (r *RestKubeControl) List(resource, namespace string, options *metav1.ListOptions, serverPrint bool) (runtime.Object, error) {
+func (r *RestKubeControl) List(
+	resource, namespace string, options *metav1.ListOptions, serverPrint bool) (runtime.Object, error) {
 	mapping, err := r.mapper.MappingFor(resource)
 	if err != nil {
 		return nil, err
@@ -151,7 +155,8 @@ func (r *RestKubeControl) Delete(gvk *schema.GroupVersionKind, resource, namespa
 	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Delete(name, &metav1.DeleteOptions{})
 }
 
-func (r *RestKubeControl) Patch(namespace, name string, gvk schema.GroupVersionKind, pt types.PatchType, data []byte) (runtime.Object, error) {
+func (r *RestKubeControl) Patch(
+	namespace, name string, gvk schema.GroupVersionKind, pt types.PatchType, data []byte) (runtime.Object, error) {
 	mapping, err := r.mapper.MappingForGVK(gvk)
 	if err != nil {
 		return nil, err
@@ -236,16 +241,17 @@ func NewFakeKubeControl() *FakeKubeControl {
 	}
 }
 
-func (r *FakeKubeControl) getKey(gvk *schema.GroupVersionKind, resource, namespace, name string) string {
+func (r *FakeKubeControl) getKey(namespace, name string) string {
 	return fmt.Sprintf("%s.%s", namespace, name)
 }
 
 func (r *FakeKubeControl) SetObject(gvk *schema.GroupVersionKind, resource, namespace, name string, object runtime.Object) {
-	key := r.getKey(gvk, resource, namespace, name)
+	key := r.getKey(namespace, name)
 	r.objectsMap[key] = object
 }
 
-func (r *FakeKubeControl) Create(namespace string, raw runtime.RawExtension, deco func(obj runtime.Object) runtime.Object) (runtime.Object, error) {
+func (r *FakeKubeControl) Create(
+	namespace string, raw runtime.RawExtension, deco func(obj runtime.Object) runtime.Object) (runtime.Object, error) {
 	obj := &unstructured.Unstructured{}
 	if raw.Object != nil {
 		return raw.Object, nil
@@ -261,8 +267,9 @@ func (r *FakeKubeControl) Create(namespace string, raw runtime.RawExtension, dec
 }
 
 // Get a resource
-func (r *FakeKubeControl) Get(gvk *schema.GroupVersionKind, resource, namespace, name string, serverPrint bool) (runtime.Object, error) {
-	key := r.getKey(gvk, resource, namespace, name)
+func (r *FakeKubeControl) Get(
+	gvk *schema.GroupVersionKind, resource, namespace, name string, serverPrint bool) (runtime.Object, error) {
+	key := r.getKey(namespace, name)
 	return r.objectsMap[key], nil
 }
 
@@ -275,7 +282,8 @@ func (r *FakeKubeControl) Delete(gvk *schema.GroupVersionKind, resource, namespa
 	return nil
 }
 
-func (r *FakeKubeControl) Patch(namespace, name string, gvk schema.GroupVersionKind, pt types.PatchType, data []byte) (runtime.Object, error) {
+func (r *FakeKubeControl) Patch(
+	namespace, name string, gvk schema.GroupVersionKind, pt types.PatchType, data []byte) (runtime.Object, error) {
 	obj := &unstructured.Unstructured{}
 	obj.SetName(name)
 	obj.SetNamespace(namespace)
@@ -284,7 +292,8 @@ func (r *FakeKubeControl) Patch(namespace, name string, gvk schema.GroupVersionK
 	return obj, nil
 }
 
-func (r *FakeKubeControl) Replace(namespace string, overwrite bool, raw runtime.RawExtension) (runtime.Object, error) {
+func (r *FakeKubeControl) Replace(
+	namespace string, overwrite bool, raw runtime.RawExtension) (runtime.Object, error) {
 	obj := &unstructured.Unstructured{}
 	if raw.Object != nil {
 		return raw.Object, nil

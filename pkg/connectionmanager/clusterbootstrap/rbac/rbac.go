@@ -53,7 +53,7 @@ func CreateOrUpdateRole(kubeclientset kubernetes.Interface, clusterName, cluster
 			},
 			Rules: rules,
 		}
-		_, createErr := kubeclientset.Rbac().Roles(clusterNamespace).Create(hcmRole)
+		_, createErr := kubeclientset.RbacV1().Roles(clusterNamespace).Create(hcmRole)
 		return createErr
 	} else if err != nil {
 		return err
@@ -61,7 +61,7 @@ func CreateOrUpdateRole(kubeclientset kubernetes.Interface, clusterName, cluster
 
 	if !reflect.DeepEqual(role.Rules, rules) {
 		role.Rules = rules
-		_, err := kubeclientset.Rbac().Roles(clusterNamespace).Update(role)
+		_, err := kubeclientset.RbacV1().Roles(clusterNamespace).Update(role)
 		return err
 	}
 
@@ -77,7 +77,7 @@ func CreateOrUpdateRoleBinding(kubeclientset kubernetes.Interface, clusterName, 
 
 	binding, err := kubeclientset.RbacV1().RoleBindings(clusterNamespace).Get(clusterName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
-		_, err = kubeclientset.Rbac().RoleBindings(clusterNamespace).Create(&hcmRoleBinding)
+		_, err = kubeclientset.RbacV1().RoleBindings(clusterNamespace).Create(&hcmRoleBinding)
 		return err
 	} else if err != nil {
 		return err
@@ -93,7 +93,7 @@ func CreateOrUpdateRoleBinding(kubeclientset kubernetes.Interface, clusterName, 
 		binding.Subjects = hcmRoleBinding.Subjects
 	}
 	if needUpdate {
-		_, err = kubeclientset.Rbac().RoleBindings(clusterNamespace).Update(binding)
+		_, err = kubeclientset.RbacV1().RoleBindings(clusterNamespace).Update(binding)
 		return err
 	}
 

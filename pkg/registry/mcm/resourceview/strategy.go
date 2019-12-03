@@ -39,7 +39,7 @@ func ResourceViewToSelectableFields(resourceview *mcm.ResourceView) fields.Set {
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	resourceview, ok := obj.(*mcm.ResourceView)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a resourceview.")
+		return nil, nil, false, fmt.Errorf("given object is not a resourceview")
 	}
 	return labels.Set(resourceview.ObjectMeta.Labels), ResourceViewToSelectableFields(resourceview), resourceview.Initializers != nil, nil
 }

@@ -30,7 +30,7 @@ const (
 
 // FindClusterProxyIPFromConfigmap returns cluster proxy IP from kube-system/icp-management-ingress-config
 func FindClusterProxyIPFromConfigmap(clientset kubernetes.Interface) (string, error) {
-	configmap, err := clientset.Core().ConfigMaps("kube-public").Get("ibmcloud-cluster-info", metav1.GetOptions{})
+	configmap, err := clientset.CoreV1().ConfigMaps("kube-public").Get("ibmcloud-cluster-info", metav1.GetOptions{})
 	if err == nil {
 		proxyIP, ok := configmap.Data["proxy_address"]
 		if !ok {
@@ -38,7 +38,7 @@ func FindClusterProxyIPFromConfigmap(clientset kubernetes.Interface) (string, er
 		}
 		return proxyIP, nil
 	}
-	configmap, err = clientset.Core().ConfigMaps("kube-system").Get("icp-management-ingress-config", metav1.GetOptions{})
+	configmap, err = clientset.CoreV1().ConfigMaps("kube-system").Get("icp-management-ingress-config", metav1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -63,7 +63,7 @@ func FindClusterProxyIPFromConfigmap(clientset kubernetes.Interface) (string, er
 func SplitRegisteredEndpointsName(endpointsName string) (resType, resNamespace, resName string, err error) {
 	parts := strings.Split(endpointsName, ".")
 	if len(parts) != 3 {
-		return "", "", "", fmt.Errorf("The registered endpoints name format should be type.namespace.name")
+		return "", "", "", fmt.Errorf("the registered endpoints name format should be type.namespace.name")
 	}
 	return parts[0], parts[1], parts[2], nil
 }
@@ -73,7 +73,7 @@ func SplitRegisteredEndpointsName(endpointsName string) (resType, resNamespace, 
 func SplitDiscoveredEndpointsName(endpointsName string) (clusterName, resType, resNamespace, resName string, err error) {
 	parts := strings.Split(endpointsName, ".")
 	if len(parts) != 4 {
-		return "", "", "", "", fmt.Errorf("The discovered endpoints name format should be cluster.type.namespace.name")
+		return "", "", "", "", fmt.Errorf("the discovered endpoints name format should be cluster.type.namespace.name")
 	}
 	return parts[0], parts[1], parts[2], parts[3], nil
 }
@@ -113,7 +113,7 @@ func GetDNSPrefix(serviceDiscoveryAnnotation string) (dnsPrefix string, err erro
 
 // IsIstioEnabledNamespace ...
 func IsIstioEnabledNamespace(clientset kubernetes.Interface, namespaceName string) bool {
-	namespace, err := clientset.Core().Namespaces().Get(namespaceName, metav1.GetOptions{})
+	namespace, err := clientset.CoreV1().Namespaces().Get(namespaceName, metav1.GetOptions{})
 	if err != nil {
 		return false
 	}

@@ -6,7 +6,8 @@
 // OCO Source Materials
 // 5737-E67
 // (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
-// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been deposited with the U.S. Copyright Office.
+// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been
+// deposited with the U.S. Copyright Office.
 
 package utils
 
@@ -52,7 +53,8 @@ func IsClusterExit(ClusterName string, clusters []*v1alpha1.Cluster) bool {
 
 // PodRequestsAndLimits returns a dictionary of all defined resources summed up for all
 // containers of the pod.
-func PodRequestsAndLimits(pod *apiv1.Pod) (reqs map[apiv1.ResourceName]resource.Quantity, limits map[apiv1.ResourceName]resource.Quantity, err error) {
+func PodRequestsAndLimits(
+	pod *apiv1.Pod) (reqs map[apiv1.ResourceName]resource.Quantity, limits map[apiv1.ResourceName]resource.Quantity, err error) {
 	reqs, limits = map[apiv1.ResourceName]resource.Quantity{}, map[apiv1.ResourceName]resource.Quantity{}
 	for _, container := range pod.Spec.Containers {
 		for name, quantity := range container.Resources.Requests {

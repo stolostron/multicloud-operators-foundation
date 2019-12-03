@@ -71,7 +71,6 @@ func NewGarbageCollectorController(
 	garbageCollectorPeriod time.Duration,
 	stopCh <-chan struct{},
 ) *GarbageCollectorController {
-
 	storeMap := map[schema.GroupVersionResource]cache.Store{}
 	clusterInformer := clusterinformerFactory.Clusterregistry().V1alpha1().Clusters()
 	controller := &GarbageCollectorController{
@@ -90,7 +89,7 @@ func NewGarbageCollectorController(
 func (g *GarbageCollectorController) controllerFor(resource schema.GroupVersionResource) (cache.Controller, cache.Store, error) {
 	shared, err := g.sharedInformers.ForResource(resource)
 	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to use a shared informer for resource %q: %v", resource.String(), err)
+		return nil, nil, fmt.Errorf("unable to use a shared informer for resource %q: %v", resource.String(), err)
 	}
 	klog.V(4).Infof("using a shared informer for resource %q", resource.String())
 	return shared.Informer().GetController(), shared.Informer().GetStore(), nil
@@ -156,7 +155,7 @@ func (g *GarbageCollectorController) deleteExpiredOneResource(gvr schema.GroupVe
 	if gvr.Resource == "resourceviews" {
 		view, ok := obj.(*v1alpha1.ResourceView)
 		if !ok {
-			return fmt.Errorf("Expected to get resourceview, but failed to get it")
+			return fmt.Errorf("expected to get resourceview, but failed to get it")
 		}
 
 		if view.Spec.Mode != "" {
@@ -198,7 +197,7 @@ func (g *GarbageCollectorController) syncOneResource(gvr schema.GroupVersionReso
 
 	resourceOwnerArray, err := g.extractOwnersInLabel(annotations[mcm.OwnersLabel])
 	if err != nil {
-		return fmt.Errorf("Failed to get owners: %v", err)
+		return fmt.Errorf("failed to get owners: %v", err)
 	}
 
 	shouldDelete := false
@@ -212,12 +211,12 @@ func (g *GarbageCollectorController) syncOneResource(gvr schema.GroupVersionReso
 	if shouldDelete {
 		namespace, name, err := g.getObjectNamespaceName(obj)
 		if err != nil {
-			return fmt.Errorf("Failed to transfer resources: %v", err)
+			return fmt.Errorf("failed to transfer resources: %v", err)
 		}
 
 		err = g.handleDelete(gvr, namespace, name)
 		if err != nil {
-			return fmt.Errorf("Failed to delete resources: %v", err)
+			return fmt.Errorf("failed to delete resources: %v", err)
 		}
 	}
 
@@ -232,7 +231,7 @@ func (g *GarbageCollectorController) shouldDeleteResource(resourceOwner resource
 			if errors.IsNotFound(err) {
 				return true
 			} else {
-				utilruntime.HandleError(fmt.Errorf("Can not get cluster: %v, error: %s", resourceOwner, err))
+				utilruntime.HandleError(fmt.Errorf("can not get cluster: %v, error: %s", resourceOwner, err))
 			}
 		}
 		return false
@@ -269,7 +268,7 @@ func (g *GarbageCollectorController) extractOwnersInLabel(owners string) ([]reso
 	for _, owner := range ownerArray {
 		res := strings.Split(owner, ".")
 		if len(res) < 2 {
-			return resourceArr, fmt.Errorf("Can not split owner : %s", owner)
+			return resourceArr, fmt.Errorf("can not split owner : %s", owner)
 		}
 		tempResource := resourceAttr{
 			resource:  res[0],

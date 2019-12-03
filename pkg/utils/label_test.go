@@ -23,7 +23,8 @@ func TestCloneAndAddLabel(t *testing.T) {
 		args args
 		want map[string]string
 	}{
-		{"case1:", args{labels: map[string]string{"label1": "va1", "label2": "va2"}, labelKey: "key", labelValue: "value"}, map[string]string{"label1": "va1", "label2": "va2", "key": "value"}},
+		{"case1:", args{labels: map[string]string{"label1": "va1", "label2": "va2"}, labelKey: "key", labelValue: "value"},
+			map[string]string{"label1": "va1", "label2": "va2", "key": "value"}},
 		{"case2:", args{labels: nil, labelKey: "", labelValue: ""}, nil},
 	}
 	for _, tt := range tests {
@@ -46,7 +47,8 @@ func TestMatchLabelForLabelSelector(t *testing.T) {
 		want bool
 	}{
 		{"case1:", args{targetLabels: map[string]string{"label1": "va1", "label2": "va2"}}, true},
-		{"case2:", args{targetLabels: map[string]string{"label1": "va1", "label2": "va2"}, labelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "va1", "label2": "va2"}}}, true},
+		{"case2:", args{targetLabels: map[string]string{"label1": "va1", "label2": "va2"},
+			labelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "va1", "label2": "va2"}}}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

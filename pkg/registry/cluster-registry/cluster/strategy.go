@@ -41,7 +41,7 @@ func ClusterToSelectableFields(cluster *clusterregistry.Cluster) fields.Set {
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	cluster, ok := obj.(*clusterregistry.Cluster)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a cluster.")
+		return nil, nil, false, fmt.Errorf("given object is not a cluster")
 	}
 	return labels.Set(cluster.ObjectMeta.Labels), ClusterToSelectableFields(cluster), cluster.Initializers != nil, nil
 }

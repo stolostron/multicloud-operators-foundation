@@ -6,7 +6,8 @@
 // OCO Source Materials
 // 5737-E67
 // (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
-// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been deposited with the U.S. Copyright Office.
+// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been
+// deposited with the U.S. Copyright Office.
 
 package rest
 
@@ -95,13 +96,14 @@ func (m *Helper) List(namespace string, options *metav1.ListOptions) (runtime.Ob
 
 type dynamicCodec struct{}
 
-func (dynamicCodec) Decode(data []byte, gvk *schema.GroupVersionKind, obj runtime.Object) (runtime.Object, *schema.GroupVersionKind, error) {
+func (dynamicCodec) Decode(
+	data []byte, gvk *schema.GroupVersionKind, obj runtime.Object) (runtime.Object, *schema.GroupVersionKind, error) {
 	obj, gvk, err := unstructured.UnstructuredJSONScheme.Decode(data, gvk, obj)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	if _, ok := obj.(*metav1.Status); !ok && strings.ToLower(gvk.Kind) == "status" {
+	if _, ok := obj.(*metav1.Status); !ok && strings.EqualFold(gvk.Kind, "status") {
 		obj = &metav1.Status{}
 		err := json.Unmarshal(data, obj)
 		if err != nil {

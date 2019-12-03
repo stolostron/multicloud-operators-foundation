@@ -130,7 +130,7 @@ func (i *KubeIngressPlugin) SyncDiscoveredResouces(discoveredEndpoints []*v1.End
 	for _, endpoints := range discoveredEndpoints {
 		location, err := i.toIngressLocation(endpoints)
 		if err != nil {
-			klog.Errorf("failed to sync discoverd endpoints (%s/%s), %v", endpoints.Namespace, endpoints.Name, err)
+			klog.Errorf("failed to sync discovered endpoints (%s/%s), %v", endpoints.Namespace, endpoints.Name, err)
 			continue
 		}
 		locations = append(locations, location)
@@ -191,7 +191,7 @@ func (i *KubeIngressPlugin) toEndpoints(obj interface{}) *v1.Endpoints {
 			Labels:      labels,
 			Annotations: annotations,
 		},
-		Subsets: []v1.EndpointSubset{v1.EndpointSubset{
+		Subsets: []v1.EndpointSubset{{
 			Addresses: []v1.EndpointAddress{address},
 			Ports: []v1.EndpointPort{{
 				Port:     80,

@@ -21,7 +21,6 @@ import (
 )
 
 func (k *Klusterlet) handleResourceWork(work *v1alpha1.Work) error {
-
 	result, err := k.queryResource(work.Spec.Scope)
 	// Post work result
 	if err == nil && result != nil {
@@ -138,9 +137,7 @@ func (k *Klusterlet) queryResource(scope v1alpha1.ResourceFilter) (runtime.Objec
 			if relerr != nil {
 				return nil, relerr
 			}
-
 			return releaseTable, nil
-
 		}
 
 		return &v1alpha1.ResultHelmList{Items: releaselists}, nil

@@ -33,5 +33,4 @@ func TestAuthenticateRequest(t *testing.T) {
 	if err != nil {
 		t.Errorf("fake testing error")
 	}
-
 }

@@ -7,8 +7,9 @@ package utils
 
 import (
 	"fmt"
-	"k8s.io/client-go/util/integer"
 	"sync"
+
+	"k8s.io/client-go/util/integer"
 )
 
 var maxBatchSize = 500

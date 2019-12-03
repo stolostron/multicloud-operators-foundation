@@ -2,12 +2,12 @@
 // 5737-E67
 // (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
 // US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
- 
+
 package workset
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/api"
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
@@ -39,7 +39,7 @@ func WorkSetToSelectableFields(workset *mcm.WorkSet) fields.Set {
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	workset, ok := obj.(*mcm.WorkSet)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a workset.")
+		return nil, nil, false, fmt.Errorf("given object is not a workset")
 	}
 	return labels.Set(workset.ObjectMeta.Labels), WorkSetToSelectableFields(workset), workset.Initializers != nil, nil
 }

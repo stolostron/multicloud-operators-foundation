@@ -187,7 +187,7 @@ func (p *IstioPlugin) SyncDiscoveredResouces(discoveredEndpoints []*v1.Endpoints
 			continue
 		}
 		created[current.GetName()] = true
-		//if current service entry correponding discovered service entry is changed, update it
+		//if current service entry corresponding discovered service entry is changed, update it
 		if p.needToUpdate(&current, discovered) {
 			discovered.SetResourceVersion(current.GetResourceVersion())
 			p.updateServiceEntry(discovered)
@@ -272,9 +272,9 @@ func (p *IstioPlugin) toEndpoints(obj interface{}) *v1.Endpoints {
 			Labels:      labels,
 			Annotations: annotations,
 		},
-		Subsets: []v1.EndpointSubset{v1.EndpointSubset{
-			Addresses: []v1.EndpointAddress{v1.EndpointAddress{IP: lbaddress.IP}},
-			Ports:     []v1.EndpointPort{v1.EndpointPort{Port: lbport}},
+		Subsets: []v1.EndpointSubset{{
+			Addresses: []v1.EndpointAddress{{IP: lbaddress.IP}},
+			Ports:     []v1.EndpointPort{{Port: lbport}},
 		}},
 	}
 }

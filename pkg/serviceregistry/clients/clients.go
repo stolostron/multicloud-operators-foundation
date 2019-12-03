@@ -8,11 +8,11 @@ package clients
 import (
 	"sync"
 
-	"k8s.io/klog"
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry/app/options"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
 )
 
 var loadMemberKubeClientOnce sync.Once

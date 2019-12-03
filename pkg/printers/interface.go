@@ -44,6 +44,11 @@ func (fn ResourcePrinterFunc) PrintObj(obj runtime.Object, w io.Writer) error {
 }
 
 type PrintOptions struct {
+	Kind schema.GroupKind
+
+	ColumnLabels []string
+	SortBy       string
+
 	// supported Format types can be found in pkg/printers/printers.go
 	OutputFormatType     string
 	OutputFormatArgument string
@@ -55,10 +60,6 @@ type PrintOptions struct {
 	ShowAll            bool
 	ShowLabels         bool
 	AbsoluteTimestamps bool
-	Kind               schema.GroupKind
-	ColumnLabels       []string
-
-	SortBy string
 
 	// indicates if it is OK to ignore missing keys for rendering an output template.
 	AllowMissingKeys bool

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -48,7 +49,7 @@ type admitFunc func(v1beta1.AdmissionReview) *v1beta1.AdmissionResponse
 
 // serve handles the http portion of a request prior to handing to an admit
 // function
-func (a *admissionHandler) serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
+func (a *admissionHandler) serve(w io.Writer, r *http.Request, admit admitFunc) {
 	var body []byte
 	if r.Body != nil {
 		if data, err := ioutil.ReadAll(r.Body); err == nil {
@@ -103,6 +104,10 @@ func (a *admissionHandler) mutateResource(ar v1beta1.AdmissionReview) *v1beta1.A
 		return toAdmissionResponse(err)
 	}
 	ori, err := json.Marshal(crd)
+	if err != nil {
+		klog.Error(err)
+		return toAdmissionResponse(err)
+	}
 	annotations := crd.GetAnnotations()
 
 	resAnnotations := useridentity.MergeUserIdentityToAnnotations(ar.Request.UserInfo, annotations, crd.GetNamespace(), a.lister)

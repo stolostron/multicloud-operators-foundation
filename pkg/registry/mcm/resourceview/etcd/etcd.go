@@ -101,7 +101,9 @@ func (r *REST) Get(ctx context.Context, name string, options *metav1.GetOptions)
 }
 
 // Create inserts a new item according to the unique key from the object.
-func (r *REST) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
+func (r *REST) Create(
+	ctx context.Context, obj runtime.Object,
+	createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	return r.store.Create(ctx, obj, createValidation, options)
 }
 
@@ -129,11 +131,13 @@ func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOp
 }
 
 // DeleteCollection removes all items returned by List with a given ListOptions from storage.
-func (r *REST) DeleteCollection(ctx context.Context, options *metav1.DeleteOptions, listOptions *metainternalversion.ListOptions) (runtime.Object, error) {
+func (r *REST) DeleteCollection(
+	ctx context.Context, options *metav1.DeleteOptions, listOptions *metainternalversion.ListOptions) (runtime.Object, error) {
 	return r.store.DeleteCollection(ctx, options, listOptions)
 }
 
-func (r *REST) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1beta1.Table, error) {
+func (r *REST) ConvertToTable(
+	ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1beta1.Table, error) {
 	return r.store.ConvertToTable(ctx, object, tableOptions)
 }
 
@@ -193,7 +197,10 @@ func (r *StatusREST) Get(ctx context.Context, name string, options *metav1.GetOp
 }
 
 // Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
+func (r *StatusREST) Update(
+	ctx context.Context, name string, objInfo rest.UpdatedObjectInfo,
+	createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc,
+	forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
 	return r.store.Update(ctx, name, objInfo, createValidation, updateValidation, false, options)
 }
 
@@ -210,7 +217,8 @@ func NewREST(optsGetter generic.RESTOptionsGetter, storageOptions *mcmstorage.St
 		DeleteStrategy:      resourceview.Strategy,
 		ReturnDeletedObject: true,
 
-		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
+		TableConvertor: printerstorage.TableConvertor{
+			TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: resourceview.GetAttrs}

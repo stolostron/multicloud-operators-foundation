@@ -10,8 +10,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"k8s.io/klog"
 	"k8s.io/client-go/util/certificate"
+	"k8s.io/klog"
 )
 
 // WriteKeyCertToFile write key/cert to a certain cert path

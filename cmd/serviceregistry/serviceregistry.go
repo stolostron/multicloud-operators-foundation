@@ -15,7 +15,6 @@ import (
 )
 
 func main() {
-
 	command := app.NewCommand()
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)

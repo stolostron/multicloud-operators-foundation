@@ -70,7 +70,7 @@ func EnsureDirectories(home helmpath.Home) error {
 	for _, p := range configDirectories {
 		if fi, err := os.Stat(p); err != nil {
 			if err := os.MkdirAll(p, 0755); err != nil {
-				return fmt.Errorf("Could not create %s: %s", p, err)
+				return fmt.Errorf("could not create %s: %s", p, err)
 			}
 		} else if !fi.IsDir() {
 			return fmt.Errorf("%s must be a directory", p)

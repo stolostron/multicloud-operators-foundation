@@ -138,7 +138,7 @@ func translateTimestamp(timestamp metav1.Time) string {
 	if timestamp.IsZero() {
 		return "<unknown>"
 	}
-	return duration.ShortHumanDuration(time.Now().Sub(timestamp.Time))
+	return duration.ShortHumanDuration(time.Since(timestamp.Time))
 }
 
 func printClusterList(list *clusterregistryv1alpha1.ClusterList, options printers.PrintOptions) ([]metav1beta1.TableRow, error) {

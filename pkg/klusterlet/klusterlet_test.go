@@ -62,14 +62,14 @@ var (
 			Namespace: "default",
 		},
 		Subsets: []corev1.EndpointSubset{
-			corev1.EndpointSubset{
+			{
 				Addresses: []corev1.EndpointAddress{
-					corev1.EndpointAddress{
+					{
 						IP: "127.0.0.1",
 					},
 				},
 				Ports: []corev1.EndpointPort{
-					corev1.EndpointPort{
+					{
 						Port: 443,
 					},
 				},
@@ -84,7 +84,7 @@ var (
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
-				corev1.ServicePort{
+				{
 					Port:       80,
 					TargetPort: intstr.FromInt(80),
 				},
@@ -115,7 +115,7 @@ var (
 		},
 		Spec: extensionv1beta1.IngressSpec{
 			Rules: []extensionv1beta1.IngressRule{
-				extensionv1beta1.IngressRule{
+				{
 					Host: "test.com",
 				},
 			},
@@ -123,7 +123,7 @@ var (
 		Status: extensionv1beta1.IngressStatus{
 			LoadBalancer: corev1.LoadBalancerStatus{
 				Ingress: []corev1.LoadBalancerIngress{
-					corev1.LoadBalancerIngress{
+					{
 						IP: "127.0.0.1",
 					},
 				},
@@ -139,7 +139,7 @@ var (
 		Spec: corev1.ServiceSpec{
 			Type: corev1.ServiceTypeLoadBalancer,
 			Ports: []corev1.ServicePort{
-				corev1.ServicePort{
+				{
 					Port:       8080,
 					TargetPort: intstr.FromInt(80),
 				},
@@ -148,7 +148,7 @@ var (
 		Status: corev1.ServiceStatus{
 			LoadBalancer: corev1.LoadBalancerStatus{
 				Ingress: []corev1.LoadBalancerIngress{
-					corev1.LoadBalancerIngress{
+					{
 						IP: "10.0.0.1",
 					},
 				},
@@ -157,11 +157,13 @@ var (
 	}
 )
 
-func newTestKlusterlet(configMap *corev1.ConfigMap, clusterRegistry *clusterv1alpha1.Cluster, hcmObjects ...runtime.Object) (*testKlusterlet, *hcmfake.Clientset, *kubefake.Clientset, *clusterfake.Clientset, *helm.FakeClient) {
-	fakeKubeClient := kubefake.NewSimpleClientset(configMap, kubeNode, kubeEndpoints, kubeMonitoringService, kubeMonitoringSecret, klusterletIngress, klusterletService)
+func newTestKlusterlet(configMap *corev1.ConfigMap, clusterRegistry *clusterv1alpha1.Cluster) (
+	*testKlusterlet, *hcmfake.Clientset, *clusterfake.Clientset, *helm.FakeClient) {
+	fakeKubeClient := kubefake.NewSimpleClientset(
+		configMap, kubeNode, kubeEndpoints, kubeMonitoringService, kubeMonitoringSecret, klusterletIngress, klusterletService)
 	fakeHubKubeClient := kubefake.NewSimpleClientset()
 	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
-	fakehcmClient := hcmfake.NewSimpleClientset(hcmObjects...)
+	fakehcmClient := hcmfake.NewSimpleClientset()
 	clusterFakeClient := clusterfake.NewSimpleClientset(clusterRegistry)
 	helmclient := &helm.FakeClient{}
 	helmcontrol := helmutil.NewFakeHelmControl(helmclient)
@@ -180,7 +182,8 @@ func newTestKlusterlet(configMap *corev1.ConfigMap, clusterRegistry *clusterv1al
 	}
 
 	klusterlet := NewKlusterlet(
-		config, fakeKubeClient, fakeRouteV1Client, fakehcmClient, fakeHubKubeClient, clusterFakeClient, helmcontrol, fakekubecontrol, kubeInformerFactory, informerFactory, nil)
+		config, fakeKubeClient, fakeRouteV1Client, fakehcmClient,
+		fakeHubKubeClient, clusterFakeClient, helmcontrol, fakekubecontrol, kubeInformerFactory, informerFactory, nil)
 
 	klusterlet.nodeSynced = alwaysReady
 	klusterlet.podSynced = alwaysReady
@@ -190,7 +193,7 @@ func newTestKlusterlet(configMap *corev1.ConfigMap, clusterRegistry *clusterv1al
 		klusterlet,
 		informerFactory.Mcm().V1alpha1().Works().Informer().GetStore(),
 		fakekubecontrol,
-	}, fakehcmClient, fakeKubeClient, clusterFakeClient, helmclient
+	}, fakehcmClient, clusterFakeClient, helmclient
 }
 
 func newCluster() *clusterv1alpha1.Cluster {
@@ -203,7 +206,7 @@ func newCluster() *clusterv1alpha1.Cluster {
 		Spec: clusterv1alpha1.ClusterSpec{
 			KubernetesAPIEndpoints: clusterv1alpha1.KubernetesAPIEndpoints{
 				ServerEndpoints: []clusterv1alpha1.ServerAddressByClientCIDR{
-					clusterv1alpha1.ServerAddressByClientCIDR{
+					{
 						ServerAddress: "127.0.0.1:8001",
 					},
 				},
@@ -211,7 +214,7 @@ func newCluster() *clusterv1alpha1.Cluster {
 		},
 		Status: clusterv1alpha1.ClusterStatus{
 			Conditions: []clusterv1alpha1.ClusterCondition{
-				clusterv1alpha1.ClusterCondition{
+				{
 					Type:   clusterv1alpha1.ClusterOK,
 					Status: corev1.ConditionTrue,
 				},
@@ -253,7 +256,7 @@ func syncWork(t *testing.T, manager *testKlusterlet, work *v1alpha1.Work) {
 
 func TestSyncClusterStatus(t *testing.T) {
 	//Check if the cluster in cluster registry is created once the cluster is first created.
-	klusterlet, hcmclient, _, clusterclient, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet, hcmclient, clusterclient, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
 	klusterlet.syncClusterStatus()
 
 	var updateCount, createCount int
@@ -293,7 +296,7 @@ func TestSyncClusterStatus(t *testing.T) {
 		},
 	}
 
-	klusterlet, hcmclient, _, clusterclient, _ = newTestKlusterlet(refreshedAPIConfig, newCluster())
+	klusterlet, _, clusterclient, _ = newTestKlusterlet(refreshedAPIConfig, newCluster())
 	klusterlet.syncClusterStatus()
 
 	updateCount = 0
@@ -315,7 +318,7 @@ func TestSyncClusterStatus(t *testing.T) {
 }
 
 func TestReadKlusterletConfig(t *testing.T) {
-	klusterlet, _, _, _, _ := newTestKlusterlet(apiConfig, newCluster())
+	klusterlet, _, _, _ := newTestKlusterlet(apiConfig, newCluster())
 	//Test setting klusterlet address as IP
 	klusterlet.config.KlusterletAddress = "192.168.0.1"
 	endpoint, _, _ := klusterlet.readKlusterletConfig()
@@ -345,7 +348,7 @@ func TestReadKlusterletConfig(t *testing.T) {
 
 func TestProcessWork(t *testing.T) {
 	work := newWork("work1", v1alpha1.ResourceWorkType)
-	klusterlet, hcmclient, _, _, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet, hcmclient, _, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
 	klusterlet.workStore.Add(work)
 	syncWork(t, klusterlet, work)
 
@@ -385,14 +388,13 @@ func TestProcessWork(t *testing.T) {
 	if updateCount != 0 {
 		t.Errorf("processWork() workToUpdate = %v, want %v", updateCount, 0)
 	}
-
 }
 
 func TestGetReleaseWork(t *testing.T) {
 	work := newWork("work1", v1alpha1.ResourceWorkType)
 	work.ObjectMeta.Labels = map[string]string{}
 	work.Spec.Scope.ResourceType = "releases"
-	klusterlet, hcmclient, _, _, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet, hcmclient, _, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
 	klusterlet.workStore.Add(work)
 	syncWork(t, klusterlet, work)
 
@@ -426,7 +428,7 @@ func TestKubeActionWork(t *testing.T) {
 			Object: klusterletIngress,
 		},
 	}
-	klusterlet, hcmclient, _, _, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet, hcmclient, _, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
 	klusterlet.workStore.Add(work)
 	syncWork(t, klusterlet, work)
 
@@ -457,7 +459,7 @@ func TestKubeActionWork(t *testing.T) {
 	work2.Spec.ActionType = v1alpha1.UpdateActionType
 	klusterletIngress2 := klusterletIngress.DeepCopy()
 	klusterletIngress2.Spec.Rules = []extensionv1beta1.IngressRule{
-		extensionv1beta1.IngressRule{
+		{
 			Host: "test",
 		},
 	}
@@ -482,7 +484,7 @@ func TestKubeActionWork(t *testing.T) {
 }
 
 func TestHelmActionWork(t *testing.T) {
-	klusterlet, _, _, _, helmclient := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet, _, _, helmclient := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
 	//Test helm create
 	work1 := newWork("work1", v1alpha1.ActionWorkType)
 	work1.Spec.ActionType = v1alpha1.CreateActionType

@@ -20,8 +20,14 @@ type Registry interface {
 	ListClusters(ctx context.Context, options *metainternalversion.ListOptions) (*clusterregistry.ClusterList, error)
 	WatchCluster(ctx context.Context, options *metainternalversion.ListOptions) (watch.Interface, error)
 	GetCluster(ctx context.Context, name string, options *metav1.GetOptions) (*clusterregistry.Cluster, error)
-	CreateCluster(ctx context.Context, cluster *clusterregistry.Cluster, createValidation rest.ValidateObjectFunc) (*clusterregistry.Cluster, error)
-	UpdateCluster(ctx context.Context, cluster *clusterregistry.Cluster, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (*clusterregistry.Cluster, error)
+	CreateCluster(
+		ctx context.Context,
+		cluster *clusterregistry.Cluster, createValidation rest.ValidateObjectFunc) (*clusterregistry.Cluster, error)
+	UpdateCluster(
+		ctx context.Context,
+		cluster *clusterregistry.Cluster,
+		createValidation rest.ValidateObjectFunc,
+		updateValidation rest.ValidateObjectUpdateFunc) (*clusterregistry.Cluster, error)
 	DeleteCluster(ctx context.Context, name string) error
 }
 
@@ -36,7 +42,8 @@ func NewRegistry(s rest.StandardStorage) Registry {
 	return &storage{s}
 }
 
-func (s *storage) ListClusters(ctx context.Context, options *metainternalversion.ListOptions) (*clusterregistry.ClusterList, error) {
+func (s *storage) ListClusters(
+	ctx context.Context, options *metainternalversion.ListOptions) (*clusterregistry.ClusterList, error) {
 	obj, err := s.List(ctx, options)
 	if err != nil {
 		return nil, err
@@ -56,7 +63,9 @@ func (s *storage) GetCluster(ctx context.Context, name string, options *metav1.G
 	return obj.(*clusterregistry.Cluster), nil
 }
 
-func (s *storage) CreateCluster(ctx context.Context, cluster *clusterregistry.Cluster, createValidation rest.ValidateObjectFunc) (*clusterregistry.Cluster, error) {
+func (s *storage) CreateCluster(
+	ctx context.Context,
+	cluster *clusterregistry.Cluster, createValidation rest.ValidateObjectFunc) (*clusterregistry.Cluster, error) {
 	obj, err := s.Create(ctx, cluster, rest.ValidateAllObjectFunc, &metav1.CreateOptions{})
 	if err != nil {
 		return nil, err
@@ -64,8 +73,12 @@ func (s *storage) CreateCluster(ctx context.Context, cluster *clusterregistry.Cl
 	return obj.(*clusterregistry.Cluster), nil
 }
 
-func (s *storage) UpdateCluster(ctx context.Context, cluster *clusterregistry.Cluster, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc) (*clusterregistry.Cluster, error) {
-	obj, _, err := s.Update(ctx, cluster.Name, rest.DefaultUpdatedObjectInfo(cluster), createValidation, updateValidation, false, &metav1.UpdateOptions{})
+func (s *storage) UpdateCluster(
+	ctx context.Context, cluster *clusterregistry.Cluster, createValidation rest.ValidateObjectFunc,
+	updateValidation rest.ValidateObjectUpdateFunc) (*clusterregistry.Cluster, error) {
+	obj, _, err := s.Update(
+		ctx, cluster.Name,
+		rest.DefaultUpdatedObjectInfo(cluster), createValidation, updateValidation, false, &metav1.UpdateOptions{})
 	if err != nil {
 		return nil, err
 	}

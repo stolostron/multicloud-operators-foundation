@@ -6,7 +6,8 @@
 // OCO Source Materials
 // 5737-E67
 // (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
-// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been deposited with the U.S. Copyright Office.
+// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been
+// deposited with the U.S. Copyright Office.
 
 package app
 
@@ -168,7 +169,7 @@ func RunKlusterletServer(s *options.KlusterletRunOptions, stopCh <-chan struct{}
 	}
 
 	var isAKS = false
-	_, err = clusterClient.Core().ServiceAccounts("kube-system").Get("omsagent", metav1.GetOptions{})
+	_, err = clusterClient.CoreV1().ServiceAccounts("kube-system").Get("omsagent", metav1.GetOptions{})
 	if err == nil {
 		isAKS = true
 	}
@@ -260,7 +261,6 @@ func RunKlusterletServer(s *options.KlusterletRunOptions, stopCh <-chan struct{}
 
 	if err != nil {
 		klog.Warningf("New config error: %v", err)
-
 	}
 
 	config := &klusterlet.Config{

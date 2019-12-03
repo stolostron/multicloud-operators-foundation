@@ -6,8 +6,8 @@
 package options
 
 import (
-	"strings"
 	"sort"
+	"strings"
 
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/api"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -77,7 +77,6 @@ func mergeGroupVersionIntoMap(gvList string, dest map[string]schema.GroupVersion
 				return err
 			}
 			dest[gv.Group] = gv
-
 		} else {
 			parts := strings.SplitN(gvString, "=", 2)
 			gv, err := schema.ParseGroupVersion(parts[1])
@@ -93,7 +92,6 @@ func mergeGroupVersionIntoMap(gvList string, dest map[string]schema.GroupVersion
 
 // AddFlags adds flags for a specific APIServer to the specified FlagSet
 func (s *StorageSerializationOptions) AddFlags(fs *pflag.FlagSet) {
-
 	fs.StringVar(&s.StorageVersions, "storage-versions", s.StorageVersions, ""+
 		"The per-group version to store resources in. "+
 		"Specified in the format \"group1/version1,group2/version2,...\". "+
@@ -102,5 +100,4 @@ func (s *StorageSerializationOptions) AddFlags(fs *pflag.FlagSet) {
 		"You only need to pass the groups you wish to change from the defaults. "+
 		"It defaults to a list of preferred versions of all registered groups, "+
 		"which is derived from the KUBE_API_VERSIONS environment variable.")
-
 }

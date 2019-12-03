@@ -55,7 +55,9 @@ func (t *WorkResultRest) New() runtime.Object {
 
 var _ = rest.Creater(&WorkResultRest{})
 
-func (t *WorkResultRest) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
+func (t *WorkResultRest) Create(
+	ctx context.Context, obj runtime.Object,
+	createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error) {
 	result, ok := obj.(*mcm.ResourceViewResult)
 	if !ok {
 		return nil, errors.NewBadRequest(fmt.Sprintf("not a work result: %#v", obj))
@@ -64,9 +66,10 @@ func (t *WorkResultRest) Create(ctx context.Context, obj runtime.Object, createV
 	key = strings.TrimPrefix(key, "/")
 
 	returnResult := &mcm.ResourceViewResult{}
-	err := t.store.GuaranteedUpdate(ctx, key, returnResult, true, &storage.Preconditions{}, func(existing runtime.Object, res storage.ResponseMeta) (runtime.Object, *uint64, error) {
-		return result, nil, nil
-	})
+	err := t.store.GuaranteedUpdate(ctx, key, returnResult, true, &storage.Preconditions{},
+		func(existing runtime.Object, res storage.ResponseMeta) (runtime.Object, *uint64, error) {
+			return result, nil, nil
+		})
 
 	if err != nil {
 		return nil, err

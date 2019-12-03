@@ -64,10 +64,8 @@ func Run(leaderEnabled bool, kubeClient kubernetes.Interface, namespace, compone
 		if err := createAndRun(ctx, componentName, namespace, kubeClient, run); err != nil {
 			klog.Fatalf("Error create component and run leader election %s", err.Error())
 		}
-	} else {
-		if err := runFunc(stopCh); err != nil {
-			klog.Fatalf("Error run func: %s", err.Error())
-		}
+	} else if err := runFunc(stopCh); err != nil {
+		klog.Fatalf("Error run func: %s", err.Error())
 	}
 	<-stopCh
 	return nil

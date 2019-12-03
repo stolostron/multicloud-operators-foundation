@@ -12,7 +12,7 @@ import (
 
 	"github.com/spf13/pflag"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/client"
+	klusterlet "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/client"
 	mcmstorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/storage"
 )
 
@@ -24,7 +24,7 @@ const (
 	DefaultEtcdPathPrefix = "/registry"
 )
 
-// Runtime options for the hcm-apiserver.
+// ServerRunOptions for the hcm-apiserver.
 type ServerRunOptions struct {
 	GenericServerRunOptions *genericoptions.ServerRunOptions
 	Etcd                    *genericoptions.EtcdOptions
@@ -63,20 +63,20 @@ func NewServerRunOptions() *ServerRunOptions {
 }
 
 // AddFlags adds flags for ServerRunOptions fields to be specified via FlagSet.
-func (s *ServerRunOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.BoolVar(&s.StandAlone, "standalone", false, "Enable when apiserver is run in standalone mode")
+func (options *ServerRunOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.BoolVar(&options.StandAlone, "standalone", false, "Enable when apiserver is run in standalone mode")
 
-	fs.Float32Var(&s.AuthorizationQPS, "authorization_qps", 500, "Maximum QPS for authorization requests")
-	fs.IntVar(&s.AuthorizationBurst, "authorization_burst", 1000, "Maximum burst for authorization requests throttle")
+	fs.Float32Var(&options.AuthorizationQPS, "authorization_qps", 500, "Maximum QPS for authorization requests")
+	fs.IntVar(&options.AuthorizationBurst, "authorization_burst", 1000, "Maximum burst for authorization requests throttle")
 	// Add the generic flags.
-	s.GenericServerRunOptions.AddUniversalFlags(fs)
-	s.Etcd.AddFlags(fs)
-	s.SecureServing.AddFlags(fs)
-	s.Audit.AddFlags(fs)
-	s.Authentication.AddFlags(fs)
-	s.Authorization.AddFlags(fs)
-	s.APIEnablement.AddFlags(fs)
-	s.Admission.AddFlags(fs)
-	s.MCMStorage.AddFlags(fs)
-	s.KlusterletClientOptions.AddFlags(fs)
+	options.GenericServerRunOptions.AddUniversalFlags(fs)
+	options.Etcd.AddFlags(fs)
+	options.SecureServing.AddFlags(fs)
+	options.Audit.AddFlags(fs)
+	options.Authentication.AddFlags(fs)
+	options.Authorization.AddFlags(fs)
+	options.APIEnablement.AddFlags(fs)
+	options.Admission.AddFlags(fs)
+	options.MCMStorage.AddFlags(fs)
+	options.KlusterletClientOptions.AddFlags(fs)
 }

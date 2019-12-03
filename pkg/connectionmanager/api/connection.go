@@ -18,7 +18,7 @@ import (
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/clusterbootstrap"
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/common"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
@@ -48,7 +48,6 @@ type ServerConnection struct {
 func NewServerConnection(
 	bootstrapperconfig, clientconfig []byte, clientCert, clientKey []byte,
 	clusterName, clusterNamespace, hubName string) (*ServerConnection, string, error) {
-
 	conn := &ServerConnection{
 		clientconfig:     clientconfig,
 		clientCert:       clientCert,

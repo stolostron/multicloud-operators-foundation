@@ -8,7 +8,6 @@ package validation
 import (
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )
 
@@ -17,19 +16,10 @@ import (
 // trailing dashes are allowed.
 var ValidateWorkName = apimachineryvalidation.NameIsDNS1035Label
 
-// ValidateObjectMeta validates an object's metadata on creation. It expects that name generation has already
-// been performed.
-// It doesn't return an error for rootscoped resources with namespace, because namespace should already be cleared before.
-// TODO: Remove calls to this method scattered in validations of specific resources, e.g., ValidatePodUpdate.
-func ValidateObjectMeta(meta *metav1.ObjectMeta, requiresNamespace bool, nameFn apimachineryvalidation.ValidateNameFunc, fldPath *field.Path) field.ErrorList {
-	allErrs := apimachineryvalidation.ValidateObjectMeta(meta, requiresNamespace, nameFn, fldPath)
-	return allErrs
-}
-
 // ValidateWork tests if required fields in the work are set.
 func ValidateWork(work *mcm.Work) field.ErrorList {
 	fldPath := field.NewPath("metadata")
-	allErrs := ValidateObjectMeta(&work.ObjectMeta, true, ValidateWorkName, fldPath)
+	allErrs := apimachineryvalidation.ValidateObjectMeta(&work.ObjectMeta, true, ValidateWorkName, fldPath)
 
 	return allErrs
 }

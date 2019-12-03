@@ -74,7 +74,6 @@ func NewResourceViewController(
 	clusterInformerFactory clusterinformers.SharedInformerFactory,
 	enableRBAC bool,
 	stopCh <-chan struct{}) *ResourceViewController {
-
 	clusterInformer := clusterInformerFactory.Clusterregistry().V1alpha1().Clusters()
 	viewInformer := informerFactory.Mcm().V1alpha1().ResourceViews()
 	workInformer := informerFactory.Mcm().V1alpha1().Works()
@@ -145,7 +144,6 @@ func (rv *ResourceViewController) Run() error {
 func (rv *ResourceViewController) runWorker() {
 	for rv.processNextWorkItem() {
 	}
-	return
 }
 
 func (rv *ResourceViewController) processNextWorkItem() bool {
@@ -578,8 +576,6 @@ func (rv *ResourceViewController) enqueueViewFromWork(work *v1alpha1.Work) {
 
 	key = strings.Join(viewNamespacedName, "/")
 	rv.workqueue.Add(key)
-
-	return
 }
 
 func (rv *ResourceViewController) needsUpdate(oldview, newview *v1alpha1.ResourceView) bool {
@@ -648,7 +644,6 @@ func createViewContidion(view *v1alpha1.ResourceView, conditionType v1alpha1.Wor
 
 	if len(conditions) == 0 || conditions[len(conditions)-1].Type != conditionType {
 		conditions = append(conditions, condition)
-
 	} else {
 		conditions[len(conditions)-1] = condition
 	}

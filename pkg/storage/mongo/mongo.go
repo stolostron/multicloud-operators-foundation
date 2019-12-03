@@ -37,7 +37,6 @@ type store struct {
 }
 
 const (
-	defaultDBName            = "mcm"
 	mongoDocumentNotFoundErr = "mongo: no documents in result"
 )
 
@@ -88,10 +87,12 @@ func NewMongoStorage(options *MongoOptions, kind schema.GroupKind) (storage.Inte
 	klog.Info("Connected to mongo at ", options.MongoHost)
 	newStore := &store{collection: db.Collection(kind.Kind)}
 
-	// This goroutine periodically checks the mongo connection, and refreshes it if it has some problem. Due to an idiosyncracy of the library, we must also reinitialize the Client object itself.
+	// This goroutine periodically checks the mongo connection, and refreshes it if it has some problem.
+	// Due to an idiosyncrasy of the library, we must also reinitialize the Client object itself.
 	go func() {
 		for {
-			_, err := newStore.collection.CountDocuments(context.TODO(), map[string]string{}) // Check the connection by trying to count docs
+			// Check the connection by trying to count docs
+			_, err := newStore.collection.CountDocuments(context.TODO(), map[string]string{})
 			if err != nil {
 				discErr := client.Disconnect(context.Background()) // Disconnect old connection
 				if discErr != nil {
@@ -167,7 +168,8 @@ func (m *store) Create(ctx context.Context, key string, obj, out runtime.Object,
 // If resource version is "0", this interface will get current object at given key
 // and send it in an "ADDED" event, before watch starts.
 // NOTE: not implemented
-func (m *store) Watch(ctx context.Context, key string, resourceVersion string, p storage.SelectionPredicate) (watch.Interface, error) {
+func (m *store) Watch(
+	ctx context.Context, key string, resourceVersion string, p storage.SelectionPredicate) (watch.Interface, error) {
 	return nil, nil
 }
 
@@ -179,7 +181,8 @@ func (m *store) Watch(ctx context.Context, key string, resourceVersion string, p
 // If resource version is "0", this interface will list current objects directory defined by key
 // and send them in "ADDED" events, before watch starts.
 // NOTE: note implemented
-func (m *store) WatchList(ctx context.Context, key string, resourceVersion string, p storage.SelectionPredicate) (watch.Interface, error) {
+func (m *store) WatchList(
+	ctx context.Context, key string, resourceVersion string, p storage.SelectionPredicate) (watch.Interface, error) {
 	return nil, nil
 }
 
@@ -188,7 +191,8 @@ func (m *store) WatchList(ctx context.Context, key string, resourceVersion strin
 // Treats empty responses and nil response nodes exactly like a not found error.
 // The returned contents may be delayed, but it is guaranteed that they will
 // be have at least 'resourceVersion'.
-func (m *store) Get(ctx context.Context, key string, resourceVersion string, objPtr runtime.Object, ignoreNotFound bool) error {
+func (m *store) Get(
+	ctx context.Context, key string, resourceVersion string, objPtr runtime.Object, ignoreNotFound bool) error {
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return err
@@ -213,7 +217,8 @@ func (m *store) Get(ctx context.Context, key string, resourceVersion string, obj
 // The returned contents may be delayed, but it is guaranteed that they will
 // be have at least 'resourceVersion'.
 // NOTE: not implemented
-func (m *store) GetToList(ctx context.Context, key string, resourceVersion string, p storage.SelectionPredicate, listObj runtime.Object) error {
+func (m *store) GetToList(
+	ctx context.Context, key string, resourceVersion string, p storage.SelectionPredicate, listObj runtime.Object) error {
 	return nil
 }
 
@@ -221,7 +226,9 @@ func (m *store) GetToList(ctx context.Context, key string, resourceVersion strin
 // into *List api object (an object that satisfies runtime.IsList definition).
 // The returned contents may be delayed, but it is guaranteed that they will
 // be have at least 'resourceVersion'.
-func (m *store) List(ctx context.Context, key string, resourceVersion string, p storage.SelectionPredicate, listObj runtime.Object) error {
+func (m *store) List(
+	ctx context.Context, key string, resourceVersion string, p storage.SelectionPredicate, listObj runtime.Object) error {
+	var err error
 	listPtr, err := meta.GetItemsPtr(listObj)
 	if err != nil {
 		return err
@@ -240,7 +247,9 @@ func (m *store) List(ctx context.Context, key string, resourceVersion string, p 
 		filterDoc.Append(el)
 	}
 	cursor, err := m.collection.Find(context.Background(), &filterDoc)
-	defer cursor.Close(context.Background())
+	defer func() {
+		err = cursor.Close(context.Background())
+	}()
 	if err != nil {
 		return err
 	}
@@ -263,7 +272,7 @@ func (m *store) List(ctx context.Context, key string, resourceVersion string, p 
 
 		v.Set(reflect.Append(v, reflect.ValueOf(obj).Elem()))
 	}
-	return nil
+	return err
 }
 
 // GuaranteedUpdate keeps calling 'tryUpdate()' to update key 'key' (of type 'ptrToType')
@@ -318,7 +327,7 @@ func (m *store) Count(key string) (int64, error) {
 
 // encodeLableKey encode label to a base64 formart
 func encodeLableKey(labels map[string]string) map[string]string {
-	if labels == nil || len(labels) == 0 {
+	if len(labels) == 0 {
 		return map[string]string{}
 	}
 	remap := map[string]string{}
@@ -331,7 +340,7 @@ func encodeLableKey(labels map[string]string) map[string]string {
 
 // decoeLableKey encode label to a base64 formart
 func decodeLableKey(labels map[string]string) map[string]string {
-	if labels == nil || len(labels) == 0 {
+	if len(labels) == 0 {
 		return map[string]string{}
 	}
 	remap := map[string]string{}

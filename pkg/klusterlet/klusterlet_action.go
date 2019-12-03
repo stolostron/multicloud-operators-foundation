@@ -24,7 +24,7 @@ func (k *Klusterlet) handleActionWork(work *v1alpha1.Work) error {
 	var err error
 	var res runtime.RawExtension
 	if work.Spec.HelmWork != nil && k.helmControl == nil {
-		return fmt.Errorf("Failed to find helm client")
+		return fmt.Errorf("failed to find helm client")
 	}
 	switch work.Spec.ActionType {
 	case v1alpha1.CreateActionType:
@@ -33,21 +33,18 @@ func (k *Klusterlet) handleActionWork(work *v1alpha1.Work) error {
 		} else if work.Spec.HelmWork != nil {
 			res, err = k.handleCreateHelmActionWork(work, k.helmControl)
 		}
-		break
 	case v1alpha1.DeleteActionType:
 		if work.Spec.KubeWork != nil {
 			res, err = k.handleDeleteKubeActionWork(work)
 		} else if work.Spec.HelmWork != nil {
 			res, err = k.handleDeleteHelmActionWork(work, k.helmControl)
 		}
-		break
 	case v1alpha1.UpdateActionType:
 		if work.Spec.KubeWork != nil {
 			res, err = k.handleUpdateKubeActionWork(work)
 		} else if work.Spec.HelmWork != nil {
 			res, err = k.handleUpdateHelmActionWork(work, k.helmControl)
 		}
-		break
 	}
 	if err != nil {
 		return k.updateFailedStatus(work, err)

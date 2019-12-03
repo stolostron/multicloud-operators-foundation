@@ -71,7 +71,6 @@ func NewWorkSetController(
 	clusterInformerFactory clusterinformers.SharedInformerFactory,
 	enableRBAC bool,
 	stopCh <-chan struct{}) *WorkSetController {
-
 	clusterInformer := clusterInformerFactory.Clusterregistry().V1alpha1().Clusters()
 	worksetInformer := informerFactory.Mcm().V1alpha1().WorkSets()
 	workInformer := informerFactory.Mcm().V1alpha1().Works()
@@ -140,7 +139,6 @@ func (w *WorkSetController) Run() error {
 func (w *WorkSetController) runWorker() {
 	for w.processNextWorkItem() {
 	}
-	return
 }
 
 func (w *WorkSetController) processNextWorkItem() bool {
@@ -498,8 +496,6 @@ func (w *WorkSetController) enqueueWorkSetFromWork(work *v1alpha1.Work) {
 
 	key = strings.Join(worksetNamespacedName, "/")
 	w.workqueue.Add(key)
-
-	return
 }
 
 func (w *WorkSetController) needUpdateWork(workset *v1alpha1.WorkSet, work *v1alpha1.Work) bool {

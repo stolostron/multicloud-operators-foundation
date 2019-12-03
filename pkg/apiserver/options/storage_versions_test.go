@@ -18,8 +18,10 @@ func TestNewStorageSerializationOptions(t *testing.T) {
 		name string
 		want *StorageSerializationOptions
 	}{
-
-		{"case1:", &StorageSerializationOptions{StorageVersions: "clusterregistry.k8s.io/v1alpha1,mcm.ibm.com/v1alpha1,v1", DefaultStorageVersions: "clusterregistry.k8s.io/v1alpha1,mcm.ibm.com/v1alpha1,v1"}},
+		{"case1:", &StorageSerializationOptions{
+			StorageVersions:        "clusterregistry.k8s.io/v1alpha1,mcm.ibm.com/v1alpha1,v1",
+			DefaultStorageVersions: "clusterregistry.k8s.io/v1alpha1,mcm.ibm.com/v1alpha1,v1"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -31,7 +33,6 @@ func TestNewStorageSerializationOptions(t *testing.T) {
 }
 
 func TestStorageSerializationOptions_StorageGroupsToEncodingVersion(t *testing.T) {
-	//groupVersion1 := schema.GroupVersion{"group1", "v1"}
 	groupVersion2 := schema.GroupVersion{"", "v2"}
 	type fields struct {
 		StorageVersions        string
@@ -43,7 +44,9 @@ func TestStorageSerializationOptions_StorageGroupsToEncodingVersion(t *testing.T
 		want    map[string]schema.GroupVersion
 		wantErr bool
 	}{
-		{"case1:", fields{StorageVersions: "v2", DefaultStorageVersions: "v1"}, map[string]schema.GroupVersion{"": groupVersion2}, false},
+		{"case1:",
+			fields{StorageVersions: "v2", DefaultStorageVersions: "v1"},
+			map[string]schema.GroupVersion{"": groupVersion2}, false},
 		{"case2:", fields{}, map[string]schema.GroupVersion{}, false},
 	}
 	for _, tt := range tests {

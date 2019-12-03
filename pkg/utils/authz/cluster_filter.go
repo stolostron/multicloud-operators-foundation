@@ -52,7 +52,7 @@ func FilterClusterByUserIdentity(
 				Groups: groups,
 			},
 		}
-		result, err := kubeclient.Authorization().SubjectAccessReviews().Create(sar)
+		result, err := kubeclient.AuthorizationV1().SubjectAccessReviews().Create(sar)
 		if err != nil {
 			continue
 		}

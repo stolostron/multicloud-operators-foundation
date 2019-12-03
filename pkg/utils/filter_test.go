@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
@@ -25,8 +25,11 @@ func TestConvertLabels(t *testing.T) {
 		want    *metav1.LabelSelector
 		wantErr bool
 	}{
-		{"case1:", args{labelSelector: &metav1.LabelSelector{MatchLabels: nil, MatchExpressions: nil}}, &metav1.LabelSelector{MatchLabels: nil, MatchExpressions: nil}, false},
-		{"case2:", args{labelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "value1", "label2": "value2"}}}, &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "value1", "label2": "value2"}}, false},
+		{"case1:", args{labelSelector: &metav1.LabelSelector{
+			MatchLabels: nil, MatchExpressions: nil}}, &metav1.LabelSelector{MatchLabels: nil, MatchExpressions: nil}, false},
+		{"case2:", args{labelSelector: &metav1.LabelSelector{
+			MatchLabels: map[string]string{"label1": "value1", "label2": "value2"}}},
+			&metav1.LabelSelector{MatchLabels: map[string]string{"label1": "value1", "label2": "value2"}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -46,13 +49,13 @@ func TestConvertLabels(t *testing.T) {
 }
 
 func TestGetWorkSetFromWork(t *testing.T) {
-
 	selector1 := &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "value1", "label2": "value2"}}
 	//WorkSetSpec1 := &v1alpha1.WorkSetSpec{Selector: selector1}
 	//LabelSelector := &v1alpha1.WorkSet{Spec: WorkSetSpec1}
 
 	work1 := &v1alpha1.Work{Spec: v1alpha1.WorkSpec{Scope: v1alpha1.ResourceFilter{LabelSelector: selector1}}}
-	workset1 := &v1alpha1.WorkSet{Spec: v1alpha1.WorkSetSpec{Selector: selector1}, Status: v1alpha1.WorkSetStatus{Status: v1alpha1.WorkStatusType("running")}}
+	workset1 := &v1alpha1.WorkSet{Spec: v1alpha1.WorkSetSpec{Selector: selector1},
+		Status: v1alpha1.WorkSetStatus{Status: v1alpha1.WorkStatusType("running")}}
 	//workset2 := &v1alpha1.WorkSet{}
 
 	//want1 := metav1.LabelSelectorAsSelector(*metav1.LabelSelector)
@@ -89,7 +92,8 @@ func TestGetWorkSetFromWork(t *testing.T) {
 func TestFilterHealthyClusters(t *testing.T) {
 	ClusterCondition1 := clusterv1alpha1.ClusterCondition{Status: v1.ConditionStatus("running")}
 	ClusterCondition2 := clusterv1alpha1.ClusterCondition{Status: v1.ConditionStatus("stopped")}
-	cluster1 := &clusterv1alpha1.Cluster{Status: clusterv1alpha1.ClusterStatus{Conditions: []clusterv1alpha1.ClusterCondition{ClusterCondition1, ClusterCondition2}}}
+	cluster1 := &clusterv1alpha1.Cluster{Status: clusterv1alpha1.ClusterStatus{
+		Conditions: []clusterv1alpha1.ClusterCondition{ClusterCondition1, ClusterCondition2}}}
 	type args struct {
 		clusters []*clusterv1alpha1.Cluster
 	}

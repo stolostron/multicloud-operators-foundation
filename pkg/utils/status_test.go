@@ -9,27 +9,20 @@ import (
 	"reflect"
 	"testing"
 
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
 
 func TestGetStatusFromCluster(t *testing.T) {
 	var (
-		//ServerAddressByClientCIDR1 = v1alpha1.ServerAddressByClientCIDR{ClientCIDR: "aaa", ServerAddress: "aaa"}
-		//ServerAddressByClientCIDR2 = v1alpha1.ServerAddressByClientCIDR{ClientCIDR: "bbb", ServerAddress: "bbb"}
-		//KubernetesAPIEndpoints1    = v1alpha1.KubernetesAPIEndpoints{ServerEndpoints: []v1alpha1.ServerAddressByClientCIDR{ServerAddressByClientCIDR1, ServerAddressByClientCIDR2}, CABundle: []byte("aaa")}
-		//AuthInfo1                  = v1alpha1.AuthInfo{}
-		//ClusterSpe1 = v1alpha1.ClusterSpec{KubernetesAPIEndpoints: KubernetesAPIEndpoints1, AuthInfo: AuthInfo1}
-
 		ClusterConditionType1 = v1alpha1.ClusterConditionType("type1")
 		ClusterConditionType2 = v1alpha1.ClusterConditionType("type2")
 		Status1               = v1.ConditionStatus("ok")
-
-		ClusterCondition1 = v1alpha1.ClusterCondition{Type: ClusterConditionType1, Status: Status1}
-		ClusterCondition2 = v1alpha1.ClusterCondition{Type: ClusterConditionType2, Status: Status1}
-		ClusterStatus1    = v1alpha1.ClusterStatus{Conditions: []v1alpha1.ClusterCondition{ClusterCondition1, ClusterCondition2}}
-
+		ClusterCondition1     = v1alpha1.ClusterCondition{Type: ClusterConditionType1, Status: Status1}
+		ClusterCondition2     = v1alpha1.ClusterCondition{Type: ClusterConditionType2, Status: Status1}
+		ClusterStatus1        = v1alpha1.ClusterStatus{
+			Conditions: []v1alpha1.ClusterCondition{ClusterCondition1, ClusterCondition2}}
 		cluster1 = v1alpha1.Cluster{Status: ClusterStatus1}
 	)
 	type args struct {

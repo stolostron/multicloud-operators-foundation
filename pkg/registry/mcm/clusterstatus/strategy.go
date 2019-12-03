@@ -39,7 +39,7 @@ func ClusterStatusToSelectableFields(clusterstatus *mcm.ClusterStatus) fields.Se
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	clusterstatus, ok := obj.(*mcm.ClusterStatus)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a clusterstatus.")
+		return nil, nil, false, fmt.Errorf("given object is not a clusterstatus")
 	}
 	return labels.Set(clusterstatus.ObjectMeta.Labels), ClusterStatusToSelectableFields(clusterstatus), clusterstatus.Initializers != nil, nil
 }
@@ -54,7 +54,6 @@ func MatchClusterStatus(label labels.Selector, field fields.Selector) apistorage
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (clusterstatusStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
-	return
 }
 
 // Validate validates a new clusterstatus.
@@ -73,7 +72,6 @@ func (clusterstatusStrategy) AllowCreateOnUpdate() bool {
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
 func (clusterstatusStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
-	return
 }
 
 // ValidateUpdate is the default update validation for an end user.

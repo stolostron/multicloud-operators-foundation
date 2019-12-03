@@ -34,9 +34,9 @@ func newRegisterEndpoint(namespace, name, annotations string) *corev1.Endpoints 
 			},
 		},
 		Subsets: []corev1.EndpointSubset{
-			corev1.EndpointSubset{
+			{
 				Addresses: []corev1.EndpointAddress{
-					corev1.EndpointAddress{
+					{
 						IP: "1.2.3.4",
 					},
 				},
@@ -60,7 +60,7 @@ func newCluster(name string, ready bool) *cluster.Cluster {
 		},
 		Status: cluster.ClusterStatus{
 			Conditions: []cluster.ClusterCondition{
-				cluster.ClusterCondition{
+				{
 					Type: clusterType,
 				},
 			},

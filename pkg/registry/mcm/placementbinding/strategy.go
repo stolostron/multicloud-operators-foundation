@@ -38,7 +38,7 @@ func PlacementBindingToSelectableFields(placementBinding *mcm.PlacementBinding) 
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	placementBinding, ok := obj.(*mcm.PlacementBinding)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a placementBinding.")
+		return nil, nil, false, fmt.Errorf("given object is not a placementBinding")
 	}
 	return labels.Set(placementBinding.ObjectMeta.Labels), PlacementBindingToSelectableFields(placementBinding), placementBinding.Initializers != nil, nil
 }

@@ -35,19 +35,19 @@ func (p RESTStorageProvider) NewRESTStorage(
 	storageOptions *mcmstorage.StorageOptions,
 	clientConfig klusterlet.KlusterletClientConfig) (genericapiserver.APIGroupInfo, bool) {
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(hcmv1alpha1.GroupName, api.Scheme, api.ParameterCodec, api.Codecs)
-	// If you add a version here, be sure to add an entry in `k8s.io/kubernetes/cmd/kube-apiserver/app/aggregator.go with specific priorities.
+	// If you add a version here, be sure to add an entry in `k8s.io/kubernetes/cmd/kube-apiserver/app/aggregator.go with
+	// specific priorities.
 	// TODO refactor the plumbing to provide the information in the APIGroupInfo
 
 	if apiResourceConfigSource.VersionEnabled(hcmv1alpha1.SchemeGroupVersion) {
 		apiGroupInfo.VersionedResourcesStorageMap[hcmv1alpha1.SchemeGroupVersion.Version] = p.v1alpha1Storage(
-			apiResourceConfigSource, restOptionsGetter, storageOptions, clientConfig)
+			restOptionsGetter, storageOptions, clientConfig)
 	}
 
 	return apiGroupInfo, true
 }
 
 func (p RESTStorageProvider) v1alpha1Storage(
-	apiResourceConfigSource serverstorage.APIResourceConfigSource,
 	optsGetter generic.RESTOptionsGetter,
 	storageOptions *mcmstorage.StorageOptions,
 	clientConfig klusterlet.KlusterletClientConfig) map[string]rest.Storage {

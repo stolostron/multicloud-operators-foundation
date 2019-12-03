@@ -163,20 +163,14 @@ func (c *PluginController) syncRegisteredEndpoints() {
 		return
 	}
 	toCreate, toDelete, toUpdate := c.plugin.SyncRegisteredEndpoints(endpoints)
-	if toCreate != nil {
-		for _, ep := range toCreate {
-			c.createEndpoints(ep)
-		}
+	for _, ep := range toCreate {
+		c.createEndpoints(ep)
 	}
-	if toDelete != nil {
-		for _, ep := range toDelete {
-			c.deleteEndpoints(ep)
-		}
+	for _, ep := range toDelete {
+		c.deleteEndpoints(ep)
 	}
-	if toUpdate != nil {
-		for _, ep := range toUpdate {
-			c.updateEndpoints(ep)
-		}
+	for _, ep := range toUpdate {
+		c.updateEndpoints(ep)
 	}
 }
 

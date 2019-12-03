@@ -103,7 +103,7 @@ func (c *EndpointsController) refreshDNSRecords(locations []*plugin.ServiceLocat
 	if len(nameParts) != 2 {
 		return fmt.Errorf("the dns configmap name %s should be with the format of namespace/name", c.dnsConfigmapName)
 	}
-	configmap, err := c.memberKubeClient.Core().ConfigMaps(nameParts[0]).Get(nameParts[1], metav1.GetOptions{})
+	configmap, err := c.memberKubeClient.CoreV1().ConfigMaps(nameParts[0]).Get(nameParts[1], metav1.GetOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to get the dns configmap %s, %v", c.dnsConfigmapName, err)
 	}
@@ -124,10 +124,10 @@ func (c *EndpointsController) refreshDNSRecords(locations []*plugin.ServiceLocat
 	}
 
 	configmap.Data[svcregistryDNSDBKey] = fmt.Sprintf("%s\n%s", newSOARecord, newRecords)
-	_, err = c.memberKubeClient.Core().ConfigMaps(nameParts[0]).Update(configmap)
+	_, err = c.memberKubeClient.CoreV1().ConfigMaps(nameParts[0]).Update(configmap)
 	if err != nil {
 		return fmt.Errorf("failed to updated dns configmap %s, %v", c.dnsConfigmapName, err)
 	}
-	klog.Infof("update discovered resouce dns records in configmap %s at %d", c.dnsConfigmapName, updateTime)
+	klog.Infof("update discovered resource dns records in configmap %s at %d", c.dnsConfigmapName, updateTime)
 	return nil
 }

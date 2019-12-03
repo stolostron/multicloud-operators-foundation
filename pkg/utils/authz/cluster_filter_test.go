@@ -19,7 +19,10 @@ import (
 	clusterv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
 
-func newCluster(name, namespace string, status clusterv1alpha1.ClusterConditionType, labels map[string]string) *clusterv1alpha1.Cluster {
+func newCluster(
+	name, namespace string,
+	status clusterv1alpha1.ClusterConditionType,
+	labels map[string]string) *clusterv1alpha1.Cluster {
 	return &clusterv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -28,7 +31,7 @@ func newCluster(name, namespace string, status clusterv1alpha1.ClusterConditionT
 		},
 		Status: clusterv1alpha1.ClusterStatus{
 			Conditions: []clusterv1alpha1.ClusterCondition{
-				clusterv1alpha1.ClusterCondition{
+				{
 					Type: status,
 				},
 			},
@@ -38,7 +41,9 @@ func newCluster(name, namespace string, status clusterv1alpha1.ClusterConditionT
 
 func newClusterList(numNodes int, label map[string]string) (clusters []*clusterv1alpha1.Cluster) {
 	for i := 0; i < numNodes; i++ {
-		clusters = append(clusters, newCluster(fmt.Sprintf("cluster-%d", i), fmt.Sprintf("node-%d", i), clusterv1alpha1.ClusterOK, label))
+		clusters = append(
+			clusters,
+			newCluster(fmt.Sprintf("cluster-%d", i), fmt.Sprintf("node-%d", i), clusterv1alpha1.ClusterOK, label))
 	}
 
 	return clusters
@@ -57,7 +62,11 @@ func newView(name, namespace string) *v1alpha1.ResourceView {
 func TestFilterClusterByUserIdentity(t *testing.T) {
 	clusters := newClusterList(4, map[string]string{})
 	view := newView("test", "test")
-	clientset := kubernetes.NewForConfigOrDie(&restclient.Config{Host: "", ContentConfig: restclient.ContentConfig{GroupVersion: &schema.GroupVersion{Group: "", Version: "v1"}}})
+	clientset := kubernetes.NewForConfigOrDie(
+		&restclient.Config{
+			Host:          "",
+			ContentConfig: restclient.ContentConfig{GroupVersion: &schema.GroupVersion{Group: "", Version: "v1"}},
+		})
 
 	view1 := newView("test1", "test1")
 	view1.Annotations = map[string]string{
@@ -109,7 +118,6 @@ func TestFilterClusterByUserIdentity(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestExtractUserAndGroup(t *testing.T) {

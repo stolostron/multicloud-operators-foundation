@@ -6,7 +6,8 @@
 // OCO Source Materials
 // 5737-E67
 // (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
-// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been deposited with the U.S. Copyright Office.
+// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been
+// deposited with the U.S. Copyright Office.
 
 package utils
 
@@ -21,7 +22,8 @@ import (
 func TestIsClusterExit(t *testing.T) {
 	ServerAddressByClientCIDR1 := v1alpha1.ServerAddressByClientCIDR{ClientCIDR: "/opt"}
 	ServerAddressByClientCIDR2 := v1alpha1.ServerAddressByClientCIDR{ClientCIDR: "/usr"}
-	clusters1 := &v1alpha1.Cluster{Spec: v1alpha1.ClusterSpec{KubernetesAPIEndpoints: v1alpha1.KubernetesAPIEndpoints{ServerEndpoints: []v1alpha1.ServerAddressByClientCIDR{ServerAddressByClientCIDR1, ServerAddressByClientCIDR2}}}}
+	clusters1 := &v1alpha1.Cluster{Spec: v1alpha1.ClusterSpec{KubernetesAPIEndpoints: v1alpha1.KubernetesAPIEndpoints{
+		ServerEndpoints: []v1alpha1.ServerAddressByClientCIDR{ServerAddressByClientCIDR1, ServerAddressByClientCIDR2}}}}
 
 	type args struct {
 		ClusterName string

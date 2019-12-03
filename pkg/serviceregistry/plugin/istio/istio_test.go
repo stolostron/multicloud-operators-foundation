@@ -38,7 +38,7 @@ func TestSyncRegisteredEndpoints(t *testing.T) {
 		},
 	})
 	store.Add(&v1.Service{
-		Spec: v1.ServiceSpec{Ports: []v1.ServicePort{v1.ServicePort{Name: "http", Port: 8000}}},
+		Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Name: "http", Port: 8000}}},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "httpbin",
 			Namespace:   "istio-test",
@@ -59,7 +59,7 @@ func TestSyncRegisteredEndpoints(t *testing.T) {
 	}
 
 	store.Update(&v1.Service{
-		Spec: v1.ServiceSpec{Ports: []v1.ServicePort{v1.ServicePort{Name: "http", Port: 8000}}},
+		Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Name: "http", Port: 8000}}},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        "httpbin",
 			Namespace:   "istio-test",
@@ -79,7 +79,7 @@ func TestSyncRegisteredEndpoints(t *testing.T) {
 	}
 
 	store.Update(&v1.Service{
-		Spec: v1.ServiceSpec{Ports: []v1.ServicePort{v1.ServicePort{Name: "http", Port: 8000}}},
+		Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Name: "http", Port: 8000}}},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "httpbin",
 			Namespace: "istio-test",
@@ -98,7 +98,7 @@ func TestSyncRegisteredEndpoints(t *testing.T) {
 	}
 
 	store.Delete(v1.Service{
-		Spec: v1.ServiceSpec{Ports: []v1.ServicePort{v1.ServicePort{Name: "http", Port: 8000}}},
+		Spec: v1.ServiceSpec{Ports: []v1.ServicePort{{Name: "http", Port: 8000}}},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "httpbin",
 			Namespace: "istio-test",
@@ -128,7 +128,7 @@ func TestSyncDiscoveredResouces(t *testing.T) {
 	plugin, _ := newIstioPlugin()
 
 	discoveredeps := []*v1.Endpoints{
-		&v1.Endpoints{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "cluster1.istio.test.http",
 				Namespace: "cluster1",
@@ -139,9 +139,9 @@ func TestSyncDiscoveredResouces(t *testing.T) {
 				},
 			},
 			Subsets: []v1.EndpointSubset{
-				v1.EndpointSubset{
-					Addresses: []v1.EndpointAddress{v1.EndpointAddress{IP: "1.2.3.4"}},
-					Ports:     []v1.EndpointPort{v1.EndpointPort{Port: 32178}},
+				{
+					Addresses: []v1.EndpointAddress{{IP: "1.2.3.4"}},
+					Ports:     []v1.EndpointPort{{Port: 32178}},
 				},
 			},
 		},
@@ -167,9 +167,9 @@ func TestSyncDiscoveredResouces(t *testing.T) {
 			},
 		},
 		Subsets: []v1.EndpointSubset{
-			v1.EndpointSubset{
-				Addresses: []v1.EndpointAddress{v1.EndpointAddress{IP: "1.2.3.5"}},
-				Ports:     []v1.EndpointPort{v1.EndpointPort{Port: 32178}},
+			{
+				Addresses: []v1.EndpointAddress{{IP: "1.2.3.5"}},
+				Ports:     []v1.EndpointPort{{Port: 32178}},
 			},
 		},
 	}, &v1.Endpoints{
@@ -183,9 +183,9 @@ func TestSyncDiscoveredResouces(t *testing.T) {
 			},
 		},
 		Subsets: []v1.EndpointSubset{
-			v1.EndpointSubset{
-				Addresses: []v1.EndpointAddress{v1.EndpointAddress{IP: "1.2.3.4"}},
-				Ports:     []v1.EndpointPort{v1.EndpointPort{Port: 32178}},
+			{
+				Addresses: []v1.EndpointAddress{{IP: "1.2.3.4"}},
+				Ports:     []v1.EndpointPort{{Port: 32178}},
 			},
 		},
 	})
@@ -249,7 +249,7 @@ func newIstioPlugin() (*IstioPlugin, cache.Store) {
 
 	//prepare istio ingressgateway
 	serviceStore.Add(&v1.Service{
-		Spec:   v1.ServiceSpec{Ports: []v1.ServicePort{v1.ServicePort{Name: "tls", Port: 15443, NodePort: 32178}}},
+		Spec:   v1.ServiceSpec{Ports: []v1.ServicePort{{Name: "tls", Port: 15443, NodePort: 32178}}},
 		Status: v1.ServiceStatus{LoadBalancer: v1.LoadBalancerStatus{}},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "istio-ingressgateway",

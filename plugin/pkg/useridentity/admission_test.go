@@ -28,7 +28,9 @@ import (
 )
 
 // newHandlerForTest returns a configured handler for testing.
-func newHandlerForTest(internalClient internalclientset.Interface, kubeclient kubeclientset.Interface) (admission.Interface, kubeinformers.SharedInformerFactory, error) {
+func newHandlerForTest(
+	internalClient internalclientset.Interface,
+	kubeclient kubeclientset.Interface) (admission.Interface, kubeinformers.SharedInformerFactory, error) {
 	f := informers.NewSharedInformerFactory(internalClient, 5*time.Minute)
 	handler, err := NewUserIdentiyAnnotate()
 	if err != nil {
@@ -48,7 +50,7 @@ func newFakeHCMClientForTest() *fake.Clientset {
 }
 
 // newWork returns a new work for the specified namespace.
-func newWork(namespace string, workName string) mcm.Work {
+func newWork(namespace string) mcm.Work {
 	work := mcm.Work{
 		ObjectMeta: metav1.ObjectMeta{Name: "instance", Namespace: namespace},
 		Spec:       mcm.WorkSpec{},
@@ -64,7 +66,7 @@ func TestUserIdentityAnnotate(t *testing.T) {
 		t.Errorf("unexpected error initializing handler: %v", err)
 	}
 	informerFactory.Start(wait.NeverStop)
-	work := newWork("dummy", "foo")
+	work := newWork("dummy")
 	userInfo := &user.DefaultInfo{
 		Name:   "user1",
 		Groups: []string{"group1", "group2"},
@@ -123,7 +125,7 @@ func TestUserIdentityAnnotateWithIAM(t *testing.T) {
 		t.Errorf("unexpected error initializing handler: %v", err)
 	}
 	informerFactory.Start(wait.NeverStop)
-	work := newWork("dummy", "foo")
+	work := newWork("dummy")
 	userInfo := &user.DefaultInfo{
 		Name:   "user1",
 		Groups: []string{"icp:dev:admin", "icp:test:admin", "icp:default:member", "system:authenticated"},

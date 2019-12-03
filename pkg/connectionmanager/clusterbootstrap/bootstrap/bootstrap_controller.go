@@ -73,7 +73,6 @@ func NewBootstrapController(
 	clusterInformerFactory clusterinformers.SharedInformerFactory,
 	autoApproveClusterJoinRequest bool,
 	stopCh <-chan struct{}) *BootstrapController {
-
 	csrInformers := kubeInformerFactory.Certificates().V1beta1().CertificateSigningRequests()
 	clusterInformer := clusterInformerFactory.Clusterregistry().V1alpha1().Clusters()
 	bootstrapInformers := informerFactory.Mcm().V1alpha1().ClusterJoinRequests()
@@ -168,7 +167,6 @@ func (bc *BootstrapController) Run() error {
 func (bc *BootstrapController) runCSRWorker() {
 	for bc.processNextWorkItem(bc.csrworkqueue, bc.csrHandler) {
 	}
-	return
 }
 
 // runHCMJoinWorker is a long-running function that will continually call the
@@ -177,7 +175,6 @@ func (bc *BootstrapController) runCSRWorker() {
 func (bc *BootstrapController) runHCMJoinWorker() {
 	for bc.processNextWorkItem(bc.hcmjoinworkqueue, bc.hcmJoinHandler) {
 	}
-	return
 }
 
 func (bc *BootstrapController) processNextWorkItem(queue workqueue.RateLimitingInterface, fn queueHandlerFunc) bool {
@@ -271,7 +268,7 @@ func (bc *BootstrapController) hcmJoinHandler(key string) error {
 				},
 				Spec: hcmjoin.Spec.CSR,
 			}
-			csr, createErr = bc.kubeclientset.Certificates().CertificateSigningRequests().Create(csr)
+			csr, createErr = bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().Create(csr)
 
 			if createErr != nil {
 				return createErr
@@ -305,7 +302,7 @@ func (bc *BootstrapController) updateHCMJoinStatus(hcmjoin *hcmv1alpha1.ClusterJ
 				Message:        "This CSR was denied by hcm cluster join controller.",
 				LastUpdateTime: metav1.Now(),
 			})
-			_, err := bc.kubeclientset.Certificates().CertificateSigningRequests().UpdateApproval(csr)
+			_, err := bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(csr)
 			if err != nil {
 				return err
 			}
@@ -352,7 +349,7 @@ func (bc *BootstrapController) updateHCMJoinStatus(hcmjoin *hcmv1alpha1.ClusterJ
 				Message:        "This CSR was approved by hcm cluster join controller.",
 				LastUpdateTime: metav1.Now(),
 			})
-			_, err = bc.kubeclientset.Certificates().CertificateSigningRequests().UpdateApproval(csr)
+			_, err = bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(csr)
 			if err != nil {
 				return err
 			}
@@ -363,19 +360,19 @@ func (bc *BootstrapController) updateHCMJoinStatus(hcmjoin *hcmv1alpha1.ClusterJ
 }
 
 func (bc *BootstrapController) createRoles(hcmjoin *hcmv1alpha1.ClusterJoinRequest) error {
-	ns, err := bc.kubeclientset.Core().Namespaces().Get(hcmjoin.Spec.ClusterNamespace, metav1.GetOptions{})
+	_, err := bc.kubeclientset.CoreV1().Namespaces().Get(hcmjoin.Spec.ClusterNamespace, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return err
 	}
 
 	if errors.IsNotFound(err) {
 		var createErr error
-		ns = &corev1.Namespace{
+		ns := &corev1.Namespace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: hcmjoin.Spec.ClusterNamespace,
 			},
 		}
-		ns, createErr = bc.kubeclientset.Core().Namespaces().Create(ns)
+		_, createErr = bc.kubeclientset.CoreV1().Namespaces().Create(ns)
 		if createErr != nil {
 			return createErr
 		}
@@ -513,7 +510,7 @@ func (bc *BootstrapController) runCSRValidation() {
 			runtime.HandleError(err)
 			continue
 		}
-		if time.Now().Sub(deadline) > 0 {
+		if time.Since(deadline) > 0 {
 			err = bc.recreateCSR(cjr)
 			if err != nil {
 				runtime.HandleError(err)
@@ -542,11 +539,11 @@ func (bc *BootstrapController) nextRotationDeadline(csrName string, certificate 
 }
 
 func (bc *BootstrapController) recreateCSR(cjr *hcmv1alpha1.ClusterJoinRequest) error {
-	err := bc.kubeclientset.Certificates().CertificateSigningRequests().Delete(cjr.Name, &metav1.DeleteOptions{})
+	err := bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().Delete(cjr.Name, &metav1.DeleteOptions{})
 	if err != nil {
 		return err
 	}
-	newCSR, err := bc.kubeclientset.Certificates().CertificateSigningRequests().Create(&csrv1beta1.CertificateSigningRequest{
+	newCSR, err := bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().Create(&csrv1beta1.CertificateSigningRequest{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            cjr.Name,
 			Labels:          cjr.Labels,
@@ -563,7 +560,7 @@ func (bc *BootstrapController) recreateCSR(cjr *hcmv1alpha1.ClusterJoinRequest) 
 		Message:        "This CSR was approved by hcm cluster join controller (rotated).",
 		LastUpdateTime: metav1.Now(),
 	})
-	_, err = bc.kubeclientset.Certificates().CertificateSigningRequests().UpdateApproval(newCSR)
+	_, err = bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(newCSR)
 	klog.V(5).Infof("CSR %s is rotated at %v", cjr.Name, time.Now())
 	return err
 }

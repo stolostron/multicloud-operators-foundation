@@ -70,16 +70,16 @@ type Config struct {
 	ClusterNamespace       string
 	MasterAddresses        string
 	ServerVersion          string
-	Kubeconfig             *rest.Config
 	KlusterletAddress      string
-	KlusterletPort         int32
 	KlusterletIngress      string
 	KlusterletRoute        string
 	KlusterletService      string
+	MonitoringScrapeTarget string
+	Kubeconfig             *rest.Config
 	ClusterLabels          map[string]string
 	ClusterAnnotations     map[string]string
+	KlusterletPort         int32
 	EnableJoinFederation   bool
-	MonitoringScrapeTarget string
 }
 
 // Klusterlet is the main struct for klusterlet server
@@ -144,7 +144,6 @@ func NewKlusterlet(
 	informerFactory informers.SharedInformerFactory,
 	stopCh <-chan struct{},
 ) *Klusterlet {
-
 	nodeInformer := kubeInformerFactory.Core().V1().Nodes()
 	podInformer := kubeInformerFactory.Core().V1().Pods()
 	pvInformer := kubeInformerFactory.Core().V1().PersistentVolumes()
@@ -266,7 +265,6 @@ func (k *Klusterlet) Run(workers int) error {
 
 // transfer secret to hub cluster
 func (k *Klusterlet) transferSecretToHub(secretName string) error {
-
 	dataMap := make(map[string][]byte)
 	dataMap["token"] = []byte(k.config.Kubeconfig.BearerToken)
 	caData, err := ioutil.ReadFile(k.config.Kubeconfig.CAFile)
@@ -293,7 +291,6 @@ func (k *Klusterlet) transferSecretToHub(secretName string) error {
 				klog.V(4).Info("Updated secret token to hub cluster")
 			}
 		}
-
 	} else {
 		if apierrors.IsNotFound(err) {
 			_, err = k.hubkubeclientset.CoreV1().Secrets(k.config.ClusterNamespace).Create(&v1Secret)
@@ -308,7 +305,6 @@ func (k *Klusterlet) transferSecretToHub(secretName string) error {
 func (k *Klusterlet) runWorker() {
 	for k.processNextWorkItem() {
 	}
-	return
 }
 
 func (k *Klusterlet) processNextWorkItem() bool {
@@ -497,7 +493,6 @@ func (k *Klusterlet) cleanWorkStatus(status *v1alpha1.WorkStatus) {
 // getMasterAddresses get addresses of kubernetes master, it checks icp api config at first,
 // then check the default kubernetes service.
 func (k *Klusterlet) getMasterAddresses() ([]corev1.EndpointAddress, []corev1.EndpointPort, string) {
-
 	//for 3.2.0
 	masterAddresses, masterPorts, clusterURL, notEmpty, err := k.getMasterAddressesFromIBMcloudClusterInfo()
 	if err == nil && notEmpty {
@@ -517,7 +512,7 @@ func (k *Klusterlet) getMasterAddresses() ([]corev1.EndpointAddress, []corev1.En
 	}
 
 	if k.config.MasterAddresses == "" {
-		kubeEndpoints, serviceErr := k.kubeclientset.Core().Endpoints("default").Get("kubernetes", metav1.GetOptions{})
+		kubeEndpoints, serviceErr := k.kubeclientset.CoreV1().Endpoints("default").Get("kubernetes", metav1.GetOptions{})
 		if serviceErr == nil && len(kubeEndpoints.Subsets) > 0 {
 			masterAddresses = kubeEndpoints.Subsets[0].Addresses
 			masterPorts = kubeEndpoints.Subsets[0].Ports
@@ -535,7 +530,7 @@ func (k *Klusterlet) getMasterAddressesFromConsoleConfig() ([]corev1.EndpointAdd
 	masterPorts := []corev1.EndpointPort{}
 	clusterURL := ""
 
-	cfg, err := k.kubeclientset.Core().ConfigMaps("openshift-console").Get("console-config", metav1.GetOptions{})
+	cfg, err := k.kubeclientset.CoreV1().ConfigMaps("openshift-console").Get("console-config", metav1.GetOptions{})
 	if err == nil && cfg.Data != nil {
 		consoleConfigString, ok := cfg.Data["console-config.yaml"]
 		if ok {
@@ -552,7 +547,7 @@ func (k *Klusterlet) getMasterAddressesFromConsoleConfig() ([]corev1.EndpointAdd
 				}
 			}
 			if eu != "" {
-				euArray := strings.Split(strings.Trim(eu, "https://"), ":")
+				euArray := strings.Split(strings.Trim(eu, "htps:/"), ":")
 				if len(euArray) == 2 {
 					masterAddresses = append(masterAddresses, corev1.EndpointAddress{IP: euArray[0]})
 					klog.Info("masterAddresses" + euArray[0])
@@ -565,7 +560,6 @@ func (k *Klusterlet) getMasterAddressesFromConsoleConfig() ([]corev1.EndpointAdd
 				clusterURL = cu
 			}
 		}
-
 	}
 	return masterAddresses, masterPorts, clusterURL, cfg != nil && cfg.Data != nil, err
 }
@@ -576,7 +570,7 @@ func (k *Klusterlet) getMasterAddressesFromPlatformAPI() ([]corev1.EndpointAddre
 	masterPorts := []corev1.EndpointPort{}
 	clusterURL := ""
 
-	cfg, err := k.kubeclientset.Core().ConfigMaps("kube-system").Get("platform-api", metav1.GetOptions{})
+	cfg, err := k.kubeclientset.CoreV1().ConfigMaps("kube-system").Get("platform-api", metav1.GetOptions{})
 	if err == nil && cfg.Data != nil {
 		eu, ok := cfg.Data["KUBERNETES_API_EXTERNAL_URL"]
 		if ok {
@@ -602,7 +596,7 @@ func (k *Klusterlet) getMasterAddressesFromIBMcloudClusterInfo() ([]corev1.Endpo
 	masterPorts := []corev1.EndpointPort{}
 	clusterURL := ""
 
-	cfg, err := k.kubeclientset.Core().ConfigMaps("kube-public").Get("ibmcloud-cluster-info", metav1.GetOptions{})
+	cfg, err := k.kubeclientset.CoreV1().ConfigMaps("kube-public").Get("ibmcloud-cluster-info", metav1.GetOptions{})
 	if err == nil && cfg.Data != nil {
 		k8sAPIHost, ok := cfg.Data["cluster_kube_apiserver_host"]
 		if ok {
@@ -873,7 +867,7 @@ func (k *Klusterlet) readKlusterletConfig() (*corev1.EndpointAddress, *corev1.En
 			klog.Warningf("Failed do parse ingress resource: %v", err)
 			return endpoint, port, err
 		}
-		klIngress, err := k.kubeclientset.Extensions().Ingresses(klNamespace).Get(klName, metav1.GetOptions{})
+		klIngress, err := k.kubeclientset.ExtensionsV1beta1().Ingresses(klNamespace).Get(klName, metav1.GetOptions{})
 		if err != nil {
 			klog.Warningf("Failed do get ingress resource: %v", err)
 			return endpoint, port, err

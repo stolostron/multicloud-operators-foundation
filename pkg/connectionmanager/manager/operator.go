@@ -39,10 +39,9 @@ func NewOperator(
 	genericConfig *genericoptions.GenericConfig,
 	clusterName, clusterNamespace string,
 	stopCh <-chan struct{}) *Operator {
-
 	kubeclient := genericConfig.Kubeclient
 	scgetter := operatorapi.SecretGetterFunc(func(namespace, name string) (*corev1.Secret, error) {
-		return kubeclient.Core().Secrets(namespace).Get(name, metav1.GetOptions{})
+		return kubeclient.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
 	})
 
 	btsec := genericConfig.BootstrapSecret

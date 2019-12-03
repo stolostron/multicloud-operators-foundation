@@ -29,7 +29,6 @@ type InSecureHTTPGetter struct { //nolint
 
 //SetCredentials sets the credentials for the getter
 func (g *InSecureHTTPGetter) SetCredentials(username, password string) {
-	return
 }
 
 //Get performs a Get from repo.Getter and returns the body.
@@ -53,7 +52,7 @@ func (g *InSecureHTTPGetter) get(href string) (*bytes.Buffer, error) {
 		return buf, err
 	}
 	if resp.StatusCode != 200 {
-		return buf, fmt.Errorf("Failed to fetch %s : %s", href, resp.Status)
+		return buf, fmt.Errorf("failed to fetch %s : %s", href, resp.Status)
 	}
 
 	_, err = io.Copy(buf, resp.Body)

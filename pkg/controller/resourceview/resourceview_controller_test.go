@@ -17,7 +17,6 @@ import (
 	informers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/cache"
 	clusterv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
@@ -34,11 +33,11 @@ var (
 	alwaysReady = func() bool { return true }
 )
 
-func newTestController(initialObjects ...runtime.Object) (*resourceViewController, *fake.Clientset, *clusterfake.Clientset, error) {
-	clientset := fake.NewSimpleClientset(initialObjects...)
+func newTestController() (*resourceViewController, *fake.Clientset) {
+	clientset := fake.NewSimpleClientset()
 	informerFactory := informers.NewSharedInformerFactory(clientset, time.Minute*10)
 
-	clusterFakeClient := clusterfake.NewSimpleClientset(initialObjects...)
+	clusterFakeClient := clusterfake.NewSimpleClientset()
 	clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterFakeClient, time.Minute*10)
 
 	rvc := NewResourceViewController(clientset, nil, informerFactory, clusterInformerFactory, true, nil)
@@ -51,10 +50,11 @@ func newTestController(initialObjects ...runtime.Object) (*resourceViewControlle
 		clusterInformerFactory.Clusterregistry().V1alpha1().Clusters().Informer().GetStore(),
 		informerFactory.Mcm().V1alpha1().ResourceViews().Informer().GetStore(),
 		informerFactory.Mcm().V1alpha1().Works().Informer().GetStore(),
-	}, clientset, clusterFakeClient, nil
+	}, clientset
 }
 
-func newCluster(name, namespace string, status clusterv1alpha1.ClusterConditionType, labels map[string]string) *clusterv1alpha1.Cluster {
+func newCluster(
+	name, namespace string, status clusterv1alpha1.ClusterConditionType, labels map[string]string) *clusterv1alpha1.Cluster {
 	return &clusterv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -63,7 +63,7 @@ func newCluster(name, namespace string, status clusterv1alpha1.ClusterConditionT
 		},
 		Status: clusterv1alpha1.ClusterStatus{
 			Conditions: []clusterv1alpha1.ClusterCondition{
-				clusterv1alpha1.ClusterCondition{
+				{
 					Type: status,
 				},
 			},
@@ -71,11 +71,11 @@ func newCluster(name, namespace string, status clusterv1alpha1.ClusterConditionT
 	}
 }
 
-func newView(name, namespace string) *v1alpha1.ResourceView {
+func newView() *v1alpha1.ResourceView {
 	return &v1alpha1.ResourceView{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+			Name:      "view1",
+			Namespace: "view1",
 		},
 		Spec: v1alpha1.ResourceViewSpec{},
 	}
@@ -127,12 +127,9 @@ func validateSyncViews(t *testing.T, client *fake.Clientset, verb string, expect
 func TestFilterCluster(t *testing.T) {
 	cluster1 := newCluster("cluster1", "cluster1", clusterv1alpha1.ClusterOK, map[string]string{})
 	cluster2 := newCluster("cluster2", "cluster2", "", map[string]string{})
-	view := newView("view1", "view1")
+	view := newView()
 
-	manager, client, _, err := newTestController()
-	if err != nil {
-		t.Fatalf("error creating resource view controller: %v", err)
-	}
+	manager, client := newTestController()
 
 	manager.clusterStore.Add(cluster1)
 	manager.clusterStore.Add(cluster2)
@@ -155,7 +152,7 @@ func TestFilterCluster(t *testing.T) {
 }
 
 func TestUpdateWorkByView(t *testing.T) {
-	manager, _, _, _ := newTestController()
+	manager, _ := newTestController()
 
 	type args struct {
 		view *v1alpha1.ResourceView
@@ -204,7 +201,7 @@ func TestUpdateWorkByView(t *testing.T) {
 }
 
 func TestNeedUpdate(t *testing.T) {
-	manager, _, _, _ := newTestController()
+	manager, _ := newTestController()
 
 	type args struct {
 		view1 *v1alpha1.ResourceView
@@ -250,7 +247,6 @@ func TestNeedUpdate(t *testing.T) {
 			}
 		})
 	}
-
 }
 
 func TestEqualResourceViewSpec(t *testing.T) {
@@ -346,10 +342,10 @@ func TestGetViewConditionType(t *testing.T) {
 				v1alpha1.ResourceView{
 					Status: v1alpha1.ResourceViewStatus{
 						Conditions: []v1alpha1.ViewCondition{
-							v1alpha1.ViewCondition{
+							{
 								Type: v1alpha1.WorkProcessing,
 							},
-							v1alpha1.ViewCondition{
+							{
 								Type: v1alpha1.WorkCompleted,
 							},
 						},
@@ -373,8 +369,8 @@ func TestGetViewConditionType(t *testing.T) {
 func TestGetClustersToWorks(t *testing.T) {
 	work1 := newWork("work1", "work1", "cluster1", "view1", "view1")
 	work2 := newWork("work2", "work2", "cluster2", "view1", "view1")
-	view := newView("view1", "view1")
-	manager, _, _, _ := newTestController()
+	view := newView()
+	manager, _ := newTestController()
 
 	manager.workStore.Add(work1)
 	manager.workStore.Add(work2)
@@ -390,12 +386,12 @@ func TestGetClustersToWorks(t *testing.T) {
 }
 
 func TestWorksShouldBeOnClusters(t *testing.T) {
-	manager, _, _, _ := newTestController()
+	manager, _ := newTestController()
 
 	cluster1 := newCluster("cluster1", "cluster1", clusterv1alpha1.ClusterOK, map[string]string{})
 	cluster2 := newCluster("cluster2", "cluster2", clusterv1alpha1.ClusterOK, map[string]string{})
 	clusters := []*clusterv1alpha1.Cluster{cluster1, cluster2}
-	view := newView("view1", "view1")
+	view := newView()
 
 	clusterToWorks := map[string][]*v1alpha1.Work{}
 	clustersNeedingWorks, _, _ := manager.worksShouldBeOnClusters(view, clusterToWorks, clusters)
@@ -428,11 +424,10 @@ func TestWorksShouldBeOnClusters(t *testing.T) {
 	if len(workToUpdate) != 1 {
 		t.Errorf("getClustersToWorks() workToUpdate = %v, want %v", len(workToUpdate), 1)
 	}
-
 }
 
 func TestCreateViewCondition(t *testing.T) {
-	view := newView("view1", "view1")
+	view := newView()
 	conditions := createViewContidion(view, v1alpha1.WorkCompleted)
 	if len(conditions) != 1 {
 		t.Errorf("CreateViewCondition() conditions = %v, want %v", len(conditions), 1)
@@ -452,7 +447,7 @@ func TestCreateViewCondition(t *testing.T) {
 }
 
 func TestEnqueueViewFromWork(t *testing.T) {
-	manager, _, _, _ := newTestController()
+	manager, _ := newTestController()
 	work := newWork("work1", "work1", "cluster1", "view1", "view1")
 
 	manager.enqueueViewFromWork(work)
@@ -462,7 +457,7 @@ func TestEnqueueViewFromWork(t *testing.T) {
 }
 
 func TestAddWork(t *testing.T) {
-	manager, _, _, _ := newTestController()
+	manager, _ := newTestController()
 	work := newWork("work1", "work1", "cluster1", "view1", "view1")
 	manager.addWork(work)
 	if manager.workqueue.Len() != 0 {
@@ -478,7 +473,7 @@ func TestAddWork(t *testing.T) {
 }
 
 func TestUpdateWork(t *testing.T) {
-	manager, _, _, _ := newTestController()
+	manager, _ := newTestController()
 	work := newWork("work1", "work1", "cluster1", "view1", "view1")
 	manager.updateWork(work, work)
 	if manager.workqueue.Len() != 0 {
@@ -505,7 +500,7 @@ func TestUpdateWork(t *testing.T) {
 }
 
 func TestDeleteWork(t *testing.T) {
-	manager, _, _, _ := newTestController()
+	manager, _ := newTestController()
 	work := newWork("work1", "work1", "cluster1", "view1", "view1")
 	work.Spec.Type = v1alpha1.ResourceWorkType
 	manager.deleteWork(work)

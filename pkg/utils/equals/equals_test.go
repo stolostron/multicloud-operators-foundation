@@ -9,13 +9,10 @@ import (
 	"testing"
 
 	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestEqualWorkSpec(t *testing.T) {
-
 	WorkSpecNil := &v1alpha1.WorkSpec{}
 	WorkSpecP := &v1alpha1.WorkSpec{Type: v1alpha1.WorkType("testing")}
 	WorkSpecP1 := &v1alpha1.WorkSpec{Type: v1alpha1.WorkType("testing")}
@@ -50,7 +47,6 @@ func TestEqualWorkSpec(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			//fmt.Println(tt, "aaa", tt.args.spec1, "bbb", tt.args.spec2, EqualWorkSpec(tt.args.spec1, tt.args.spec2))
 			if got := EqualWorkSpec(tt.args.spec1, tt.args.spec2); got != tt.want {
 				t.Errorf("EqualWorkSpec() = %v, want %v", got, tt.want)
 			}
@@ -59,7 +55,6 @@ func TestEqualWorkSpec(t *testing.T) {
 }
 
 func TestEqualWorkScope(t *testing.T) {
-
 	ResourceFilterNil := &v1alpha1.ResourceFilter{}
 	ResourceFilterTpye1 := &v1alpha1.ResourceFilter{ResourceType: "name1"}
 	ResourceFilterTpye2 := &v1alpha1.ResourceFilter{ResourceType: "name2"}
@@ -111,9 +106,18 @@ func TestEqualLabelSelector(t *testing.T) {
 		want bool
 	}{
 		{"case1:", args{selector1: nil, selector2: nil}, true},
-		{"case2:", args{selector1: nil, selector2: &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "va1", "label2": "va2"}}}, false},
-		{"case3:", args{selector1: &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "va1", "label2": "va2"}}, selector2: &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "va1", "label2": "va2"}}}, true},
-		{"case3:", args{selector1: &metav1.LabelSelector{MatchLabels: map[string]string{"label2": "va2"}}, selector2: &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "va1", "label2": "va2"}}}, false},
+		{"case2:", args{
+			selector1: nil,
+			selector2: &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "va1", "label2": "va2"}}},
+			false},
+		{"case3:", args{
+			selector1: &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "va1", "label2": "va2"}},
+			selector2: &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "va1", "label2": "va2"}}},
+			true},
+		{"case3:", args{
+			selector1: &metav1.LabelSelector{MatchLabels: map[string]string{"label2": "va2"}},
+			selector2: &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "va1", "label2": "va2"}}},
+			false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -122,82 +126,4 @@ func TestEqualLabelSelector(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestEqualResourceList(t *testing.T) {
-	type args struct {
-		e1 corev1.ResourceList
-		e2 corev1.ResourceList
-	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		{"case1:", args{e1: corev1.ResourceList{}, e2: corev1.ResourceList{}}, true},
-		{"case2:", args{e1: corev1.ResourceList{}, e2: corev1.ResourceList{corev1.ResourceCPU: *resource.NewQuantity(int64(0), resource.DecimalSI)}}, false},
-		{"case3:", args{e1: corev1.ResourceList{corev1.ResourceCPU: *resource.NewQuantity(int64(1), resource.DecimalSI)}, e2: corev1.ResourceList{corev1.ResourceCPU: *resource.NewQuantity(int64(0), resource.DecimalSI)}}, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := EqualResourceList(tt.args.e1, tt.args.e2); got != tt.want {
-				t.Errorf("EqualResourceList() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-
-}
-
-func TestEqualEndpointAddresses(t *testing.T) {
-	type args struct {
-		e1 []corev1.EndpointAddress
-		e2 []corev1.EndpointAddress
-	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		{"case1:", args{e1: []corev1.EndpointAddress{}, e2: []corev1.EndpointAddress{}}, true},
-		{"case2:", args{e1: []corev1.EndpointAddress{}, e2: []corev1.EndpointAddress{corev1.EndpointAddress{}}}, false},
-		{"case3:", args{e1: []corev1.EndpointAddress{corev1.EndpointAddress{IP: "aa"}}, e2: []corev1.EndpointAddress{corev1.EndpointAddress{IP: "aa"}}}, true},
-		{"case4:", args{e1: []corev1.EndpointAddress{corev1.EndpointAddress{IP: "aa"}}, e2: []corev1.EndpointAddress{corev1.EndpointAddress{IP: "bb"}}}, false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := EqualEndpointAddresses(tt.args.e1, tt.args.e2); got != tt.want {
-				t.Errorf("EqualEndpointAddresses() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-
-}
-
-func TestEqualEndpointAddress(t *testing.T) {
-	type args struct {
-		e1 *corev1.EndpointAddress
-		e2 *corev1.EndpointAddress
-	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		{"case1:", args{e1: nil, e2: nil}, true},
-		{"case2:", args{e1: nil, e2: &corev1.EndpointAddress{}}, false},
-		{"case3:", args{e1: &corev1.EndpointAddress{Hostname: "aa"}, e2: &corev1.EndpointAddress{}}, false},
-		{"case4:", args{e1: &corev1.EndpointAddress{IP: "aa"}, e2: &corev1.EndpointAddress{}}, false},
-		{"case5:", args{e1: &corev1.EndpointAddress{IP: "aa"}, e2: &corev1.EndpointAddress{IP: "aa"}}, true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := EqualEndpointAddress(tt.args.e1, tt.args.e2); got != tt.want {
-				t.Errorf("EqualEndpointAddress() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-
 }

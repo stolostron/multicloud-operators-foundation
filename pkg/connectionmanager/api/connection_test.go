@@ -103,5 +103,4 @@ func TestHandleJoinRequest(t *testing.T) {
 	if !reflect.DeepEqual(cert2, cert3) {
 		t.Error("cert is supposed to be updated")
 	}
-
 }

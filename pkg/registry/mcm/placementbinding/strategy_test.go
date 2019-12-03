@@ -21,7 +21,7 @@ var goodpb = &mcm.PlacementBinding{
 		APIGroup: "mcm.ibm.com",
 	},
 	Subjects: []mcm.Subject{
-		mcm.Subject{
+		{
 			Name:     "sub",
 			Kind:     "Deployable",
 			APIGroup: "mcm.ibm.com",
@@ -30,7 +30,6 @@ var goodpb = &mcm.PlacementBinding{
 }
 
 func TestValidatePlacementBinding(t *testing.T) {
-
 	err := validatePlacementBinding(goodpb)
 	if err != nil {
 		t.Errorf("should not fail to validate good placementbinding")

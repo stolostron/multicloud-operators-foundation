@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry/app/options"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/informers"
@@ -277,10 +277,10 @@ func TestSyncRegisteredEndpoints(t *testing.T) {
 		},
 	}
 	hubeps := []*v1.Endpoints{
-		&v1.Endpoints{
+		{
 			ObjectMeta: metav1.ObjectMeta{Name: "kube-service.test.deletionsvc"},
 		},
-		&v1.Endpoints{
+		{
 			ObjectMeta: metav1.ObjectMeta{Name: "kube-service.test.unannotatedsvc"},
 		},
 		plugin.toEndpoints(changedsvc),
@@ -337,16 +337,16 @@ func TestSyncDiscoveredResouces(t *testing.T) {
 	plugin, svcStore := newKubeServicePlugin()
 
 	discoveredEndpoints := []*v1.Endpoints{
-		&v1.Endpoints{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "cluster1.kube-service.test.svc",
 				Namespace:   "cluster1ns",
 				Labels:      map[string]string{"mcm.ibm.com/auto-discovery": "true"},
 				Annotations: map[string]string{"mcm.ibm.com/service-discovery": "{}"},
 			},
-			Subsets: []v1.EndpointSubset{v1.EndpointSubset{Addresses: []v1.EndpointAddress{v1.EndpointAddress{IP: "1.2.3.4"}}}},
+			Subsets: []v1.EndpointSubset{{Addresses: []v1.EndpointAddress{{IP: "1.2.3.4"}}}},
 		},
-		&v1.Endpoints{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "cluster2.kube-service.test.svc2",
 				Namespace: "cluster2ns",
@@ -356,18 +356,18 @@ func TestSyncDiscoveredResouces(t *testing.T) {
 					"mcm.ibm.com/load-balancer":     "xxxx.us-central-1.aws.com",
 				},
 			},
-			Subsets: []v1.EndpointSubset{v1.EndpointSubset{Addresses: []v1.EndpointAddress{v1.EndpointAddress{
+			Subsets: []v1.EndpointSubset{{Addresses: []v1.EndpointAddress{{
 				IP: "255.255.255.255",
 			}}}},
 		},
-		&v1.Endpoints{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "cluster3.kube-service.test.svc3",
 				Namespace:   "cluster3ns",
 				Labels:      map[string]string{"mcm.ibm.com/auto-discovery": "true"},
 				Annotations: map[string]string{"mcm.ibm.com/service-discovery": "{\"dns-prefix\": \"http.svc\"}"},
 			},
-			Subsets: []v1.EndpointSubset{v1.EndpointSubset{Addresses: []v1.EndpointAddress{v1.EndpointAddress{IP: "1.2.3.5"}}}},
+			Subsets: []v1.EndpointSubset{{Addresses: []v1.EndpointAddress{{IP: "1.2.3.5"}}}},
 		},
 	}
 	required, locations := plugin.SyncDiscoveredResouces(discoveredEndpoints)
@@ -386,7 +386,7 @@ func TestSyncDiscoveredResouces(t *testing.T) {
 			Labels:      map[string]string{"mcm.ibm.com/auto-discovery": "true"},
 			Annotations: map[string]string{"mcm.ibm.com/service-discovery": "{\"dns-prefix\": \"http.svc\"}"},
 		},
-		Subsets: []v1.EndpointSubset{v1.EndpointSubset{Addresses: []v1.EndpointAddress{v1.EndpointAddress{IP: "1.2.3.5"}}}},
+		Subsets: []v1.EndpointSubset{{Addresses: []v1.EndpointAddress{{IP: "1.2.3.5"}}}},
 	})
 	svcStore.Add(&v1.Service{
 		Spec: v1.ServiceSpec{ClusterIP: "10.0.0.1"},
@@ -402,7 +402,6 @@ func TestSyncDiscoveredResouces(t *testing.T) {
 	if len(locations) != 5 {
 		t.Fatalf("Expect 5, but %d", len(locations))
 	}
-
 }
 
 func newKubeServicePlugin() (*KubeServicePlugin, cache.Store) {

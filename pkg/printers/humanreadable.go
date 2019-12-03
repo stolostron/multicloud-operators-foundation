@@ -188,7 +188,8 @@ func (h *HumanReadablePrinter) TableHandler(columnDefinitions []metav1beta1.Tabl
 // DefaultTableHandler registers a set of columns and a print func that is given a chance to process
 // any object without an explicit handler. Only the most recently set print handler is used.
 // See ValidateRowPrintHandlerFunc for required method signature.
-func (h *HumanReadablePrinter) DefaultTableHandler(columnDefinitions []metav1beta1.TableColumnDefinition, printFunc interface{}) error {
+func (h *HumanReadablePrinter) DefaultTableHandler(
+	columnDefinitions []metav1beta1.TableColumnDefinition, printFunc interface{}) error {
 	printFuncValue := reflect.ValueOf(printFunc)
 	if err := ValidateRowPrintHandlerFunc(printFuncValue); err != nil {
 		utilruntime.HandleError(fmt.Errorf("unable to register print function: %v", err))
@@ -217,8 +218,7 @@ func ValidateRowPrintHandlerFunc(printFunc reflect.Value) error {
 	}
 	funcType := printFunc.Type()
 	if funcType.NumIn() != 2 || funcType.NumOut() != 2 {
-		return fmt.Errorf("invalid print handler." +
-			"Must accept 2 parameters and return 2 value.")
+		return fmt.Errorf("invalid print handler. Must accept 2 parameters and return 2 value")
 	}
 	if funcType.In(1) != reflect.TypeOf((*PrintOptions)(nil)).Elem() ||
 		funcType.Out(0) != reflect.TypeOf((*[]metav1beta1.TableRow)(nil)).Elem() ||
@@ -234,15 +234,14 @@ func ValidateRowPrintHandlerFunc(printFunc reflect.Value) error {
 // It must be of the following type:
 //  func printFunc(object ObjectType, w io.Writer, options PrintOptions) error
 // where ObjectType is the type of the object that will be printed.
-// DEPRECATED: will be replaced with ValidateRowPrintHandlerFunc
+// Deprecated: will be replaced with ValidateRowPrintHandlerFunc
 func ValidatePrintHandlerFunc(printFunc reflect.Value) error {
 	if printFunc.Kind() != reflect.Func {
 		return fmt.Errorf("invalid print handler. %#v is not a function", printFunc)
 	}
 	funcType := printFunc.Type()
 	if funcType.NumIn() != 3 || funcType.NumOut() != 1 {
-		return fmt.Errorf("invalid print handler." +
-			"Must accept 3 parameters and return 1 value.")
+		return fmt.Errorf("invalid print handler. Must accept 3 parameters and return 1 value")
 	}
 	if funcType.In(1) != reflect.TypeOf((*io.Writer)(nil)).Elem() ||
 		funcType.In(2) != reflect.TypeOf((*PrintOptions)(nil)).Elem() ||
@@ -429,7 +428,7 @@ func (h *HumanReadablePrinter) printWorkResults(obj runtime.Object) *metav1beta1
 			Rows:              []metav1beta1.TableRow{},
 		}
 		for _, table := range listTable {
-			formatRow, _ := h.formatTable(returnColumnDefinitions, &table)
+			formatRow := h.formatTable(returnColumnDefinitions, &table)
 			returnTable.Rows = append(returnTable.Rows, formatRow...)
 		}
 		return returnTable
@@ -439,9 +438,9 @@ func (h *HumanReadablePrinter) printWorkResults(obj runtime.Object) *metav1beta1
 }
 
 //For different api version, the return table is different. so we need to make them consistent
-func (h *HumanReadablePrinter) formatTable(column []metav1beta1.TableColumnDefinition, table *metav1beta1.Table) ([]metav1beta1.TableRow, error) {
+func (h *HumanReadablePrinter) formatTable(column []metav1beta1.TableColumnDefinition, table *metav1beta1.Table) []metav1beta1.TableRow {
 	if h.columnSliceEqual(column, table.ColumnDefinitions) {
-		return table.Rows, nil
+		return table.Rows
 	}
 	columnMap := map[string]int{}
 	for i, c := range column {
@@ -464,7 +463,7 @@ func (h *HumanReadablePrinter) formatTable(column []metav1beta1.TableColumnDefin
 		tableRow.Cells = desCell
 		returnTableRow = append(returnTableRow, tableRow)
 	}
-	return returnTableRow, nil
+	return returnTableRow
 }
 
 func (h *HumanReadablePrinter) columnSliceEqual(a, b []metav1beta1.TableColumnDefinition) bool {
@@ -527,11 +526,9 @@ func (h *HumanReadablePrinter) PrintTable(obj runtime.Object, options PrintOptio
 		table.ResourceVersion = m.GetResourceVersion()
 		table.SelfLink = m.GetSelfLink()
 		table.Continue = m.GetContinue()
-	} else {
-		if m, err := meta.CommonAccessor(obj); err == nil {
-			table.ResourceVersion = m.GetResourceVersion()
-			table.SelfLink = m.GetSelfLink()
-		}
+	} else if m, err := meta.CommonAccessor(obj); err == nil {
+		table.ResourceVersion = m.GetResourceVersion()
+		table.SelfLink = m.GetSelfLink()
 	}
 	if err := DecorateTable(table, options); err != nil {
 		return nil, err
@@ -743,5 +740,5 @@ func translateTimestamp(timestamp metav1.Time) string {
 	if timestamp.IsZero() {
 		return "<unknown>"
 	}
-	return duration.ShortHumanDuration(time.Now().Sub(timestamp.Time))
+	return duration.ShortHumanDuration(time.Since(timestamp.Time))
 }

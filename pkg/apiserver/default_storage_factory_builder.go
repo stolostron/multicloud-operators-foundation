@@ -35,21 +35,29 @@ import (
 // NewStorageFactory builds the DefaultStorageFactory.
 // Merges defaultResourceConfig with the user specified overrides and merges
 // defaultAPIResourceConfig with the corresponding user specified overrides as well.
-func NewStorageFactory(storageConfig storagebackend.Config, defaultMediaType string, serializer runtime.StorageSerializer,
-	defaultResourceEncoding *serverstorage.DefaultResourceEncodingConfig, storageEncodingOverrides map[string]schema.GroupVersion, resourceEncodingOverrides []schema.GroupVersionResource,
-	defaultAPIResourceConfig *serverstorage.ResourceConfig, resourceConfigOverrides utilflag.ConfigurationMap) (*serverstorage.DefaultStorageFactory, error) {
-
+func NewStorageFactory(
+	storageConfig storagebackend.Config,
+	defaultMediaType string,
+	serializer runtime.StorageSerializer,
+	defaultResourceEncoding *serverstorage.DefaultResourceEncodingConfig,
+	storageEncodingOverrides map[string]schema.GroupVersion,
+	resourceEncodingOverrides []schema.GroupVersionResource,
+	defaultAPIResourceConfig *serverstorage.ResourceConfig,
+	resourceConfigOverrides utilflag.ConfigurationMap) (*serverstorage.DefaultStorageFactory, error) {
 	resourceEncodingConfig := mergeGroupEncodingConfigs(defaultResourceEncoding, storageEncodingOverrides)
 	resourceEncodingConfig = mergeResourceEncodingConfigs(resourceEncodingConfig, resourceEncodingOverrides)
 	apiResourceConfig, err := mergeAPIResourceConfigs(defaultAPIResourceConfig, resourceConfigOverrides)
 	if err != nil {
 		return nil, err
 	}
-	return serverstorage.NewDefaultStorageFactory(storageConfig, defaultMediaType, serializer, resourceEncodingConfig, apiResourceConfig, nil), nil
+	return serverstorage.NewDefaultStorageFactory(
+		storageConfig, defaultMediaType, serializer, resourceEncodingConfig, apiResourceConfig, nil), nil
 }
 
 // Merges the given defaultResourceConfig with specifc GroupvVersionResource overrides.
-func mergeResourceEncodingConfigs(defaultResourceEncoding *serverstorage.DefaultResourceEncodingConfig, resourceEncodingOverrides []schema.GroupVersionResource) *serverstorage.DefaultResourceEncodingConfig {
+func mergeResourceEncodingConfigs(
+	defaultResourceEncoding *serverstorage.DefaultResourceEncodingConfig,
+	resourceEncodingOverrides []schema.GroupVersionResource) *serverstorage.DefaultResourceEncodingConfig {
 	resourceEncodingConfig := defaultResourceEncoding
 	for _, gvr := range resourceEncodingOverrides {
 		resourceEncodingConfig.SetResourceEncoding(gvr.GroupResource(), gvr.GroupVersion(),
@@ -59,16 +67,21 @@ func mergeResourceEncodingConfigs(defaultResourceEncoding *serverstorage.Default
 }
 
 // Merges the given defaultResourceConfig with specifc GroupVersion overrides.
-func mergeGroupEncodingConfigs(defaultResourceEncoding *serverstorage.DefaultResourceEncodingConfig, storageEncodingOverrides map[string]schema.GroupVersion) *serverstorage.DefaultResourceEncodingConfig {
+func mergeGroupEncodingConfigs(
+	defaultResourceEncoding *serverstorage.DefaultResourceEncodingConfig,
+	storageEncodingOverrides map[string]schema.GroupVersion) *serverstorage.DefaultResourceEncodingConfig {
 	resourceEncodingConfig := defaultResourceEncoding
 	for group, storageEncodingVersion := range storageEncodingOverrides {
-		resourceEncodingConfig.SetVersionEncoding(group, storageEncodingVersion, schema.GroupVersion{Group: group, Version: runtime.APIVersionInternal})
+		resourceEncodingConfig.SetVersionEncoding(
+			group, storageEncodingVersion, schema.GroupVersion{Group: group, Version: runtime.APIVersionInternal})
 	}
 	return resourceEncodingConfig
 }
 
 // Merges the given defaultAPIResourceConfig with the given resourceConfigOverrides.
-func mergeAPIResourceConfigs(defaultAPIResourceConfig *serverstorage.ResourceConfig, resourceConfigOverrides utilflag.ConfigurationMap) (*serverstorage.ResourceConfig, error) {
+func mergeAPIResourceConfigs(
+	defaultAPIResourceConfig *serverstorage.ResourceConfig,
+	resourceConfigOverrides utilflag.ConfigurationMap) (*serverstorage.ResourceConfig, error) {
 	resourceConfig := defaultAPIResourceConfig
 	overrides := resourceConfigOverrides
 

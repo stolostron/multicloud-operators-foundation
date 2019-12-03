@@ -140,11 +140,13 @@ func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOp
 }
 
 // DeleteCollection removes all items returned by List with a given ListOptions from storage.
-func (r *REST) DeleteCollection(ctx context.Context, options *metav1.DeleteOptions, listOptions *metainternalversion.ListOptions) (runtime.Object, error) {
+func (r *REST) DeleteCollection(
+	ctx context.Context, options *metav1.DeleteOptions, listOptions *metainternalversion.ListOptions) (runtime.Object, error) {
 	return r.store.DeleteCollection(ctx, options, listOptions)
 }
 
-func (r *REST) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1beta1.Table, error) {
+func (r *REST) ConvertToTable(
+	ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1beta1.Table, error) {
 	return r.store.ConvertToTable(ctx, object, tableOptions)
 }
 
@@ -176,7 +178,10 @@ func (r *StatusREST) Get(ctx context.Context, name string, options *metav1.GetOp
 }
 
 // Update alters the status subset of an object.
-func (r *StatusREST) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
+func (r *StatusREST) Update(
+	ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc,
+	updateValidation rest.ValidateObjectUpdateFunc,
+	forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error) {
 	obj, err := r.store.Get(ctx, name, &metav1.GetOptions{})
 	if err != nil {
 		return nil, false, err
@@ -217,9 +222,11 @@ func (r *StatusREST) Update(ctx context.Context, name string, objInfo rest.Updat
 			returnResult := &mcm.ResourceViewResult{}
 			key, _ := genericregistry.NamespaceKeyFunc(ctx, "", name)
 			key = strings.TrimPrefix(key, "/")
-			err = r.resultStore.GuaranteedUpdate(ctx, key, returnResult, true, &storage.Preconditions{}, func(existing runtime.Object, res storage.ResponseMeta) (runtime.Object, *uint64, error) {
-				return resultData, nil, nil
-			})
+			err = r.resultStore.GuaranteedUpdate(
+				ctx, key, returnResult, true, &storage.Preconditions{},
+				func(existing runtime.Object, res storage.ResponseMeta) (runtime.Object, *uint64, error) {
+					return resultData, nil, nil
+				})
 
 			if err != nil {
 				return nil, false, err
@@ -245,7 +252,8 @@ func NewREST(optsGetter generic.RESTOptionsGetter, storageOptions *mcmstorage.St
 		DeleteStrategy:      work.Strategy,
 		ReturnDeletedObject: true,
 
-		TableConvertor: printerstorage.TableConvertor{TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
+		TableConvertor: printerstorage.TableConvertor{
+			TablePrinter: printers.NewTablePrinter().With(printersinternal.AddHandlers)},
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: work.GetAttrs}
 	if err := store.CompleteWithOptions(options); err != nil {

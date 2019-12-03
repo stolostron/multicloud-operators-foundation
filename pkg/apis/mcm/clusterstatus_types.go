@@ -6,7 +6,7 @@
 package mcm
 
 import (
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -33,7 +33,7 @@ type ClusterStatusSpec struct {
 	KlusterletCA []byte
 	// MonitoringScrapeTarget is the scrape target to be used
 	MonitoringScrapeTarget string
-	// Version is the kubernetes version of the memeber cluster
+	// Version is the kubernetes version of the member cluster
 	Version string
 }
 

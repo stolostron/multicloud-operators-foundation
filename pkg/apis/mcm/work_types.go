@@ -85,7 +85,7 @@ type WorkStatus struct {
 	// Reason is the reason of the current status
 	Reason string
 
-	// WorkResult refernce the related result of the work
+	// WorkResult references the related result of the work
 	Result runtime.RawExtension
 
 	// LastUpdateTime is the last status update time

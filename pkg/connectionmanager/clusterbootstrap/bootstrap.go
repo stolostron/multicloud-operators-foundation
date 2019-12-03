@@ -6,6 +6,7 @@
 package clusterbootstrap
 
 import (
+	"context"
 	"crypto/sha512"
 	"crypto/x509/pkix"
 	"encoding/base64"
@@ -50,7 +51,6 @@ var clientCertUsage = []certificates.KeyUsage{
 func NewBootStrapper(
 	bootstrapclient clientset.Interface,
 	host, clusterNamespace, clusterName string, clientKey, clientCert []byte) *BootStrapper {
-
 	bootstrapper := &BootStrapper{
 		bootstrapclient:  bootstrapclient,
 		host:             host,
@@ -130,10 +130,13 @@ func (bt *BootStrapper) requestCertificate(client clientset.Interface, privateKe
 }
 
 func (bt *BootStrapper) waitForCertificate(client clientset.Interface, name string, timeout time.Duration) (certData []byte, err error) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
 	fieldSelector := fields.OneTermEqualSelector("metadata.name", name).String()
 
-	event, err := watchtools.ListWatchUntil(
-		timeout,
+	event, err := watchtools.UntilWithSync(
+		ctx,
 		&cache.ListWatch{
 			ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
 				options.FieldSelector = fieldSelector
@@ -144,6 +147,8 @@ func (bt *BootStrapper) waitForCertificate(client clientset.Interface, name stri
 				return client.McmV1alpha1().ClusterJoinRequests().Watch(options)
 			},
 		},
+		&certificates.CertificateSigningRequest{},
+		nil,
 		func(event watch.Event) (bool, error) {
 			switch event.Type {
 			case watch.Modified, watch.Added:
@@ -162,9 +167,11 @@ func (bt *BootStrapper) waitForCertificate(client clientset.Interface, name stri
 			return false, nil
 		},
 	)
+
 	if err == wait.ErrWaitTimeout {
 		return nil, wait.ErrWaitTimeout
 	}
+
 	if err != nil {
 		return nil, err
 	}

@@ -14,7 +14,6 @@ import (
 )
 
 func TestWriteKeyCertToFile(t *testing.T) {
-
 	certDir := "/tmp/tmp-cert"
 	defer os.RemoveAll(certDir)
 

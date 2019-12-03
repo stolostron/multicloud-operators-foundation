@@ -16,7 +16,7 @@ import (
 	kubefake "k8s.io/client-go/kubernetes/fake"
 )
 
-func newOperator(stopCh <-chan struct{}) *Operator {
+func newOperator() *Operator {
 	key, cert, _ := common.NewCertKey("test.com", "hcm")
 	kconfig := common.NewClientConfig("localhost", cert, key)
 	bootstrapSecret := &corev1.Secret{
@@ -53,10 +53,7 @@ func newOperator(stopCh <-chan struct{}) *Operator {
 }
 
 func TestReconnectToServer(t *testing.T) {
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
-	operator := newOperator(stopCh)
+	operator := newOperator()
 	server := operator.server
 	operator.bootstrapAll()
 

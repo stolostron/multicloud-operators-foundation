@@ -39,7 +39,7 @@ func ClusterJoinRequestToSelectableFields(clusterjoinrequest *mcm.ClusterJoinReq
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	clusterjoinrequest, ok := obj.(*mcm.ClusterJoinRequest)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a clusterjoinrequest.")
+		return nil, nil, false, fmt.Errorf("given object is not a clusterjoinrequest")
 	}
 	return labels.Set(clusterjoinrequest.ObjectMeta.Labels), ClusterJoinRequestToSelectableFields(clusterjoinrequest), clusterjoinrequest.Initializers != nil, nil
 }

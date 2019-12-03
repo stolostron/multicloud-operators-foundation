@@ -47,16 +47,14 @@ func WorkToSelectableFields(work *mcm.Work) fields.Set {
 func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	work, ok := obj.(*mcm.Work)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("Given object is not a work")
+		return nil, nil, false, fmt.Errorf("given object is not a work")
 	}
 	return labels.Set(work.ObjectMeta.Labels), WorkToSelectableFields(work), work.Initializers != nil, nil
 }
 
 func validateWork(work *mcm.Work) field.ErrorList {
 	var allErrs field.ErrorList
-	for _, validationErr := range validation.ValidateWork(work) {
-		allErrs = append(allErrs, validationErr)
-	}
+	allErrs = append(allErrs, validation.ValidateWork(work)...)
 
 	workType := work.Spec.Type
 

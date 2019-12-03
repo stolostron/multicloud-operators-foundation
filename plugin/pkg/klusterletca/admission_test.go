@@ -53,7 +53,7 @@ func newClusterStatus(namespace string, name string) *mcm.ClusterStatus {
 	return clusterStatus
 }
 
-func newCluster(namespace string, name string) *clusterv1alpha1.Cluster {
+func newCluster() *clusterv1alpha1.Cluster {
 	return &clusterv1alpha1.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "testcluster",
@@ -85,7 +85,7 @@ func TestClusterStatusAppend(t *testing.T) {
 		t.Errorf("unexpected error initializing handler: %v", err)
 	}
 	informerFactory.Start(wait.NeverStop)
-	cluster := newCluster("cluster1", "cluster1")
+	cluster := newCluster()
 	err = handler.(admission.MutationInterface).Admit(
 		admission.NewAttributesRecord(
 			cluster,

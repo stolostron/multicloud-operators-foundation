@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry/app/options"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -212,10 +212,10 @@ func TestSyncRegisteredEndpoints(t *testing.T) {
 	hubeps := []*v1.Endpoints{
 		plugin.toEndpoints(unchanged),
 		plugin.toEndpoints(changed),
-		&v1.Endpoints{
+		{
 			ObjectMeta: metav1.ObjectMeta{Name: "kube-ingress.test.unannotated"},
 		},
-		&v1.Endpoints{
+		{
 			ObjectMeta: metav1.ObjectMeta{Name: "kube-ingress.test.deleted"},
 		},
 	}
@@ -260,7 +260,7 @@ func TestSyncRegisteredEndpoints(t *testing.T) {
 func TestSyncDiscoveredResouces(t *testing.T) {
 	plugin, _ := newKubeIngressPlugin()
 	discovered := []*v1.Endpoints{
-		&v1.Endpoints{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "cluster1.kube-ingress.test.ing1",
 				Namespace: "cluster0ns",
@@ -270,9 +270,9 @@ func TestSyncDiscoveredResouces(t *testing.T) {
 					"mcm.ibm.com/ingress-hosts":     "foo.bar.com",
 				},
 			},
-			Subsets: []v1.EndpointSubset{v1.EndpointSubset{Addresses: []v1.EndpointAddress{v1.EndpointAddress{IP: "1.2.3.4"}}}},
+			Subsets: []v1.EndpointSubset{{Addresses: []v1.EndpointAddress{{IP: "1.2.3.4"}}}},
 		},
-		&v1.Endpoints{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "cluster2.kube-ingress.test.ing2",
 				Namespace: "cluster0ns",
@@ -283,18 +283,18 @@ func TestSyncDiscoveredResouces(t *testing.T) {
 					"mcm.ibm.com/load-balancer":     "xxxx.us-central-1.aws.com",
 				},
 			},
-			Subsets: []v1.EndpointSubset{v1.EndpointSubset{Addresses: []v1.EndpointAddress{v1.EndpointAddress{
+			Subsets: []v1.EndpointSubset{{Addresses: []v1.EndpointAddress{{
 				IP: "255.255.255.255",
 			}}}},
 		},
-		&v1.Endpoints{
+		{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:        "cluster3.kube-ingress.test.ing3",
 				Namespace:   "cluster0ns",
 				Labels:      map[string]string{"mcm.ibm.com/auto-discovery": "true"},
 				Annotations: map[string]string{"mcm.ibm.com/service-discovery": "{\"dns-prefix\": \"http.ing\"}"},
 			},
-			Subsets: []v1.EndpointSubset{v1.EndpointSubset{Addresses: []v1.EndpointAddress{v1.EndpointAddress{IP: "1.2.3.5"}}}},
+			Subsets: []v1.EndpointSubset{{Addresses: []v1.EndpointAddress{{IP: "1.2.3.5"}}}},
 		},
 	}
 	required, locations := plugin.SyncDiscoveredResouces(discovered)

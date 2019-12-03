@@ -33,7 +33,6 @@ const (
 	discoveryLabel         = "mcm.ibm.com/auto-discovery"
 	clusterLabel           = "mcm.ibm.com/cluster"
 	ownersLabel            = "mcm.ibm.com/owners"
-	configAnnotationKey    = "mcm.ibm.com/service-configuration"
 	discoveryAnnotationKey = "mcm.ibm.com/service-discovery"
 )
 
@@ -181,7 +180,6 @@ func (sr *Controller) Run() error {
 func (sr *Controller) runWorker() {
 	for sr.processGraphChanges() {
 	}
-	return
 }
 
 func (sr *Controller) processGraphChanges() bool {
@@ -268,7 +266,6 @@ func (sr *Controller) syncup() {
 		}(ep)
 	}
 	wg.Wait()
-	return
 }
 
 func (sr *Controller) syncEndpoints() (toCreate, toUpdate, toDelete []*corev1.Endpoints) {

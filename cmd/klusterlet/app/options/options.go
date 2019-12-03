@@ -6,7 +6,8 @@
 // OCO Source Materials
 // 5737-E67
 // (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
-// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been deposited with the U.S. Copyright Office.
+// The source code for this program is not published or otherwise divested of its trade secrets, irrespective of what has been
+// deposited with the U.S. Copyright Office.
 
 package options
 
@@ -26,7 +27,6 @@ type KlusterletRunOptions struct {
 	ClusterConfigFile          string
 	ControllerConfigFile       string
 	Address                    string
-	Port                       int32
 	TillerEndpoint             string
 	TillerCertFile             string
 	TillerKeyFile              string
@@ -38,14 +38,15 @@ type KlusterletRunOptions struct {
 	KlusterletAddress          string
 	KlusterletIngress          string
 	KlusterletRoute            string
-	KlusterletPort             int32
 	KlusterletService          string
 	HelmReleasePrefix          string
 	TLSCertFile                string
 	TLSPrivateKeyFile          string
-	InSecure                   bool
 	ClientCAFile               string
 	DriverOptions              *drivers.DriverFactoryOptions
+	Port                       int32
+	KlusterletPort             int32
+	InSecure                   bool
 	EnableJoinFederation       bool
 	UseBearerTokenForPometheus bool
 }
@@ -122,19 +123,24 @@ func (s *KlusterletRunOptions) AddFlags(fs *pflag.FlagSet) {
 	// Authentication
 	fs.StringVar(&s.CertDir, "cert-directory", s.CertDir, "certificate directory")
 	fs.StringVar(&s.CertSecret, "client-cert-secret", s.CertSecret, "client certificate stored in the target cluster")
-	fs.StringVar(&s.HubKubeconfigSecret, "hub-config-secret", s.HubKubeconfigSecret, "hub kubeconfig file stored in the target cluster")
-	fs.StringVar(&s.TLSCertFile, "tls-cert-file", s.TLSCertFile, ""+
+	fs.StringVar(
+		&s.HubKubeconfigSecret, "hub-config-secret", s.HubKubeconfigSecret, "hub kubeconfig file stored in the target cluster")
+	fs.StringVar(
+		&s.TLSCertFile, "tls-cert-file", s.TLSCertFile,
 		"File containing x509 Certificate used for serving HTTPS (with intermediate certs, if any, concatenated after server cert). "+
-		"If --tls-cert-file and --tls-private-key-file are not provided, a self-signed certificate and key "+
-		"are generated for the public address and saved to the directory passed to --cert-dir.")
-	fs.StringVar(&s.TLSPrivateKeyFile, "tls-private-key-file", s.TLSPrivateKeyFile, "File containing x509 private key matching --tls-cert-file.")
+			"If --tls-cert-file and --tls-private-key-file are not provided, a self-signed certificate and key "+
+			"are generated for the public address and saved to the directory passed to --cert-dir.")
+	fs.StringVar(
+		&s.TLSPrivateKeyFile, "tls-private-key-file", s.TLSPrivateKeyFile,
+		"File containing x509 private key matching --tls-cert-file.")
 	fs.StringVar(&s.ClientCAFile, "client-ca-file", s.ClientCAFile, ""+
 		"If set, any request presenting a client certificate signed by one of the authorities in the client-ca-file "+
 		"is authenticated with an identity corresponding to the CommonName of the client certificate.")
 	fs.BoolVar(&s.InSecure, "insecure", s.InSecure, "If set, klusterlet server run in the in-seucre mode")
 
 	//federation v2
-	fs.BoolVar(&s.EnableJoinFederation, "enable-join-federation", s.EnableJoinFederation, "enable cluster join to federation system")
+	fs.BoolVar(
+		&s.EnableJoinFederation, "enable-join-federation", s.EnableJoinFederation, "enable cluster join to federation system")
 
 	s.DriverOptions.AddFlags(fs)
 }

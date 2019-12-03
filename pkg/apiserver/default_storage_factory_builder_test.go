@@ -47,7 +47,9 @@ func TestNewStorageFactory(t *testing.T) {
 
 	defaultAPIResourceConfig := &serverstorage.ResourceConfig{}
 	resourceConfigOverrides := utilflag.ConfigurationMap{}
-	_, err := NewStorageFactory(storageConfig, "", nil, defaultResourceEncoding, storageEncodingOverrides, resourceEncodingOverrides, defaultAPIResourceConfig, resourceConfigOverrides)
+	_, err := NewStorageFactory(
+		storageConfig, "", nil, defaultResourceEncoding, storageEncodingOverrides,
+		resourceEncodingOverrides, defaultAPIResourceConfig, resourceConfigOverrides)
 	if err != nil {
 		t.Errorf("running failed")
 	}
@@ -61,7 +63,6 @@ func Test_mergeAPIResourceConfigs(t *testing.T) {
 	defaultAPIResourceConfig := &serverstorage.ResourceConfig{GroupVersionConfigs: groupVersionConfigs}
 
 	resourceConfigOverrides := utilflag.ConfigurationMap{"conf1": "val1", "api/all": "val2"}
-	//resourceConfigOverrides := utilflag.ConfigurationMap{"conf1": "val1", "api/all": "val2", "api/all/": "val2", "api/v1": "vvv1"}
 
 	want := &serverstorage.ResourceConfig{GroupVersionConfigs: map[schema.GroupVersion]bool{g1v1: true, g1v2: true, g2v1: false}}
 	wantErr := false
@@ -79,5 +80,4 @@ func Test_mergeAPIResourceConfigs(t *testing.T) {
 	if err1 == nil {
 		t.Errorf("Coverred that interface have disabled")
 	}
-
 }

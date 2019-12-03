@@ -33,7 +33,6 @@ func NewClusterRBACController(
 	kubeclientset kubernetes.Interface,
 	clusterInformerFactory clusterinformers.SharedInformerFactory,
 	stopCh <-chan struct{}) *ClusterRBACController {
-
 	clusterInformer := clusterInformerFactory.Clusterregistry().V1alpha1().Clusters()
 	return &ClusterRBACController{
 		kubeclientset: kubeclientset,

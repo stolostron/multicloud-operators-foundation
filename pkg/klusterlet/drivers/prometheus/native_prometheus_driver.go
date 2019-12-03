@@ -20,8 +20,8 @@ import (
 
 type NativePrometheusDriver struct {
 	address        string
-	port           int32
 	httpClient     *http.Client
+	port           int32
 	useBearerToken bool
 }
 

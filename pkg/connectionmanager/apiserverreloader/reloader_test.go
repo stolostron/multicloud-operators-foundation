@@ -16,7 +16,6 @@ import (
 )
 
 func newClientset() *fake.Clientset {
-
 	items := make([]v1.Pod, 2)
 	for i := 0; i < len(items); i++ {
 		items[i] = v1.Pod{
