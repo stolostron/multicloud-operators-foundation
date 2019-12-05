@@ -2185,13 +2185,6 @@ func schema_pkg_apis_mcm_v1alpha1_WorkStatus(ref common.ReferenceCallback) commo
 							Format:      "",
 						},
 					},
-					"retried": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Retried is the retry count for failed work",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
 					"reason": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Reason is the reason of the current status",

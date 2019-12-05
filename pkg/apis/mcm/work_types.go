@@ -79,9 +79,6 @@ type WorkStatus struct {
 	// Status is the status of the work result
 	Type WorkStatusType
 
-	//Retried is the retry count for failed work
-	Retried int
-
 	// Reason is the reason of the current status
 	Reason string
 

@@ -71,9 +71,6 @@ type WorkStatus struct {
 	// Status is the status of the work result
 	Type WorkStatusType `json:"type,omitempty"`
 
-	//Retried is the retry count for failed work
-	Retried int `json:"retried,omitempty"`
-
 	// Reason is the reason of the current status
 	Reason string `json:"reason,omitempty"`
 

@@ -1545,7 +1545,6 @@ func Convert_mcm_WorkSpec_To_v1alpha1_WorkSpec(in *mcm.WorkSpec, out *WorkSpec, 
 
 func autoConvert_v1alpha1_WorkStatus_To_mcm_WorkStatus(in *WorkStatus, out *mcm.WorkStatus, s conversion.Scope) error {
 	out.Type = mcm.WorkStatusType(in.Type)
-	out.Retried = in.Retried
 	out.Reason = in.Reason
 	out.Result = in.Result
 	out.LastUpdateTime = in.LastUpdateTime
@@ -1559,7 +1558,6 @@ func Convert_v1alpha1_WorkStatus_To_mcm_WorkStatus(in *WorkStatus, out *mcm.Work
 
 func autoConvert_mcm_WorkStatus_To_v1alpha1_WorkStatus(in *mcm.WorkStatus, out *WorkStatus, s conversion.Scope) error {
 	out.Type = WorkStatusType(in.Type)
-	out.Retried = in.Retried
 	out.Reason = in.Reason
 	out.Result = in.Result
 	out.LastUpdateTime = in.LastUpdateTime
