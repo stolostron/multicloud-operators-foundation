@@ -34,8 +34,7 @@ func (workStrategy) NamespaceScoped() bool {
 	return true
 }
 
-// WorkToSelectableFields defines field selector
-func WorkToSelectableFields(work *mcm.Work) fields.Set {
+func toSelectableFields(work *mcm.Work) fields.Set {
 	objectMetaFieldsSet := generic.ObjectMetaFieldsSet(&work.ObjectMeta, true)
 	specificFieldsSet := fields.Set{
 		"type": string(work.Spec.Type),
@@ -49,7 +48,7 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	if !ok {
 		return nil, nil, false, fmt.Errorf("given object is not a work")
 	}
-	return labels.Set(work.ObjectMeta.Labels), WorkToSelectableFields(work), work.Initializers != nil, nil
+	return labels.Set(work.ObjectMeta.Labels), toSelectableFields(work), work.Initializers != nil, nil
 }
 
 func validateWork(work *mcm.Work) field.ErrorList {

@@ -33,7 +33,7 @@ func (clusterStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func ClusterToSelectableFields(cluster *clusterregistry.Cluster) fields.Set {
+func toSelectableFields(cluster *clusterregistry.Cluster) fields.Set {
 	return generic.ObjectMetaFieldsSet(&cluster.ObjectMeta, true)
 }
 
@@ -43,7 +43,7 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	if !ok {
 		return nil, nil, false, fmt.Errorf("given object is not a cluster")
 	}
-	return labels.Set(cluster.ObjectMeta.Labels), ClusterToSelectableFields(cluster), cluster.Initializers != nil, nil
+	return labels.Set(cluster.ObjectMeta.Labels), toSelectableFields(cluster), cluster.Initializers != nil, nil
 }
 
 func MatchCluster(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {

@@ -120,7 +120,7 @@ func (conn *ServerConnection) Bootstrap() error {
 				klog.Infof("wait to hub (%s) approve cluster join request, %v", conn.hubName, err)
 				time.Sleep(waitTime)
 				if waitTime < maxWaitTime {
-					waitTime = waitTime + initWaitTime
+					waitTime += initWaitTime
 				} else {
 					waitTime = maxWaitTime
 				}

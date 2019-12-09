@@ -22,6 +22,7 @@ import (
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/signals"
 	"k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/apiserver/pkg/util/logs"
+	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 
 	"github.com/spf13/pflag"
 )

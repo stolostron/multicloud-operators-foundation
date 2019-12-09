@@ -29,7 +29,6 @@ const (
 	reloadingInterval            = 5
 )
 
-// Reloader ...
 type Reloader struct {
 	kubeclient kubernetes.Interface
 	watch      watch.Interface
@@ -37,7 +36,6 @@ type Reloader struct {
 	stopCh     <-chan struct{}
 }
 
-// NewReloader ...
 func NewReloader(kubeclient kubernetes.Interface, stopCh <-chan struct{}) *Reloader {
 	return &Reloader{
 		kubeclient: kubeclient,
@@ -45,8 +43,7 @@ func NewReloader(kubeclient kubernetes.Interface, stopCh <-chan struct{}) *Reloa
 	}
 }
 
-// Run ...
-func (r *Reloader) Run() error {
+func (r *Reloader) Run() {
 	var cancel context.CancelFunc
 	for {
 		select {
@@ -58,8 +55,6 @@ func (r *Reloader) Run() error {
 			if cancel != nil {
 				cancel()
 			}
-
-			return nil
 		default:
 			configmap, err := r.watchConfigmap()
 			if err != nil {

@@ -31,12 +31,14 @@ linters:
     - gochecknoinits
     - goconst
     - gocyclo
+    - godox
     - gosec
     - nakedret
     - prealloc
     - scopelint
     - funlen
     - bodyclose
+    - wsl
   fast: false
 
 linters-settings:

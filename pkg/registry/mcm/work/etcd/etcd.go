@@ -134,7 +134,9 @@ func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOp
 	if work.Spec.Type == mcm.ResourceWorkType {
 		key, _ := genericregistry.NamespaceKeyFunc(ctx, "", name)
 		key = strings.TrimPrefix(key, "/")
-		r.resultStore.Delete(ctx, key, nil, &storage.Preconditions{})
+		if err := r.resultStore.Delete(ctx, key, nil, &storage.Preconditions{}); err != nil {
+			return nil, false, err
+		}
 	}
 	return r.store.Delete(ctx, name, options)
 }
@@ -240,7 +242,7 @@ func (r *StatusREST) Update(
 }
 
 // NewREST returns a RESTStorage object that will work against works.
-func NewREST(optsGetter generic.RESTOptionsGetter, storageOptions *mcmstorage.StorageOptions) (*REST, *StatusREST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter, storageOptions *mcmstorage.Options) (*REST, *StatusREST, error) {
 	store := &genericregistry.Store{
 		NewFunc:                  func() runtime.Object { return &mcm.Work{} },
 		NewListFunc:              func() runtime.Object { return &mcm.WorkList{} },
@@ -257,7 +259,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter, storageOptions *mcmstorage.St
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: work.GetAttrs}
 	if err := store.CompleteWithOptions(options); err != nil {
-		panic(err) // TODO: Propagate error up
+		panic(err)
 	}
 
 	statusStore := *store

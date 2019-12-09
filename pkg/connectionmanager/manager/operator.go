@@ -63,7 +63,7 @@ func NewOperator(
 }
 
 // Run is the main run loop of kluster server
-func (o *Operator) Run() error {
+func (o *Operator) Run() {
 	defer utilruntime.HandleCrash()
 
 	o.bootstrapAll()
@@ -72,8 +72,6 @@ func (o *Operator) Run() error {
 
 	<-o.stopCh
 	klog.Info("Shutting operator")
-
-	return nil
 }
 
 func (o *Operator) bootstrapAll() {

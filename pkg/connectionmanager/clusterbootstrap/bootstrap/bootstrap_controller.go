@@ -36,8 +36,8 @@ import (
 	"k8s.io/klog"
 )
 
-// BootstrapController control the cluster bootstrap process
-type BootstrapController struct {
+// Controller control the cluster bootstrap process
+type Controller struct {
 	// hcmclientset is a clientset for our own API group
 	hcmclientset                  clientset.Interface
 	kubeclientset                 kubernetes.Interface
@@ -64,20 +64,20 @@ var hcmjoinControllerKind = mcm.SchemeGroupVersion.WithKind("ClusterJoinRequest"
 
 type queueHandlerFunc func(key string) error
 
-// NewBootstrapController create a bootstrapcontroller object
-func NewBootstrapController(
+// NewController create a bootstrapcontroller object
+func NewController(
 	kubeclientset kubernetes.Interface,
 	hcmclientset clientset.Interface,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
 	informerFactory informers.SharedInformerFactory,
 	clusterInformerFactory clusterinformers.SharedInformerFactory,
 	autoApproveClusterJoinRequest bool,
-	stopCh <-chan struct{}) *BootstrapController {
+	stopCh <-chan struct{}) *Controller {
 	csrInformers := kubeInformerFactory.Certificates().V1beta1().CertificateSigningRequests()
 	clusterInformer := clusterInformerFactory.Clusterregistry().V1alpha1().Clusters()
 	bootstrapInformers := informerFactory.Mcm().V1alpha1().ClusterJoinRequests()
 
-	controller := &BootstrapController{
+	controller := &Controller{
 		hcmclientset:                  hcmclientset,
 		kubeclientset:                 kubeclientset,
 		clusterLister:                 clusterInformer.Lister(),
@@ -140,7 +140,7 @@ func NewBootstrapController(
 }
 
 // Run is the main run loop of kluster server
-func (bc *BootstrapController) Run() error {
+func (bc *Controller) Run() {
 	defer runtime.HandleCrash()
 	defer bc.csrworkqueue.ShutDown()
 	defer bc.hcmjoinworkqueue.ShutDown()
@@ -148,7 +148,8 @@ func (bc *BootstrapController) Run() error {
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for hcm informer caches to sync")
 	if ok := cache.WaitForCacheSync(bc.stopCh, bc.csrSynced, bc.hcmSynced, bc.clusterSyced); !ok {
-		return fmt.Errorf("failed to wait for kubernetes caches to sync")
+		klog.Errorf("failed to wait for kubernetes caches to sync")
+		return
 	}
 
 	go wait.Until(bc.runCSRWorker, time.Second, bc.stopCh)
@@ -157,14 +158,12 @@ func (bc *BootstrapController) Run() error {
 
 	<-bc.stopCh
 	klog.Info("Shutting controller")
-
-	return nil
 }
 
 // runCSRWorker is a long-running function that will continually call the
 // processNextWorkItem function in order to read and process a message on the
 // workqueue.
-func (bc *BootstrapController) runCSRWorker() {
+func (bc *Controller) runCSRWorker() {
 	for bc.processNextWorkItem(bc.csrworkqueue, bc.csrHandler) {
 	}
 }
@@ -172,12 +171,12 @@ func (bc *BootstrapController) runCSRWorker() {
 // runHCMJoinWorker is a long-running function that will continually call the
 // processNextWorkItem function in order to read and process a message on the
 // workqueue.
-func (bc *BootstrapController) runHCMJoinWorker() {
+func (bc *Controller) runHCMJoinWorker() {
 	for bc.processNextWorkItem(bc.hcmjoinworkqueue, bc.hcmJoinHandler) {
 	}
 }
 
-func (bc *BootstrapController) processNextWorkItem(queue workqueue.RateLimitingInterface, fn queueHandlerFunc) bool {
+func (bc *Controller) processNextWorkItem(queue workqueue.RateLimitingInterface, fn queueHandlerFunc) bool {
 	obj, shutdown := queue.Get()
 
 	if shutdown {
@@ -228,7 +227,7 @@ func (bc *BootstrapController) processNextWorkItem(queue workqueue.RateLimitingI
 	return true
 }
 
-func (bc *BootstrapController) hcmJoinHandler(key string) error {
+func (bc *Controller) hcmJoinHandler(key string) error {
 	_, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
@@ -278,11 +277,10 @@ func (bc *BootstrapController) hcmJoinHandler(key string) error {
 		}
 	}
 
-	// TODO handle hcmjoinrequest change
 	return bc.updateHCMJoinStatus(hcmjoin, csr)
 }
 
-func (bc *BootstrapController) updateHCMJoinStatus(hcmjoin *hcmv1alpha1.ClusterJoinRequest, csr *csrv1beta1.CertificateSigningRequest) error {
+func (bc *Controller) updateHCMJoinStatus(hcmjoin *hcmv1alpha1.ClusterJoinRequest, csr *csrv1beta1.CertificateSigningRequest) error {
 	var alreadyApproved bool
 	var alreadyDenied bool
 	for _, c := range csr.Status.Conditions {
@@ -314,52 +312,59 @@ func (bc *BootstrapController) updateHCMJoinStatus(hcmjoin *hcmv1alpha1.ClusterJ
 		// Check if cluster is unique
 		clusters, err := bc.clusterLister.List(labels.Everything())
 		if err != nil {
-			return nil
+			return err
 		}
-		var nameAlreadyExists, namespaceAlreadyExists bool
-		for _, cl := range clusters {
-			// If cluster is pending or offline, always approve the csr
-			if len(cl.Status.Conditions) == 0 {
-				continue
-			}
-
-			//If the joinrequest's cluster name and namespace are same as the exist one. it's maybe a reinstall, so admin need to approve it, do not deny automatically
-			if cl.Name == hcmjoin.Spec.ClusterName && cl.Namespace == hcmjoin.Spec.ClusterNamespace {
-				return nil
-			}
-			//Do not allow one namespace has more than one cluster, and do not allow diffirent cluster has same name.
-			if cl.Name == hcmjoin.Spec.ClusterName {
-				nameAlreadyExists = true
-			}
-			if cl.Namespace == hcmjoin.Spec.ClusterNamespace {
-				namespaceAlreadyExists = true
-			}
-		}
-		if nameAlreadyExists || namespaceAlreadyExists {
-			// update hcmjoinrequest
-			hcmjoin.Status.Phase = hcmv1alpha1.JoinDenied
-			_, err := bc.hcmclientset.McmV1alpha1().ClusterJoinRequests().UpdateStatus(hcmjoin)
-			if err != nil {
-				return err
-			}
-		} else if bc.autoApproveClusterJoinRequest && !alreadyApproved {
-			csr.Status.Conditions = append(csr.Status.Conditions, csrv1beta1.CertificateSigningRequestCondition{
-				Type:           csrv1beta1.CertificateApproved,
-				Reason:         "HCMClusterJoinApprove",
-				Message:        "This CSR was approved by hcm cluster join controller.",
-				LastUpdateTime: metav1.Now(),
-			})
-			_, err = bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(csr)
-			if err != nil {
-				return err
-			}
-		}
+		return bc.approveOrDenyClusterJoinRequest(hcmjoin, csr, alreadyApproved, clusters)
 	}
 
 	return nil
 }
 
-func (bc *BootstrapController) createRoles(hcmjoin *hcmv1alpha1.ClusterJoinRequest) error {
+func (bc *Controller) approveOrDenyClusterJoinRequest(
+	hcmjoin *hcmv1alpha1.ClusterJoinRequest,
+	csr *csrv1beta1.CertificateSigningRequest, alreadyApproved bool,
+	clusters []*clusterv1alpha1.Cluster) error {
+	var nameAlreadyExists, namespaceAlreadyExists bool
+	for _, cl := range clusters {
+		// If cluster is pending or offline, always approve the csr
+		if len(cl.Status.Conditions) == 0 {
+			continue
+		}
+
+		//If the joinrequest's cluster name and namespace are same as the existing one. it's maybe a reinstall,
+		//so admin need to approve it, do not deny automatically
+		if cl.Name == hcmjoin.Spec.ClusterName && cl.Namespace == hcmjoin.Spec.ClusterNamespace {
+			return nil
+		}
+		//Do not allow one namespace has more than one cluster, and do not allow diffirent cluster has same name.
+		if cl.Name == hcmjoin.Spec.ClusterName {
+			nameAlreadyExists = true
+		}
+		if cl.Namespace == hcmjoin.Spec.ClusterNamespace {
+			namespaceAlreadyExists = true
+		}
+	}
+	if nameAlreadyExists || namespaceAlreadyExists {
+		// update hcmjoinrequest
+		hcmjoin.Status.Phase = hcmv1alpha1.JoinDenied
+		if _, err := bc.hcmclientset.McmV1alpha1().ClusterJoinRequests().UpdateStatus(hcmjoin); err != nil {
+			return err
+		}
+	} else if bc.autoApproveClusterJoinRequest && !alreadyApproved {
+		csr.Status.Conditions = append(csr.Status.Conditions, csrv1beta1.CertificateSigningRequestCondition{
+			Type:           csrv1beta1.CertificateApproved,
+			Reason:         "HCMClusterJoinApprove",
+			Message:        "This CSR was approved by hcm cluster join controller.",
+			LastUpdateTime: metav1.Now(),
+		})
+		if _, err := bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(csr); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (bc *Controller) createRoles(hcmjoin *hcmv1alpha1.ClusterJoinRequest) error {
 	_, err := bc.kubeclientset.CoreV1().Namespaces().Get(hcmjoin.Spec.ClusterNamespace, metav1.GetOptions{})
 	if err != nil && !errors.IsNotFound(err) {
 		return err
@@ -399,7 +404,7 @@ func (bc *BootstrapController) createRoles(hcmjoin *hcmv1alpha1.ClusterJoinReque
 	return err
 }
 
-func (bc *BootstrapController) csrHandler(key string) error {
+func (bc *Controller) csrHandler(key string) error {
 	_, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		runtime.HandleError(fmt.Errorf("invalid resource key: %s", key))
@@ -460,7 +465,7 @@ func (bc *BootstrapController) csrHandler(key string) error {
 // enqueue takes a resource and converts it into a name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than Work.
-func (bc *BootstrapController) enqueue(obj interface{}, queue workqueue.RateLimitingInterface) {
+func (bc *Controller) enqueue(obj interface{}, queue workqueue.RateLimitingInterface) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
@@ -473,7 +478,7 @@ func (bc *BootstrapController) enqueue(obj interface{}, queue workqueue.RateLimi
 // resolveControllerRef returns the controller referenced by a ControllerRef,
 // or nil if the ControllerRef could not be resolved to a matching controller
 // of the correct Kind.
-func (bc *BootstrapController) resolveControllerRef(controllerRef *metav1.OwnerReference) *hcmv1alpha1.ClusterJoinRequest {
+func (bc *Controller) resolveControllerRef(controllerRef *metav1.OwnerReference) *hcmv1alpha1.ClusterJoinRequest {
 	// We can't look up by UID, so look up by Name and then verify UID.
 	// Don't even try to look up by Name if it's the wrong Kind.
 	if controllerRef.Kind != hcmjoinControllerKind.Kind {
@@ -491,11 +496,14 @@ func (bc *BootstrapController) resolveControllerRef(controllerRef *metav1.OwnerR
 	return hcmjoin
 }
 
-func (bc *BootstrapController) cleanCluster(cluster *clusterv1alpha1.Cluster) {
-	bc.hcmclientset.McmV1alpha1().ClusterJoinRequests().Delete(cluster.Namespace+"-"+cluster.Name, &metav1.DeleteOptions{})
+func (bc *Controller) cleanCluster(cluster *clusterv1alpha1.Cluster) {
+	if err := bc.hcmclientset.McmV1alpha1().ClusterJoinRequests().Delete(
+		cluster.Namespace+"-"+cluster.Name, &metav1.DeleteOptions{}); err != nil {
+		klog.Errorf("failed to delete cluster, %v", err)
+	}
 }
 
-func (bc *BootstrapController) runCSRValidation() {
+func (bc *Controller) runCSRValidation() {
 	clusterjoinrequests, err := bc.hcmjoinLister.List(labels.Everything())
 	if err != nil {
 		runtime.HandleError(err)
@@ -520,7 +528,7 @@ func (bc *BootstrapController) runCSRValidation() {
 	}
 }
 
-func (bc *BootstrapController) nextRotationDeadline(csrName string, certificate []byte) (time.Time, error) {
+func (bc *Controller) nextRotationDeadline(csrName string, certificate []byte) (time.Time, error) {
 	certDERBlock, _ := pem.Decode(certificate)
 	if certDERBlock == nil || certDERBlock.Type != "CERTIFICATE" {
 		return time.Now(), fmt.Errorf("CSR %s has a bad certificate block", csrName)
@@ -538,7 +546,7 @@ func (bc *BootstrapController) nextRotationDeadline(csrName string, certificate 
 	return deadline, nil
 }
 
-func (bc *BootstrapController) recreateCSR(cjr *hcmv1alpha1.ClusterJoinRequest) error {
+func (bc *Controller) recreateCSR(cjr *hcmv1alpha1.ClusterJoinRequest) error {
 	err := bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().Delete(cjr.Name, &metav1.DeleteOptions{})
 	if err != nil {
 		return err

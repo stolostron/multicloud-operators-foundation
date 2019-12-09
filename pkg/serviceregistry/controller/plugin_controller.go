@@ -6,7 +6,6 @@
 package controller
 
 import (
-	"fmt"
 	"time"
 
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/serviceregistry/plugin"
@@ -116,7 +115,6 @@ func (c *PluginController) Run() {
 
 func (c *PluginController) runWorker() {
 	for c.processRegistryEvent() {
-		// continue looping
 	}
 }
 
@@ -129,20 +127,11 @@ func (c *PluginController) processRegistryEvent() bool {
 	newEvent := event.(registryEvent)
 	switch newEvent.eventType {
 	case add:
-		err := c.createEndpoints(newEvent.endpoints)
-		if err != nil {
-			runtime.HandleError(err)
-		}
+		c.createEndpoints(newEvent.endpoints)
 	case update:
-		err := c.updateEndpoints(newEvent.endpoints)
-		if err != nil {
-			runtime.HandleError(err)
-		}
+		c.updateEndpoints(newEvent.endpoints)
 	case delete:
-		err := c.deleteEndpoints(newEvent.endpoints)
-		if err != nil {
-			runtime.HandleError(err)
-		}
+		c.deleteEndpoints(newEvent.endpoints)
 	}
 	c.queue.Forget(event)
 	return true
@@ -174,29 +163,29 @@ func (c *PluginController) syncRegisteredEndpoints() {
 	}
 }
 
-func (c *PluginController) createEndpoints(endpoints *v1.Endpoints) error {
+func (c *PluginController) createEndpoints(endpoints *v1.Endpoints) {
 	_, err := c.hubKubeClient.CoreV1().Endpoints(endpoints.Namespace).Create(endpoints)
 	if err != nil {
-		return fmt.Errorf("failed to register endpoint (%s/%s) in hub cluster, %v", endpoints.Namespace, endpoints.Name, err)
+		klog.Errorf("failed to register endpoint (%s/%s) in hub cluster, %v", endpoints.Namespace, endpoints.Name, err)
+		return
 	}
-	klog.Infof("register endpoints (%s/%s) in hub cluster", endpoints.Namespace, endpoints.Name)
-	return nil
+	klog.V(5).Infof("register endpoints (%s/%s) in hub cluster", endpoints.Namespace, endpoints.Name)
 }
 
-func (c *PluginController) updateEndpoints(endpoints *v1.Endpoints) error {
+func (c *PluginController) updateEndpoints(endpoints *v1.Endpoints) {
 	_, err := c.hubKubeClient.CoreV1().Endpoints(endpoints.Namespace).Update(endpoints)
 	if err != nil {
-		return fmt.Errorf("failed to update endpoint (%s/%s) in hub cluster, %v", endpoints.Namespace, endpoints.Name, err)
+		klog.Errorf("failed to update endpoint (%s/%s) in hub cluster, %v", endpoints.Namespace, endpoints.Name, err)
+		return
 	}
-	klog.Infof("update endpoints (%s/%s) in hub cluster", endpoints.Namespace, endpoints.Name)
-	return nil
+	klog.V(5).Infof("update endpoints (%s/%s) in hub cluster", endpoints.Namespace, endpoints.Name)
 }
 
-func (c *PluginController) deleteEndpoints(endpoints *v1.Endpoints) error {
+func (c *PluginController) deleteEndpoints(endpoints *v1.Endpoints) {
 	err := c.hubKubeClient.CoreV1().Endpoints(endpoints.Namespace).Delete(endpoints.Name, &metav1.DeleteOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to delete endpoint (%s/%s) in hub cluster, %v", endpoints.Namespace, endpoints.Name, err)
+		klog.Errorf("failed to delete endpoint (%s/%s) in hub cluster, %v", endpoints.Namespace, endpoints.Name, err)
+		return
 	}
-	klog.Infof("delete endpoints (%s/%s) in hub cluster", endpoints.Namespace, endpoints.Name)
-	return nil
+	klog.V(5).Infof("delete endpoints (%s/%s) in hub cluster", endpoints.Namespace, endpoints.Name)
 }

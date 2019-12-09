@@ -15,9 +15,9 @@ import (
 	clusterv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
 
-type RESTStorageProvider struct{}
+type StorageProvider struct{}
 
-func (p RESTStorageProvider) NewRESTStorage(
+func (p StorageProvider) NewRESTStorage(
 	apiResourceConfigSource serverstorage.APIResourceConfigSource,
 	restOptionsGetter generic.RESTOptionsGetter) (genericapiserver.APIGroupInfo, bool) {
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(
@@ -34,7 +34,7 @@ func (p RESTStorageProvider) NewRESTStorage(
 	return apiGroupInfo, true
 }
 
-func (p RESTStorageProvider) v1alpha1Storage(optsGetter generic.RESTOptionsGetter) map[string]rest.Storage {
+func (p StorageProvider) v1alpha1Storage(optsGetter generic.RESTOptionsGetter) map[string]rest.Storage {
 	storage := map[string]rest.Storage{}
 
 	clusterStorage, clusterStatusStorage := clusterstorage.NewREST(optsGetter)
@@ -46,6 +46,6 @@ func (p RESTStorageProvider) v1alpha1Storage(optsGetter generic.RESTOptionsGette
 	return storage
 }
 
-func (p RESTStorageProvider) GroupName() string {
+func (p StorageProvider) GroupName() string {
 	return clusterv1alpha1.SchemeGroupVersion.Group
 }

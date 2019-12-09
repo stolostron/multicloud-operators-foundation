@@ -301,8 +301,6 @@ func (s *KubeServicePlugin) toServiceLocation(discoveredEndpoints *v1.Endpoints)
 		host = fmt.Sprintf("%s.%s", serviceName, serviceNamespace)
 	}
 
-	// TODO: zone and region
-
 	return &plugin.ServiceLocation{
 		Address: address,
 		Hosts:   []string{host},

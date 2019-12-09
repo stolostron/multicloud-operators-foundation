@@ -60,12 +60,12 @@ func (g *InSecureHTTPGetter) get(href string) (*bytes.Buffer, error) {
 	return buf, err
 }
 
-func newInSecureHTTPGetter(URL, CertFile, KeyFile, CAFile string) (getter.Getter, error) {
-	return NewInSecureHTTPGetter(URL, CertFile, KeyFile, CAFile)
+func newInSecureHTTPGetter(url, certFile, keyFile, caFile string) (getter.Getter, error) {
+	return NewInSecureHTTPGetter(url, certFile, keyFile, caFile)
 }
 
-// NewHubRepoHTTPGetter creates a mcm hub cluster repository getter
-func NewInSecureHTTPGetter(URL, CertFile, KeyFile, CAFile string) (*InSecureHTTPGetter, error) {
+// NewInSecureHTTPGetter creates an insecure HTTP getter
+func NewInSecureHTTPGetter(url, certFile, keyFile, caFile string) (*InSecureHTTPGetter, error) {
 	var client InSecureHTTPGetter
 	tr := &http.Transport{
 		DisableCompression: true,

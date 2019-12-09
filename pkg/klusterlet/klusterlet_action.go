@@ -62,7 +62,7 @@ func (k *Klusterlet) handleActionWork(work *v1alpha1.Work) error {
 }
 
 //Create helm release
-func (k *Klusterlet) handleCreateHelmActionWork(work *v1alpha1.Work, helmcontrol helmutil.HelmControlInterface) (runtime.RawExtension, error) {
+func (k *Klusterlet) handleCreateHelmActionWork(work *v1alpha1.Work, helmcontrol helmutil.ControlInterface) (runtime.RawExtension, error) {
 	rls, err := helmcontrol.CreateHelmRelease(work.Spec.HelmWork.ReleaseName, work.Namespace, *work.Spec.HelmWork)
 	res := runtime.RawExtension{}
 	if err != nil {
@@ -79,7 +79,7 @@ func (k *Klusterlet) handleCreateKubeActionWork(work *v1alpha1.Work) (runtime.Ra
 }
 
 //Update helm release
-func (k *Klusterlet) handleUpdateHelmActionWork(work *v1alpha1.Work, helmcontrol helmutil.HelmControlInterface) (runtime.RawExtension, error) {
+func (k *Klusterlet) handleUpdateHelmActionWork(work *v1alpha1.Work, helmcontrol helmutil.ControlInterface) (runtime.RawExtension, error) {
 	res := runtime.RawExtension{}
 	rls, err := helmcontrol.UpdateHelmRelease(work.Spec.HelmWork.ReleaseName, work.Namespace, *work.Spec.HelmWork)
 	if err != nil {
@@ -158,7 +158,7 @@ func (k *Klusterlet) handleDeleteKubeActionWork(work *v1alpha1.Work) (runtime.Ra
 }
 
 //Delete helm release
-func (k *Klusterlet) handleDeleteHelmActionWork(work *v1alpha1.Work, helmControl helmutil.HelmControlInterface) (runtime.RawExtension, error) {
+func (k *Klusterlet) handleDeleteHelmActionWork(work *v1alpha1.Work, helmControl helmutil.ControlInterface) (runtime.RawExtension, error) {
 	res := runtime.RawExtension{}
 	rls, err := helmControl.DeleteHelmRelease(work.Spec.HelmWork.ReleaseName)
 	if err != nil {

@@ -53,22 +53,22 @@ type KubeControlInterface interface {
 	KindFor(resource schema.GroupVersionResource) (schema.GroupVersionKind, error)
 }
 
-type RestKubeControl struct {
+type KubeControl struct {
 	mapper        *Mapper
 	config        *rest.Config
 	dynamicClient dynamic.Interface
 }
 
-func NewRestKubeControl(mapper *Mapper, config *rest.Config) *RestKubeControl {
+func NewKubeControl(mapper *Mapper, config *rest.Config) *KubeControl {
 	dynamicClient := dynamic.NewForConfigOrDie(config)
-	return &RestKubeControl{
+	return &KubeControl{
 		mapper:        mapper,
 		dynamicClient: dynamicClient,
 		config:        config,
 	}
 }
 
-func (r *RestKubeControl) Create(
+func (r *KubeControl) Create(
 	namespace string, raw runtime.RawExtension, deco func(obj runtime.Object) runtime.Object) (runtime.Object, error) {
 	obj := &unstructured.Unstructured{}
 	err := json.Unmarshal(raw.Raw, obj)
@@ -100,7 +100,7 @@ func (r *RestKubeControl) Create(
 }
 
 // Get a resource
-func (r *RestKubeControl) Get(
+func (r *KubeControl) Get(
 	gvk *schema.GroupVersionKind, resource, namespace, name string, serverPrint bool) (runtime.Object, error) {
 	var mapping *meta.RESTMapping
 	var err error
@@ -121,7 +121,7 @@ func (r *RestKubeControl) Get(
 }
 
 // List resources
-func (r *RestKubeControl) List(
+func (r *KubeControl) List(
 	resource, namespace string, options *metav1.ListOptions, serverPrint bool) (runtime.Object, error) {
 	mapping, err := r.mapper.MappingFor(resource)
 	if err != nil {
@@ -136,7 +136,7 @@ func (r *RestKubeControl) List(
 	return helper.List(namespace, options)
 }
 
-func (r *RestKubeControl) Delete(gvk *schema.GroupVersionKind, resource, namespace, name string) error {
+func (r *KubeControl) Delete(gvk *schema.GroupVersionKind, resource, namespace, name string) error {
 	var mapping *meta.RESTMapping
 	var err error
 
@@ -155,7 +155,7 @@ func (r *RestKubeControl) Delete(gvk *schema.GroupVersionKind, resource, namespa
 	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Delete(name, &metav1.DeleteOptions{})
 }
 
-func (r *RestKubeControl) Patch(
+func (r *KubeControl) Patch(
 	namespace, name string, gvk schema.GroupVersionKind, pt types.PatchType, data []byte) (runtime.Object, error) {
 	mapping, err := r.mapper.MappingForGVK(gvk)
 	if err != nil {
@@ -165,7 +165,7 @@ func (r *RestKubeControl) Patch(
 	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Patch(name, pt, data, metav1.UpdateOptions{})
 }
 
-func (r *RestKubeControl) Replace(namespace string, overwrite bool, raw runtime.RawExtension) (runtime.Object, error) {
+func (r *KubeControl) Replace(namespace string, overwrite bool, raw runtime.RawExtension) (runtime.Object, error) {
 	obj := &unstructured.Unstructured{}
 	err := json.Unmarshal(raw.Raw, obj)
 	if err != nil {
@@ -182,7 +182,7 @@ func (r *RestKubeControl) Replace(namespace string, overwrite bool, raw runtime.
 	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Update(obj, metav1.UpdateOptions{})
 }
 
-func (r *RestKubeControl) KindFor(resource schema.GroupVersionResource) (schema.GroupVersionKind, error) {
+func (r *KubeControl) KindFor(resource schema.GroupVersionResource) (schema.GroupVersionKind, error) {
 	return r.mapper.Mapper().KindFor(resource)
 }
 

@@ -6,7 +6,6 @@
 package rbac
 
 import (
-	"fmt"
 	"time"
 
 	clusterinformers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
@@ -43,21 +42,20 @@ func NewClusterRBACController(
 }
 
 // Run is the main run loop of kluster server
-func (cc *ClusterRBACController) Run() error {
+func (cc *ClusterRBACController) Run() {
 	defer runtime.HandleCrash()
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for cluster informer caches to sync")
 	if ok := cache.WaitForCacheSync(cc.stopCh, cc.clusterSyced); !ok {
-		return fmt.Errorf("failed to wait for kubernetes caches to sync")
+		klog.Errorf("failed to wait for kubernetes caches to sync")
+		return
 	}
 
 	go wait.Until(cc.syncCluster, 5*time.Second, cc.stopCh)
 
 	<-cc.stopCh
 	klog.Info("Shutting controller")
-
-	return nil
 }
 
 func (cc *ClusterRBACController) syncCluster() {

@@ -64,8 +64,8 @@ func (b *klusterletCAAppend) Admit(a admission.Attributes) error {
 	}
 
 	clusterStatus.Spec.KlusterletCA = b.caData
-	b.client.Mcm().ClusterStatuses(a.GetNamespace()).Update(clusterStatus)
-	return nil
+	_, err = b.client.Mcm().ClusterStatuses(a.GetNamespace()).Update(clusterStatus)
+	return err
 }
 
 func (b *klusterletCAAppend) SetInternalHCMClientSet(client internalclientset.Interface) {

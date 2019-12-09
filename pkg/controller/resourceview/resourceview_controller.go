@@ -38,8 +38,8 @@ import (
 	equals "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/equals"
 )
 
-// ResourceViewController manages the lifecycle of ResourceView
-type ResourceViewController struct {
+// Controller manages the lifecycle of ResourceView
+type Controller struct {
 	// hcmclientset is a clientset for our own API group
 	hcmclientset clientset.Interface
 
@@ -64,21 +64,19 @@ type ResourceViewController struct {
 	workqueue workqueue.RateLimitingInterface
 }
 
-// TODO: should put the variable to hcm-api
-
-// NewResourceViewController returns a ResourceViewController
-func NewResourceViewController(
+// NewController returns a resource view controller
+func NewController(
 	hcmclientset clientset.Interface,
 	kubeclientset kubernetes.Interface,
 	informerFactory informers.SharedInformerFactory,
 	clusterInformerFactory clusterinformers.SharedInformerFactory,
 	enableRBAC bool,
-	stopCh <-chan struct{}) *ResourceViewController {
+	stopCh <-chan struct{}) *Controller {
 	clusterInformer := clusterInformerFactory.Clusterregistry().V1alpha1().Clusters()
 	viewInformer := informerFactory.Mcm().V1alpha1().ResourceViews()
 	workInformer := informerFactory.Mcm().V1alpha1().Works()
 
-	controller := &ResourceViewController{
+	controller := &Controller{
 		hcmclientset:  hcmclientset,
 		kubeclientset: kubeclientset,
 		clusterLister: clusterInformer.Lister(),
@@ -120,33 +118,32 @@ func NewResourceViewController(
 }
 
 // Run is the main run loop of kluster server
-func (rv *ResourceViewController) Run() error {
+func (rv *Controller) Run() {
 	defer utilruntime.HandleCrash()
 	defer rv.workqueue.ShutDown()
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for hcm informer caches to sync")
 	if ok := cache.WaitForCacheSync(rv.stopCh, rv.clusterSynced, rv.viewSynced, rv.workSynced); !ok {
-		return fmt.Errorf("failed to wait for hcm caches to sync")
+		klog.Errorf("failed to wait for hcm caches to sync")
+		return
 	}
 
 	go wait.Until(rv.runWorker, time.Second, rv.stopCh)
 
 	<-rv.stopCh
 	klog.Info("Shutting controller")
-
-	return nil
 }
 
 // runWorker is a long-running function that will continually call the
 // processNextWorkItem function in order to read and process a message on the
 // workqueue.
-func (rv *ResourceViewController) runWorker() {
+func (rv *Controller) runWorker() {
 	for rv.processNextWorkItem() {
 	}
 }
 
-func (rv *ResourceViewController) processNextWorkItem() bool {
+func (rv *Controller) processNextWorkItem() bool {
 	obj, shutdown := rv.workqueue.Get()
 
 	if shutdown {
@@ -198,7 +195,7 @@ func (rv *ResourceViewController) processNextWorkItem() bool {
 }
 
 // processWork process work and update work result
-func (rv *ResourceViewController) processView(key string) error {
+func (rv *Controller) processView(key string) error {
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("invalid resource key: %s", key))
@@ -250,7 +247,7 @@ func (rv *ResourceViewController) processView(key string) error {
 
 	clustersNeedingWorks, worksToDelete, worksToUpdate := rv.worksShouldBeOnClusters(view, clusterToWorks, filteredClusters)
 	// Create work items on each cluster
-	utils.BatchHandle(len(clustersNeedingWorks), func(i int) error {
+	utils.BatchHandle(len(clustersNeedingWorks), func(i int) {
 		cluster := clustersNeedingWorks[i]
 		workName := "view-" + view.Name
 		owners := utils.AddOwnersLabel("", "clusters", cluster.Name, cluster.Namespace)
@@ -289,31 +286,28 @@ func (rv *ResourceViewController) processView(key string) error {
 		if e != nil {
 			klog.Errorf("Failed to create work %s on cluster %s, error: %+v", work.Name, cluster.Name, e)
 		}
-		return nil
 	})
 
-	utils.BatchHandle(len(worksToUpdate), func(i int) error {
+	utils.BatchHandle(len(worksToUpdate), func(i int) {
 		workToUpdate := worksToUpdate[i]
 		_, err := rv.hcmclientset.McmV1alpha1().Works(workToUpdate.Namespace).Update(workToUpdate)
 		if err != nil {
 			klog.Errorf("Failed to update work %s error: %v", workToUpdate.Name, err)
 		}
-		return nil
 	})
 
-	utils.BatchHandle(len(worksToDelete), func(i int) error {
+	utils.BatchHandle(len(worksToDelete), func(i int) {
 		workToDelete := worksToDelete[i]
 		err := rv.hcmclientset.McmV1alpha1().Works(workToDelete.Namespace).Delete(workToDelete.Name, &metav1.DeleteOptions{})
 		if err != nil {
 			klog.Errorf("Failed to delete work %s, error: %v", workToDelete.Name, err)
 		}
-		return nil
 	})
 
 	return rv.updateViewStatus(view, filteredClusters, clusterToWorks)
 }
 
-func (rv *ResourceViewController) worksShouldBeOnClusters(
+func (rv *Controller) worksShouldBeOnClusters(
 	view *v1alpha1.ResourceView,
 	clusterToWorks map[string][]*v1alpha1.Work,
 	clusters []*clusterv1alpha1.Cluster,
@@ -347,7 +341,7 @@ func (rv *ResourceViewController) worksShouldBeOnClusters(
 	return clustersNeedingWorks, worksToDelete, workToUpdate
 }
 
-func (rv *ResourceViewController) getClustersToWorks(view *v1alpha1.ResourceView) (map[string][]*v1alpha1.Work, error) {
+func (rv *Controller) getClustersToWorks(view *v1alpha1.ResourceView) (map[string][]*v1alpha1.Work, error) {
 	selector := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			mcm.ViewLabel: view.Namespace + "." + view.Name,
@@ -372,7 +366,7 @@ func (rv *ResourceViewController) getClustersToWorks(view *v1alpha1.ResourceView
 	return clusterToWorks, nil
 }
 
-func (rv *ResourceViewController) updateViewStatus(
+func (rv *Controller) updateViewStatus(
 	oldview *v1alpha1.ResourceView,
 	clusters []*clusterv1alpha1.Cluster,
 	clusterToWorks map[string][]*v1alpha1.Work,
@@ -397,7 +391,7 @@ func (rv *ResourceViewController) updateViewStatus(
 		if work.Status.Type == "" {
 			continue
 		}
-		finishedWorkNum = finishedWorkNum + 1
+		finishedWorkNum++
 	}
 
 	if view.Spec.Mode == v1alpha1.PeriodicResourceUpdate {
@@ -418,7 +412,7 @@ func (rv *ResourceViewController) updateViewStatus(
 	return nil
 }
 
-func (rv *ResourceViewController) retryUpdateViewStatus(
+func (rv *Controller) retryUpdateViewStatus(
 	view *v1alpha1.ResourceView, status *v1alpha1.ResourceViewStatus) error {
 	// don't wait due to limited number of clients, but backoff after the default number of steps
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -443,7 +437,7 @@ func (rv *ResourceViewController) retryUpdateViewStatus(
 // enqueueWork takes a Work resource and converts it into a name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than Work.
-func (rv *ResourceViewController) enqueueView(obj interface{}) {
+func (rv *Controller) enqueueView(obj interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
@@ -453,7 +447,7 @@ func (rv *ResourceViewController) enqueueView(obj interface{}) {
 	rv.workqueue.Add(key)
 }
 
-func (rv *ResourceViewController) addWork(obj interface{}) {
+func (rv *Controller) addWork(obj interface{}) {
 	work := obj.(*v1alpha1.Work)
 
 	if work.Spec.Type != v1alpha1.ResourceWorkType {
@@ -465,9 +459,9 @@ func (rv *ResourceViewController) addWork(obj interface{}) {
 	}
 }
 
-func (rv *ResourceViewController) updateWork(old, new interface{}) {
-	newWork := new.(*v1alpha1.Work)
-	oldWork := old.(*v1alpha1.Work)
+func (rv *Controller) updateWork(oldObj, newObj interface{}) {
+	newWork := newObj.(*v1alpha1.Work)
+	oldWork := oldObj.(*v1alpha1.Work)
 
 	if newWork.Spec.Type != v1alpha1.ResourceWorkType {
 		return
@@ -484,7 +478,7 @@ func (rv *ResourceViewController) updateWork(old, new interface{}) {
 	}
 }
 
-func (rv *ResourceViewController) deleteWork(old interface{}) {
+func (rv *Controller) deleteWork(old interface{}) {
 	oldWork := old.(*v1alpha1.Work)
 	if oldWork.Spec.Type != v1alpha1.ResourceWorkType {
 		return
@@ -495,9 +489,9 @@ func (rv *ResourceViewController) deleteWork(old interface{}) {
 	}
 }
 
-func (rv *ResourceViewController) updateCluster(old, new interface{}) {
-	oldCluster := old.(*clusterv1alpha1.Cluster)
-	newCluster := new.(*clusterv1alpha1.Cluster)
+func (rv *Controller) updateCluster(oldObj, newObj interface{}) {
+	oldCluster := oldObj.(*clusterv1alpha1.Cluster)
+	newCluster := newObj.(*clusterv1alpha1.Cluster)
 
 	if len(oldCluster.Status.Conditions) > 0 &&
 		oldCluster.Status.Conditions[0].Type == newCluster.Status.Conditions[0].Type {
@@ -516,7 +510,7 @@ func (rv *ResourceViewController) updateCluster(old, new interface{}) {
 	}
 }
 
-func (rv *ResourceViewController) updateWorkByView(view *v1alpha1.ResourceView, work *v1alpha1.Work) (*v1alpha1.Work, bool) {
+func (rv *Controller) updateWorkByView(view *v1alpha1.ResourceView, work *v1alpha1.Work) (*v1alpha1.Work, bool) {
 	update := false
 	updateWork := work.DeepCopy()
 
@@ -563,7 +557,7 @@ func (rv *ResourceViewController) updateWorkByView(view *v1alpha1.ResourceView, 
 	return updateWork, update
 }
 
-func (rv *ResourceViewController) enqueueViewFromWork(work *v1alpha1.Work) {
+func (rv *Controller) enqueueViewFromWork(work *v1alpha1.Work) {
 	key, ok := work.Labels[mcm.ViewLabel]
 	if !ok {
 		return
@@ -578,7 +572,7 @@ func (rv *ResourceViewController) enqueueViewFromWork(work *v1alpha1.Work) {
 	rv.workqueue.Add(key)
 }
 
-func (rv *ResourceViewController) needsUpdate(oldview, newview *v1alpha1.ResourceView) bool {
+func (rv *Controller) needsUpdate(oldview, newview *v1alpha1.ResourceView) bool {
 	// If it has a ControllerRef, that's all that matters.
 	if oldview.Spec.Mode != newview.Spec.Mode {
 		return true

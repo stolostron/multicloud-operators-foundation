@@ -22,7 +22,7 @@ import (
 )
 
 type resourceViewController struct {
-	*ResourceViewController
+	*Controller
 
 	clusterStore cache.Store
 	viewStore    cache.Store
@@ -40,7 +40,7 @@ func newTestController() (*resourceViewController, *fake.Clientset) {
 	clusterFakeClient := clusterfake.NewSimpleClientset()
 	clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterFakeClient, time.Minute*10)
 
-	rvc := NewResourceViewController(clientset, nil, informerFactory, clusterInformerFactory, true, nil)
+	rvc := NewController(clientset, nil, informerFactory, clusterInformerFactory, true, nil)
 	rvc.clusterSynced = alwaysReady
 	rvc.workSynced = alwaysReady
 	rvc.viewSynced = alwaysReady
@@ -116,7 +116,7 @@ func validateSyncViews(t *testing.T, client *fake.Clientset, verb string, expect
 	count := 0
 	for _, work := range works {
 		if work.Matches(verb, "works") {
-			count = count + 1
+			count++
 		}
 	}
 	if count != expectedCreates {

@@ -122,6 +122,7 @@ mcm_version_load_version_vars() {
     return 1
   }
 
+  # shellcheck source=/dev/null
   source "${version_file}"
 }
 
@@ -142,20 +143,25 @@ mcm_version_ldflags() {
 
   local buildDate=
   [[ -z ${SOURCE_DATE_EPOCH-} ]] || buildDate="--date=@${SOURCE_DATE_EPOCH}"
-  local -a ldflags=($(mcm_version_ldflag "buildDate" "$(date ${buildDate} -u +'%Y-%m-%dT%H:%M:%SZ')"))
+  
+  if [ -z "$buildDate" ]; then
+    local -a ldflags=( "$(mcm_version_ldflag "buildDate" "$(date -u +'%Y-%m-%dT%H:%M:%SZ')")" )
+  else
+    local -a ldflags=( "$(mcm_version_ldflag "buildDate" "$(date "${buildDate}" -u +'%Y-%m-%dT%H:%M:%SZ')")" )
+  fi
   if [[ -n ${MCM_GIT_COMMIT-} ]]; then
-    ldflags+=($(mcm_version_ldflag "gitCommit" "${MCM_GIT_COMMIT}"))
-    ldflags+=($(mcm_version_ldflag "gitTreeState" "${MCM_GIT_TREE_STATE}"))
+    ldflags+=( "$(mcm_version_ldflag "gitCommit" "${MCM_GIT_COMMIT}")" )
+    ldflags+=( "$(mcm_version_ldflag "gitTreeState" "${MCM_GIT_TREE_STATE}")" )
   fi
 
   if [[ -n ${MCM_GIT_VERSION-} ]]; then
-    ldflags+=($(mcm_version_ldflag "gitVersion" "${MCM_GIT_VERSION}"))
+    ldflags+=( "$(mcm_version_ldflag "gitVersion" "${MCM_GIT_VERSION}")" )
   fi
 
   if [[ -n ${MCM_GIT_MAJOR-} && -n ${MCM_GIT_MINOR-} ]]; then
     ldflags+=(
-      $(mcm_version_ldflag "gitMajor" "${MCM_GIT_MAJOR}")
-      $(mcm_version_ldflag "gitMinor" "${MCM_GIT_MINOR}")
+      "$(mcm_version_ldflag "gitMajor" "${MCM_GIT_MAJOR}")"
+      "$(mcm_version_ldflag "gitMinor" "${MCM_GIT_MINOR}")"
     )
   fi
 
@@ -170,4 +176,4 @@ mcm_version_get_ldflags() {
   mcm_version_ldflags
 }
 
-mcm_version_get_ldflags $1 $2
+mcm_version_get_ldflags "$1" "$2"

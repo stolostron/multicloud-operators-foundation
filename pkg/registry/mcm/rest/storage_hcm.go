@@ -27,13 +27,13 @@ import (
 	"k8s.io/klog"
 )
 
-type RESTStorageProvider struct{}
+type StorageProvider struct{}
 
-func (p RESTStorageProvider) NewRESTStorage(
+func (p StorageProvider) NewRESTStorage(
 	apiResourceConfigSource serverstorage.APIResourceConfigSource,
 	restOptionsGetter generic.RESTOptionsGetter,
-	storageOptions *mcmstorage.StorageOptions,
-	clientConfig klusterlet.KlusterletClientConfig) (genericapiserver.APIGroupInfo, bool) {
+	storageOptions *mcmstorage.Options,
+	clientConfig klusterlet.ClientConfig) (genericapiserver.APIGroupInfo, bool) {
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(hcmv1alpha1.GroupName, api.Scheme, api.ParameterCodec, api.Codecs)
 	// If you add a version here, be sure to add an entry in `k8s.io/kubernetes/cmd/kube-apiserver/app/aggregator.go with
 	// specific priorities.
@@ -47,10 +47,10 @@ func (p RESTStorageProvider) NewRESTStorage(
 	return apiGroupInfo, true
 }
 
-func (p RESTStorageProvider) v1alpha1Storage(
+func (p StorageProvider) v1alpha1Storage(
 	optsGetter generic.RESTOptionsGetter,
-	storageOptions *mcmstorage.StorageOptions,
-	clientConfig klusterlet.KlusterletClientConfig) map[string]rest.Storage {
+	storageOptions *mcmstorage.Options,
+	clientConfig klusterlet.ClientConfig) map[string]rest.Storage {
 	storage := map[string]rest.Storage{}
 
 	// work
@@ -109,6 +109,6 @@ func (p RESTStorageProvider) v1alpha1Storage(
 	return storage
 }
 
-func (p RESTStorageProvider) GroupName() string {
+func (p StorageProvider) GroupName() string {
 	return mcm.GroupName
 }

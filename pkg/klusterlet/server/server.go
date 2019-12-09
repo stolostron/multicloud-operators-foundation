@@ -91,12 +91,17 @@ func (s *Server) InstallAuthFilter() {
 		// Authenticate
 		authResp, ok, err := s.auth.AuthenticateRequest(req.Request)
 		if err != nil {
-			klog.Errorf("Unable to authenticate the request due to an error: %v", err)
-			resp.WriteErrorString(http.StatusUnauthorized, "Unauthorized")
+			klog.Errorf("unable to authenticate the request due to an error: %v", err)
+			if err := resp.WriteErrorString(http.StatusUnauthorized, "Unauthorized"); err != nil {
+				klog.Errorf("failed to write error to response, %v", err)
+			}
 			return
 		}
 		if !ok {
-			resp.WriteErrorString(http.StatusUnauthorized, "Unauthorized")
+			klog.Errorf("unable to authenticate the request")
+			if err := resp.WriteErrorString(http.StatusUnauthorized, "Unauthorized"); err != nil {
+				klog.Errorf("failed to write error to response, %v", err)
+			}
 			return
 		}
 
@@ -109,16 +114,20 @@ func (s *Server) InstallAuthFilter() {
 			msg := fmt.Sprintf(
 				"Authorization error (user=%s, verb=%s, resource=%s, subresource=%s)",
 				attrs.GetUser().GetName(), attrs.GetVerb(), attrs.GetResource(), attrs.GetSubresource())
-			klog.Errorf(msg, err)
-			resp.WriteErrorString(http.StatusInternalServerError, msg)
+			klog.Error(msg)
+			if err := resp.WriteErrorString(http.StatusInternalServerError, msg); err != nil {
+				klog.Errorf("failed to write error to response, %v", err)
+			}
 			return
 		}
 		if decision != authorizer.DecisionAllow {
 			msg := fmt.Sprintf(
 				"Forbidden (user=%s, verb=%s, resource=%s, subresource=%s)",
 				attrs.GetUser().GetName(), attrs.GetVerb(), attrs.GetResource(), attrs.GetSubresource())
-			klog.V(2).Info(msg)
-			resp.WriteErrorString(http.StatusForbidden, msg)
+			klog.Error(msg)
+			if err := resp.WriteErrorString(http.StatusForbidden, msg); err != nil {
+				klog.Errorf("failed to write error to response, %v", err)
+			}
 			return
 		}
 
@@ -158,26 +167,34 @@ func (s *Server) getContainerLogs(request *restful.Request, response *restful.Re
 	logger := s.driverFactory.LogDriver()
 
 	if len(podID) == 0 {
-		// TODO: Why return JSON when the rest return plaintext errors?
-		// TODO: Why return plaintext errors?
-		response.WriteError(http.StatusBadRequest, fmt.Errorf(`{"message": "Missing podID."}`))
+		klog.Errorf("failed to get container logs due to missing podID")
+		if err := response.WriteError(http.StatusBadRequest, fmt.Errorf(`{"message": "Missing podID."}`)); err != nil {
+			klog.Errorf("failed to write error to response, %v", err)
+		}
 		return
 	}
 	if len(containerName) == 0 {
-		// TODO: Why return JSON when the rest return plaintext errors?
-		response.WriteError(http.StatusBadRequest, fmt.Errorf(`{"message": "Missing container name."}`))
+		klog.Errorf("failed to get container logs due to missing container name")
+		if err := response.WriteError(http.StatusBadRequest, fmt.Errorf(`{"message": "Missing container name."}`)); err != nil {
+			klog.Errorf("failed to write error to response, %v", err)
+		}
 		return
 	}
 	if len(podNamespace) == 0 {
-		// TODO: Why return JSON when the rest return plaintext errors?
-		response.WriteError(http.StatusBadRequest, fmt.Errorf(`{"message": "Missing podNamespace."}`))
+		klog.Errorf("failed to get container logs due to missing podNamespace")
+		if err := response.WriteError(http.StatusBadRequest, fmt.Errorf(`{"message": "Missing podNamespace."}`)); err != nil {
+			klog.Errorf("failed to write error to response, %v", err)
+		}
 		return
 	}
 
 	fw := flushwriter.Wrap(response.ResponseWriter)
 	response.Header().Set("Transfer-Encoding", "chunked")
 	if err := logger.GetContainerLog(podNamespace, podID, containerName, query, fw); err != nil {
-		response.WriteError(http.StatusBadRequest, err)
+		klog.Errorf("failed to get container logs, %v", err)
+		if err := response.WriteError(http.StatusBadRequest, err); err != nil {
+			klog.Errorf("failed to write error to response, %v", err)
+		}
 		return
 	}
 }
@@ -191,8 +208,10 @@ func (s *Server) getMetrics(request *restful.Request, response *restful.Response
 	fw := flushwriter.Wrap(response.ResponseWriter)
 	response.Header().Set("Transfer-Encoding", "chunked")
 	if err := monitor.GetMetrics(queryPath, query, fw); err != nil {
-		klog.Errorf("Failed to get monitor data: %v", err)
-		response.WriteError(http.StatusBadRequest, err)
+		klog.Errorf("failed to get monitor data: %v", err)
+		if err := response.WriteError(http.StatusBadRequest, err); err != nil {
+			klog.Errorf("failed to write error to response, %v", err)
+		}
 		return
 	}
 }

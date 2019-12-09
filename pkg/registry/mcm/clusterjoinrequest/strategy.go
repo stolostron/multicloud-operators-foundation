@@ -31,7 +31,7 @@ func (clusterjoinrequestStrategy) NamespaceScoped() bool {
 	return false
 }
 
-func ClusterJoinRequestToSelectableFields(clusterjoinrequest *mcm.ClusterJoinRequest) fields.Set {
+func toSelectableFields(clusterjoinrequest *mcm.ClusterJoinRequest) fields.Set {
 	return generic.ObjectMetaFieldsSet(&clusterjoinrequest.ObjectMeta, true)
 }
 
@@ -41,7 +41,7 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	if !ok {
 		return nil, nil, false, fmt.Errorf("given object is not a clusterjoinrequest")
 	}
-	return labels.Set(clusterjoinrequest.ObjectMeta.Labels), ClusterJoinRequestToSelectableFields(clusterjoinrequest), clusterjoinrequest.Initializers != nil, nil
+	return labels.Set(clusterjoinrequest.ObjectMeta.Labels), toSelectableFields(clusterjoinrequest), clusterjoinrequest.Initializers != nil, nil
 }
 
 func MatchClusterJoinRequest(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {

@@ -54,9 +54,6 @@ func GetWorkSetFromWork(work *v1alpha1.Work, worksets []*v1alpha1.WorkSet) ([]*v
 }
 
 func FilterHealthyClusters(clusters []*clusterv1alpha1.Cluster) []*clusterv1alpha1.Cluster {
-	if len(clusters) < 0 {
-		return nil
-	}
 	filteredClusters := []*clusterv1alpha1.Cluster{}
 	for _, cluster := range clusters {
 		if len(cluster.Status.Conditions) == 0 {

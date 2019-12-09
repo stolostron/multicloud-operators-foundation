@@ -31,7 +31,7 @@ func (clusterstatusStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func ClusterStatusToSelectableFields(clusterstatus *mcm.ClusterStatus) fields.Set {
+func toSelectableFields(clusterstatus *mcm.ClusterStatus) fields.Set {
 	return generic.ObjectMetaFieldsSet(&clusterstatus.ObjectMeta, true)
 }
 
@@ -41,7 +41,7 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	if !ok {
 		return nil, nil, false, fmt.Errorf("given object is not a clusterstatus")
 	}
-	return labels.Set(clusterstatus.ObjectMeta.Labels), ClusterStatusToSelectableFields(clusterstatus), clusterstatus.Initializers != nil, nil
+	return labels.Set(clusterstatus.ObjectMeta.Labels), toSelectableFields(clusterstatus), clusterstatus.Initializers != nil, nil
 }
 
 func MatchClusterStatus(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {

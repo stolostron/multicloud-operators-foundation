@@ -134,15 +134,15 @@ func (p *IstioPlugin) SyncRegisteredEndpoints(registereds []*v1.Endpoints) (toCr
 			toDelete = append(toDelete, registered)
 			continue
 		}
-		new := p.toEndpoints(service)
-		if new == nil {
+		newEp := p.toEndpoints(service)
+		if newEp == nil {
 			// service may be changed or the annotation may be removed
 			toDelete = append(toDelete, registered)
 			continue
 		}
-		if !utils.NeedToUpdateEndpoints(registered, new) {
+		if !utils.NeedToUpdateEndpoints(registered, newEp) {
 			// service changed
-			toUpdate = append(toUpdate, new)
+			toUpdate = append(toUpdate, newEp)
 		}
 	}
 
@@ -153,14 +153,14 @@ func (p *IstioPlugin) SyncRegisteredEndpoints(registereds []*v1.Endpoints) (toCr
 	}
 
 	for _, service := range services {
-		new := p.toEndpoints(service)
-		if new == nil {
+		newEp := p.toEndpoints(service)
+		if newEp == nil {
 			continue
 		}
-		if p.isRegisterd(registereds, new) {
+		if p.isRegisterd(registereds, newEp) {
 			continue
 		}
-		toCreate = append(toCreate, new)
+		toCreate = append(toCreate, newEp)
 	}
 	return toCreate, toDelete, toUpdate
 }
@@ -379,14 +379,15 @@ func (p *IstioPlugin) toServiceEntry(serviceEntryName string, ip string, service
 	spec["endpoints"] = endpoints
 	content["spec"] = spec
 	serviceEntry := &unstructured.Unstructured{}
+	// there must be no errors
 	contentData, _ := json.Marshal(content)
-	serviceEntry.UnmarshalJSON(contentData)
+	_ = serviceEntry.UnmarshalJSON(contentData)
 	return serviceEntry
 }
 
-func (p *IstioPlugin) needToUpdate(old, new *unstructured.Unstructured) bool {
-	oldServiceEntry := old.Object["spec"]
-	newServiceEntry := new.Object["spec"]
+func (p *IstioPlugin) needToUpdate(oldObj, newObj *unstructured.Unstructured) bool {
+	oldServiceEntry := oldObj.Object["spec"]
+	newServiceEntry := newObj.Object["spec"]
 	return !apiequality.Semantic.DeepEqual(oldServiceEntry, newServiceEntry)
 }
 

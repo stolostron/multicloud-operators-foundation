@@ -32,8 +32,10 @@ import (
 
 type testKlusterlet struct {
 	*Klusterlet
-	workStore   cache.Store
-	kubeControl *restutils.FakeKubeControl
+	workStore         cache.Store
+	kubeControl       *restutils.FakeKubeControl
+	fakeHCMClient     *hcmfake.Clientset
+	fakeClusterClient *clusterfake.Clientset
 }
 
 var (
@@ -158,9 +160,11 @@ var (
 )
 
 func newTestKlusterlet(configMap *corev1.ConfigMap, clusterRegistry *clusterv1alpha1.Cluster) (
-	*testKlusterlet, *hcmfake.Clientset, *clusterfake.Clientset, *helm.FakeClient) {
+	*testKlusterlet, *helm.FakeClient) {
 	fakeKubeClient := kubefake.NewSimpleClientset(
-		configMap, kubeNode, kubeEndpoints, kubeMonitoringService, kubeMonitoringSecret, klusterletIngress, klusterletService)
+		configMap, kubeNode, kubeEndpoints,
+		kubeMonitoringService, kubeMonitoringSecret,
+		klusterletIngress, klusterletService)
 	fakeHubKubeClient := kubefake.NewSimpleClientset()
 	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
 	fakehcmClient := hcmfake.NewSimpleClientset()
@@ -193,7 +197,9 @@ func newTestKlusterlet(configMap *corev1.ConfigMap, clusterRegistry *clusterv1al
 		klusterlet,
 		informerFactory.Mcm().V1alpha1().Works().Informer().GetStore(),
 		fakekubecontrol,
-	}, fakehcmClient, clusterFakeClient, helmclient
+		fakehcmClient,
+		clusterFakeClient,
+	}, helmclient
 }
 
 func newCluster() *clusterv1alpha1.Cluster {
@@ -256,16 +262,18 @@ func syncWork(t *testing.T, manager *testKlusterlet, work *v1alpha1.Work) {
 
 func TestSyncClusterStatus(t *testing.T) {
 	//Check if the cluster in cluster registry is created once the cluster is first created.
-	klusterlet, hcmclient, clusterclient, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	hcmclient := klusterlet.fakeHCMClient
+	clusterclient := klusterlet.fakeClusterClient
 	klusterlet.syncClusterStatus()
 
 	var updateCount, createCount int
 	for _, action := range clusterclient.Actions() {
 		if action.Matches("update", "clusters") {
-			updateCount = updateCount + 1
+			updateCount++
 		}
 		if action.Matches("create", "clusters") {
-			createCount = createCount + 1
+			createCount++
 		}
 	}
 	if updateCount != 1 {
@@ -278,7 +286,7 @@ func TestSyncClusterStatus(t *testing.T) {
 	createCount = 0
 	for _, action := range hcmclient.Actions() {
 		if action.Matches("create", "clusterstatuses") {
-			createCount = createCount + 1
+			createCount++
 		}
 	}
 	if createCount != 1 {
@@ -296,17 +304,18 @@ func TestSyncClusterStatus(t *testing.T) {
 		},
 	}
 
-	klusterlet, _, clusterclient, _ = newTestKlusterlet(refreshedAPIConfig, newCluster())
+	klusterlet, _ = newTestKlusterlet(refreshedAPIConfig, newCluster())
+	clusterclient = klusterlet.fakeClusterClient
 	klusterlet.syncClusterStatus()
 
 	updateCount = 0
 	createCount = 0
 	for _, action := range clusterclient.Actions() {
 		if action.Matches("update", "clusters") {
-			updateCount = updateCount + 1
+			updateCount++
 		}
 		if action.Matches("create", "clusters") {
-			createCount = createCount + 1
+			createCount++
 		}
 	}
 	if updateCount != 2 {
@@ -318,7 +327,7 @@ func TestSyncClusterStatus(t *testing.T) {
 }
 
 func TestReadKlusterletConfig(t *testing.T) {
-	klusterlet, _, _, _ := newTestKlusterlet(apiConfig, newCluster())
+	klusterlet, _ := newTestKlusterlet(apiConfig, newCluster())
 	//Test setting klusterlet address as IP
 	klusterlet.config.KlusterletAddress = "192.168.0.1"
 	endpoint, _, _ := klusterlet.readKlusterletConfig()
@@ -348,14 +357,15 @@ func TestReadKlusterletConfig(t *testing.T) {
 
 func TestProcessWork(t *testing.T) {
 	work := newWork("work1", v1alpha1.ResourceWorkType)
-	klusterlet, hcmclient, _, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	hcmclient := klusterlet.fakeHCMClient
 	klusterlet.workStore.Add(work)
 	syncWork(t, klusterlet, work)
 
 	var updateCount int
 	for _, action := range hcmclient.Actions() {
 		if action.Matches("update", "works") {
-			updateCount = updateCount + 1
+			updateCount++
 		}
 	}
 
@@ -369,7 +379,7 @@ func TestProcessWork(t *testing.T) {
 	syncWork(t, klusterlet, work1)
 	for _, action := range hcmclient.Actions() {
 		if action.Matches("update", "works") {
-			updateCount = updateCount + 1
+			updateCount++
 		}
 	}
 	if updateCount != 0 {
@@ -382,7 +392,7 @@ func TestProcessWork(t *testing.T) {
 	syncWork(t, klusterlet, work2)
 	for _, action := range hcmclient.Actions() {
 		if action.Matches("update", "works") {
-			updateCount = updateCount + 1
+			updateCount++
 		}
 	}
 	if updateCount != 0 {
@@ -394,14 +404,15 @@ func TestGetReleaseWork(t *testing.T) {
 	work := newWork("work1", v1alpha1.ResourceWorkType)
 	work.ObjectMeta.Labels = map[string]string{}
 	work.Spec.Scope.ResourceType = "releases"
-	klusterlet, hcmclient, _, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	hcmclient := klusterlet.fakeHCMClient
 	klusterlet.workStore.Add(work)
 	syncWork(t, klusterlet, work)
 
 	var updateCount int
 	for _, action := range hcmclient.Actions() {
 		if action.Matches("update", "works") {
-			updateCount = updateCount + 1
+			updateCount++
 		}
 	}
 
@@ -428,14 +439,15 @@ func TestKubeActionWork(t *testing.T) {
 			Object: klusterletIngress,
 		},
 	}
-	klusterlet, hcmclient, _, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	hcmclient := klusterlet.fakeHCMClient
 	klusterlet.workStore.Add(work)
 	syncWork(t, klusterlet, work)
 
 	var updateCount int
 	for _, action := range hcmclient.Actions() {
 		if action.Matches("update", "works") {
-			updateCount = updateCount + 1
+			updateCount++
 		}
 	}
 	if updateCount != 1 {
@@ -484,7 +496,7 @@ func TestKubeActionWork(t *testing.T) {
 }
 
 func TestHelmActionWork(t *testing.T) {
-	klusterlet, _, _, helmclient := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet, helmclient := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
 	//Test helm create
 	work1 := newWork("work1", v1alpha1.ActionWorkType)
 	work1.Spec.ActionType = v1alpha1.CreateActionType

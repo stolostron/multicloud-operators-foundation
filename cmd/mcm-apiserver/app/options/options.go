@@ -34,8 +34,8 @@ type ServerRunOptions struct {
 	Authentication          *genericoptions.DelegatingAuthenticationOptions
 	Authorization           *genericoptions.DelegatingAuthorizationOptions
 	APIEnablement           *genericoptions.APIEnablementOptions
-	MCMStorage              *mcmstorage.StorageOptions
-	KlusterletClientOptions *klusterlet.KlusterletClientOptions
+	MCMStorage              *mcmstorage.Options
+	KlusterletClientOptions *klusterlet.ClientOptions
 
 	StandAlone         bool
 	AuthorizationQPS   float32
@@ -54,7 +54,7 @@ func NewServerRunOptions() *ServerRunOptions {
 		Authorization:           genericoptions.NewDelegatingAuthorizationOptions(),
 		APIEnablement:           genericoptions.NewAPIEnablementOptions(),
 		MCMStorage:              mcmstorage.NewStorageOptions(),
-		KlusterletClientOptions: klusterlet.NewKlusterletClientOptions(),
+		KlusterletClientOptions: klusterlet.NewClientOptions(),
 	}
 
 	registerAllAdmissionPlugins(s.Admission.Plugins, &s.KlusterletClientOptions.CAFile)

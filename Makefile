@@ -31,8 +31,6 @@ BASE_DIR := $(shell basename $(PWD))
 # Keep an existing GOPATH, make a private one if it is undefined
 GOPATH_DEFAULT := $(PWD)/.go
 export GOPATH ?= $(GOPATH_DEFAULT)
-GOBIN_DEFAULT := $(GOPATH)/bin
-export GOBIN ?= $(GOBIN_DEFAULT)
 TESTARGS_DEFAULT := "-v"
 export TESTARGS ?= $(TESTARGS_DEFAULT)
 DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
@@ -58,9 +56,9 @@ ifeq ($(CONTAINER_ENGINE),)
 	CONTAINER_ENGINE = $(shell podman version > /dev/null && echo podman || echo docker)
 endif
 
-.PHONY: all work fmt check coverage lint test build images build-push-images
+.PHONY: all fmt lint test coverage build images build-push-images
 
-all: fmt check test coverage build images
+all: fmt lint test build images
 
 ifneq ("$(realpath $(DEST))", "$(realpath $(PWD))")
     $(error Please run 'make' from $(DEST). Current directory is $(PWD))
@@ -68,34 +66,16 @@ endif
 
 include common/Makefile.common.mk
 
-
-############################################################
-# work section
-############################################################
-$(GOBIN):
-	@echo "create gobin"
-	@mkdir -p $(GOBIN)
-
-work: $(GOBIN)
-
 ############################################################
 # format section
 ############################################################
 
-# All available format: format-go format-protos format-python
-# Default value will run all formats, override these make target with your requirements:
-#    eg: fmt: format-go format-protos
-fmt: format-go format-protos format-python
+fmt: format-go
 
 ############################################################
-# check section
+# lint section
 ############################################################
 
-check: lint
-
-# All available linters: lint-dockerfiles lint-scripts lint-yaml lint-copyright-banner lint-go lint-python lint-helm lint-markdown lint-sass lint-typescript lint-protos
-# Default value will run all linters, override these make target with your requirements:
-#    eg: lint: lint-go lint-yaml
 lint: lint-all
 
 ############################################################

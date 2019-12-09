@@ -37,5 +37,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&v1alpha1.Cluster{},
 		&v1alpha1.ClusterList{},
 	)
+
 	return nil
 }

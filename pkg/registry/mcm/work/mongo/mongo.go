@@ -27,7 +27,7 @@ type WorkResultRest struct {
 	store storage.Interface
 }
 
-func NewWorkResultRest(optsGetter generic.RESTOptionsGetter, storageOptions *mcmstorage.StorageOptions) (*WorkResultRest, error) {
+func NewWorkResultRest(optsGetter generic.RESTOptionsGetter, storageOptions *mcmstorage.Options) (*WorkResultRest, error) {
 	store, err := mcmstorage.NewMCMStorage(storageOptions, mcm.Kind("ResourceViewResult"))
 	if err != nil {
 		return nil, err

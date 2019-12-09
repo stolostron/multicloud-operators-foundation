@@ -21,7 +21,6 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 	"k8s.io/klog"
 
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet/app/options"
@@ -234,7 +233,7 @@ func RunKlusterletServer(s *options.KlusterletRunOptions, stopCh <-chan struct{}
 	mapper := restutils.NewMapper(discoveryClient, stopCh)
 	mapper.Run()
 
-	kubeControl := restutils.NewRestKubeControl(mapper, clusterCfg)
+	kubeControl := restutils.NewKubeControl(mapper, clusterCfg)
 
 	// convert cluster name
 	clusterName := strings.ToLower(strings.Replace(s.ClusterName, ".", "-", -1))
@@ -244,16 +243,16 @@ func RunKlusterletServer(s *options.KlusterletRunOptions, stopCh <-chan struct{}
 	serverVersionString := serverVersion.String()
 	if isOpenShift {
 		if strings.Contains(serverVersionString, "+") {
-			serverVersionString = serverVersionString + ".rhos"
+			serverVersionString += ".rhos"
 		} else {
-			serverVersionString = serverVersionString + "+rhos"
+			serverVersionString += "+rhos"
 		}
 	}
 	if isAKS {
 		if strings.Contains(serverVersionString, "+") {
-			serverVersionString = serverVersionString + ".aks"
+			serverVersionString += ".aks"
 		} else {
-			serverVersionString = serverVersionString + "+aks"
+			serverVersionString += "+aks"
 		}
 	}
 

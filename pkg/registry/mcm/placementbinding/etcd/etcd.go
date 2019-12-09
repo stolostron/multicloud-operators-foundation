@@ -53,14 +53,14 @@ func NewREST(optsGetter generic.RESTOptionsGetter) *REST {
 		PredicateFunc:            placementbinding.MatchPlacementBinding,
 		DefaultQualifiedResource: mcm.Resource("placementbindings"),
 
-		CreateStrategy:      placementbinding.Strategy,
-		UpdateStrategy:      placementbinding.Strategy,
-		DeleteStrategy:      placementbinding.Strategy,
+		CreateStrategy:      placementbinding.DefaultStrategy,
+		UpdateStrategy:      placementbinding.DefaultStrategy,
+		DeleteStrategy:      placementbinding.DefaultStrategy,
 		ReturnDeletedObject: true,
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: placementbinding.GetAttrs}
 	if err := store.CompleteWithOptions(options); err != nil {
-		panic(err) // TODO: Propagate error up
+		panic(err)
 	}
 
 	return &REST{store}

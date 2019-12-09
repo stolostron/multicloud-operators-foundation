@@ -44,8 +44,8 @@ func EnsureDefaultRepos(home helmpath.Home) error {
 	if fi, err := os.Stat(repoFile); err != nil {
 		klog.Infof("Creating %s \n", repoFile)
 		f := repo.NewRepoFile()
-
-		if err := f.WriteFile(repoFile, 0644); err != nil {
+		fileModePerm := os.FileMode(0644)
+		if err := f.WriteFile(repoFile, fileModePerm); err != nil {
 			return err
 		}
 	} else if fi.IsDir() {
@@ -148,7 +148,9 @@ func DownloadChart(chartURL, version, username, password, keyring string, verify
 	}
 
 	if _, err := os.Stat(settings.Home.Archive()); os.IsNotExist(err) {
-		os.MkdirAll(settings.Home.Archive(), 0744)
+		if err := os.MkdirAll(settings.Home.Archive(), 0744); err != nil {
+			return "", err
+		}
 	}
 
 	filename, _, err := dl.DownloadTo(chartURL, version, settings.Home.Archive())

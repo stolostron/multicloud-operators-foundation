@@ -59,5 +59,6 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&PlacementPolicyList{},
 		&ClusterRestOptions{},
 	)
+
 	return nil
 }

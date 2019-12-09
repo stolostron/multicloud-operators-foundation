@@ -30,32 +30,32 @@ realpath() {
     [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
 }
 
-REPO_ROOT=$(realpath $(dirname "${BASH_SOURCE}")/..)
-BINDIR=${REPO_ROOT}/output
+REPO_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")"/..)
+BINDIR="${REPO_ROOT}"/output
 SC_PKG='github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation'
 
 # Generate defaults
-${BINDIR}/defaulter-gen "$@" \
+"${BINDIR}"/defaulter-gen "$@" \
 	 --v 1 --logtostderr \
-	 --go-header-file ${REPO_ROOT}/hack/custom-boilerplate.go.txt \
+	 --go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt \
 	 --input-dirs "${SC_PKG}/pkg/apis/mcm" \
 	 --input-dirs "${SC_PKG}/pkg/apis/mcm/v1alpha1" \
 	 --extra-peer-dirs "${SC_PKG}/pkg/apis/mcm" \
 	 --extra-peer-dirs "${SC_PKG}/pkg/apis/mcm/v1alpha1" \
 	 --output-file-base "zz_generated.defaults"
 # Generate deep copies
-${BINDIR}/deepcopy-gen "$@" \
+"${BINDIR}"/deepcopy-gen "$@" \
 	 --v 1 --logtostderr \
-	 --go-header-file ${REPO_ROOT}/hack/custom-boilerplate.go.txt \
+	 --go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt \
 	 --input-dirs "${SC_PKG}/pkg/apis/mcm" \
 	 --input-dirs "${SC_PKG}/pkg/apis/mcm/v1alpha1" \
 	 --bounding-dirs "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/hcm.io" \
 	 --output-file-base zz_generated.deepcopy
 # Generate conversions
-${BINDIR}/conversion-gen "$@" \
+"${BINDIR}"/conversion-gen "$@" \
 	 --v 1 --logtostderr \
 	 --extra-peer-dirs k8s.io/api/core/v1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime \
-	 --go-header-file ${REPO_ROOT}/hack/custom-boilerplate.go.txt \
+	 --go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt \
 	 --input-dirs "${SC_PKG}/pkg/apis/mcm" \
 	 --input-dirs "${SC_PKG}/pkg/apis/mcm/v1alpha1" \
 	 --output-file-base zz_generated.conversion
@@ -63,7 +63,7 @@ ${BINDIR}/conversion-gen "$@" \
 # generate openapi for servicecatalog and settings group
 "${GOPATH}"/bin/openapi-gen "$@" \
 	--v 1 --logtostderr \
-	--go-header-file ${REPO_ROOT}/hack/custom-boilerplate.go.txt \
+	--go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt \
 	--input-dirs "${SC_PKG}/pkg/apis/mcm/v1alpha1,k8s.io/api/core/v1,k8s.io/apimachinery/pkg/api/resource,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/version,k8s.io/apimachinery/pkg/runtime,k8s.io/apimachinery/pkg/util/intstr,k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1,k8s.io/api/certificates/v1beta1" \
 	--output-package "${SC_PKG}/pkg/apis/mcm/openapi" \
   --report-filename ".api_violation.report"

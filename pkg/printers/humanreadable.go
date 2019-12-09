@@ -81,6 +81,7 @@ func NewHumanReadablePrinter(decoder runtime.Decoder, options PrintOptions) *Hum
 		options:    options,
 		decoder:    decoder,
 	}
+
 	return printer
 }
 
@@ -102,6 +103,7 @@ func (h *HumanReadablePrinter) With(fns ...func(PrintHandler)) *HumanReadablePri
 	for _, fn := range fns {
 		fn(h)
 	}
+
 	return h
 }
 
@@ -316,51 +318,58 @@ func DecorateTable(table *metav1beta1.Table, options PrintOptions) error {
 		}
 	}
 
-	rows := table.Rows
-
 	includeLabels := len(options.ColumnLabels) > 0 || options.ShowLabels
 	if includeLabels || options.WithNamespace || nameColumn != -1 {
-		for i := range rows {
-			row := rows[i]
-
-			if nameColumn != -1 {
-				row.Cells[nameColumn] = fmt.Sprintf("%s/%s", strings.ToLower(options.Kind.String()), row.Cells[nameColumn])
-			}
-
-			var m metav1.Object
-			if obj := row.Object.Object; obj != nil {
-				if acc, err := meta.Accessor(obj); err == nil {
-					m = acc
-				}
-			}
-			// if we can't get an accessor, fill out the appropriate columns with empty spaces
-			if m == nil {
-				if options.WithNamespace {
-					r := make([]interface{}, 1, width)
-					row.Cells = append(r, row.Cells...)
-				}
-				for j := 0; j < width-len(row.Cells); j++ {
-					row.Cells = append(row.Cells, nil)
-				}
-				rows[i] = row
-				continue
-			}
-
-			if options.WithNamespace {
-				r := make([]interface{}, 1, width)
-				r[0] = m.GetNamespace()
-				row.Cells = append(r, row.Cells...)
-			}
-			if includeLabels {
-				row.Cells = appendLabelCells(row.Cells, m.GetLabels(), options)
-			}
-			rows[i] = row
-		}
+		table.Rows = fillOutRows(nameColumn, width, includeLabels, options, table.Rows)
 	}
 
 	table.ColumnDefinitions = columns
-	table.Rows = rows
 	return nil
+}
+
+func fillOutRows(
+	nameColumn, width int,
+	includeLabels bool,
+	options PrintOptions,
+	rows []metav1beta1.TableRow) []metav1beta1.TableRow {
+	tabelRows := []metav1beta1.TableRow{}
+	for i := range rows {
+		row := rows[i]
+
+		if nameColumn != -1 {
+			row.Cells[nameColumn] = fmt.Sprintf("%s/%s", strings.ToLower(options.Kind.String()), row.Cells[nameColumn])
+		}
+
+		var m metav1.Object
+		if obj := row.Object.Object; obj != nil {
+			if acc, err := meta.Accessor(obj); err == nil {
+				m = acc
+			}
+		}
+		// if we can't get an accessor, fill out the appropriate columns with empty spaces
+		if m == nil {
+			if options.WithNamespace {
+				r := make([]interface{}, 1, width)
+				row.Cells = append(r, row.Cells...)
+			}
+			for j := 0; j < width-len(row.Cells); j++ {
+				row.Cells = append(row.Cells, nil)
+			}
+			tabelRows = append(tabelRows, row)
+			continue
+		}
+
+		if options.WithNamespace {
+			r := make([]interface{}, 1, width)
+			r[0] = m.GetNamespace()
+			row.Cells = append(r, row.Cells...)
+		}
+		if includeLabels {
+			row.Cells = appendLabelCells(row.Cells, m.GetLabels(), options)
+		}
+		tabelRows = append(tabelRows, row)
+	}
+	return tabelRows
 }
 
 func (h *HumanReadablePrinter) printWorkResult(cluster string, raw []byte) *metav1beta1.Table {
@@ -495,9 +504,6 @@ func (h *HumanReadablePrinter) PrintTable(obj runtime.Object, options PrintOptio
 	if !ok {
 		return nil, fmt.Errorf("no table handler registered for this type %v", t)
 	}
-	if !handler.printRows {
-		return h.legacyPrinterToTable(obj, handler)
-	}
 
 	args := []reflect.Value{reflect.ValueOf(obj), reflect.ValueOf(options)}
 	results := handler.printFunc.Call(args)
@@ -532,67 +538,6 @@ func (h *HumanReadablePrinter) PrintTable(obj runtime.Object, options PrintOptio
 	}
 	if err := DecorateTable(table, options); err != nil {
 		return nil, err
-	}
-	return table, nil
-}
-
-// legacyPrinterToTable uses the old printFunc with tabbed writer to generate a table.
-// TODO: remove when all legacy printers are removed.
-func (h *HumanReadablePrinter) legacyPrinterToTable(obj runtime.Object, handler *handlerEntry) (*metav1beta1.Table, error) {
-	printFunc := handler.printFunc
-	table := &metav1beta1.Table{
-		ColumnDefinitions: handler.columnDefinitions,
-	}
-
-	options := PrintOptions{
-		NoHeaders: true,
-		Wide:      true,
-	}
-	buf := &bytes.Buffer{}
-	args := []reflect.Value{reflect.ValueOf(obj), reflect.ValueOf(buf), reflect.ValueOf(options)}
-
-	if meta.IsListType(obj) {
-		listInterface, ok := obj.(metav1.ListInterface)
-		if ok {
-			table.ListMeta.SelfLink = listInterface.GetSelfLink()
-			table.ListMeta.ResourceVersion = listInterface.GetResourceVersion()
-			table.ListMeta.Continue = listInterface.GetContinue()
-		}
-
-		// TODO: this uses more memory than it has to, as we refactor printers we should remove the need
-		// for this.
-		args[0] = reflect.ValueOf(obj)
-		resultValue := printFunc.Call(args)[0]
-		if !resultValue.IsNil() {
-			return nil, resultValue.Interface().(error)
-		}
-		data := buf.Bytes()
-		i := 0
-		items, err := meta.ExtractList(obj)
-		if err != nil {
-			return nil, err
-		}
-		for len(data) > 0 {
-			cells, remainder := tabbedLineToCells(data, len(table.ColumnDefinitions))
-			table.Rows = append(table.Rows, metav1beta1.TableRow{
-				Cells:  cells,
-				Object: runtime.RawExtension{Object: items[i]},
-			})
-			data = remainder
-			i++
-		}
-	} else {
-		args[0] = reflect.ValueOf(obj)
-		resultValue := printFunc.Call(args)[0]
-		if !resultValue.IsNil() {
-			return nil, resultValue.Interface().(error)
-		}
-		data := buf.Bytes()
-		cells, _ := tabbedLineToCells(data, len(table.ColumnDefinitions))
-		table.Rows = append(table.Rows, metav1beta1.TableRow{
-			Cells:  cells,
-			Object: runtime.RawExtension{Object: obj},
-		})
 	}
 	return table, nil
 }
@@ -655,30 +600,6 @@ func AppendAllLabels(showLabels bool, itemLabels map[string]string) string {
 	buffer.WriteString("\n")
 
 	return buffer.String()
-}
-
-func tabbedLineToCells(data []byte, expected int) ([]interface{}, []byte) {
-	var remainder []byte
-	max := bytes.Index(data, []byte("\n"))
-	if max != -1 {
-		remainder = data[max+1:]
-		data = data[:max]
-	}
-	cells := make([]interface{}, expected)
-	for i := 0; i < expected; i++ {
-		next := bytes.Index(data, []byte("\t"))
-		if next == -1 {
-			cells[i] = string(data)
-			// fill the remainder with empty strings, this indicates a printer bug
-			for j := i + 1; j < expected; j++ {
-				cells[j] = ""
-			}
-			break
-		}
-		cells[i] = string(data[:next])
-		data = data[next+1:]
-	}
-	return cells, remainder
 }
 
 func printUnstructured(raw []byte) *metav1beta1.Table {

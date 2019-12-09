@@ -102,7 +102,7 @@ type Klusterlet struct {
 	clusterclientset clusterclient.Interface
 
 	//helmControl is the interface to helm
-	helmControl helmutil.HelmControlInterface
+	helmControl helmutil.ControlInterface
 
 	nodeLister v1listers.NodeLister
 	podLister  v1listers.PodLister
@@ -138,7 +138,7 @@ func NewKlusterlet(
 	hcmclientset clientset.Interface,
 	hubkubeclientset kubernetes.Interface,
 	clusterclientset clusterclient.Interface,
-	helmControl helmutil.HelmControlInterface,
+	helmControl helmutil.ControlInterface,
 	kubeControl restutils.KubeControlInterface,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
 	informerFactory informers.SharedInformerFactory,
@@ -208,31 +208,35 @@ func NewKlusterlet(
 }
 
 // Run is the main run loop of kluster server
-func (k *Klusterlet) Run(workers int) error {
+func (k *Klusterlet) Run(workers int) {
 	defer utilruntime.HandleCrash()
 	defer k.workqueue.ShutDown()
 
 	// Initilize helm home
 	err := helmutils.EnsureDirectories(settings.Home)
 	if err != nil {
-		return err
+		klog.Errorf("failed to run workers %v", err)
+		return
 	}
 	//generate helm repository file
 	err = helmutils.EnsureDefaultRepos(settings.Home)
 	if err != nil {
-		return err
+		klog.Errorf("failed to run workers %v", err)
+		return
 	}
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for kubernetes informer caches to sync")
 	if ok := cache.WaitForCacheSync(k.stopCh, k.nodeSynced, k.podSynced); !ok {
-		return fmt.Errorf("failed to wait for kubernetes caches to sync")
+		klog.Errorf("failed to wait for kubernetes caches to sync")
+		return
 	}
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for hcm informer caches to sync")
 	if ok := cache.WaitForCacheSync(k.stopCh, k.workSynced); !ok {
-		return fmt.Errorf("failed to wait for hcm caches to sync")
+		klog.Errorf("failed to wait for hcm caches to sync")
+		return
 	}
 
 	//pass secret to hub cluster when start klusterlet
@@ -259,8 +263,6 @@ func (k *Klusterlet) Run(workers int) error {
 	klog.Info("Started workers")
 	<-k.stopCh
 	klog.Info("Shutting down workers")
-
-	return nil
 }
 
 // transfer secret to hub cluster
@@ -291,11 +293,10 @@ func (k *Klusterlet) transferSecretToHub(secretName string) error {
 				klog.V(4).Info("Updated secret token to hub cluster")
 			}
 		}
-	} else {
-		if apierrors.IsNotFound(err) {
-			_, err = k.hubkubeclientset.CoreV1().Secrets(k.config.ClusterNamespace).Create(&v1Secret)
-		}
+	} else if apierrors.IsNotFound(err) {
+		_, err = k.hubkubeclientset.CoreV1().Secrets(k.config.ClusterNamespace).Create(&v1Secret)
 	}
+
 	return err
 }
 
@@ -690,7 +691,9 @@ func (k *Klusterlet) updateClusterStatus(
 			return err
 		}
 	}
+
 	clusterStatus.Labels = clusterLabels
+
 	nodes, err := k.nodeLister.List(labels.Everything())
 	if err != nil {
 		return err
@@ -706,54 +709,16 @@ func (k *Klusterlet) updateClusterStatus(
 		return err
 	}
 
-	// Get number of nodes
-	numNodes := len(nodes)
-	// Get number of pods
-	numPods := len(pods)
-	// Get CPU/memory capacity
-	cpuCapacity := *resource.NewQuantity(int64(0), resource.DecimalSI)
-	memoryCapacity := *resource.NewQuantity(int64(0), resource.BinarySI)
-	storageCapacity := *resource.NewQuantity(int64(0), resource.BinarySI)
-	cpuAllocation := *resource.NewQuantity(int64(0), resource.DecimalSI)
-	memoryAllocation := *resource.NewQuantity(int64(0), resource.BinarySI)
-	storageAllocation := *resource.NewQuantity(int64(0), resource.BinarySI)
-
-	for _, node := range nodes {
-		cpuCapacity.Add(*node.Status.Capacity.Cpu())
-		memoryCapacity.Add(*node.Status.Capacity.Memory())
-	}
-
-	for _, pv := range pvs {
-		storageCapacity.Add(pv.Spec.Capacity["storage"])
-		if pv.Status.Phase != "Available" {
-			storageAllocation.Add(pv.Spec.Capacity["storage"])
-		}
-	}
-
-	for _, pod := range pods {
-		if pod.Status.Phase == corev1.PodSucceeded || pod.Status.Phase == corev1.PodFailed || pod.Status.Phase == corev1.PodPending {
-			continue
-		}
-		podReqs, _, errpr := resourceutils.PodRequestsAndLimits(pod)
-		if errpr != nil {
-			return errpr
-		}
-
-		for podReqName, podReqValue := range podReqs {
-			if podReqName == corev1.ResourceCPU {
-				cpuAllocation.Add(podReqValue)
-			} else if podReqName == corev1.ResourceMemory {
-				memoryAllocation.Add(podReqValue)
-			}
-		}
-	}
+	cpuCapacity, memoryCapacity := resourceutils.GetCPUAndMemoryCapacity(nodes)
+	storageCapacity, storageAllocation := resourceutils.GetStorageCapacityAndAllocation(pvs)
+	cpuAllocation, memoryAllocation := resourceutils.GetCPUAndMemoryAllocation(pods)
 
 	var shouldUpdateStatus bool
 	capacity := corev1.ResourceList{
 		corev1.ResourceCPU:     cpuCapacity,
 		corev1.ResourceMemory:  resourceutils.FormatQuatityToMi(memoryCapacity),
 		corev1.ResourceStorage: resourceutils.FormatQuatityToGi(storageCapacity),
-		v1alpha1.ResourceNodes: *resource.NewQuantity(int64(numNodes), resource.DecimalSI),
+		v1alpha1.ResourceNodes: *resource.NewQuantity(int64(len(nodes)), resource.DecimalSI),
 	}
 	if !equalutils.EqualResourceList(clusterStatus.Spec.Capacity, capacity) {
 		clusterStatus.Spec.Capacity = capacity
@@ -761,20 +726,13 @@ func (k *Klusterlet) updateClusterStatus(
 	}
 
 	usage := corev1.ResourceList{
-		v1alpha1.ResourcePods:  *resource.NewQuantity(int64(numPods), resource.DecimalSI),
+		v1alpha1.ResourcePods:  *resource.NewQuantity(int64(len(pods)), resource.DecimalSI),
 		corev1.ResourceCPU:     cpuAllocation,
 		corev1.ResourceMemory:  resourceutils.FormatQuatityToMi(memoryAllocation),
 		corev1.ResourceStorage: resourceutils.FormatQuatityToGi(storageAllocation),
 	}
 	if !equalutils.EqualResourceList(clusterStatus.Spec.Usage, usage) {
 		clusterStatus.Spec.Usage = usage
-		shouldUpdateStatus = true
-	}
-
-	// Config clusterstatus OwnerReference, this is for upgrade from 3.1.1 to 3.1.2
-	// TODO remove this in next release
-	if len(clusterStatus.OwnerReferences) == 0 {
-		clusterStatus.OwnerReferences = []metav1.OwnerReference{*metav1.NewControllerRef(cluster, clusterControllerKind)}
 		shouldUpdateStatus = true
 	}
 
@@ -862,74 +820,95 @@ func (k *Klusterlet) readKlusterletConfig() (*corev1.EndpointAddress, *corev1.En
 	}
 
 	if k.config.KlusterletIngress != "" {
-		klNamespace, klName, err := cache.SplitMetaNamespaceKey(k.config.KlusterletIngress)
-		if err != nil {
-			klog.Warningf("Failed do parse ingress resource: %v", err)
-			return endpoint, port, err
-		}
-		klIngress, err := k.kubeclientset.ExtensionsV1beta1().Ingresses(klNamespace).Get(klName, metav1.GetOptions{})
-		if err != nil {
-			klog.Warningf("Failed do get ingress resource: %v", err)
-			return endpoint, port, err
-		}
-
-		if endpoint.IP == "" && len(klIngress.Status.LoadBalancer.Ingress) > 0 {
-			endpoint.IP = klIngress.Status.LoadBalancer.Ingress[0].IP
-		}
-
-		if endpoint.Hostname == "" && len(klIngress.Spec.Rules) > 0 {
-			endpoint.Hostname = klIngress.Spec.Rules[0].Host
+		if err := k.setEndpointAddressFromIngress(endpoint); err != nil {
+			return nil, nil, err
 		}
 	}
 
 	// Only use klusterlet service when neither ingress nor address is set
 	if k.config.KlusterletService != "" && endpoint.IP == "" && endpoint.Hostname == "" {
-		klNamespace, klName, err := cache.SplitMetaNamespaceKey(k.config.KlusterletService)
-		if err != nil {
+		if err := k.setEndpointAddressFromService(endpoint, port); err != nil {
 			return nil, nil, err
 		}
-
-		klSvc, err := k.kubeclientset.CoreV1().Services(klNamespace).Get(klName, metav1.GetOptions{})
-		if err != nil {
-			return nil, nil, err
-		}
-
-		if klSvc.Spec.Type != corev1.ServiceTypeLoadBalancer {
-			return nil, nil, fmt.Errorf("klusterlet service should be in type of loadbalancer")
-		}
-
-		if len(klSvc.Status.LoadBalancer.Ingress) == 0 {
-			return nil, nil, fmt.Errorf("klusterlet load balancer service does not have valid ip address")
-		}
-
-		if len(klSvc.Spec.Ports) == 0 {
-			return nil, nil, fmt.Errorf("klusterlet load balancer service does not have valid port")
-		}
-
-		// Only get the first IP and port
-		endpoint.IP = klSvc.Status.LoadBalancer.Ingress[0].IP
-		endpoint.Hostname = klSvc.Status.LoadBalancer.Ingress[0].Hostname
-		port.Port = klSvc.Spec.Ports[0].Port
 	}
 
 	if k.config.KlusterletRoute != "" && endpoint.IP == "" && endpoint.Hostname == "" {
-		klNamespace, klName, err := cache.SplitMetaNamespaceKey(k.config.KlusterletRoute)
-		if err != nil {
-			klog.Warningf("Route name input error: %v", err)
+		if err := k.setEndpointAddressFromRoute(endpoint); err != nil {
 			return nil, nil, err
 		}
-
-		route, err := k.routeV1Client.RouteV1().Routes(klNamespace).Get(klName, metav1.GetOptions{})
-
-		if err != nil {
-			klog.Warningf("Failed to get the route: %v", err)
-			return nil, nil, err
-		}
-
-		endpoint.Hostname = route.Spec.Host
 	}
 
 	return endpoint, port, nil
+}
+
+func (k *Klusterlet) setEndpointAddressFromIngress(endpoint *corev1.EndpointAddress) error {
+	klNamespace, klName, err := cache.SplitMetaNamespaceKey(k.config.KlusterletIngress)
+	if err != nil {
+		klog.Warningf("Failed do parse ingress resource: %v", err)
+		return err
+	}
+	klIngress, err := k.kubeclientset.ExtensionsV1beta1().Ingresses(klNamespace).Get(klName, metav1.GetOptions{})
+	if err != nil {
+		klog.Warningf("Failed do get ingress resource: %v", err)
+		return err
+	}
+
+	if endpoint.IP == "" && len(klIngress.Status.LoadBalancer.Ingress) > 0 {
+		endpoint.IP = klIngress.Status.LoadBalancer.Ingress[0].IP
+	}
+
+	if endpoint.Hostname == "" && len(klIngress.Spec.Rules) > 0 {
+		endpoint.Hostname = klIngress.Spec.Rules[0].Host
+	}
+	return nil
+}
+
+func (k *Klusterlet) setEndpointAddressFromService(endpoint *corev1.EndpointAddress, port *corev1.EndpointPort) error {
+	klNamespace, klName, err := cache.SplitMetaNamespaceKey(k.config.KlusterletService)
+	if err != nil {
+		return err
+	}
+
+	klSvc, err := k.kubeclientset.CoreV1().Services(klNamespace).Get(klName, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	if klSvc.Spec.Type != corev1.ServiceTypeLoadBalancer {
+		return fmt.Errorf("klusterlet service should be in type of loadbalancer")
+	}
+
+	if len(klSvc.Status.LoadBalancer.Ingress) == 0 {
+		return fmt.Errorf("klusterlet load balancer service does not have valid ip address")
+	}
+
+	if len(klSvc.Spec.Ports) == 0 {
+		return fmt.Errorf("klusterlet load balancer service does not have valid port")
+	}
+
+	// Only get the first IP and port
+	endpoint.IP = klSvc.Status.LoadBalancer.Ingress[0].IP
+	endpoint.Hostname = klSvc.Status.LoadBalancer.Ingress[0].Hostname
+	port.Port = klSvc.Spec.Ports[0].Port
+	return nil
+}
+
+func (k *Klusterlet) setEndpointAddressFromRoute(endpoint *corev1.EndpointAddress) error {
+	klNamespace, klName, err := cache.SplitMetaNamespaceKey(k.config.KlusterletRoute)
+	if err != nil {
+		klog.Warningf("Route name input error: %v", err)
+		return err
+	}
+
+	route, err := k.routeV1Client.RouteV1().Routes(klNamespace).Get(klName, metav1.GetOptions{})
+
+	if err != nil {
+		klog.Warningf("Failed to get the route: %v", err)
+		return err
+	}
+
+	endpoint.Hostname = route.Spec.Host
+	return nil
 }
 
 // enqueueWork takes a Work resource and converts it into a name

@@ -31,7 +31,7 @@ func (resourceviewStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func ResourceViewToSelectableFields(resourceview *mcm.ResourceView) fields.Set {
+func toSelectableFields(resourceview *mcm.ResourceView) fields.Set {
 	return generic.ObjectMetaFieldsSet(&resourceview.ObjectMeta, true)
 }
 
@@ -41,7 +41,7 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	if !ok {
 		return nil, nil, false, fmt.Errorf("given object is not a resourceview")
 	}
-	return labels.Set(resourceview.ObjectMeta.Labels), ResourceViewToSelectableFields(resourceview), resourceview.Initializers != nil, nil
+	return labels.Set(resourceview.ObjectMeta.Labels), toSelectableFields(resourceview), resourceview.Initializers != nil, nil
 }
 
 func MatchResourceView(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {

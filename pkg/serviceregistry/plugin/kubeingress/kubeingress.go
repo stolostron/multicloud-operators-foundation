@@ -244,7 +244,7 @@ func (i *KubeIngressPlugin) hasBeenRegisterd(registeredEdpoints []*v1.Endpoints,
 }
 
 func (i *KubeIngressPlugin) toIngressLocation(discoveredEndpoints *v1.Endpoints) (*plugin.ServiceLocation, error) {
-	clusterName, _, _, _, err := utils.SplitDiscoveredEndpointsName(discoveredEndpoints.Name)
+	clusterName, _, namespace, name, err := utils.SplitDiscoveredEndpointsName(discoveredEndpoints.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -255,6 +255,7 @@ func (i *KubeIngressPlugin) toIngressLocation(discoveredEndpoints *v1.Endpoints)
 		address.IP = ""
 		address.Hostname = discoveredEndpoints.Annotations[utils.LoadBalancerAnnotation]
 	}
+	klog.V(5).Infof("ingress (%s/%s) address %v", namespace, name, address)
 
 	hosts := strings.Split(discoveredEndpoints.Annotations[ingressHostsAnnotation], ",")
 	host, err := utils.GetDNSPrefix(discoveredEndpoints.Annotations[utils.ServiceDiscoveryAnnotation])
@@ -264,8 +265,6 @@ func (i *KubeIngressPlugin) toIngressLocation(discoveredEndpoints *v1.Endpoints)
 	if host != "" {
 		hosts = append([]string{host}, hosts...)
 	}
-
-	// TODO: zone and region
 
 	return &plugin.ServiceLocation{
 		Address: address,

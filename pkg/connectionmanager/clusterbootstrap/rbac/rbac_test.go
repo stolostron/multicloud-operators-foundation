@@ -20,7 +20,7 @@ func actionCount(verb, resource string, actions []kubetesting.Action) int {
 	testCount := 0
 	for _, action := range actions {
 		if action.Matches(verb, resource) {
-			testCount = testCount + 1
+			testCount++
 		}
 	}
 

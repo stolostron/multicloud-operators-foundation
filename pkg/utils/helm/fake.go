@@ -81,7 +81,7 @@ func (hc *FakeHelmControl) UpdateHelmRelease(
 	return resp, nil
 }
 
-// GetHelmReleases ...
+// GetHelmReleases get Helm Releases
 func (hc *FakeHelmControl) GetHelmReleases(
 	nameFilter string, codes []release.Status_Code, namespace string, limit int) (*rls.ListReleasesResponse, error) {
 	var listRelOptions []helm.ReleaseListOption

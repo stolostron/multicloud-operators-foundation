@@ -205,7 +205,7 @@ func (r *StatusREST) Update(
 }
 
 // NewREST returns a RESTStorage object that will work against resourceviews.
-func NewREST(optsGetter generic.RESTOptionsGetter, storageOptions *mcmstorage.StorageOptions) (*REST, *StatusREST, error) {
+func NewREST(optsGetter generic.RESTOptionsGetter, storageOptions *mcmstorage.Options) (*REST, *StatusREST, error) {
 	store := &genericregistry.Store{
 		NewFunc:                  func() runtime.Object { return &mcm.ResourceView{} },
 		NewListFunc:              func() runtime.Object { return &mcm.ResourceViewList{} },
@@ -223,7 +223,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter, storageOptions *mcmstorage.St
 
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: resourceview.GetAttrs}
 	if err := store.CompleteWithOptions(options); err != nil {
-		panic(err) // TODO: Propagate error up
+		panic(err)
 	}
 
 	statusStore := *store

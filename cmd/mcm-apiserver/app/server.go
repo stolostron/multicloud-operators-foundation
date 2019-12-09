@@ -143,40 +143,18 @@ func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 	var kubeSharedInformers kubeinformers.SharedInformerFactory
 	var clusterInformers clusterinformers.SharedInformerFactory
 	if !s.StandAlone {
-		// Config admission controller
-		client, err := internalclientset.NewForConfig(genericConfig.LoopbackClientConfig)
+		internalClient, kubeClient, clusterClient, err := generateClients(genericConfig)
 		if err != nil {
-			klog.Errorf("Failed to create clientset for hcm self-communication: %v", err)
 			return err
 		}
-		inClusterConfig, err := restclient.InClusterConfig()
-		if err != nil {
-			klog.Errorf("Failed to get kube client config: %v", err)
-			return err
-		}
-		inClusterConfig.GroupVersion = &schema.GroupVersion{}
-
-		kubeClient, err := kubeclientset.NewForConfig(inClusterConfig)
-		if err != nil {
-			klog.Errorf("Failed to create clientset interface: %v", err)
-			return err
-		}
-
-		clusterClient, err := clusterclient.NewForConfig(inClusterConfig)
-		if err != nil {
-			klog.Errorf("Failed to create cluster client: %v", err)
-		}
-
+		sharedInformers = informers.NewSharedInformerFactory(internalClient, 10*time.Minute)
 		kubeSharedInformers = kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
-		sharedInformers = informers.NewSharedInformerFactory(client, 10*time.Minute)
 		clusterInformers = clusterinformers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
 		genericConfig.AdmissionControl, err = buildAdmission(
-			s, client, sharedInformers, kubeClient, kubeSharedInformers, clusterClient, clusterInformers)
+			s, internalClient, sharedInformers, kubeClient, kubeSharedInformers, clusterClient, clusterInformers)
 		if err != nil {
 			return fmt.Errorf("failed to initialize admission: %v", err)
 		}
-
-		klusterletClientConfig.KubeClient = kubeClient
 
 		if err := s.Audit.ApplyTo(
 			genericConfig,
@@ -187,9 +165,9 @@ func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 		); err != nil {
 			return err
 		}
+		klusterletClientConfig.KubeClient = kubeClient
 	}
 
-	// TODO Add openapi spec
 	genericConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(openapi.GetOpenAPIDefinitions, openapinamer.NewDefinitionNamer(api.Scheme))
 	if genericConfig.OpenAPIConfig.Info == nil {
 		genericConfig.OpenAPIConfig.Info = &spec.Info{}
@@ -218,11 +196,8 @@ func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 			Burst:                          s.AuthorizationBurst,
 		}
 		if err := hcmAuthorization.ApplyTo(&genericConfig.Authorization); err != nil {
-			return nil
+			return err
 		}
-		//if err := s.Authorization.ApplyTo(&genericConfig.Authorization); err != nil {
-		//	return err
-		//}
 	} else {
 		// always warn when auth is disabled, since this should only be used for testing
 		klog.Warning("Authentication and authorization disabled for testing purposes")
@@ -325,4 +300,33 @@ func buildAdmission(s *options.ServerRunOptions,
 		admissionConfigProvider,
 		pluginInitializer,
 		admission.DecoratorFunc(admissionmetrics.WithControllerMetrics))
+}
+
+func generateClients(svrConfig *genericapiserver.Config) (
+	*internalclientset.Clientset, *kubeclientset.Clientset, *clusterclient.Clientset, error) {
+	internalClient, err := internalclientset.NewForConfig(svrConfig.LoopbackClientConfig)
+	if err != nil {
+		klog.Errorf("Failed to create clientset for hcm self-communication: %v", err)
+		return nil, nil, nil, err
+	}
+	inClusterConfig, err := restclient.InClusterConfig()
+	if err != nil {
+		klog.Errorf("Failed to get kube client config: %v", err)
+		return nil, nil, nil, err
+	}
+	inClusterConfig.GroupVersion = &schema.GroupVersion{}
+
+	kubeClient, err := kubeclientset.NewForConfig(inClusterConfig)
+	if err != nil {
+		klog.Errorf("Failed to create clientset interface: %v", err)
+		return nil, nil, nil, err
+	}
+
+	clusterClient, err := clusterclient.NewForConfig(inClusterConfig)
+	if err != nil {
+		klog.Errorf("Failed to create cluster client: %v", err)
+		return nil, nil, nil, err
+	}
+
+	return internalClient, kubeClient, clusterClient, nil
 }

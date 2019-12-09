@@ -17,14 +17,14 @@ import (
 func TestUpdateSOARecord(t *testing.T) {
 	oldRecords := "mcm.svc.\tIN\tSOA\tmcmdns.kube-system.svc.cluster.local. h.cluster.local. 1544779186 7200 1800 86400 30"
 	updateTime := time.Now().Unix()
-	old, new, _ := UpdateSOARecord(oldRecords, updateTime)
+	old, newDNSRecords, _ := UpdateSOARecord(oldRecords, updateTime)
 	if old != oldRecords {
 		t.Fatalf("Expected to\n %s, but\n %s", oldRecords, old)
 	}
 	newRecords := fmt.Sprintf(
 		"mcm.svc.\tIN\tSOA\tmcmdns.kube-system.svc.cluster.local. h.cluster.local. %d 7200 1800 86400 30", updateTime)
-	if new != newRecords {
-		t.Fatalf("Expected to\n %s, but\n %s", newRecords, new)
+	if newDNSRecords != newRecords {
+		t.Fatalf("Expected to\n %s, but\n %s", newRecords, newDNSRecords)
 	}
 }
 
@@ -50,8 +50,10 @@ func TestNewServiceDNSRecords(t *testing.T) {
 	}
 
 	// test nearest service
-	serviceLocations = append(serviceLocations, newServiceLocation("5.6.7.8", "", []string{"svc.test"}, "c3", "z2", "us-east"))
-	serviceLocations = append(serviceLocations, newServiceLocation("5.6.7.9", "", []string{"svc.test"}, "c4", "z1", "us-east"))
+	serviceLocations = append(
+		serviceLocations,
+		newServiceLocation("5.6.7.8", "", []string{"svc.test"}, "c3", "z2", "us-east"),
+		newServiceLocation("5.6.7.9", "", []string{"svc.test"}, "c4", "z1", "us-east"))
 	expected = "svc.test.c2.mcm.svc.\tIN\tA\t1.2.3.4\n" +
 		"svc.test.c3.mcm.svc.\tIN\tA\t5.6.7.8\n" +
 		"svc.test.c4.mcm.svc.\tIN\tA\t5.6.7.9\n" +
@@ -96,20 +98,22 @@ func TestNeedToUpdateDNSRecords(t *testing.T) {
 	old := "mcm.svc.\tIN\tSOA\ttest.kube-system.svc.cluster.local. hostmaster.cluster.local. 1551062619 7200 1800 86400 30\n" +
 		"httpbin.test.mylocaltest.mcm.svc.\tIN\tA\t9.197.118.68\n" +
 		"httpbin.test.cluster1.mcm.svc.\tIN\tA\t9.197.118.66\n"
-	new := "mcm.svc.\tIN\tSOA\ttest.kube-system.svc.cluster.local. hostmaster.cluster.local. 1551062619 7200 1800 86400 30\n" +
+	newRecord := "mcm.svc.\tIN\tSOA\ttest.kube-system.svc.cluster.local." +
+		" hostmaster.cluster.local. 1551062619 7200 1800 86400 30\n" +
 		"httpbin.test.cluster1.mcm.svc.\tIN\tA\t9.197.118.66\n" +
 		"httpbin.test.mylocaltest.mcm.svc.\tIN\tA\t9.197.118.68\n"
-	result := NeedToUpdateDNSRecords(old, new)
+	result := NeedToUpdateDNSRecords(old, newRecord)
 	if result {
 		t.Fatalf("Expected to false, but true")
 	}
 	old = "mcm.svc.\tIN\tSOA\ttest.kube-system.svc.cluster.local. hostmaster.cluster.local. 1551062619 7200 1800 86400 30\n" +
 		"httpbin.test.cluster1.mcm.svc.\tIN\tA\t9.197.118.66\n" +
 		"httpbin.test.cluster2.mcm.svc.\tIN\tA\t9.197.118.67\n"
-	new = "mcm.svc.\tIN\tSOA\ttest.kube-system.svc.cluster.local. hostmaster.cluster.local. 1551062619 7200 1800 86400 30\n" +
+	newRecord = "mcm.svc.\tIN\tSOA\ttest.kube-system.svc.cluster.local." +
+		" hostmaster.cluster.local. 1551062619 7200 1800 86400 30\n" +
 		"httpbin.test.cluster1.mcm.svc.\tIN\tA\t9.197.118.69\n" +
 		"httpbin.test.cluster2.mcm.svc.\tIN\tA\t9.197.118.67\n"
-	result = NeedToUpdateDNSRecords(old, new)
+	result = NeedToUpdateDNSRecords(old, newRecord)
 	if !result {
 		t.Fatalf("Expected to true, but fasle")
 	}

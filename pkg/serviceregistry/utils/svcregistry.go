@@ -79,10 +79,10 @@ func SplitDiscoveredEndpointsName(endpointsName string) (clusterName, resType, r
 }
 
 // NeedToUpdateEndpoints compares two endpoints with their labels, annotations and subsets to determine update is needed or not
-func NeedToUpdateEndpoints(old, new *v1.Endpoints) bool {
-	if !apiequality.Semantic.DeepEqual(old.Subsets, new.Subsets) ||
-		!apiequality.Semantic.DeepEqual(old.Labels, new.Labels) ||
-		!apiequality.Semantic.DeepEqual(old.Annotations, new.Annotations) {
+func NeedToUpdateEndpoints(oldEp, newEp *v1.Endpoints) bool {
+	if !apiequality.Semantic.DeepEqual(oldEp.Subsets, newEp.Subsets) ||
+		!apiequality.Semantic.DeepEqual(oldEp.Labels, newEp.Labels) ||
+		!apiequality.Semantic.DeepEqual(oldEp.Annotations, newEp.Annotations) {
 		return false
 	}
 	return true
@@ -111,7 +111,7 @@ func GetDNSPrefix(serviceDiscoveryAnnotation string) (dnsPrefix string, err erro
 	return dnsPrefix, nil
 }
 
-// IsIstioEnabledNamespace ...
+// IsIstioEnabledNamespace judges a namespace has an Istio injection label (istio-injection) or not
 func IsIstioEnabledNamespace(clientset kubernetes.Interface, namespaceName string) bool {
 	namespace, err := clientset.CoreV1().Namespaces().Get(namespaceName, metav1.GetOptions{})
 	if err != nil {

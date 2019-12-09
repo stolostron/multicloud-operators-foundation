@@ -1,6 +1,7 @@
-FROM docker.io/openshift/origin-release:golang-1.12 AS builder
+FROM docker.io/openshift/origin-release:golang-1.13 AS builder
 WORKDIR /go/src/github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/
 COPY . .
+RUN go mod vendor
 RUN make build
 RUN mv output /
 

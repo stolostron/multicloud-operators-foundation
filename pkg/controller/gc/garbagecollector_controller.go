@@ -96,11 +96,12 @@ func (g *GarbageCollectorController) controllerFor(resource schema.GroupVersionR
 }
 
 // Run is the main run loop of garbage collector
-func (g *GarbageCollectorController) Run() error {
+func (g *GarbageCollectorController) Run() {
 	defer utilruntime.HandleCrash()
 	// Wait for the caches to be synced before starting workers
 	if ok := cache.WaitForCacheSync(g.stopCh, g.clusterSynced); !ok {
-		return fmt.Errorf("failed to wait for hcm caches to sync")
+		klog.Errorf("failed to wait for hcm caches to sync")
+		return
 	}
 
 	for _, gvr := range watchedResources {
@@ -119,8 +120,6 @@ func (g *GarbageCollectorController) Run() error {
 
 	<-g.stopCh
 	klog.Info("Shutting gc controller")
-
-	return nil
 }
 
 func (g *GarbageCollectorController) cleanExpiredObject() {
@@ -163,8 +162,7 @@ func (g *GarbageCollectorController) deleteExpiredOneResource(gvr schema.GroupVe
 		}
 	}
 
-	g.handleDelete(gvr, accessor.GetNamespace(), accessor.GetName())
-	return nil
+	return g.handleDelete(gvr, accessor.GetNamespace(), accessor.GetName())
 }
 
 func (g *GarbageCollectorController) syncResource() {
@@ -230,9 +228,8 @@ func (g *GarbageCollectorController) shouldDeleteResource(resourceOwner resource
 		if err != nil {
 			if errors.IsNotFound(err) {
 				return true
-			} else {
-				utilruntime.HandleError(fmt.Errorf("can not get cluster: %v, error: %s", resourceOwner, err))
 			}
+			utilruntime.HandleError(fmt.Errorf("can not get cluster: %v, error: %s", resourceOwner, err))
 		}
 		return false
 	}

@@ -19,10 +19,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/duration"
 	clusterregistryv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
+	"k8s.io/klog"
 )
 
 // AddHandlers adds print handlers for default Kubernetes types dealing with internal versions.
-// TODO: handle errors from Handler
 func AddHandlers(h printers.PrintHandler) {
 	clusterColumnDefinitions := []metav1beta1.TableColumnDefinition{
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
@@ -30,8 +30,8 @@ func AddHandlers(h printers.PrintHandler) {
 		{Name: "Status", Type: "string"},
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 	}
-	h.TableHandler(clusterColumnDefinitions, printCluster)
-	h.TableHandler(clusterColumnDefinitions, printClusterList)
+	addTableHandler(h, clusterColumnDefinitions, printCluster)
+	addTableHandler(h, clusterColumnDefinitions, printClusterList)
 
 	clusterStatusColumnDefinitions := []metav1beta1.TableColumnDefinition{
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
@@ -45,8 +45,8 @@ func AddHandlers(h printers.PrintHandler) {
 		{Name: "Version", Type: "string"},
 		{Name: "KlusterletVersion", Type: "string"},
 	}
-	h.TableHandler(clusterStatusColumnDefinitions, printClusterStatus)
-	h.TableHandler(clusterStatusColumnDefinitions, printClusterStatusList)
+	addTableHandler(h, clusterStatusColumnDefinitions, printClusterStatus)
+	addTableHandler(h, clusterStatusColumnDefinitions, printClusterStatusList)
 
 	worksetColumnDefinitions := []metav1beta1.TableColumnDefinition{
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
@@ -55,8 +55,8 @@ func AddHandlers(h printers.PrintHandler) {
 		{Name: "Reason", Type: "string"},
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 	}
-	h.TableHandler(worksetColumnDefinitions, printWorkSet)
-	h.TableHandler(worksetColumnDefinitions, printWorkSetList)
+	addTableHandler(h, worksetColumnDefinitions, printWorkSet)
+	addTableHandler(h, worksetColumnDefinitions, printWorkSetList)
 
 	resourceviewColumnDefinitions := []metav1beta1.TableColumnDefinition{
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
@@ -65,8 +65,8 @@ func AddHandlers(h printers.PrintHandler) {
 		{Name: "Reason", Type: "string"},
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 	}
-	h.TableHandler(resourceviewColumnDefinitions, printResourceView)
-	h.TableHandler(resourceviewColumnDefinitions, printResourceViewList)
+	addTableHandler(h, resourceviewColumnDefinitions, printResourceView)
+	addTableHandler(h, resourceviewColumnDefinitions, printResourceViewList)
 
 	workColumnDefinitions := []metav1beta1.TableColumnDefinition{
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
@@ -76,8 +76,8 @@ func AddHandlers(h printers.PrintHandler) {
 		{Name: "Reason", Type: "string"},
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 	}
-	h.TableHandler(workColumnDefinitions, printWork)
-	h.TableHandler(workColumnDefinitions, printWorkList)
+	addTableHandler(h, workColumnDefinitions, printWork)
+	addTableHandler(h, workColumnDefinitions, printWorkList)
 
 	hcmJoinDefinitions := []metav1beta1.TableColumnDefinition{
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
@@ -86,8 +86,8 @@ func AddHandlers(h printers.PrintHandler) {
 		{Name: "Status", Type: "string"},
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 	}
-	h.TableHandler(hcmJoinDefinitions, printHCMJoin)
-	h.TableHandler(hcmJoinDefinitions, printHCMJoinList)
+	addTableHandler(h, hcmJoinDefinitions, printHCMJoin)
+	addTableHandler(h, hcmJoinDefinitions, printHCMJoinList)
 
 	AddDefaultHandlers(h)
 }
@@ -99,7 +99,9 @@ func AddDefaultHandlers(h printers.PrintHandler) {
 		{Name: "Name", Type: "string", Format: "name", Description: metav1.ObjectMeta{}.SwaggerDoc()["name"]},
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 	}
-	h.DefaultTableHandler(objectMetaColumnDefinitions, printObjectMeta)
+	if err := h.DefaultTableHandler(objectMetaColumnDefinitions, printObjectMeta); err != nil {
+		klog.Errorf("failed to default print handler with a given set of columns, %v", err)
+	}
 }
 
 func printObjectMeta(obj runtime.Object, options printers.PrintOptions) ([]metav1beta1.TableRow, error) {
@@ -363,4 +365,10 @@ func printHCMJoin(obj *hcm.ClusterJoinRequest, options printers.PrintOptions) ([
 	row.Cells = append(row.Cells, obj.Name, obj.Spec.ClusterName, obj.Spec.ClusterNamespace, joinStatus,
 		translateTimestamp(obj.CreationTimestamp))
 	return []metav1beta1.TableRow{row}, nil
+}
+
+func addTableHandler(h printers.PrintHandler, columnDefinitions []metav1beta1.TableColumnDefinition, printFunc interface{}) {
+	if err := h.TableHandler(columnDefinitions, printFunc); err != nil {
+		klog.Errorf("failed to add print handler with a given set of columns, %v", err)
+	}
 }

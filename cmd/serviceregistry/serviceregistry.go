@@ -18,7 +18,10 @@ func main() {
 	command := app.NewCommand()
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
-	flag.CommandLine.Parse([]string{})
+	if err := flag.CommandLine.Parse([]string{}); err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+	}
 
 	if err := command.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)

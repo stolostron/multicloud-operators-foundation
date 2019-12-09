@@ -41,7 +41,7 @@ const (
 )
 
 // NewMongoStorage create a mongon storage
-func NewMongoStorage(options *MongoOptions, kind schema.GroupKind) (storage.Interface, error) {
+func NewMongoStorage(options *Options, kind schema.GroupKind) (storage.Interface, error) {
 	var err error
 	clientOptions := []clientopt.Option{}
 	uri := "mongodb://" + options.MongoHost + "/admin"
@@ -87,32 +87,39 @@ func NewMongoStorage(options *MongoOptions, kind schema.GroupKind) (storage.Inte
 	klog.Info("Connected to mongo at ", options.MongoHost)
 	newStore := &store{collection: db.Collection(kind.Kind)}
 
-	// This goroutine periodically checks the mongo connection, and refreshes it if it has some problem.
-	// Due to an idiosyncrasy of the library, we must also reinitialize the Client object itself.
-	go func() {
-		for {
-			// Check the connection by trying to count docs
-			_, err := newStore.collection.CountDocuments(context.TODO(), map[string]string{})
-			if err != nil {
-				discErr := client.Disconnect(context.Background()) // Disconnect old connection
-				if discErr != nil {
-					klog.Error("Error disconnecting old MongoDB connection: ", discErr.Error())
-				}
-				client, err = mongo.NewClientWithOptions(uri, clientOptions...)
-				if err != nil {
-					klog.Error("Could not create MongoDB Client: ", err)
-				}
-				discErr = client.Connect(context.TODO()) // Create new MongoDB connection
-				if discErr != nil {
-					klog.Error("Error reconnecting to MongoDB: ", discErr.Error())
-				}
-				newStore.collection = client.Database(options.MongoDatabaseName).Collection(kind.Kind)
-			}
-			time.Sleep(time.Second * 30)
-		}
-	}()
+	go checkAndRefreshConnection(options, kind, uri, client, clientOptions, newStore)
 
 	return newStore, nil
+}
+
+// This function periodically checks the mongo connection, and refreshes it if it has some problem.
+// Due to an idiosyncrasy of the library, we must also reinitialize the Client object itself.
+func checkAndRefreshConnection(
+	options *Options,
+	kind schema.GroupKind,
+	uri string,
+	client *mongo.Client,
+	clientOptions []clientopt.Option, newStore *store) {
+	for {
+		// Check the connection by trying to count docs
+		_, err := newStore.collection.CountDocuments(context.TODO(), map[string]string{})
+		if err != nil {
+			discErr := client.Disconnect(context.Background()) // Disconnect old connection
+			if discErr != nil {
+				klog.Error("Error disconnecting old MongoDB connection: ", discErr.Error())
+			}
+			client, err = mongo.NewClientWithOptions(uri, clientOptions...)
+			if err != nil {
+				klog.Error("Could not create MongoDB Client: ", err)
+			}
+			discErr = client.Connect(context.TODO()) // Create new MongoDB connection
+			if discErr != nil {
+				klog.Error("Error reconnecting to MongoDB: ", discErr.Error())
+			}
+			newStore.collection = client.Database(options.MongoDatabaseName).Collection(kind.Kind)
+		}
+		time.Sleep(time.Second * 30)
+	}
 }
 
 // Versioner associated with this interface.
@@ -124,7 +131,6 @@ func (m *store) Versioner() storage.Versioner {
 // Create adds a new object at a key unless it already exists. 'ttl' is time-to-live
 // in seconds (0 means forever). If no error is returned and out is not nil, out will be
 // set to the read value from database.
-// TODO Needs error handling for if the object is already there - can be a find call by name & namespace
 func (m *store) Create(ctx context.Context, key string, obj, out runtime.Object, ttl uint64) error {
 	accessor, err := meta.Accessor(obj)
 	if err != nil {

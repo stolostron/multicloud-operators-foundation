@@ -108,10 +108,10 @@ func (sr *Controller) enqueueNode(n *endpointNode, t eventType) {
 	sr.workqueue.Add(&nodeEvent{n: n, event: t})
 }
 
-func (sr *Controller) newEndpointNode(new interface{}) *endpointNode {
-	endpoint, ok := new.(*corev1.Endpoints)
+func (sr *Controller) newEndpointNode(newEp interface{}) *endpointNode {
+	endpoint, ok := newEp.(*corev1.Endpoints)
 	if !ok {
-		deletedState, ok := new.(cache.DeletedFinalStateUnknown)
+		deletedState, ok := newEp.(cache.DeletedFinalStateUnknown)
 		if !ok {
 			return nil
 		}
@@ -155,14 +155,15 @@ func (sr *Controller) newEndpointNode(new interface{}) *endpointNode {
 }
 
 // Run is the main run loop of kluster server
-func (sr *Controller) Run() error {
+func (sr *Controller) Run() {
 	defer utilruntime.HandleCrash()
 	defer sr.workqueue.ShutDown()
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for hcm informer caches to sync")
 	if ok := cache.WaitForCacheSync(sr.stopCh, sr.endpointSynced); !ok {
-		return fmt.Errorf("failed to wait for caches to sync")
+		klog.Errorf("failed to wait for caches to sync")
+		return
 	}
 
 	go wait.Until(sr.runWorker, time.Second, sr.stopCh)
@@ -170,8 +171,6 @@ func (sr *Controller) Run() error {
 
 	<-sr.stopCh
 	klog.Info("Shutting controller")
-
-	return nil
 }
 
 // runWorker is a long-running function that will continually call the

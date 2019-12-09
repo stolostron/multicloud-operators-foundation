@@ -147,7 +147,7 @@ func (bt *BootStrapper) waitForCertificate(client clientset.Interface, name stri
 				return client.McmV1alpha1().ClusterJoinRequests().Watch(options)
 			},
 		},
-		&certificates.CertificateSigningRequest{},
+		&hcmv1alpha1.ClusterJoinRequest{},
 		nil,
 		func(event watch.Event) (bool, error) {
 			switch event.Type {
@@ -195,8 +195,9 @@ func DigestedName(privateKeyData []byte, subject *pkix.Name) string {
 	encode := base64.RawURLEncoding.EncodeToString
 
 	write := func(data []byte) {
-		hash.Write([]byte(encode(data)))
-		hash.Write([]byte{delimiter})
+		// there must be no errors
+		_, _ = hash.Write([]byte(encode(data)))
+		_, _ = hash.Write([]byte{delimiter})
 	}
 
 	write(privateKeyData)

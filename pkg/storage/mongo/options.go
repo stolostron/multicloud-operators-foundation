@@ -12,8 +12,8 @@ import (
 	"github.com/spf13/pflag"
 )
 
-// MongoOptions defines the flag for mongo
-type MongoOptions struct {
+// Options defines the flag for mongo
+type Options struct {
 	MongoUser         string
 	MongoPassword     string
 	MongoHost         string
@@ -26,7 +26,7 @@ type MongoOptions struct {
 }
 
 // AddFlags adds flags for ServerRunOptions fields to be specified via FlagSet.
-func (m *MongoOptions) AddFlags(fs *pflag.FlagSet) {
+func (m *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&m.MongoCollection, "mongo-collection", m.MongoCollection, ""+
 		"Collection name to use for mongodb, default is resources")
 	fs.StringVar(&m.MongoUser, "mongo-root-user", m.MongoUser, "Root username for Mongo DB")
@@ -48,8 +48,8 @@ func (m *MongoOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 // NewMongoOptions create mongooptions
-func NewMongoOptions() *MongoOptions {
-	options := &MongoOptions{
+func NewMongoOptions() *Options {
+	options := &Options{
 		MongoUser:         os.Getenv("MONGO_ROOT_USERNAME"),
 		MongoPassword:     os.Getenv("MONGO_ROOT_PASSWORD"),
 		MongoSSLCa:        os.Getenv("MONGO_SSLCA"),

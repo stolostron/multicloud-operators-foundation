@@ -26,7 +26,7 @@ type REST struct {
 }
 
 // NewREST returns a RESTStorage object that will work against clusterstatuses.
-func NewREST(optsGetter generic.RESTOptionsGetter, config klusterlet.KlusterletClientConfig) (*REST, klusterlet.ConnectionInfoGetter) {
+func NewREST(optsGetter generic.RESTOptionsGetter, config klusterlet.ClientConfig) (*REST, klusterlet.ConnectionInfoGetter) {
 	store := &genericregistry.Store{
 		NewFunc:                  func() runtime.Object { return &mcm.ClusterStatus{} },
 		NewListFunc:              func() runtime.Object { return &mcm.ClusterStatusList{} },
@@ -42,7 +42,7 @@ func NewREST(optsGetter generic.RESTOptionsGetter, config klusterlet.KlusterletC
 	}
 	options := &generic.StoreOptions{RESTOptions: optsGetter, AttrFunc: clusterstatus.GetAttrs}
 	if err := store.CompleteWithOptions(options); err != nil {
-		panic(err) // TODO: Propagate error up
+		panic(err)
 	}
 
 	clusterStatusRest := &REST{store}

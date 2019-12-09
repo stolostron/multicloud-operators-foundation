@@ -19,14 +19,14 @@ import (
 // MongoStorageType define the mongo storage
 const MongoStorageType = "mongo"
 
-// StorageOptions defines the flag for mongo
-type StorageOptions struct {
+// Options defines the flag for mongo
+type Options struct {
 	StorageType string
-	Mongo       *mongo.MongoOptions
+	Mongo       *mongo.Options
 }
 
 // AddFlags adds flags for ServerRunOptions fields to be specified via FlagSet.
-func (m *StorageOptions) AddFlags(fs *pflag.FlagSet) {
+func (m *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(
 		&m.StorageType,
 		"mcm-storage-type",
@@ -38,8 +38,8 @@ func (m *StorageOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 // NewStorageOptions create storage options
-func NewStorageOptions() *StorageOptions {
-	options := &StorageOptions{
+func NewStorageOptions() *Options {
+	options := &Options{
 		StorageType: MongoStorageType,
 		Mongo:       mongo.NewMongoOptions(),
 	}

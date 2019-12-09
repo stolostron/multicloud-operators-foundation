@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # licensed Materials - Property of IBM
 # 5737-E67
 # (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
@@ -20,8 +22,8 @@ export RELEASE_TAG="$RELEASE_TAG"
 export DOCKER_TAG="$DOCKER_TAG"
 
 # Release Tag
-echo TRAVIS_EVENT_TYPE=$TRAVIS_EVENT_TYPE
-echo TRAVIS_BRANCH=$TRAVIS_BRANCH
-echo TRAVIS_TAG=$TRAVIS_TAG
+echo TRAVIS_EVENT_TYPE="$TRAVIS_EVENT_TYPE"
+echo TRAVIS_BRANCH="$TRAVIS_BRANCH"
+echo TRAVIS_TAG="$TRAVIS_TAG"
 echo RELEASE_TAG="$RELEASE_TAG"
 echo DOCKER_TAG="$DOCKER_TAG"

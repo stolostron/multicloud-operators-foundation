@@ -14,7 +14,7 @@ import (
 	"k8s.io/apiserver/pkg/storage"
 )
 
-func NewMCMStorage(options *StorageOptions, kind schema.GroupKind) (storage.Interface, error) {
+func NewMCMStorage(options *Options, kind schema.GroupKind) (storage.Interface, error) {
 	if options.StorageType == MongoStorageType {
 		return mongo.NewMongoStorage(options.Mongo, kind)
 	}

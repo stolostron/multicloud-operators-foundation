@@ -83,9 +83,12 @@ func TestBootStrapWithNoSecret(t *testing.T) {
 	}
 
 	bootstrapper := newTestBootStrap(hcmjoin)
-	_, _, _, err = bootstrapper.LoadClientCert()
+	clientKey, clientCert, configData, err := bootstrapper.LoadClientCert()
 	if err != nil {
 		t.Errorf("Failed to load config: %v", err)
+	}
+	if clientKey == nil || clientCert == nil || configData == nil {
+		t.Errorf("Failed to load config")
 	}
 }
 
@@ -109,9 +112,12 @@ func TestBootStrapWithSecret(t *testing.T) {
 	}
 
 	bootstrapper := newTestBootStrap(hcmjoin)
-	_, _, _, err = bootstrapper.LoadClientCert()
+	clientKey, clientCert, configData, err := bootstrapper.LoadClientCert()
 	if err != nil {
 		t.Errorf("Failed to load config: %v", err)
+	}
+	if clientKey == nil || clientCert == nil || configData == nil {
+		t.Errorf("Failed to load config")
 	}
 }
 
@@ -132,9 +138,12 @@ func TestBootStrapWithDeny(t *testing.T) {
 	}
 
 	bootstrapper := newTestBootStrap(hcmjoin)
-	_, _, _, err = bootstrapper.LoadClientCert()
+	clientKey, clientCert, configData, err := bootstrapper.LoadClientCert()
 	if err == nil {
-		t.Errorf("request is not denied: %v", err)
+		t.Errorf("Request is not denied: %v", err)
+	}
+	if clientKey != nil || clientCert != nil || configData != nil {
+		t.Errorf("Request is not denied")
 	}
 }
 

@@ -6,7 +6,6 @@
 package cluster
 
 import (
-	"fmt"
 	"time"
 
 	"k8s.io/klog"
@@ -30,8 +29,8 @@ import (
 
 const offlineReason = "Klusterlet failed to update cluster status on time"
 
-// ClusterController manages the lifecycle of cluster
-type ClusterController struct {
+// Controller manages the lifecycle of cluster
+type Controller struct {
 	clusterclientset clientset.Interface
 
 	clusterLister listers.ClusterLister
@@ -45,17 +44,17 @@ type ClusterController struct {
 	stopCh <-chan struct{}
 }
 
-// NewClusterController returns a ClusterController
-func NewClusterController(
+// NewController returns a cluster Controller
+func NewController(
 	hcmClientset hcmClientset.Interface,
 	hcmInformerFactory hcminformers.SharedInformerFactory,
 	clusterclientset clientset.Interface,
 	informerFactory informers.SharedInformerFactory,
 	healthCheckPeriod time.Duration,
-	stopCh <-chan struct{}) *ClusterController {
+	stopCh <-chan struct{}) *Controller {
 	clusterInformer := informerFactory.Clusterregistry().V1alpha1().Clusters()
 	hcmWorkInformer := hcmInformerFactory.Mcm().V1alpha1().Works()
-	controller := &ClusterController{
+	controller := &Controller{
 		hcmClientset:      hcmClientset,
 		clusterclientset:  clusterclientset,
 		hcmWorkLister:     hcmWorkInformer.Lister(),
@@ -69,13 +68,14 @@ func NewClusterController(
 }
 
 // Run is the main run loop of kluster server
-func (c *ClusterController) Run() error {
+func (c *Controller) Run() {
 	defer runtime.HandleCrash()
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for hcm informer caches to sync")
 	if ok := cache.WaitForCacheSync(c.stopCh, c.clusterSynced, c.hcmWorkSynced); !ok {
-		return fmt.Errorf("failed to wait for hcm caches to sync")
+		klog.Error("failed to wait for hcm caches to sync")
+		return
 	}
 
 	// Start syncing cluster status immediately, this may set up things the runtime needs to run.
@@ -83,11 +83,9 @@ func (c *ClusterController) Run() error {
 
 	<-c.stopCh
 	klog.Info("Shutting controller")
-
-	return nil
 }
 
-func (c *ClusterController) clusterHealthCheck() {
+func (c *Controller) clusterHealthCheck() {
 	clusters, err := c.clusterLister.List(labels.Everything())
 	if err != nil {
 		klog.Errorf("Failed to list clusters: %v", err)

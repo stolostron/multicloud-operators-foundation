@@ -58,12 +58,21 @@ func TestFindClusterProxyIPFromIngressConfigmap(t *testing.T) {
 
 func TestSplitRegisteredEndpointsName(t *testing.T) {
 	invalidName := "cluster1.kube-service.default.httpbin"
-	_, _, _, err := SplitRegisteredEndpointsName(invalidName)
+	resType, resNamespace, resName, err := SplitRegisteredEndpointsName(invalidName)
 	if err == nil {
 		t.Fatalf("Expected to fail, but does not")
 	}
+	if resType != "" {
+		t.Fatalf("Expected to get an empty value, but failed")
+	}
+	if resNamespace != "" {
+		t.Fatalf("Expected to get an empty value, but failed")
+	}
+	if resName != "" {
+		t.Fatalf("Expected to get an empty value, but failed")
+	}
 	epName := "kube-service.default.httpbin"
-	resType, resNamespace, resName, err := SplitRegisteredEndpointsName(epName)
+	resType, resNamespace, resName, err = SplitRegisteredEndpointsName(epName)
 	if err != nil {
 		t.Fatalf("Failed to parse endpoints name %+v", err)
 	}
@@ -80,12 +89,24 @@ func TestSplitRegisteredEndpointsName(t *testing.T) {
 
 func TestSplitDiscoveredEndpointsName(t *testing.T) {
 	invalidName := "kube-service.default.httpbin"
-	_, _, _, _, err := SplitDiscoveredEndpointsName(invalidName)
+	clusterName, resType, resNamespace, resName, err := SplitDiscoveredEndpointsName(invalidName)
 	if err == nil {
 		t.Fatalf("Expected to fail, but does not")
 	}
+	if clusterName != "" {
+		t.Fatalf("Expected to get an empty value, but failed")
+	}
+	if resType != "" {
+		t.Fatalf("Expected to get an empty value, but failed")
+	}
+	if resNamespace != "" {
+		t.Fatalf("Expected to get an empty value, but failed")
+	}
+	if resName != "" {
+		t.Fatalf("Expected to get an empty value, but failed")
+	}
 	epName := "cluster1.kube-service.default.httpbin"
-	clusterName, resType, resNamespace, resName, err := SplitDiscoveredEndpointsName(epName)
+	clusterName, resType, resNamespace, resName, err = SplitDiscoveredEndpointsName(epName)
 	if err != nil {
 		t.Fatalf("Failed to parse endpoints name %+v", err)
 	}
@@ -122,7 +143,7 @@ func TestNeedToUpdateEndpoints(t *testing.T) {
 			},
 		},
 	}
-	new := &v1.Endpoints{
+	newEp := &v1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "kube-service.test.ep",
 			Namespace: "cluster1",
@@ -139,7 +160,7 @@ func TestNeedToUpdateEndpoints(t *testing.T) {
 			},
 		},
 	}
-	if !NeedToUpdateEndpoints(old, new) {
+	if !NeedToUpdateEndpoints(old, newEp) {
 		t.Fatalf("Expected to equal, but does not")
 	}
 }

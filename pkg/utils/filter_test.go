@@ -34,9 +34,7 @@ func TestConvertLabels(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := ConvertLabels(tt.args.labelSelector)
-			//fmt.Println("got", got)
 			wantnew, _ := metav1.LabelSelectorAsSelector(tt.want)
-			//fmt.Println("want", wantnew)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ConvertLabels() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -50,15 +48,9 @@ func TestConvertLabels(t *testing.T) {
 
 func TestGetWorkSetFromWork(t *testing.T) {
 	selector1 := &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "value1", "label2": "value2"}}
-	//WorkSetSpec1 := &v1alpha1.WorkSetSpec{Selector: selector1}
-	//LabelSelector := &v1alpha1.WorkSet{Spec: WorkSetSpec1}
-
 	work1 := &v1alpha1.Work{Spec: v1alpha1.WorkSpec{Scope: v1alpha1.ResourceFilter{LabelSelector: selector1}}}
 	workset1 := &v1alpha1.WorkSet{Spec: v1alpha1.WorkSetSpec{Selector: selector1},
 		Status: v1alpha1.WorkSetStatus{Status: v1alpha1.WorkStatusType("running")}}
-	//workset2 := &v1alpha1.WorkSet{}
-
-	//want1 := metav1.LabelSelectorAsSelector(*metav1.LabelSelector)
 
 	type args struct {
 		work     *v1alpha1.Work
@@ -72,7 +64,6 @@ func TestGetWorkSetFromWork(t *testing.T) {
 	}{
 		{"case1:", args{work: work1, worksets: nil}, nil, true},
 		{"case2:", args{work: work1, worksets: []*v1alpha1.WorkSet{workset1}}, nil, true},
-		//{"case2:", args{work: work1, worksets: []*v1alpha1.WorkSet{workset1}}, []*v1alpha1.WorkSet{workset1}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -82,7 +73,6 @@ func TestGetWorkSetFromWork(t *testing.T) {
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				//fmt.Println("got", got, tt.want)
 				t.Errorf("GetWorkSetFromWork() = %v, want %v", got, tt.want)
 			}
 		})
@@ -108,9 +98,7 @@ func TestFilterHealthyClusters(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			//fmt.Println("__", tt.args.clusters, "bbb", tt.want)
 			if got := FilterHealthyClusters(tt.args.clusters); !reflect.DeepEqual(got, tt.want) {
-				//fmt.Println("__", got, "ddd", tt.want)
 				t.Errorf("FilterHealthyClusters() = %v, want %v", got, tt.want)
 			}
 		})

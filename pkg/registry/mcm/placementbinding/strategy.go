@@ -19,18 +19,18 @@ import (
 	"k8s.io/apiserver/pkg/storage/names"
 )
 
-type PlacementBindingStrategy struct {
+type Strategy struct {
 	runtime.ObjectTyper
 	names.NameGenerator
 }
 
-var Strategy = PlacementBindingStrategy{api.Scheme, names.SimpleNameGenerator}
+var DefaultStrategy = Strategy{api.Scheme, names.SimpleNameGenerator}
 
-func (PlacementBindingStrategy) NamespaceScoped() bool {
+func (Strategy) NamespaceScoped() bool {
 	return true
 }
 
-func PlacementBindingToSelectableFields(placementBinding *mcm.PlacementBinding) fields.Set {
+func toSelectableFields(placementBinding *mcm.PlacementBinding) fields.Set {
 	return generic.ObjectMetaFieldsSet(&placementBinding.ObjectMeta, true)
 }
 
@@ -40,7 +40,7 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	if !ok {
 		return nil, nil, false, fmt.Errorf("given object is not a placementBinding")
 	}
-	return labels.Set(placementBinding.ObjectMeta.Labels), PlacementBindingToSelectableFields(placementBinding), placementBinding.Initializers != nil, nil
+	return labels.Set(placementBinding.ObjectMeta.Labels), toSelectableFields(placementBinding), placementBinding.Initializers != nil, nil
 }
 
 func MatchPlacementBinding(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {
@@ -52,35 +52,35 @@ func MatchPlacementBinding(label labels.Selector, field fields.Selector) apistor
 }
 
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
-func (PlacementBindingStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
+func (Strategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 }
 
 // Validate validates a new placementBinding.
-func (PlacementBindingStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
+func (Strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	pb := obj.(*mcm.PlacementBinding)
 	return validatePlacementBinding(pb)
 }
 
 // Canonicalize normalizes the object after validation.
-func (PlacementBindingStrategy) Canonicalize(obj runtime.Object) {
+func (Strategy) Canonicalize(obj runtime.Object) {
 }
 
 // AllowCreateOnUpdate is false for placementBinding.
-func (PlacementBindingStrategy) AllowCreateOnUpdate() bool {
+func (Strategy) AllowCreateOnUpdate() bool {
 	return false
 }
 
 // PrepareForUpdate clears fields that are not allowed to be set by end users on update.
-func (PlacementBindingStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
+func (Strategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Object) {
 }
 
 // ValidateUpdate is the default update validation for an end user.
-func (PlacementBindingStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
+func (Strategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	pb := obj.(*mcm.PlacementBinding)
 	return validatePlacementBinding(pb)
 }
 
-func (PlacementBindingStrategy) AllowUnconditionalUpdate() bool {
+func (Strategy) AllowUnconditionalUpdate() bool {
 	return true
 }
 

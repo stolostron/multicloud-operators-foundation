@@ -104,8 +104,6 @@ func RunController(s *options.ControllerRunOptions, stopCh <-chan struct{}) erro
 	clusterClient := clusterclientset.NewForConfigOrDie(hcmCfg)
 	dynamicClient := dynamic.NewForConfigOrDie(hcmCfg)
 
-	// TODO add leader election of controller
-
 	informerFactory := informers.NewSharedInformerFactory(hcmClient, time.Minute*10)
 	clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterClient, time.Minute*10)
 
@@ -124,7 +122,7 @@ func RunController(s *options.ControllerRunOptions, stopCh <-chan struct{}) erro
 	}
 
 	if s.EnableBootstrap {
-		bootstrapController := bootstrap.NewBootstrapController(kubeclientset, hcmClient,
+		bootstrapController := bootstrap.NewController(kubeclientset, hcmClient,
 			kubeInformerFactory, informerFactory, clusterInformerFactory, true, stopCh)
 		go bootstrapController.Run()
 
@@ -136,15 +134,15 @@ func RunController(s *options.ControllerRunOptions, stopCh <-chan struct{}) erro
 	}
 
 	// Start default controllers
-	clusterController := cluster.NewClusterController(
+	clusterController := cluster.NewController(
 		hcmClient, informerFactory, clusterClient, clusterInformerFactory, s.HealthCheckInterval, stopCh)
 	go clusterController.Run()
 
-	worksetController := workset.NewWorkSetController(
+	worksetController := workset.NewController(
 		hcmClient, kubeclientset, informerFactory, clusterInformerFactory, s.EnableRBAC, stopCh)
 	go worksetController.Run()
 
-	viewController := resourceview.NewResourceViewController(
+	viewController := resourceview.NewController(
 		hcmClient, kubeclientset, informerFactory, clusterInformerFactory, s.EnableRBAC, stopCh)
 	go viewController.Run()
 

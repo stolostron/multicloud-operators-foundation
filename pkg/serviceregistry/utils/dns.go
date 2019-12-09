@@ -15,12 +15,12 @@ import (
 )
 
 // UpdateSOARecord updates SOA record from old DNS records
-func UpdateSOARecord(oldRecords string, updateTime int64) (old, new string, err error) {
+func UpdateSOARecord(oldRecords string, updateTime int64) (string, string, error) {
 	records := strings.Split(oldRecords, "\n")
 	if len(records) == 0 {
 		return "", "", fmt.Errorf("no dns records")
 	}
-	old = records[0]
+	old := records[0]
 	soaParts := regexp.MustCompile(`\s+`).Split(old, -1)
 	//e.g. mcm.svc.    IN    SOA    mcmcoredns.kube-system.svc.cluster.local. host.cluster.local. 1544779186 7200 1800 86400 30
 	if len(soaParts) != 10 || soaParts[2] != "SOA" {
@@ -67,9 +67,9 @@ func NewServiceDNSRecords(currentClusterInfo plugin.ClusterInfo,
 }
 
 // NeedToUpdateDNSRecords compares two dns records to determine update is needed or not
-func NeedToUpdateDNSRecords(old, new string) bool {
-	oldRecords := strings.Split(old, "\n")
-	newRecords := strings.Split(new, "\n")
+func NeedToUpdateDNSRecords(oldDNSRecords, newDNSRecords string) bool {
+	oldRecords := strings.Split(oldDNSRecords, "\n")
+	newRecords := strings.Split(newDNSRecords, "\n")
 	sort.Strings(oldRecords)
 	sort.Strings(newRecords)
 	return fmt.Sprintf("%s", oldRecords) != fmt.Sprintf("%s", newRecords)

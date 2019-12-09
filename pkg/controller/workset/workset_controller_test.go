@@ -23,7 +23,7 @@ import (
 )
 
 type workSetController struct {
-	*WorkSetController
+	*Controller
 
 	clusterStore cache.Store
 	worksetStore cache.Store
@@ -41,7 +41,7 @@ func newTestController() (*workSetController, *fake.Clientset) {
 	clusterFakeClient := clusterfake.NewSimpleClientset()
 	clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterFakeClient, time.Minute*10)
 
-	rvc := NewWorkSetController(clientset, nil, informerFactory, clusterInformerFactory, true, nil)
+	rvc := NewController(clientset, nil, informerFactory, clusterInformerFactory, true, nil)
 	rvc.clusterSynced = alwaysReady
 	rvc.workSynced = alwaysReady
 	rvc.worksetSynced = alwaysReady
@@ -123,7 +123,7 @@ func validateSyncWorksets(t *testing.T, client *fake.Clientset, verb string, exp
 	count := 0
 	for _, work := range works {
 		if work.Matches(verb, "works") {
-			count = count + 1
+			count++
 		}
 	}
 	if count != expectedCreates {

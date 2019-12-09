@@ -1,5 +1,3 @@
-ignored:
-
 trustedRegistries:
   - gcr.io
   - docker.io

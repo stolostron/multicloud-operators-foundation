@@ -151,14 +151,12 @@ func (k *Klusterlet) queryResource(scope v1alpha1.ResourceFilter) (runtime.Objec
 			// limit the number of resource to list to be 1000 to be safely stored in etcd
 			Limit: 1000,
 		}
-		obj, err = k.kubeControl.List(
-			string(scope.ResourceType), scope.NameSpace, options, scope.ServerPrint)
+		obj, err = k.kubeControl.List(scope.ResourceType, scope.NameSpace, options, scope.ServerPrint)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		obj, err = k.kubeControl.Get(
-			nil, string(scope.ResourceType), scope.NameSpace, scope.Name, scope.ServerPrint)
+		obj, err = k.kubeControl.Get(nil, scope.ResourceType, scope.NameSpace, scope.Name, scope.ServerPrint)
 		if err != nil {
 			return nil, err
 		}

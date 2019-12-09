@@ -21,8 +21,8 @@ import (
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
 
-// KlusterletClientConfig is to define the configuration to connect klusterlet
-type KlusterletClientConfig struct {
+// ClientConfig is to define the configuration to connect klusterlet
+type ClientConfig struct {
 	// Default port - used if no information about klusterlet port can be found in Node.NodeStatus.DaemonEndpoints.
 	Port uint
 	// EnableHTTPS enable https
@@ -64,7 +64,7 @@ type ConnectionInfoGetter interface {
 }
 
 // MakeTransport return a tranport for http
-func MakeTransport(config *KlusterletClientConfig) (http.RoundTripper, error) {
+func MakeTransport(config *ClientConfig) (http.RoundTripper, error) {
 	tlsConfig, err := transport.TLSConfigFor(config.transportConfig())
 	if err != nil {
 		return nil, err
@@ -82,7 +82,7 @@ func MakeTransport(config *KlusterletClientConfig) (http.RoundTripper, error) {
 }
 
 // transportConfig converts a client config to an appropriate transport config.
-func (c *KlusterletClientConfig) transportConfig() *transport.Config {
+func (c *ClientConfig) transportConfig() *transport.Config {
 	cfg := &transport.Config{
 		TLS: transport.TLSConfig{
 			CAFile:   c.CAFile,
@@ -122,11 +122,11 @@ type ClusterConnectionInfoGetter struct {
 	// defaultPort is the port to use if no klusterlet endpoint port is recorded in the cluster status
 	defaultPort int
 	// config is the cofig to use to send a request to all klusterlet
-	config *KlusterletClientConfig
+	config *ClientConfig
 }
 
 // NewClusterConnectionInfoGetter is a getter to get cluster status
-func NewClusterConnectionInfoGetter(clusters ClusterGetter, config KlusterletClientConfig) (ConnectionInfoGetter, error) {
+func NewClusterConnectionInfoGetter(clusters ClusterGetter, config ClientConfig) (ConnectionInfoGetter, error) {
 	scheme := "http"
 	if config.EnableHTTPS {
 		scheme = "https"
@@ -157,8 +157,7 @@ func (k *ClusterConnectionInfoGetter) GetConnectionInfo(ctx context.Context, clu
 	ip := cluster.Spec.KlusterletEndpoint.IP
 
 	// need a deep copy
-	// TODO refactor here in next release
-	config := &KlusterletClientConfig{
+	config := &ClientConfig{
 		Port:        k.config.Port,
 		EnableHTTPS: k.config.EnableHTTPS,
 		HTTPTimeout: k.config.HTTPTimeout,

@@ -38,8 +38,8 @@ import (
 	equals "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/equals"
 )
 
-// WorkSetController manages the lifecycle of workset
-type WorkSetController struct {
+// Controller manages the lifecycle of workset
+type Controller struct {
 	// hcmclientset is a clientset for our own API group
 	hcmclientset  clientset.Interface
 	kubeclientset kubernetes.Interface
@@ -63,19 +63,19 @@ type WorkSetController struct {
 	workqueue workqueue.RateLimitingInterface
 }
 
-// NewWorkSetController returns a WorkSetController
-func NewWorkSetController(
+// NewController returns a workset controller
+func NewController(
 	hcmclientset clientset.Interface,
 	kubeclientset kubernetes.Interface,
 	informerFactory informers.SharedInformerFactory,
 	clusterInformerFactory clusterinformers.SharedInformerFactory,
 	enableRBAC bool,
-	stopCh <-chan struct{}) *WorkSetController {
+	stopCh <-chan struct{}) *Controller {
 	clusterInformer := clusterInformerFactory.Clusterregistry().V1alpha1().Clusters()
 	worksetInformer := informerFactory.Mcm().V1alpha1().WorkSets()
 	workInformer := informerFactory.Mcm().V1alpha1().Works()
 
-	controller := &WorkSetController{
+	controller := &Controller{
 		hcmclientset:  hcmclientset,
 		kubeclientset: kubeclientset,
 		clusterLister: clusterInformer.Lister(),
@@ -115,33 +115,32 @@ func NewWorkSetController(
 }
 
 // Run is the main run loop of kluster server
-func (w *WorkSetController) Run() error {
+func (w *Controller) Run() {
 	defer utilruntime.HandleCrash()
 	defer w.workqueue.ShutDown()
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for hcm informer caches to sync")
 	if ok := cache.WaitForCacheSync(w.stopCh, w.clusterSynced, w.worksetSynced, w.workSynced); !ok {
-		return fmt.Errorf("failed to wait for hcm caches to sync")
+		klog.Errorf("failed to wait for hcm caches to sync")
+		return
 	}
 
 	go wait.Until(w.runWorker, time.Second, w.stopCh)
 
 	<-w.stopCh
 	klog.Info("Shutting controller")
-
-	return nil
 }
 
 // runWorker is a long-running function that will continually call the
 // processNextWorkItem function in order to read and process a message on the
 // workqueue.
-func (w *WorkSetController) runWorker() {
+func (w *Controller) runWorker() {
 	for w.processNextWorkItem() {
 	}
 }
 
-func (w *WorkSetController) processNextWorkItem() bool {
+func (w *Controller) processNextWorkItem() bool {
 	obj, shutdown := w.workqueue.Get()
 
 	if shutdown {
@@ -193,7 +192,7 @@ func (w *WorkSetController) processNextWorkItem() bool {
 }
 
 // processWork process work and update work result
-func (w *WorkSetController) processWorkSet(key string) error {
+func (w *Controller) processWorkSet(key string) error {
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		utilruntime.HandleError(fmt.Errorf("invalid resource key: %s", key))
@@ -235,7 +234,7 @@ func (w *WorkSetController) processWorkSet(key string) error {
 	clustersNeedingWorks, worksToDelete, worksToUpdate := w.worksShouldBeOnClusters(workset, clusterToWorks, filteredClusters)
 
 	// Create work items on each cluster
-	utils.BatchHandle(len(clustersNeedingWorks), func(i int) error {
+	utils.BatchHandle(len(clustersNeedingWorks), func(i int) {
 		cluster := clustersNeedingWorks[i]
 		workName := workset.Name + "-" + cluster.Name
 		owners := utils.AddOwnersLabel("", "clusters", cluster.Name, cluster.Namespace)
@@ -264,31 +263,28 @@ func (w *WorkSetController) processWorkSet(key string) error {
 		if e != nil {
 			klog.Errorf("Failed to create work %s on cluster %s: %v", work.Name, cluster.Name, e)
 		}
-		return nil
 	})
 
-	utils.BatchHandle(len(worksToUpdate), func(i int) error {
+	utils.BatchHandle(len(worksToUpdate), func(i int) {
 		workToUpdate := worksToUpdate[i]
 		_, err := w.hcmclientset.McmV1alpha1().Works(workToUpdate.Namespace).Update(workToUpdate)
 		if err != nil {
 			klog.Errorf("Failed to update work %s: %v", workToUpdate.Name, err)
 		}
-		return nil
 	})
 
-	utils.BatchHandle(len(worksToDelete), func(i int) error {
+	utils.BatchHandle(len(worksToDelete), func(i int) {
 		workToDelete := worksToDelete[i]
 		err := w.hcmclientset.McmV1alpha1().Works(workToDelete.Namespace).Delete(workToDelete.Name, &metav1.DeleteOptions{})
 		if err != nil {
 			klog.Errorf("Failed to delete work %s", workToDelete.Name)
 		}
-		return nil
 	})
 
 	return w.updateWorkSetStatus(workset, filteredClusters, clusterToWorks)
 }
 
-func (w *WorkSetController) worksShouldBeOnClusters(
+func (w *Controller) worksShouldBeOnClusters(
 	workset *v1alpha1.WorkSet,
 	clusterToWorks map[string][]*v1alpha1.Work,
 	clusters []*clusterv1alpha1.Cluster,
@@ -322,7 +318,7 @@ func (w *WorkSetController) worksShouldBeOnClusters(
 	return clustersNeedingWorks, worksToDelete, workToUpdate
 }
 
-func (w *WorkSetController) getClustersToWorks(workset *v1alpha1.WorkSet) (map[string][]*v1alpha1.Work, error) {
+func (w *Controller) getClustersToWorks(workset *v1alpha1.WorkSet) (map[string][]*v1alpha1.Work, error) {
 	selector := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			mcm.WorkSetLabel: workset.Namespace + "." + workset.Name,
@@ -348,7 +344,7 @@ func (w *WorkSetController) getClustersToWorks(workset *v1alpha1.WorkSet) (map[s
 	return clusterToWorks, nil
 }
 
-func (w *WorkSetController) updateWorkByWorkset(workset *v1alpha1.WorkSet, work *v1alpha1.Work) (*v1alpha1.Work, bool) {
+func (w *Controller) updateWorkByWorkset(workset *v1alpha1.WorkSet, work *v1alpha1.Work) (*v1alpha1.Work, bool) {
 	update := false
 	updateWork := work.DeepCopy()
 
@@ -362,7 +358,7 @@ func (w *WorkSetController) updateWorkByWorkset(workset *v1alpha1.WorkSet, work 
 	return updateWork, update
 }
 
-func (w *WorkSetController) updateWorkSetStatus(
+func (w *Controller) updateWorkSetStatus(
 	oldworkset *v1alpha1.WorkSet,
 	clusters []*clusterv1alpha1.Cluster,
 	clusterToWorks map[string][]*v1alpha1.Work,
@@ -390,7 +386,7 @@ func (w *WorkSetController) updateWorkSetStatus(
 		if work.Status.Type == v1alpha1.WorkFailed {
 			reason = fmt.Sprintf("%s%s(%s); ", reason, work.Status.Reason, cluster.Name)
 		}
-		finishedWorkNum = finishedWorkNum + 1
+		finishedWorkNum++
 	}
 
 	if len(clusters) <= finishedWorkNum {
@@ -406,7 +402,7 @@ func (w *WorkSetController) updateWorkSetStatus(
 	return nil
 }
 
-func (w *WorkSetController) retryUpdateWorkSetStatus(
+func (w *Controller) retryUpdateWorkSetStatus(
 	workset *v1alpha1.WorkSet, status *v1alpha1.WorkSetStatus) error {
 	// don't wait due to limited number of clients, but backoff after the default number of steps
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
@@ -426,16 +422,16 @@ func (w *WorkSetController) retryUpdateWorkSetStatus(
 	})
 }
 
-func (w *WorkSetController) addWork(obj interface{}) {
+func (w *Controller) addWork(obj interface{}) {
 	work := obj.(*v1alpha1.Work)
 	if work.Status.Type != "" {
 		w.enqueueWorkSetFromWork(work)
 	}
 }
 
-func (w *WorkSetController) updateWork(old, new interface{}) {
-	newWork := new.(*v1alpha1.Work)
-	oldWork := old.(*v1alpha1.Work)
+func (w *Controller) updateWork(oldObj, newObj interface{}) {
+	newWork := newObj.(*v1alpha1.Work)
+	oldWork := oldObj.(*v1alpha1.Work)
 
 	// enqueu work if it is transfer from pending to completed or failed
 	if (newWork.Status.Type == v1alpha1.WorkCompleted || newWork.Status.Type == v1alpha1.WorkFailed) && oldWork.Status.Type == "" {
@@ -443,16 +439,16 @@ func (w *WorkSetController) updateWork(old, new interface{}) {
 	}
 }
 
-func (w *WorkSetController) deleteWork(old interface{}) {
+func (w *Controller) deleteWork(old interface{}) {
 	oldWork := old.(*v1alpha1.Work)
 	if oldWork.Status.Type != v1alpha1.WorkCompleted {
 		w.enqueueWorkSetFromWork(oldWork)
 	}
 }
 
-func (w *WorkSetController) updateCluster(old, new interface{}) {
-	oldCluster := old.(*clusterv1alpha1.Cluster)
-	newCluster := new.(*clusterv1alpha1.Cluster)
+func (w *Controller) updateCluster(oldObj, newObj interface{}) {
+	oldCluster := oldObj.(*clusterv1alpha1.Cluster)
+	newCluster := newObj.(*clusterv1alpha1.Cluster)
 
 	if len(oldCluster.Status.Conditions) > 0 && oldCluster.Status.Conditions[0].Type == newCluster.Status.Conditions[0].Type {
 		return
@@ -473,7 +469,7 @@ func (w *WorkSetController) updateCluster(old, new interface{}) {
 // enqueueWork takes a Work resource and converts it into a name
 // string which is then put onto the work queue. This method should *not* be
 // passed resources of any type other than Work.
-func (w *WorkSetController) enqueueWorkSet(obj interface{}) {
+func (w *Controller) enqueueWorkSet(obj interface{}) {
 	var key string
 	var err error
 	if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
@@ -483,7 +479,7 @@ func (w *WorkSetController) enqueueWorkSet(obj interface{}) {
 	w.workqueue.AddRateLimited(key)
 }
 
-func (w *WorkSetController) enqueueWorkSetFromWork(work *v1alpha1.Work) {
+func (w *Controller) enqueueWorkSetFromWork(work *v1alpha1.Work) {
 	key, ok := work.Labels[mcm.WorkSetLabel]
 	if !ok {
 		return
@@ -498,11 +494,11 @@ func (w *WorkSetController) enqueueWorkSetFromWork(work *v1alpha1.Work) {
 	w.workqueue.Add(key)
 }
 
-func (w *WorkSetController) needUpdateWork(workset *v1alpha1.WorkSet, work *v1alpha1.Work) bool {
+func (w *Controller) needUpdateWork(workset *v1alpha1.WorkSet, work *v1alpha1.Work) bool {
 	return !equals.EqualWorkSpec(&workset.Spec.Template.Spec, &work.Spec)
 }
 
-func (w *WorkSetController) needUpdate(newworkset, oldworkset *v1alpha1.WorkSet) bool {
+func (w *Controller) needUpdate(newworkset, oldworkset *v1alpha1.WorkSet) bool {
 	if !reflect.DeepEqual(newworkset.Spec.ClusterSelector, oldworkset.Spec.ClusterSelector) {
 		return true
 	}

@@ -52,7 +52,7 @@ func newKlusterletServer(factory *drivers.DriverFactory,
 	}
 }
 
-func (ks *klusterletServer) listenAndServe() {
+func (ks *klusterletServer) listenAndServe() error {
 	ks.mu.Lock()
 	ks.server = &http.Server{
 		Addr:           net.JoinHostPort(ks.address.String(), strconv.FormatUint(uint64(ks.port), 10)),
@@ -65,10 +65,9 @@ func (ks *klusterletServer) listenAndServe() {
 		// Passing empty strings as the cert and key files means no
 		// cert/keys are specified and GetCertificate in the TLSConfig
 		// should be called instead.
-		ks.server.ListenAndServeTLS(ks.tlsOptions.CertFile, ks.tlsOptions.KeyFile)
-	} else {
-		ks.server.ListenAndServe()
+		return ks.server.ListenAndServeTLS(ks.tlsOptions.CertFile, ks.tlsOptions.KeyFile)
 	}
+	return ks.server.ListenAndServe()
 }
 
 func (ks *klusterletServer) restart(caData []byte, pool *x509.CertPool) {
@@ -83,7 +82,9 @@ func (ks *klusterletServer) restart(caData []byte, pool *x509.CertPool) {
 
 	ks.CAData = caData
 	ks.tlsOptions.Config.ClientCAs = pool
-	ks.listenAndServe()
+	if err := ks.listenAndServe(); err != nil {
+		klog.Errorf("failed to listen and serve: %v", err)
+	}
 }
 
 func (ks *klusterletServer) isShutDown() bool {
@@ -108,7 +109,7 @@ func (k *Klusterlet) ListenAndServe(
 			clusterStatus := <-k.runServer
 			pool, data, err := k.waitCAFromClusterStatus(clusterStatus, nil)
 			if err != nil {
-				klog.Errorf("Failed to get ca file from hub cluster: %v", err)
+				klog.Errorf("failed to get ca file from hub cluster: %v", err)
 				continue
 			}
 
@@ -120,7 +121,9 @@ func (k *Klusterlet) ListenAndServe(
 	}
 
 	k.server = newKlusterletServer(factory, address, port, tlsOptions, auth, certData)
-	k.server.listenAndServe()
+	if err := k.server.listenAndServe(); err != nil {
+		klog.Errorf("failed to listen and serve: %v", err)
+	}
 }
 
 func (k *Klusterlet) restartServerIfNeeded(clusterStatus *v1alpha1.ClusterStatus) {

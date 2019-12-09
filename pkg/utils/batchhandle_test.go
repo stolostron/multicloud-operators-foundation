@@ -6,7 +6,6 @@
 package utils
 
 import (
-	"fmt"
 	"testing"
 
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
@@ -18,17 +17,11 @@ func TestBatchHandle(t *testing.T) {
 	for _, cnt := range count {
 		workList := makeWorkList(cnt)
 
-		handle := func(i int) error {
+		handle := func(i int) {
 			workList[i].Status.Type = v1alpha1.WorkCompleted
-			if i%5 == 0 {
-				return fmt.Errorf("error %v", i)
-			}
-			return nil
 		}
 
-		if err := BatchHandle(len(workList), handle); err != nil {
-			fmt.Println(err)
-		}
+		BatchHandle(len(workList), handle)
 
 		if !checkResult(workList) {
 			t.Fatalf("Handle error %v", cnt)

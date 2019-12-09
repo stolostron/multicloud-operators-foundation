@@ -30,7 +30,7 @@ func (placementpolicyStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func PlacementPolicyToSelectableFields(placementpolicy *mcm.PlacementPolicy) fields.Set {
+func toSelectableFields(placementpolicy *mcm.PlacementPolicy) fields.Set {
 	return generic.ObjectMetaFieldsSet(&placementpolicy.ObjectMeta, true)
 }
 
@@ -40,7 +40,7 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	if !ok {
 		return nil, nil, false, fmt.Errorf("given object is not a placementpolicy")
 	}
-	return labels.Set(placementpolicy.ObjectMeta.Labels), PlacementPolicyToSelectableFields(placementpolicy), placementpolicy.Initializers != nil, nil
+	return labels.Set(placementpolicy.ObjectMeta.Labels), toSelectableFields(placementpolicy), placementpolicy.Initializers != nil, nil
 }
 
 func MatchPlacementPolicy(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {

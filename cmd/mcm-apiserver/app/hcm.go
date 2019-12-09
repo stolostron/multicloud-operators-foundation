@@ -22,9 +22,9 @@ func installHCMAPIs(
 	g *genericapiserver.GenericAPIServer,
 	optsGetter generic.RESTOptionsGetter,
 	apiResourceConfigSource storage.APIResourceConfigSource,
-	options *mcmstorage.StorageOptions,
-	clientConfig klusterlet.KlusterletClientConfig) {
-	hcmStorageProvider := hcmrest.RESTStorageProvider{}
+	options *mcmstorage.Options,
+	clientConfig klusterlet.ClientConfig) {
+	hcmStorageProvider := hcmrest.StorageProvider{}
 	hcmGroupInfo, shouldInstallGroup := hcmStorageProvider.NewRESTStorage(
 		apiResourceConfigSource, optsGetter, options, clientConfig)
 	if !shouldInstallGroup {
@@ -35,7 +35,7 @@ func installHCMAPIs(
 		klog.Fatalf("Error in registering group versions: %v", err)
 	}
 
-	clusterStorageProvider := clusterrest.RESTStorageProvider{}
+	clusterStorageProvider := clusterrest.StorageProvider{}
 	clusterGroupInfo, shouldInstallGroup := clusterStorageProvider.NewRESTStorage(apiResourceConfigSource, optsGetter)
 	if !shouldInstallGroup {
 		return

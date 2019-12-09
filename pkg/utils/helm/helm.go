@@ -40,24 +40,19 @@ import (
 	"k8s.io/helm/pkg/tlsutil"
 )
 
-//TODO should not use const var
-const HubLocalRepoCertDir = "/tmp/hcm/repo"
-const HubLocalRepoCertFileName = "hubClusterCa.ca"
-const IsHubClusterLocalRepo = "mcm.ibm.com/hub-cluster-repo"
-
 var (
 	tillerLabels    = labels.Set{"app": "helm", "name": "tiller"}
 	tillerNamespace = "kube-system"
 )
 
-// HelmControl implements helm interface
-type HelmControl struct {
+// Control implements helm interface
+type Control struct {
 	helmclient   helm.Interface
 	hcmclientset clientset.Interface
 }
 
-//HelmControlInterface is an interface for helm releases
-type HelmControlInterface interface {
+//ControlInterface is an interface for helm releases
+type ControlInterface interface {
 	//CreateHelmRelease create a helm release
 	CreateHelmRelease(
 		releaseName string,
@@ -78,11 +73,11 @@ type HelmControlInterface interface {
 }
 
 // NewHelmControl creates a new helm control
-func NewHelmControl(helmclient helm.Interface, hcmclientset clientset.Interface) HelmControlInterface {
+func NewHelmControl(helmclient helm.Interface, hcmclientset clientset.Interface) ControlInterface {
 	if helmclient == nil {
 		return nil
 	}
-	return &HelmControl{
+	return &Control{
 		helmclient:   helmclient,
 		hcmclientset: hcmclientset,
 	}
@@ -185,6 +180,7 @@ func searchTillerEndpoint(client kubernetes.Interface) (string, error) {
 	return ip + ":" + port, nil
 }
 
+// Initialize initialize helm
 func Initialize(endpoint, key, cert, ca string, client kubernetes.Interface) (helm.Interface, error) {
 	var err error
 	fromcfg := false
@@ -205,7 +201,7 @@ func Initialize(endpoint, key, cert, ca string, client kubernetes.Interface) (he
 	return hcli, nil
 }
 
-// ConnectToTiller ...
+// ConnectToTiller connect to tiller
 func ConnectToTiller(endpoint, key, cert, ca string, fromcfg bool) (*helm.Client, error) {
 	var tillerOptions []helm.Option
 
@@ -256,8 +252,7 @@ func ConnectToTiller(endpoint, key, cert, ca string, fromcfg bool) (*helm.Client
 	return client, nil
 }
 
-//Download HelmRepo
-func (hc *HelmControl) downloadRepo(helmspec v1alpha1.HelmWorkSpec) (string, error) {
+func (hc *Control) downloadRepo(helmspec v1alpha1.HelmWorkSpec) (string, error) {
 	var chartPath string
 	var err error
 	var inSecure bool
@@ -282,7 +277,7 @@ func (hc *HelmControl) downloadRepo(helmspec v1alpha1.HelmWorkSpec) (string, err
 }
 
 //CreateHelmRelease create a helm release
-func (hc *HelmControl) CreateHelmRelease(releaseName string, helmreponNamespace string, helmspec v1alpha1.HelmWorkSpec) (*rls.InstallReleaseResponse, error) {
+func (hc *Control) CreateHelmRelease(releaseName string, helmreponNamespace string, helmspec v1alpha1.HelmWorkSpec) (*rls.InstallReleaseResponse, error) {
 	chartPath, err := hc.downloadRepo(helmspec)
 	if err != nil {
 		return nil, err
@@ -306,7 +301,7 @@ func (hc *HelmControl) CreateHelmRelease(releaseName string, helmreponNamespace 
 }
 
 // UpdateHelmRelease updates a helmrelease
-func (hc *HelmControl) UpdateHelmRelease(
+func (hc *Control) UpdateHelmRelease(
 	releaseName string, helmreponNamespace string, helmspec v1alpha1.HelmWorkSpec) (*rls.UpdateReleaseResponse, error) {
 	chartPath, err := hc.downloadRepo(helmspec)
 	if err != nil {
@@ -327,8 +322,8 @@ func (hc *HelmControl) UpdateHelmRelease(
 	return resp, nil
 }
 
-// GetHelmReleases ...
-func (hc *HelmControl) GetHelmReleases(
+// GetHelmReleases get Helm releases
+func (hc *Control) GetHelmReleases(
 	nameFilter string, codes []release.Status_Code, namespace string, limit int) (*rls.ListReleasesResponse, error) {
 	var listRelOptions []helm.ReleaseListOption
 	if nameFilter != "" {
@@ -353,7 +348,7 @@ func (hc *HelmControl) GetHelmReleases(
 }
 
 // DeleteHelmRelease delete helm release
-func (hc *HelmControl) DeleteHelmRelease(relName string) (*rls.UninstallReleaseResponse, error) {
+func (hc *Control) DeleteHelmRelease(relName string) (*rls.UninstallReleaseResponse, error) {
 	var urr *rls.UninstallReleaseResponse
 	var err error
 	if relName != "" {

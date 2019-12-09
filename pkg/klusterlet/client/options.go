@@ -14,8 +14,8 @@ import (
 	certutil "k8s.io/client-go/util/cert"
 )
 
-// KlusterletClientOptions is the options for klusterlet client
-type KlusterletClientOptions struct {
+// ClientOptions is the options for klusterlet client
+type ClientOptions struct {
 	CertFile      string
 	KeyFile       string
 	CAFile        string
@@ -23,9 +23,9 @@ type KlusterletClientOptions struct {
 	PairName      string
 }
 
-// NewKlusterletClientOptions creates a new NewKlusterletClientOptions object with default values.
-func NewKlusterletClientOptions() *KlusterletClientOptions {
-	s := &KlusterletClientOptions{
+// NewClientOptions creates a new klusterlet ClientOptions object with default values.
+func NewClientOptions() *ClientOptions {
+	s := &ClientOptions{
 		CertFile:      "",
 		KeyFile:       "",
 		CAFile:        "",
@@ -37,7 +37,7 @@ func NewKlusterletClientOptions() *KlusterletClientOptions {
 }
 
 // AddFlags adds flags for ServerRunOptions fields to be specified via FlagSet.
-func (s *KlusterletClientOptions) AddFlags(fs *pflag.FlagSet) {
+func (s *ClientOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.CertFile, "klusterlet-certfile", s.CertFile, ""+
 		"Klusterlet client cert file")
 	fs.StringVar(&s.KeyFile, "klusterlet-keyfile", s.KeyFile, ""+
@@ -49,7 +49,7 @@ func (s *KlusterletClientOptions) AddFlags(fs *pflag.FlagSet) {
 }
 
 // MaybeDefaultWithSelfSignedCerts generate self signed cert if they are not set
-func (s *KlusterletClientOptions) MaybeDefaultWithSelfSignedCerts(publicAddress string) error {
+func (s *ClientOptions) MaybeDefaultWithSelfSignedCerts(publicAddress string) error {
 	if len(s.CertFile) != 0 || len(s.KeyFile) != 0 || len(s.CAFile) != 0 {
 		return nil
 	}
@@ -107,9 +107,9 @@ func (s *KlusterletClientOptions) MaybeDefaultWithSelfSignedCerts(publicAddress 
 	return nil
 }
 
-// Config returns KlusterletClientConfig from options
-func (s *KlusterletClientOptions) Config() KlusterletClientConfig {
-	config := KlusterletClientConfig{
+// Config returns klusterlet ClientConfig from options
+func (s *ClientOptions) Config() ClientConfig {
+	config := ClientConfig{
 		Port:        443,
 		EnableHTTPS: true,
 		HTTPTimeout: 30 * time.Second,

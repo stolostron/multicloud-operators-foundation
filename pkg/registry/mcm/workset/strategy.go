@@ -31,7 +31,7 @@ func (worksetStrategy) NamespaceScoped() bool {
 	return true
 }
 
-func WorkSetToSelectableFields(workset *mcm.WorkSet) fields.Set {
+func toSelectableFields(workset *mcm.WorkSet) fields.Set {
 	return generic.ObjectMetaFieldsSet(&workset.ObjectMeta, true)
 }
 
@@ -41,7 +41,7 @@ func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
 	if !ok {
 		return nil, nil, false, fmt.Errorf("given object is not a workset")
 	}
-	return labels.Set(workset.ObjectMeta.Labels), WorkSetToSelectableFields(workset), workset.Initializers != nil, nil
+	return labels.Set(workset.ObjectMeta.Labels), toSelectableFields(workset), workset.Initializers != nil, nil
 }
 
 func MatchWorkSet(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {
