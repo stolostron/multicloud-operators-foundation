@@ -174,12 +174,12 @@ func (r *StatusREST) Get(ctx context.Context, name string, options *metav1.GetOp
 	view.Status.Results = map[string]runtime.RawExtension{}
 
 	// Get data from mongo
-	var resultList *mcm.ResourceViewResultList
+	resultList := &mcm.ResourceViewResultList{}
 	selector, _ := labels.Parse(mcm.ViewLabel + "=" + view.Namespace + "." + view.Name)
 	err = r.resultStore.List(ctx, "", "", storage.SelectionPredicate{
 		Label: selector,
 	}, resultList)
-	if err != nil && resultList != nil {
+	if err != nil {
 		for _, result := range resultList.Items {
 			cluster, ok := result.Labels[mcm.ClusterLabel]
 			if !ok {
