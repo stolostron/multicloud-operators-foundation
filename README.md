@@ -75,7 +75,7 @@ You can use `ko` to deploy multicloud manager with the following step.
     export KO_DOCKER_REPO=docker.io/<your account>
     ```
 
-1. Install on hub cluster
+2. Install on hub cluster
 
     Deploy hub components
 
@@ -83,7 +83,7 @@ You can use `ko` to deploy multicloud manager with the following step.
     ko apply -f deploy/hub --base-import-paths --tags=latest
     ```
 
-1. Install on managed cluster
+3. Install on managed cluster
 
     Create bootstrap secret `klusterlet-bootstrap` in `default` namespace using a kubeconfig file with any authenticated hub cluster user. If the kubeconfig file includes keys, like `client-certificate` and `client-key`, which reference to local certification files, replace them with `client-certificate-data` and `client-key-data`. The corresponding values of these keys can be obtained with the command below.
 
@@ -118,7 +118,7 @@ You can use `ko` to deploy multicloud manager with the following step.
     ko apply -f deploy/klusterlet --base-import-paths --tags=latest
     ```
 
-1. (Optional) Enable service registry on managed cluster
+4. (Optional) Enable service registry on managed cluster
 
     After klusterlet components were installed in managed cluster, Customize the cluster name and namespaces of managed cluster in `deploy/serviceregistry/200-serviceregistry`
 
@@ -172,14 +172,16 @@ You can use `ko` to deploy multicloud manager with the following step.
         }
     ```
 
-1. Query managed cluster status on hub
+5. Query managed cluster status on hub
 
     ```sh
     kubectl get clusterjoinrequests.mcm.ibm.com
 
     NAME                                                      CLUSTER NAME   CLUSTER NAMESPACE   STATUS     AGE
     clusterjoin-3j4pL11QZWvIBS-0I03GUOk5P0PhZH28zltQfGPxwlo   cluster0       cluster0            Approved   31m
+    ```
 
+    ```sh
     kubectl get cluster --all-namespaces
 
     NAMESPACE   NAME       MANAGED BY   ENDPOINTS           STATUS   AGE
@@ -192,173 +194,171 @@ You can use `ko` to deploy multicloud manager with the following step.
 
 1. Get cluster information
 
-```sh
-kubectl get clusters --all-namespaces
-kubectl get clusters -n [namespace_name]
-```
+    ```sh
+    kubectl get clusters --all-namespaces
+    kubectl get clusters -n [namespace_name]
+    ```
 
-example:
+    example:
 
-```sh
-kubectl get cluster --all-namespaces
+    ```sh
+    kubectl get cluster --all-namespaces
 
-NAMESPACE   NAME      ENDPOINTS           STATUS    AGE
-mcmk12      mcmk12    9.37.135.130:8001   Ready     4d
-```
+    NAMESPACE   NAME      ENDPOINTS           STATUS    AGE
+    mcmk12      mcmk12    9.37.135.130:8001   Ready     4d
+    ```
 
-1. Get cluster status information
+2. Get cluster status information
 
-```sh
-kubectl get clusterstatus --all-namespaces
-kubectl get clusterstatus -n [namespace_name]
-```
+    ```sh
+    kubectl get clusterstatus --all-namespaces
+    kubectl get clusterstatus -n [namespace_name]
+    ```
 
-example:
+    example:
 
-```sh
-kubectl get clusterstatus --all-namespaces
+    ```sh
+    kubectl get clusterstatus --all-namespaces
 
-NAMESPACE   NAME      ADDRESSES      USED/TOTAL CPU   USED/TOTAL MEMORY   USED/TOTAL STORAGE   NODE      POD       AGE       VERSION
-mcmk12      mcmk12    9.37.135.130   7600m/38         21805Mi/74670Mi     129Gi/129Gi          8         111       4d        3.1.0-dirty
-```
+    NAMESPACE   NAME      ADDRESSES      USED/TOTAL CPU   USED/TOTAL MEMORY   USED/TOTAL STORAGE   NODE      POD       AGE       VERSION
+    mcmk12      mcmk12    9.37.135.130   7600m/38         21805Mi/74670Mi     129Gi/129Gi          8         111       4d        3.1.0-dirty
+    ```
 
-1. Get cluster join request information
+3. Get cluster join request information
 
-```sh
-kubectl get clusterjoinrequest
-```
+    ```sh
+    kubectl get clusterjoinrequest
+    ```
 
-example:
+    example:
 
-```sh
-kubectl get clusterjoinrequest
+    ```sh
+    kubectl get clusterjoinrequest
 
-NAME                                                      CLUSTER NAME   CLUSTER NAMESPACE   STATUS     AGE
-clusterjoin-UOoCuEUYBMMqpNC7nEghojrt-WOBYOvKizhXQJdkJ9A   mcmk12         mcmk12              Approved   4d
-clusterjoin-kBtZfvgOCKiyTMqvm88hRhuThh4q5LELXa8QVqt0e8E   mcmk00         mcmk04              Denied     6d
-```
+    NAME                                                      CLUSTER NAME   CLUSTER NAMESPACE   STATUS     AGE
+    clusterjoin-UOoCuEUYBMMqpNC7nEghojrt-WOBYOvKizhXQJdkJ9A   mcmk12         mcmk12              Approved   4d
+    clusterjoin-kBtZfvgOCKiyTMqvm88hRhuThh4q5LELXa8QVqt0e8E   mcmk00         mcmk04              Denied     6d
+    ```
 
-1. Get csr
+4. Get certificate signing request
 
-```sh
-kubectl get csr
-```
+    ```sh
+    kubectl get csr
+    ```
 
-example:
+    example:
 
-```sh
-kubectl get csr
+    ```sh
+    kubectl get csr
 
-NAME                                                      AGE       REQUESTOR                                   CONDITION
-clusterjoin-2_zZJYViKZkYCWOke1cFon3RKHXjp9ll2Ns5XkXoh5w   1h        system:serviceaccount:kube-system:default   Approved,Issued
-```
+    NAME                                                      AGE       REQUESTOR                                   CONDITION
+    clusterjoin-2_zZJYViKZkYCWOke1cFon3RKHXjp9ll2Ns5XkXoh5w   1h        system:serviceaccount:kube-system:default   Approved,Issued
+    ```
 
-approve cluster join request
+    approve cluster join request
 
-```sh
-kubectl certificate approve <csr_name>
-```
+    ```sh
+    kubectl certificate approve <csr_name>
+    ```
 
-example:
+    example:
 
-```sh
-kubectl certificate approve clusterjoin-2_zZJYViKZkYCWOke1cFon3RKHXjp9ll2Ns5XkXoh5w
+    ```sh
+    kubectl certificate approve clusterjoin-2_zZJYViKZkYCWOke1cFon3RKHXjp9ll2Ns5XkXoh5w
 
-certificatesigningrequest.certificates.k8s.io/clusterjoin-2_zZJYViKZkYCWOke1cFon3RKHXjp9ll2Ns5XkXoh5w approved
-```
+    certificatesigningrequest.certificates.k8s.io/clusterjoin-2_zZJYViKZkYCWOke1cFon3RKHXjp9ll2Ns5XkXoh5w approved
+    ```
 
 ### Perform an action on managed cluster
 
 1. Create a kube resource on managed cluster
 
-example:
+    example:
 
-create a deployment on cluster cluster0
+    create a deployment on cluster cluster0
 
-```sh
-kubectl apply -f examples/work/kube/kubework_create.yaml --validate=false
+    ```sh
+    kubectl apply -f examples/work/kube/kubework_create.yaml --validate=false
 
-kubectl get work --all-namespaces
-NAMESPACE   NAME                                    TYPE       CLUSTER   STATUS       REASON   AGE
-cluster0         nginx-work-create                       Action     cluster0        Completed             8s
-```
+    kubectl get work --all-namespaces
+    NAMESPACE   NAME                            TYPE       CLUSTER      STATUS       REASON   AGE
+    cluster0    nginx-work-create               Action     cluster0     Completed             8s
+    ```
 
-After work completed, the deployment will be deployed on cluster cluster0.
+    After work completed, the deployment will be deployed on cluster cluster0.
 
-you can also update/delete a kube resource on managed cluster.
+    you can also update/delete a kube resource on managed cluster.
 
-example:
+    example:
 
-```sh
-kubectl apply -f examples/work/kube/kubework_update.yaml --validate=false
-kubectl apply -f examples/work/kube/kubework_delete.yaml --validate=false
-```
+    ```sh
+    kubectl apply -f examples/work/kube/kubework_update.yaml --validate=false
+    kubectl apply -f examples/work/kube/kubework_delete.yaml --validate=false
+    ```
 
-1. Create a helm release on managed cluster
+2. Create a helm release on managed cluster
 
-example:
+    example:
 
-```sh
-kubectl apply -f examples/work/helm/helmwork_create.yaml --validate=false
+    ```sh
+    kubectl apply -f examples/work/helm/helmwork_create.yaml --validate=false
 
-kubectl get work --all-namespaces
+    kubectl get work --all-namespaces
 
-NAMESPACE   NAME                                    TYPE       CLUSTER   STATUS       REASON   AGE
-cluster0         nginx-create                            Action     cluster0        Completed             8s
-```
+    NAMESPACE   NAME                                    TYPE       CLUSTER   STATUS       REASON   AGE
+    cluster0         nginx-create                            Action     cluster0        Completed             8s
+    ```
 
-After work completed, the helm release will be deployed on cluster cluster0.
+    After work completed, the helm release will be deployed on cluster cluster0.
 
-you can also update/delete a helm release on managed cluster.
+    you can also update/delete a helm release on managed cluster.
 
-example:
+    example:
 
-```sh
-kubectl apply -f examples/work/helm/helmwork_update.yaml --validate=false
-kubectl apply -f examples/work/helm/helmwork_delete.yaml --validate=false
-```
+    ```sh
+    kubectl apply -f examples/work/helm/helmwork_update.yaml --validate=false
+    kubectl apply -f examples/work/helm/helmwork_delete.yaml --validate=false
+    ```
 
-### Register and dicover services on clusters
+### (Optional) Register and dicover services on clusters
 
 1. Register a service from a managed cluster to hub cluster
 
-Annotate your service with `mcm.ibm.com/service-discovery: '{}'` annotation, if the antiotion value is `{}`, the servcie will  be discovered on each managered cluster, you can select the managered clusters with `target-clusters` field, e.g. for the annotation `mcm.ibm.com/service-discovery: '{"target-clusters": ["clutser1", "cluster2"]}'`, the service will be discoved on managered cluster cluster1 and cluster2
+    Annotate your service with `mcm.ibm.com/service-discovery: '{}'` annotation, if the antiotion value is `{}`, the servcie will  be discovered on each managered cluster, you can select the managered clusters with `target-clusters` field, e.g. for the annotation `mcm.ibm.com/service-discovery: '{"target-clusters": ["clutser1", "cluster2"]}'`, the service will be discoved on managered cluster cluster1 and cluster2
 
-1. Visit the registered servcie on managed cluster
+2. Visit the registered servcie on managed cluster
 
-example:
-
-If you have a service `svc/http` in mamaged cluster `cluster0`, you annotate it with `mcm.ibm.com/service-discovery: '{}'` annotation, you can find this serive on other managed clusters by DNS name `http.svc.mcm.svc` or `http.svc.cluster0.mcm.svc`
+    Example: if you have a service `svc/http` in mamaged cluster `cluster0`, you annotate it with `mcm.ibm.com/service-discovery: '{}'` annotation, you can find this serive on other managed clusters by DNS name `http.svc.mcm.svc` or `http.svc.cluster0.mcm.svc`
 
 ### Query resources on managed cluster
 
 1. Query kube resource on managed cluster
 
-example:
+    example:
 
-query master node in managed cluster
+    query master node in managed cluster
 
-```sh
-kubectl apply -f examples/resourceview/nodeview.yaml --validate=false
+    ```sh
+    kubectl apply -f examples/resourceview/nodeview.yaml --validate=false
 
-kubectl get resourceview getmasternode
+    kubectl get resourceview getmasternode
 
-CLUSTER   NAME          STATUS   ROLES         AGE   VERSION
-cluster0        9.30.183.32   Ready    etcd,master   10d   v1.13.9+icp-ee
-```
+    CLUSTER   NAME          STATUS   ROLES         AGE   VERSION
+    cluster0        9.30.183.32   Ready    etcd,master   10d   v1.13.9+icp-ee
+    ```
 
-1. Query master node on managed cluster periodicall
+2. Query master node on managed cluster periodicall
 
-example:
+    example:
 
-```sh
-kubectl apply -f examples/resourceview/nodeview_periodic.yaml --validate=false
+    ```sh
+    kubectl apply -f examples/resourceview/nodeview_periodic.yaml --validate=false
 
-kubectl get resourceview getmasternodeperiod
+    kubectl get resourceview getmasternodeperiod
 
-CLUSTER   NAME          STATUS   ROLES         AGE   VERSION
-cluster0        9.30.183.32   Ready    etcd,master   10d   v1.13.9+icp-ee
-```
+    CLUSTER   NAME          STATUS   ROLES         AGE   VERSION
+    cluster0        9.30.183.32   Ready    etcd,master   10d   v1.13.9+icp-ee
+    ```
 
 ### Get logs of pod on managed cluster
 
