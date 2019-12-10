@@ -353,8 +353,8 @@ func (bc *Controller) approveOrDenyClusterJoinRequest(
 	} else if bc.autoApproveClusterJoinRequest && !alreadyApproved {
 		csr.Status.Conditions = append(csr.Status.Conditions, csrv1beta1.CertificateSigningRequestCondition{
 			Type:           csrv1beta1.CertificateApproved,
-			Reason:         "HCMClusterJoinApprove",
-			Message:        "This CSR was approved by hcm cluster join controller.",
+			Reason:         "ClusterJoinApprove",
+			Message:        "This CSR was approved by cluster join controller.",
 			LastUpdateTime: metav1.Now(),
 		})
 		if _, err := bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(csr); err != nil {
@@ -564,8 +564,8 @@ func (bc *Controller) recreateCSR(cjr *hcmv1alpha1.ClusterJoinRequest) error {
 	}
 	newCSR.Status.Conditions = append(newCSR.Status.Conditions, csrv1beta1.CertificateSigningRequestCondition{
 		Type:           csrv1beta1.CertificateApproved,
-		Reason:         "HCMClusterJoinApprove",
-		Message:        "This CSR was approved by hcm cluster join controller (rotated).",
+		Reason:         "ClusterJoinApprove",
+		Message:        "This CSR was approved by cluster join controller (rotated).",
 		LastUpdateTime: metav1.Now(),
 	})
 	_, err = bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(newCSR)
