@@ -83,6 +83,8 @@ You can use `ko` to deploy multicloud manager with the following step.
     ko apply -f deploy/hub --base-import-paths --tags=latest
     ```
 
+    > Note: If you deploy the hub components in OpenShift, you need to adjust your `scc` policy by running command `oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default`
+
 3. Install on managed cluster
 
     Create bootstrap secret `klusterlet-bootstrap` in `default` namespace using a kubeconfig file with any authenticated hub cluster user. If the kubeconfig file includes keys, like `client-certificate` and `client-key`, which reference to local certification files, replace them with `client-certificate-data` and `client-key-data`. The corresponding values of these keys can be obtained with the command below.
@@ -134,6 +136,8 @@ You can use `ko` to deploy multicloud manager with the following step.
     ```sh
     ko apply -f deploy/serviceregistry --base-import-paths --tags=latest
     ```
+
+    > Note: If you deploy the service registry in OpenShift, you need to adjust your `scc` policy by running command `oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-endpoint:default`
 
     Configure the Kubernetes DNS to forward/proxy the registered services that have `mcm.svc.` suffix to service registry DNS, e.g.
 
