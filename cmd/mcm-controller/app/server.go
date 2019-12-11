@@ -110,10 +110,8 @@ func RunController(s *options.ControllerRunOptions, stopCh <-chan struct{}) erro
 	var kubeclientset kubernetes.Interface
 	var kubeInformerFactory kubeinformers.SharedInformerFactory
 
-	if s.EnableRBAC || s.EnableServiceRegistry || s.EnableBootstrap {
-		kubeclientset = kubernetes.NewForConfigOrDie(hcmCfg)
-		kubeInformerFactory = kubeinformers.NewSharedInformerFactory(kubeclientset, time.Minute*10)
-	}
+	kubeclientset = kubernetes.NewForConfigOrDie(hcmCfg)
+	kubeInformerFactory = kubeinformers.NewSharedInformerFactory(kubeclientset, time.Minute*10)
 
 	if s.EnableServiceRegistry {
 		srController := serviceregistry.NewServiceRegistryController(
@@ -121,17 +119,15 @@ func RunController(s *options.ControllerRunOptions, stopCh <-chan struct{}) erro
 		go srController.Run()
 	}
 
-	if s.EnableBootstrap {
-		bootstrapController := bootstrap.NewController(kubeclientset, hcmClient,
-			kubeInformerFactory, informerFactory, clusterInformerFactory, true, stopCh)
-		go bootstrapController.Run()
+	bootstrapController := bootstrap.NewController(kubeclientset, hcmClient,
+		kubeInformerFactory, informerFactory, clusterInformerFactory, true, stopCh)
+	go bootstrapController.Run()
 
-		rbacController := rbac.NewClusterRBACController(kubeclientset, clusterInformerFactory, stopCh)
-		go rbacController.Run()
+	rbacController := rbac.NewClusterRBACController(kubeclientset, clusterInformerFactory, stopCh)
+	go rbacController.Run()
 
-		reloader := apiserverreloader.NewReloader(kubeclientset, stopCh)
-		go reloader.Run()
-	}
+	reloader := apiserverreloader.NewReloader(kubeclientset, stopCh)
+	go reloader.Run()
 
 	// Start default controllers
 	clusterController := cluster.NewController(

@@ -30,4 +30,3 @@ spec:
           - "--enable-rbac"
           - "--enable-service-registry"
           - "--leader-elect=true"
-          - "--enable-bootstrap"

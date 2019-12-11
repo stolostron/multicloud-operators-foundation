@@ -18,7 +18,6 @@ type ControllerRunOptions struct {
 	GarbageCollectorPeriod time.Duration
 	EnableRBAC             bool
 	EnableServiceRegistry  bool
-	EnableBootstrap        bool
 	LeaderElect            bool
 	QPS                    float32
 	Burst                  int
@@ -31,7 +30,6 @@ func NewControllerRunOptions() *ControllerRunOptions {
 		HealthCheckInterval:    1 * time.Minute,
 		GarbageCollectorPeriod: 60 * time.Second,
 		EnableRBAC:             false,
-		EnableBootstrap:        false,
 		EnableServiceRegistry:  false,
 		QPS:                    100.0,
 		Burst:                  200,
@@ -51,7 +49,6 @@ func (s *ControllerRunOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&s.EnableRBAC, "enable-rbac", s.EnableRBAC, "enable rbac")
 	fs.BoolVar(&s.EnableServiceRegistry, "enable-service-registry", s.EnableServiceRegistry,
 		"enable multi-cluster service registry")
-	fs.BoolVar(&s.EnableBootstrap, "enable-bootstrap", s.EnableBootstrap, "enable klusterlet bootstrap")
 	fs.BoolVar(&s.LeaderElect, "leader-elect", false,
 		"Enable a leader client to gain leadership before executing the main loop")
 	fs.Float32Var(&s.QPS, "max-qps", s.QPS,
