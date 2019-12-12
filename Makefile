@@ -19,7 +19,7 @@ BUILD_LOCALLY ?= 1
 # Image URL to use all building/pushing image targets;
 # Use your own docker registry and image name for dev/test by overridding the IMG and REGISTRY environment variable.
 IMG ?= multicloud-manager
-REGISTRY ?= quay.io/multicloudlab
+REGISTRY ?= quay.io/rhibmcollab
 
 # Github host to use for checking the source tree;
 # Override this variable ue with your own value if you're working on forked repo.
