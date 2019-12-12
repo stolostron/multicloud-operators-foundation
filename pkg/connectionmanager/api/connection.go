@@ -6,6 +6,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"sync"
@@ -158,7 +159,7 @@ func generateClient(clientConfig []byte) (hcmclientset.Interface, error) {
 
 // MonitorCert monitor certificate change on clusterjoinrequest and update
 // cert on connection
-func (conn *ServerConnection) MonitorCert(stopCh <-chan struct{}) error {
+func (conn *ServerConnection) MonitorCert(ctx context.Context, callback func()) {
 	subject := clusterbootstrap.Subject(conn.clusterName, conn.clusterNamespace)
 	clusterJoinName := clusterbootstrap.DigestedName(conn.clientKey, subject)
 	fieldSelector := fields.OneTermEqualSelector("metadata.name", clusterJoinName).String()
@@ -182,21 +183,20 @@ func (conn *ServerConnection) MonitorCert(stopCh <-chan struct{}) error {
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			newRequest := obj.(*mcmv1alpha1.ClusterJoinRequest)
-			conn.handleRequestUpdate(newRequest)
+			conn.handleRequestUpdate(newRequest, callback)
 		},
 		UpdateFunc: func(old, new interface{}) {
 			newRequest := new.(*mcmv1alpha1.ClusterJoinRequest)
-			conn.handleRequestUpdate(newRequest)
+			conn.handleRequestUpdate(newRequest, callback)
 		},
 	})
-	klog.V(4).Infof("start monitoring certificate rotation")
-	go informer.Run(stopCh)
 
-	return nil
+	go informer.Run(ctx.Done())
+	klog.V(4).Infof("start monitoring certificate rotation on hub server")
 }
 
 // refresh cert and related config and client
-func (conn *ServerConnection) handleRequestUpdate(request *mcmv1alpha1.ClusterJoinRequest) {
+func (conn *ServerConnection) handleRequestUpdate(request *mcmv1alpha1.ClusterJoinRequest, callback func()) {
 	conn.infoLock.Lock()
 	defer conn.infoLock.Unlock()
 	certificate := request.Status.CSRStatus.Certificate
@@ -215,6 +215,11 @@ func (conn *ServerConnection) handleRequestUpdate(request *mcmv1alpha1.ClusterJo
 			return
 		}
 		conn.hcmclient = client
+
+		// call callback function
+		if callback != nil {
+			callback()
+		}
 	}
 }
 

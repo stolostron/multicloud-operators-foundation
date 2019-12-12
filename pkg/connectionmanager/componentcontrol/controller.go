@@ -62,6 +62,10 @@ func (c *Controller) UpdateKlusterletSecret(data []byte) (bool, error) {
 			Data: map[string][]byte{common.HubConfigSecretKey: data},
 		})
 
+		if createErr == nil {
+			klog.V(4).Infof("Klusterlet secret [%s/%s] created", c.klusterletSecretNamespace, c.klusterletSecretName)
+		}
+
 		return true, createErr
 	}
 	if bytes.Equal(secret.Data[common.HubConfigSecretKey], data) {
@@ -73,6 +77,7 @@ func (c *Controller) UpdateKlusterletSecret(data []byte) (bool, error) {
 		return true, err
 	}
 
+	klog.V(4).Infof("Klusterlet secret [%s/%s] updated", c.klusterletSecretNamespace, c.klusterletSecretName)
 	return true, nil
 }
 

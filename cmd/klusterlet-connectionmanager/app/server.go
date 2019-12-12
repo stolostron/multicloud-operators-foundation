@@ -50,7 +50,12 @@ func RunOperator(s *options.RunOptions, genericConfig *genericoptions.GenericCon
 		klog.Fatalf("Error get cluster name: %s", err.Error())
 	}
 
-	kloperator := manager.NewOperator(genericConfig, clusterName, clusterNamespace, stopCh)
+	klusterletSecretNamespace, klusterletSecretName, err := cache.SplitMetaNamespaceKey(s.Generic.ComponentControlOptions.KlusterletSecret)
+	if err != nil {
+		klog.Fatalf("Error get cluster name: %s", err.Error())
+	}
+
+	kloperator := manager.NewOperator(genericConfig, clusterName, clusterNamespace, klusterletSecretNamespace, klusterletSecretName, stopCh)
 	go kloperator.Run()
 
 	return nil

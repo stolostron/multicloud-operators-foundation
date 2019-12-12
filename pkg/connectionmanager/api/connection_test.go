@@ -98,7 +98,7 @@ func TestHandleJoinRequest(t *testing.T) {
 		},
 	}
 
-	server.handleRequestUpdate(hcmjoin)
+	server.handleRequestUpdate(hcmjoin, nil)
 	_, cert3 := server.KeyCert()
 	if !reflect.DeepEqual(cert2, cert3) {
 		t.Error("cert is supposed to be updated")
