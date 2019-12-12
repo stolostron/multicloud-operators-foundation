@@ -786,8 +786,8 @@ func (k *Klusterlet) updateClusterStatus(
 		klog.Info("Signal klusterlet server to start")
 	default:
 	}
-	// Restart if needed
-	k.restartServerIfNeeded(clusterStatus)
+
+	k.refreshServerIfNeeded(clusterStatus)
 
 	return nil
 }

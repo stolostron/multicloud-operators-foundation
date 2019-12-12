@@ -6,7 +6,6 @@
 package klusterlet
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -53,38 +52,41 @@ func newKlusterletServer(factory *drivers.DriverFactory,
 }
 
 func (ks *klusterletServer) listenAndServe() error {
-	ks.mu.Lock()
 	ks.server = &http.Server{
-		Addr:           net.JoinHostPort(ks.address.String(), strconv.FormatUint(uint64(ks.port), 10)),
-		Handler:        &ks.handler,
+		Addr:    net.JoinHostPort(ks.address.String(), strconv.FormatUint(uint64(ks.port), 10)),
+		Handler: &ks.handler,
+		TLSConfig: &tls.Config{
+			GetConfigForClient: ks.getConfigForClient,
+		},
 		MaxHeaderBytes: 1 << 20,
 	}
-	ks.mu.Unlock()
 	if ks.tlsOptions != nil {
-		ks.server.TLSConfig = ks.tlsOptions.Config
-		// Passing empty strings as the cert and key files means no
-		// cert/keys are specified and GetCertificate in the TLSConfig
-		// should be called instead.
+		cert, err := tls.LoadX509KeyPair(ks.tlsOptions.CertFile, ks.tlsOptions.KeyFile)
+		if err != nil {
+			return err
+		}
+		// This certificates is for client handshake
+		ks.tlsOptions.Config.Certificates = []tls.Certificate{cert}
+
 		return ks.server.ListenAndServeTLS(ks.tlsOptions.CertFile, ks.tlsOptions.KeyFile)
 	}
 	return ks.server.ListenAndServe()
 }
 
-func (ks *klusterletServer) restart(caData []byte, pool *x509.CertPool) {
+func (ks *klusterletServer) getConfigForClient(clientHello *tls.ClientHelloInfo) (*tls.Config, error) {
 	ks.mu.Lock()
-	klog.Infof("Restarting klusterlet server...")
-	klserver := ks.server
-	ks.server = nil
-	if err := klserver.Shutdown(context.Background()); err != nil {
-		klog.Errorf("shut down klusterlet server meet error: %v", err)
-	}
-	ks.mu.Unlock()
+	defer ks.mu.Unlock()
 
+	return ks.tlsOptions.Config, nil
+}
+
+func (ks *klusterletServer) refresh(caData []byte, pool *x509.CertPool) {
+	ks.mu.Lock()
+	defer ks.mu.Unlock()
+
+	klog.Infof("Refreshing klusterlet server...")
 	ks.CAData = caData
 	ks.tlsOptions.Config.ClientCAs = pool
-	if err := ks.listenAndServe(); err != nil {
-		klog.Errorf("failed to listen and serve: %v", err)
-	}
 }
 
 func (ks *klusterletServer) isShutDown() bool {
@@ -126,8 +128,8 @@ func (k *Klusterlet) ListenAndServe(
 	}
 }
 
-func (k *Klusterlet) restartServerIfNeeded(clusterStatus *v1alpha1.ClusterStatus) {
-	// do not restart is server is not started
+func (k *Klusterlet) refreshServerIfNeeded(clusterStatus *v1alpha1.ClusterStatus) {
+	// do not refresh is server is not started
 	if k.server == nil {
 		return
 	}
@@ -138,7 +140,7 @@ func (k *Klusterlet) restartServerIfNeeded(clusterStatus *v1alpha1.ClusterStatus
 	}
 
 	if caData == nil {
-		klog.V(5).Infof("ca data does not change, skip restart")
+		klog.V(5).Infof("ca data does not change, skip refresh")
 		return
 	}
 
@@ -146,7 +148,7 @@ func (k *Klusterlet) restartServerIfNeeded(clusterStatus *v1alpha1.ClusterStatus
 		return
 	}
 
-	go k.server.restart(caData, pool)
+	go k.server.refresh(caData, pool)
 }
 
 func (k *Klusterlet) waitCAFromClusterStatus(clusterStatus v1alpha1.ClusterStatus, oldCA []byte) (*x509.CertPool, []byte, error) {
