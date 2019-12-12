@@ -370,7 +370,7 @@ you can view the pod log of managed cluster
 
 ```sh
 export TOKEN=<BEARER TOKEN>
-curl -k -H "Authorization: Bearer $TOKEN " https://<HUB CLUSTER HOST>:<API PORT/apis/mcm.ibm.com/v1alpha1/namespaces/<MANAGED CLUSTER NAMESPACE /clusterstatuses/<MANAGED CLUSTER NAME>/log/<POD NAMESPACE>/<POD NAME>/<CONTAINER NAME>
+curl -k -H "Authorization: Bearer $TOKEN " https://<HUB CLUSTER HOST>:<API PORT/apis/mcm.ibm.com/v1alpha1/namespaces/<MANAGED CLUSTER NAMESPACE> /clusterstatuses/<MANAGED CLUSTER NAME>/log/<POD NAMESPACE>/<POD NAME>/<CONTAINER NAME>
 ```
 
 example:
