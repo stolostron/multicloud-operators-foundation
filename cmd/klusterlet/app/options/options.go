@@ -47,8 +47,8 @@ type KlusterletRunOptions struct {
 	Port                       int32
 	KlusterletPort             int32
 	InSecure                   bool
-	EnableJoinFederation       bool
 	UseBearerTokenForPometheus bool
+	EnableImpersonation        bool
 }
 
 // NewKlusterletRunOptions creates a new ServerRunOptions object with default values.
@@ -80,7 +80,7 @@ func NewKlusterletRunOptions() *KlusterletRunOptions {
 		InSecure:             false,
 		ClientCAFile:         "",
 		DriverOptions:        drivers.NewDriverFactoryOptions(),
-		EnableJoinFederation: false,
+		EnableImpersonation:  false,
 	}
 
 	s.ClusterConfigFile = os.Getenv(clientcmd.RecommendedConfigPathEnvVar)
@@ -136,11 +136,9 @@ func (s *KlusterletRunOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.ClientCAFile, "client-ca-file", s.ClientCAFile, ""+
 		"If set, any request presenting a client certificate signed by one of the authorities in the client-ca-file "+
 		"is authenticated with an identity corresponding to the CommonName of the client certificate.")
-	fs.BoolVar(&s.InSecure, "insecure", s.InSecure, "If set, klusterlet server run in the in-seucre mode")
+	fs.BoolVar(&s.InSecure, "insecure", s.InSecure, "If set, klusterlet server run in the in-secure mode")
 
-	//federation v2
-	fs.BoolVar(
-		&s.EnableJoinFederation, "enable-join-federation", s.EnableJoinFederation, "enable cluster join to federation system")
+	fs.BoolVar(&s.EnableImpersonation, "enable-impersonation", s.EnableImpersonation, "enable impersonation")
 
 	s.DriverOptions.AddFlags(fs)
 }

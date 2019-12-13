@@ -35,6 +35,10 @@ type ClusterStatusSpec struct {
 	MonitoringScrapeTarget string
 	// Version is the kubernetes version of the member cluster
 	Version string
+	// Version of Endpoint
+	EndpointVersion string
+	// Version of Endpoint Operator
+	EndpointOperatorVersion string
 }
 
 // +genclient

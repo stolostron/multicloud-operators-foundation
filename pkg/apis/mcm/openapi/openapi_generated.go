@@ -715,6 +715,20 @@ func schema_pkg_apis_mcm_v1alpha1_ClusterStatusSpec(ref common.ReferenceCallback
 							Format:      "byte",
 						},
 					},
+					"endpointVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version of Endpoint",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"endpointOperatorVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version of Endpoint Operator",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -2194,7 +2208,7 @@ func schema_pkg_apis_mcm_v1alpha1_WorkStatus(ref common.ReferenceCallback) commo
 					},
 					"result": {
 						SchemaProps: spec.SchemaProps{
-							Description: "WorkResult refernce the related result of the work",
+							Description: "WorkResult references the related result of the work",
 							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
 						},
 					},

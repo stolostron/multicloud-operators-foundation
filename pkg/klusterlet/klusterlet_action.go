@@ -74,7 +74,16 @@ func (k *Klusterlet) handleCreateHelmActionWork(work *v1alpha1.Work, helmcontrol
 
 //Create kube resource
 func (k *Klusterlet) handleCreateKubeActionWork(work *v1alpha1.Work) (runtime.RawExtension, error) {
-	_, err := k.kubeControl.Create(work.Spec.KubeWork.Namespace, work.Spec.KubeWork.ObjectTemplate, nil)
+	var err error
+	if k.config.EnableImpersonation {
+		klog.Info("enable impersonation")
+		var userID = restutils.ParseUserIdentity(work.Annotations["mcm.ibm.com/user-identity"])
+		var userGroups = restutils.ParseUserGroup(work.Annotations["mcm.ibm.com/user-group"])
+		_, err = k.kubeControl.Impersonate(userID, userGroups).Create(work.Spec.KubeWork.Namespace, work.Spec.KubeWork.ObjectTemplate, nil)
+		k.kubeControl.UnsetImpersonate()
+	} else {
+		_, err = k.kubeControl.Create(work.Spec.KubeWork.Namespace, work.Spec.KubeWork.ObjectTemplate, nil)
+	}
 	return work.Spec.KubeWork.ObjectTemplate, err
 }
 
@@ -137,7 +146,15 @@ func (k *Klusterlet) handleUpdateKubeActionWork(work *v1alpha1.Work) (runtime.Ra
 	}
 
 	klog.V(5).Infof("%v in ns %v updates patch %v", name, namespace, string(patch))
-	_, err = k.kubeControl.Patch(namespace, name, gvk, patchType, patch)
+	if k.config.EnableImpersonation {
+		klog.Info("enable impersonation")
+		var userID = restutils.ParseUserIdentity(work.Annotations["mcm.ibm.com/user-identity"])
+		var userGroups = restutils.ParseUserGroup(work.Annotations["mcm.ibm.com/user-group"])
+		_, err = k.kubeControl.Impersonate(userID, userGroups).Patch(namespace, name, gvk, patchType, patch)
+		k.kubeControl.UnsetImpersonate()
+	} else {
+		_, err = k.kubeControl.Patch(namespace, name, gvk, patchType, patch)
+	}
 	if err != nil {
 		klog.V(5).Infof("Failed to patch object: %v", err)
 		return runtime.RawExtension{}, err
@@ -148,12 +165,25 @@ func (k *Klusterlet) handleUpdateKubeActionWork(work *v1alpha1.Work) (runtime.Ra
 
 //Delete kube resource
 func (k *Klusterlet) handleDeleteKubeActionWork(work *v1alpha1.Work) (runtime.RawExtension, error) {
-	err := k.kubeControl.Delete(
-		nil,
-		work.Spec.KubeWork.Resource,
-		work.Spec.KubeWork.Namespace,
-		work.Spec.KubeWork.Name,
-	)
+	var err error
+	if k.config.EnableImpersonation {
+		klog.Info("enable impersonation")
+		var userID = restutils.ParseUserIdentity(work.Annotations["mcm.ibm.com/user-identity"])
+		var userGroups = restutils.ParseUserGroup(work.Annotations["mcm.ibm.com/user-group"])
+		err = k.kubeControl.Impersonate(userID, userGroups).Delete(nil,
+			work.Spec.KubeWork.Resource,
+			work.Spec.KubeWork.Namespace,
+			work.Spec.KubeWork.Name,
+		)
+		k.kubeControl.UnsetImpersonate()
+	} else {
+		err = k.kubeControl.Delete(
+			nil,
+			work.Spec.KubeWork.Resource,
+			work.Spec.KubeWork.Namespace,
+			work.Spec.KubeWork.Name,
+		)
+	}
 	return runtime.RawExtension{}, err
 }
 

@@ -31,6 +31,13 @@ import (
 
 // KubeControlInterface to call kubernetes api
 type KubeControlInterface interface {
+
+	// Impersonate a user
+	Impersonate(userID string, userGroups []string) KubeControlInterface
+
+	// Unset impersonate headers
+	UnsetImpersonate() KubeControlInterface
+
 	// Create creates an object
 	Create(namespace string, raw runtime.RawExtension, deco func(obj runtime.Object) runtime.Object) (runtime.Object, error)
 
@@ -68,6 +75,36 @@ func NewKubeControl(mapper *Mapper, config *rest.Config) *KubeControl {
 	}
 }
 
+func (r *KubeControl) Impersonate(userID string, userGroups []string) KubeControlInterface {
+	if userID != "" && userGroups != nil {
+		klog.Info("Impersonate user ", r.dynamicClient)
+		impersonatedConfig := r.config
+		impersonatedConfig.Impersonate.UserName = userID
+		impersonatedConfig.Impersonate.Groups = userGroups
+		impersonatedClient, err := dynamic.NewForConfig(impersonatedConfig)
+
+		if err != nil {
+			klog.Error(err)
+			return r
+		}
+		r.dynamicClient = impersonatedClient
+	}
+	return r
+}
+
+func (r *KubeControl) UnsetImpersonate() KubeControlInterface {
+	unsetImpersonatedConfig := r.config
+	unsetImpersonatedConfig.Impersonate.UserName = ""
+	unsetImpersonatedConfig.Impersonate.Groups = nil
+	unsetImpersonatedClient, err := dynamic.NewForConfig(unsetImpersonatedConfig)
+	if err != nil {
+		klog.Error(err)
+		return r
+	}
+	r.dynamicClient = unsetImpersonatedClient
+	return r
+}
+
 func (r *KubeControl) Create(
 	namespace string, raw runtime.RawExtension, deco func(obj runtime.Object) runtime.Object) (runtime.Object, error) {
 	obj := &unstructured.Unstructured{}
@@ -82,10 +119,6 @@ func (r *KubeControl) Create(
 		return nil, err
 	}
 
-	if deco != nil {
-		obj = deco(obj).(*unstructured.Unstructured)
-	}
-
 	objNamespace := namespace
 	if objNamespace == "" {
 		objNamespace = obj.GetNamespace()
@@ -95,6 +128,9 @@ func (r *KubeControl) Create(
 		return nil, fmt.Errorf("namespace must be set")
 	}
 
+	if deco != nil {
+		obj = deco(obj).(*unstructured.Unstructured)
+	}
 	return r.dynamicClient.Resource(
 		mapping.Resource).Namespace(objNamespace).Create(obj, metav1.CreateOptions{})
 }
@@ -310,4 +346,15 @@ func (r *FakeKubeControl) Replace(
 
 func (r *FakeKubeControl) KindFor(resource schema.GroupVersionResource) (schema.GroupVersionKind, error) {
 	return schema.GroupVersionKind{}, nil
+}
+
+func (r *FakeKubeControl) Impersonate(userID string, userGroups []string) KubeControlInterface {
+	if userID != "" && userGroups != nil {
+		klog.Info("Impersonate user ")
+	}
+	return r
+}
+
+func (r *FakeKubeControl) UnsetImpersonate() KubeControlInterface {
+	return r
 }

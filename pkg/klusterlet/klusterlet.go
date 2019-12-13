@@ -7,8 +7,8 @@ package klusterlet
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -25,10 +25,13 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -54,8 +57,10 @@ import (
 )
 
 const (
-	controllerAgentName          = "klusterlet"
-	clusterStatusUpdateFrequency = 30 * time.Second
+	controllerAgentName            = "klusterlet"
+	clusterStatusUpdateFrequency   = 30 * time.Second
+	endpointOperatorDeploymentName = "ibm-multicluster-endpoint-operator"
+	endpointName                   = "endpoint"
 )
 
 var clusterControllerKind = mcm.SchemeGroupVersion.WithKind("Cluster")
@@ -79,7 +84,7 @@ type Config struct {
 	ClusterLabels          map[string]string
 	ClusterAnnotations     map[string]string
 	KlusterletPort         int32
-	EnableJoinFederation   bool
+	EnableImpersonation    bool
 }
 
 // Klusterlet is the main struct for klusterlet server
@@ -91,6 +96,9 @@ type Klusterlet struct {
 	kubeclientset kubernetes.Interface
 	routeV1Client routev1.Interface
 	kubeControl   restutils.KubeControlInterface
+
+	// kubeclientset is a standard kubernetes dynamic clientset
+	kubeDynamicClientset dynamic.Interface
 
 	// hcmclientset is a clientset for our own API group
 	hcmclientset clientset.Interface
@@ -136,6 +144,7 @@ func NewKlusterlet(
 	kubeclientset kubernetes.Interface,
 	routeV1Client routev1.Interface,
 	hcmclientset clientset.Interface,
+	kubeDynamicClientset dynamic.Interface,
 	hubkubeclientset kubernetes.Interface,
 	clusterclientset clusterclient.Interface,
 	helmControl helmutil.ControlInterface,
@@ -163,25 +172,26 @@ func NewKlusterlet(
 
 	settings = helmutils.GenerateSettings()
 	controller := &Klusterlet{
-		config:           config,
-		kubeclientset:    kubeclientset,
-		routeV1Client:    routeV1Client,
-		kubeControl:      kubeControl,
-		hcmclientset:     hcmclientset,
-		hubkubeclientset: hubkubeclientset,
-		clusterclientset: clusterclientset,
-		helmControl:      helmControl,
-		nodeLister:       nodeInformer.Lister(),
-		podLister:        podInformer.Lister(),
-		workLister:       workInformer.Lister(),
-		pvLister:         pvInformer.Lister(),
-		nodeSynced:       nodeInformer.Informer().HasSynced,
-		podSynced:        podInformer.Informer().HasSynced,
-		workSynced:       workInformer.Informer().HasSynced,
-		workqueue:        workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Klusterlet"),
-		recorder:         recorder,
-		stopCh:           stopCh,
-		runServer:        make(chan v1alpha1.ClusterStatus),
+		config:               config,
+		kubeclientset:        kubeclientset,
+		routeV1Client:        routeV1Client,
+		kubeControl:          kubeControl,
+		kubeDynamicClientset: kubeDynamicClientset,
+		hcmclientset:         hcmclientset,
+		hubkubeclientset:     hubkubeclientset,
+		clusterclientset:     clusterclientset,
+		helmControl:          helmControl,
+		nodeLister:           nodeInformer.Lister(),
+		podLister:            podInformer.Lister(),
+		workLister:           workInformer.Lister(),
+		pvLister:             pvInformer.Lister(),
+		nodeSynced:           nodeInformer.Informer().HasSynced,
+		podSynced:            podInformer.Informer().HasSynced,
+		workSynced:           workInformer.Informer().HasSynced,
+		workqueue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Klusterlet"),
+		recorder:             recorder,
+		stopCh:               stopCh,
+		runServer:            make(chan v1alpha1.ClusterStatus),
 	}
 
 	controller.handlers = map[v1alpha1.WorkType]workHandlerFunc{
@@ -239,18 +249,6 @@ func (k *Klusterlet) Run(workers int) {
 		return
 	}
 
-	//pass secret to hub cluster when start klusterlet
-	if k.config.EnableJoinFederation {
-		klog.V(3).Info("Start sync secret to hub cluster")
-		var secretName = k.config.ClusterName + "-federation-secret"
-		err = k.transferSecretToHub(secretName)
-		if err == nil {
-			klog.Info("Successfully sync secret to hub cluster")
-		} else {
-			klog.Errorf("Failed to sync secret to hub cluster: %v", err)
-		}
-	}
-
 	// Start syncing cluster status immediately, this may set up things the runtime needs to run.
 	go wait.Until(k.syncClusterStatus, clusterStatusUpdateFrequency, wait.NeverStop)
 
@@ -263,41 +261,6 @@ func (k *Klusterlet) Run(workers int) {
 	klog.Info("Started workers")
 	<-k.stopCh
 	klog.Info("Shutting down workers")
-}
-
-// transfer secret to hub cluster
-func (k *Klusterlet) transferSecretToHub(secretName string) error {
-	dataMap := make(map[string][]byte)
-	dataMap["token"] = []byte(k.config.Kubeconfig.BearerToken)
-	caData, err := ioutil.ReadFile(k.config.Kubeconfig.CAFile)
-	if err != nil {
-		return err
-	}
-	dataMap["ca.crt"] = caData
-	dataMap["namespace"] = []byte(k.config.ClusterNamespace)
-	v1Secret := corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: k.config.ClusterNamespace,
-		},
-		Data: dataMap,
-	}
-
-	oldSecret, err := k.hubkubeclientset.CoreV1().Secrets(k.config.ClusterNamespace).Get(secretName, metav1.GetOptions{})
-	if err == nil {
-		eq := reflect.DeepEqual(oldSecret.Data, v1Secret.Data)
-		if !eq {
-			oldSecret.Data = v1Secret.Data
-			_, err = k.hubkubeclientset.CoreV1().Secrets(k.config.ClusterNamespace).Update(oldSecret)
-			if err == nil {
-				klog.V(4).Info("Updated secret token to hub cluster")
-			}
-		}
-	} else if apierrors.IsNotFound(err) {
-		_, err = k.hubkubeclientset.CoreV1().Secrets(k.config.ClusterNamespace).Create(&v1Secret)
-	}
-
-	return err
 }
 
 // runWorker is a long-running function that will continually call the
@@ -443,6 +406,10 @@ func (k *Klusterlet) syncClusterStatus() {
 			klog.Errorf("Failed to create cluster: %v", err)
 			return
 		}
+	}
+
+	if cluster.ObjectMeta.Labels == nil {
+		cluster.ObjectMeta.Labels = make(map[string]string)
 	}
 
 	conditions := cluster.Status.Conditions
@@ -750,6 +717,8 @@ func (k *Klusterlet) updateClusterStatus(
 
 	clusterStatus.Spec.KlusterletVersion = version.Get().GitVersion
 	clusterStatus.Spec.Version = k.config.ServerVersion
+	clusterStatus.Spec.EndpointOperatorVersion = k.getEndponitOperatorVersion()
+	clusterStatus.Spec.EndpointVersion = k.getEndpointVersion()
 
 	// Config klusterlet endpoint
 	klusterletEndpoint, klusterletPort, err := k.readKlusterletConfig()
@@ -926,4 +895,55 @@ func (k *Klusterlet) enqueueWork(obj interface{}) {
 
 func (k *Klusterlet) needsUpdate(oldwork, newwork *v1alpha1.Work) bool {
 	return !equalutils.EqualWorkSpec(&oldwork.Spec, &newwork.Spec)
+}
+
+// getEndponitOperatorVersion gets the Endpoint Operator Version
+func (k *Klusterlet) getEndponitOperatorVersion() string {
+	klNamespace, _, err := cache.SplitMetaNamespaceKey(k.config.KlusterletRoute)
+	if err != nil {
+		klog.Warningf("Failed do parse ingress resource: %v", err)
+		return ""
+	}
+
+	deployment, err := k.kubeclientset.AppsV1beta1().Deployments(klNamespace).Get(endpointOperatorDeploymentName, v1.GetOptions{})
+	if err != nil {
+		klog.Info("Failed to get the Endpoint Operator Version", err)
+		return ""
+	}
+
+	return strings.Split(deployment.Spec.Template.Spec.Containers[0].Image, ":")[1]
+}
+
+// getEndpointVersion gets the Endpoint/Klusterlet Version
+func (k *Klusterlet) getEndpointVersion() string {
+	endpointGVR := schema.GroupVersionResource{
+		Group:    "multicloud.ibm.com",
+		Version:  "v1beta1",
+		Resource: "endpoints",
+	}
+
+	klNamespace := os.Getenv("POD_NAMESPACE")
+	if klNamespace == "" {
+		klog.Warningf("Failed to get Endpoint/Klusterlet Namespace")
+		return ""
+	}
+
+	endpoint, err := k.kubeDynamicClientset.Resource(endpointGVR).Namespace(klNamespace).Get(endpointName, metav1.GetOptions{})
+	if err != nil {
+		klog.Info("Failed to get the CR Endpoint endpoint")
+		return ""
+	}
+
+	mapObj := endpoint.UnstructuredContent()
+	spec := reflect.ValueOf(mapObj["spec"])
+	var vers string
+	if spec.Kind() == reflect.Map {
+		for _, k := range spec.MapKeys() {
+			if fmt.Sprintf("%v", k) == "version" {
+				vers = spec.MapIndex(k).Interface().(string)
+				break
+			}
+		}
+	}
+	return vers
 }

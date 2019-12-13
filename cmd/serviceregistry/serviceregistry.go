@@ -12,6 +12,8 @@ import (
 
 	"github.com/spf13/pflag"
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry/app"
+
+	"k8s.io/apiserver/pkg/util/logs"
 )
 
 func main() {
@@ -22,6 +24,9 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}
+
+	logs.InitLogs()
+	defer logs.FlushLogs()
 
 	if err := command.Execute(); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)

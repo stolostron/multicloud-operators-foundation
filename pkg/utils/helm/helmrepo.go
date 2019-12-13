@@ -14,6 +14,7 @@ package helm
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -129,6 +130,20 @@ func LocateChartPath(repoURL, username, password, name, version string, verify, 
 		name = chartURL
 	}
 
+	// if it is InSecure, the helm repo is on the hub, so replace host in chartURL by host in repoURL
+	if insecure {
+		rurl, err := url.Parse(repoURL)
+		if err != nil {
+			return "", err
+		}
+		curl, err := url.Parse(name)
+		if err != nil {
+			return "", err
+		}
+		curl.Host = rurl.Host
+		name = curl.String()
+	}
+
 	return DownloadChart(name, version, username, password, keyring, verify, insecure)
 }
 
@@ -166,9 +181,9 @@ func DownloadChart(chartURL, version, username, password, keyring string, verify
 	return filename, fmt.Errorf("failed to download %q (hint: running `helm repo update` may help)", chartURL)
 }
 
-func getProviders(ishubrepo bool, settings helm_env.EnvSettings) getter.Providers {
-	if ishubrepo {
-		return NewInSecureRepoProviders()
+func getProviders(insecure bool, settings helm_env.EnvSettings) getter.Providers {
+	if insecure {
+		return NewInSecureProviders()
 	}
 	return getter.All(settings)
 }

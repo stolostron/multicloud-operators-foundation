@@ -30,7 +30,7 @@ func buildRoleRules() []rbacv1.PolicyRule {
 		rbacv1helpers.NewRule("patch", "update").Groups("clusterregistry.k8s.io").Resources("clusters/status").RuleOrDie(),
 		rbacv1helpers.NewRule("get", "list", "watch", "update", "patch").Groups("compliance.mcm.ibm.com").Resources("compliances").RuleOrDie(),
 		rbacv1helpers.NewRule("get", "list", "watch", "update", "patch").Groups("policy.mcm.ibm.com").Resources("policies").RuleOrDie(),
-		rbacv1helpers.NewRule("create", "get").Groups("").Resources("secrets").RuleOrDie(),
+		rbacv1helpers.NewRule("create", "get", "list", "watch").Groups("").Resources("secrets").RuleOrDie(),
 		rbacv1helpers.NewRule("create", "get", "list", "update", "watch", "patch", "delete", "deletecollection").Groups("").Resources("endpoints").RuleOrDie(),
 		rbacv1helpers.NewRule("create", "update", "patch").Groups("").Resources("events").RuleOrDie(),
 		rbacv1helpers.NewRule("create", "update", "delete").Groups("").Resources("secrets").RuleOrDie(),

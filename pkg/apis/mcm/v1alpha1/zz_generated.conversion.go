@@ -672,6 +672,8 @@ func autoConvert_v1alpha1_ClusterStatusSpec_To_mcm_ClusterStatusSpec(in *Cluster
 	out.KlusterletVersion = in.KlusterletVersion
 	out.Version = in.Version
 	out.KlusterletCA = *(*[]byte)(unsafe.Pointer(&in.KlusterletCA))
+	out.EndpointVersion = in.EndpointVersion
+	out.EndpointOperatorVersion = in.EndpointOperatorVersion
 	return nil
 }
 
@@ -691,6 +693,8 @@ func autoConvert_mcm_ClusterStatusSpec_To_v1alpha1_ClusterStatusSpec(in *mcm.Clu
 	out.KlusterletCA = *(*[]byte)(unsafe.Pointer(&in.KlusterletCA))
 	out.MonitoringScrapeTarget = in.MonitoringScrapeTarget
 	out.Version = in.Version
+	out.EndpointVersion = in.EndpointVersion
+	out.EndpointOperatorVersion = in.EndpointOperatorVersion
 	return nil
 }
 

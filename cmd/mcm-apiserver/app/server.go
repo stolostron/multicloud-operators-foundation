@@ -100,7 +100,8 @@ func withSniffFilterHandler(handler http.Handler) http.Handler {
 
 func withCacheControlHandler(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "no-cache")
+		w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+		w.Header().Set("Pragma", "no-cache")
 		handler.ServeHTTP(w, r)
 	})
 }

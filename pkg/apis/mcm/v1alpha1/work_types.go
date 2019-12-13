@@ -88,6 +88,7 @@ type WorkType string
 const (
 	// PolicyWork
 	ResourceWorkType WorkType = "Resource"
+
 	// action work
 	ActionWorkType WorkType = "Action"
 )

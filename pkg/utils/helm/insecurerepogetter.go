@@ -78,8 +78,8 @@ func NewInSecureHTTPGetter(url, certFile, keyFile, caFile string) (*InSecureHTTP
 	return &client, nil
 }
 
-// NewInSecureRepoProviders create providers and skip tls verify
-func NewInSecureRepoProviders() getter.Providers {
+// NewInSecureProviders create providers for mcm hub cluster helm repo
+func NewInSecureProviders() getter.Providers {
 	result := getter.Providers{
 		{
 			Schemes: []string{"https"},

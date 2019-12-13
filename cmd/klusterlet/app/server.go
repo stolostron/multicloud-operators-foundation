@@ -37,6 +37,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	apilabels "k8s.io/apimachinery/pkg/labels"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/dynamic"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -147,6 +148,11 @@ func RunKlusterletServer(s *options.KlusterletRunOptions, stopCh <-chan struct{}
 	clusterClient, err := kubernetes.NewForConfig(clusterCfg)
 	if err != nil {
 		klog.Fatalf("Error building kubernetes clientset: %s", err.Error())
+	}
+
+	kubeDynamicClientSet, err := dynamic.NewForConfig(clusterCfg)
+	if err != nil {
+		klog.Fatalf("Error building hcm kubernetes Dynamic clientset: %s", err.Error())
 	}
 
 	serverVersion, err := clusterClient.ServerVersion()
@@ -275,8 +281,8 @@ func RunKlusterletServer(s *options.KlusterletRunOptions, stopCh <-chan struct{}
 		KlusterletService:      s.KlusterletService,
 		ClusterLabels:          clusterLabels,
 		ClusterAnnotations:     clusterAnnotations,
-		EnableJoinFederation:   s.EnableJoinFederation,
 		MonitoringScrapeTarget: s.DriverOptions.PrometheusScrapeTarget,
+		EnableImpersonation:    s.EnableImpersonation,
 	}
 
 	klusterlet := klusterlet.NewKlusterlet(
@@ -284,6 +290,7 @@ func RunKlusterletServer(s *options.KlusterletRunOptions, stopCh <-chan struct{}
 		clusterClient,
 		routeV1Client,
 		controllerClient,
+		kubeDynamicClientSet,
 		controllerKubeClient,
 		clusterClientSet,
 		helmControl,

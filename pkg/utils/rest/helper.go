@@ -12,6 +12,7 @@
 package rest
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -26,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	"k8s.io/klog"
 )
 
 // Helper provides methods for retrieving or mutating a RESTful
@@ -116,4 +118,53 @@ func (dynamicCodec) Decode(
 
 func (dynamicCodec) Encode(obj runtime.Object, w io.Writer) error {
 	return unstructured.UnstructuredJSONScheme.Encode(obj, w)
+}
+
+func ParseUserIdentity(idEncoded string) (id string) {
+	if idEncoded == "" {
+		return ""
+	}
+	idDecoded, err := base64.StdEncoding.DecodeString(idEncoded)
+	if err != nil {
+		klog.Error(err)
+		return ""
+	}
+	userID := string(idDecoded)
+	return userID
+}
+
+func ParseUserGroup(groupEncoded string) (groups []string) {
+	if groupEncoded == "" {
+		return nil
+	}
+	var userGroups []string
+	userGroupDecoded, err := base64.StdEncoding.DecodeString(groupEncoded)
+	if err != nil {
+		klog.Error(err)
+		return nil
+	}
+	userGroup := string(userGroupDecoded)
+
+	groupArray := strings.Split(userGroup, ",")
+	for i := 0; i < len(groupArray); i++ { //we accept system groups and icp groups
+		if strings.HasPrefix(groupArray[i], "icp:") {
+			groupElements := strings.Split(groupArray[i], ":")
+			if len(groupElements) == 3 {
+				newGroup := "mcm::" + groupElements[2] //convert icp group (which is team specific) to mcm group to do cluster level role binding
+				var exist = false
+				for j := 0; j < len(userGroups); j++ {
+					if newGroup == userGroups[j] {
+						exist = true
+					}
+				}
+				if !exist {
+					userGroups = append(userGroups, newGroup)
+				}
+			}
+
+		} else if strings.HasPrefix(groupArray[i], "system:") {
+			userGroups = append(userGroups, groupArray[i])
+		}
+	}
+	return userGroups
 }

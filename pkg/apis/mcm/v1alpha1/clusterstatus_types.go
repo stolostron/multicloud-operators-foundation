@@ -57,6 +57,10 @@ type ClusterStatusSpec struct {
 	Version string `json:"version,omitempty"`
 	// KlusterletCA is the ca data for klusterlet to authorize apiserver
 	KlusterletCA []byte `json:"klusterletCA,omitempty"`
+	// Version of Endpoint
+	EndpointVersion string `json:"endpointVersion,omitempty"`
+	//Version of Endpoint Operator
+	EndpointOperatorVersion string `json:"endpointOperatorVersion,omitempty"`
 }
 
 // +genclient

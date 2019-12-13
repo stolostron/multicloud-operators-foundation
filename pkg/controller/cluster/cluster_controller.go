@@ -105,6 +105,7 @@ func (c *Controller) clusterHealthCheck() {
 			cluster.Status.Conditions[0].Type = ""
 			cluster.Status.Conditions[0].LastTransitionTime = current
 			cluster.Status.Conditions[0].Reason = offlineReason
+
 			_, err = c.clusterclientset.ClusterregistryV1alpha1().Clusters(cluster.Namespace).UpdateStatus(cluster)
 			if err != nil {
 				klog.Errorf("Failed to update cluster status %v", err)

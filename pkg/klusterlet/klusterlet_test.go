@@ -20,6 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeinformers "k8s.io/client-go/informers"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/tools/cache"
 	clusterv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	"k8s.io/helm/pkg/helm"
 
@@ -27,7 +28,6 @@ import (
 	restutils "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/rest"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/tools/cache"
 )
 
 type testKlusterlet struct {
@@ -186,7 +186,7 @@ func newTestKlusterlet(configMap *corev1.ConfigMap, clusterRegistry *clusterv1al
 	}
 
 	klusterlet := NewKlusterlet(
-		config, fakeKubeClient, fakeRouteV1Client, fakehcmClient,
+		config, fakeKubeClient, fakeRouteV1Client, fakehcmClient, nil,
 		fakeHubKubeClient, clusterFakeClient, helmcontrol, fakekubecontrol, kubeInformerFactory, informerFactory, nil)
 
 	klusterlet.nodeSynced = alwaysReady
