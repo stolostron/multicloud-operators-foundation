@@ -59,7 +59,7 @@ metadata:
   labels:
     app: mcm-apiserver
 spec:
-  replicas: 3
+  replicas: 1
   selector:
     matchLabels:
       app: mcm-apiserver

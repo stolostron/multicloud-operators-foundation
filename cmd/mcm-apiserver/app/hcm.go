@@ -6,6 +6,7 @@
 package app
 
 import (
+	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/aggregator"
 	"k8s.io/klog"
 
 	clusterrest "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/cluster-registry/rest"
@@ -23,10 +24,11 @@ func installHCMAPIs(
 	optsGetter generic.RESTOptionsGetter,
 	apiResourceConfigSource storage.APIResourceConfigSource,
 	options *mcmstorage.Options,
-	clientConfig klusterlet.ClientConfig) {
+	clientConfig klusterlet.ClientConfig,
+	aggregatorGetter *aggregator.InfoGetter) {
 	hcmStorageProvider := hcmrest.StorageProvider{}
 	hcmGroupInfo, shouldInstallGroup := hcmStorageProvider.NewRESTStorage(
-		apiResourceConfigSource, optsGetter, options, clientConfig)
+		apiResourceConfigSource, optsGetter, options, clientConfig, aggregatorGetter)
 	if !shouldInstallGroup {
 		return
 	}

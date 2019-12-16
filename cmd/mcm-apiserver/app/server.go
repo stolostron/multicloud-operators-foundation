@@ -12,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/aggregator"
+
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apiserver/authorization"
 
 	"github.com/go-openapi/spec"
@@ -255,9 +257,14 @@ func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 	}
 
 	apiResourceConfigSource := storageFactory.APIResourceConfigSource
+	aggregatorGetter := aggregator.NewGetter(klusterletClientConfig.KubeClient)
 	installHCMAPIs(
 		m, genericConfig.RESTOptionsGetter, apiResourceConfigSource,
-		s.MCMStorage, klusterletClientConfig)
+		s.MCMStorage, klusterletClientConfig, aggregatorGetter)
+
+	aggregatorController := aggregator.NewController(
+		klusterletClientConfig.KubeClient, kubeSharedInformers, aggregatorGetter, stopCh)
+	go aggregatorController.Run()
 
 	if !s.StandAlone {
 		sharedInformers.Start(stopCh)

@@ -6,6 +6,7 @@
 package rest
 
 import (
+	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/aggregator"
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/api"
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
 	hcmv1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
@@ -33,7 +34,8 @@ func (p StorageProvider) NewRESTStorage(
 	apiResourceConfigSource serverstorage.APIResourceConfigSource,
 	restOptionsGetter generic.RESTOptionsGetter,
 	storageOptions *mcmstorage.Options,
-	clientConfig klusterlet.ClientConfig) (genericapiserver.APIGroupInfo, bool) {
+	clientConfig klusterlet.ClientConfig,
+	aggregatorGetter *aggregator.InfoGetter) (genericapiserver.APIGroupInfo, bool) {
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(hcmv1alpha1.GroupName, api.Scheme, api.ParameterCodec, api.Codecs)
 	// If you add a version here, be sure to add an entry in `k8s.io/kubernetes/cmd/kube-apiserver/app/aggregator.go with
 	// specific priorities.
@@ -41,7 +43,7 @@ func (p StorageProvider) NewRESTStorage(
 
 	if apiResourceConfigSource.VersionEnabled(hcmv1alpha1.SchemeGroupVersion) {
 		apiGroupInfo.VersionedResourcesStorageMap[hcmv1alpha1.SchemeGroupVersion.Version] = p.v1alpha1Storage(
-			restOptionsGetter, storageOptions, clientConfig)
+			restOptionsGetter, storageOptions, clientConfig, aggregatorGetter)
 	}
 
 	return apiGroupInfo, true
@@ -50,7 +52,8 @@ func (p StorageProvider) NewRESTStorage(
 func (p StorageProvider) v1alpha1Storage(
 	optsGetter generic.RESTOptionsGetter,
 	storageOptions *mcmstorage.Options,
-	clientConfig klusterlet.ClientConfig) map[string]rest.Storage {
+	clientConfig klusterlet.ClientConfig,
+	aggregatorGetter *aggregator.InfoGetter) map[string]rest.Storage {
 	storage := map[string]rest.Storage{}
 
 	// work
@@ -93,6 +96,8 @@ func (p StorageProvider) v1alpha1Storage(
 		storage["clusterstatuses/log"] = clusterlog
 		storage["clusterstatuses/monitor"] = clusterMonitor
 	}
+
+	storage["clusterstatuses/aggregator"] = clusterstatusrest.NewAggregateRest(aggregatorGetter)
 
 	// hcm join storage
 	clusterjoinStorage, clusterjoinStatusStorage := clusterjoinstorage.NewREST(optsGetter)
