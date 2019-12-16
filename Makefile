@@ -37,7 +37,7 @@ DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
                  git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
 BINDIR ?= output
-BUILD_LDFLAGS  = $(shell hack/version.sh $(BASE_DIR) $(DEST))
+BUILD_LDFLAGS  = $(shell hack/version.sh $(BASE_DIR) $(GIT_HOST)/$(BASE_DIR))
 TYPES_FILES = $(shell find pkg/apis -name types.go)
 
 LOCAL_OS := $(shell uname)
