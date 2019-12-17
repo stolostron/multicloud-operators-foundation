@@ -1,4 +1,4 @@
-# This workset create an configmap in clusters with label vendor=ICP
+# This workset create an configmap in clusters with label cloud: k8s
 apiVersion: mcm.ibm.com/v1alpha1
 kind: WorkSet
 metadata:

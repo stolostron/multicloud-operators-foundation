@@ -85,9 +85,10 @@ You can use `ko` to deploy multicloud manager with the following step.
 
     > Note: If you deploy the hub components in OpenShift, you need to adjust your `scc` policy by running command `oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default`
 
-3. Install on managed cluster
+3. Install on klusterlet on the hub cluster
 
     Create bootstrap secret `klusterlet-bootstrap` in `default` namespace using a kubeconfig file with any authenticated hub cluster user. If the kubeconfig file includes keys, like `client-certificate` and `client-key`, which reference to local certification files, replace them with `client-certificate-data` and `client-key-data`. The corresponding values of these keys can be obtained with the command below.
+    >Note: The base64 steps are not required if you are using OpenShift.
 
     ```sh
     cat /path/to/cert/file | base64 --wrap=0
@@ -120,9 +121,48 @@ You can use `ko` to deploy multicloud manager with the following step.
     ko apply -f deploy/klusterlet --base-import-paths --tags=latest
     ```
 
-4. (Optional) Enable service registry on managed cluster
+4. Adding a spoke cluster
 
-    After klusterlet components were installed in managed cluster, Customize the cluster name and namespaces of managed cluster in `deploy/serviceregistry/200-serviceregistry`
+    The context of the spoke cluster must be used or the KUBECONFIG environment variable must be defined using the spoke cluster and not the hub.
+
+    Create bootstrap secret `klusterlet-bootstrap` in `default` namespace using a kubeconfig file of the hub cluster. If the kubeconfig file includes keys, like `client-certificate` and `client-key`, which reference to local certification files, replace them with `client-certificate-data` and `client-key-data`. The corresponding values of these keys can be obtained with the command below.
+    >Note: The base64 steps are not required if you are using OpenShift.
+
+    ```sh
+    cat /path/to/cert/file | base64 --wrap=0
+    ```
+
+    And then create the secret.
+
+    ```sh
+    kubectl create secret generic klusterlet-bootstrap --from-file=kubeconfig=/<path>/kubeconfig -n default
+    ```
+
+    Customize the cluster name and namespaces of managed cluster in `deploy/klusterlet/300-klusterlet.yaml`.
+    Make sure that the name and namespace are unique in the hub.
+
+    ```sh
+    --cluster-name=spoke0
+    --cluster-namespace=spoke0
+    ```
+
+    Configure `default/klusterlet-bootstrap` to `bootstrap-secret` and `cluster0/cluster0` to `cluster` in `deploy/klusterlet/200-connectionmanager.yaml`.
+
+    ```sh
+    --bootstrap-secret=default/klusterlet-bootstrap     # namespace/bootstrap-secret
+    --cluster=spoke0/spoke0    # cluster-namespace/cluster-name
+    ```
+
+    Deploy klusterlet components
+
+    ```sh
+    ko apply -f deploy/klusterlet --base-import-paths --tags=latest
+    ```
+
+5. (Optional) Enable service registry on managed cluster
+
+    After klusterlet components were installed in managed cluster, Customize the cluster name and namespaces of hub or spoke cluster in `deploy/serviceregistry/200-serviceregistry`.
+    >Note: The cluster-name and cluster-namespace must reflect the same values used when defining the klusterlet configuration.
 
     ```sh
     --cluster-name=cluster0
@@ -176,13 +216,14 @@ You can use `ko` to deploy multicloud manager with the following step.
         }
     ```
 
-5. Query managed cluster status on hub
+6. Query managed cluster status on hub
 
     ```sh
     kubectl get clusterjoinrequests.mcm.ibm.com
 
     NAME                                                      CLUSTER NAME   CLUSTER NAMESPACE   STATUS     AGE
     clusterjoin-3j4pL11QZWvIBS-0I03GUOk5P0PhZH28zltQfGPxwlo   cluster0       cluster0            Approved   31m
+    clusterjoin-4P0sL82S_Dw7eu4woI4yKWGdua7kFbdjdoL4tYg7-cE   spoke          spoke               Approved   1h
     ```
 
     ```sh
@@ -190,6 +231,7 @@ You can use `ko` to deploy multicloud manager with the following step.
 
     NAMESPACE   NAME       MANAGED BY   ENDPOINTS           STATUS   AGE
     cluster0    cluster0                192.168.65.3:6443   Ready    31m
+    spoke       spoke                   example.com:6443    Ready     1h
     ```
 
 ## How to use
@@ -209,7 +251,8 @@ You can use `ko` to deploy multicloud manager with the following step.
     kubectl get cluster --all-namespaces
 
     NAMESPACE   NAME      ENDPOINTS           STATUS    AGE
-    mcmk12      mcmk12    9.37.135.130:8001   Ready     4d
+    cluster0    cluster0                192.168.65.3:6443   Ready    31m
+    spoke       spoke                   example.com:6443    Ready     1h
     ```
 
 2. Get cluster status information
@@ -225,7 +268,9 @@ You can use `ko` to deploy multicloud manager with the following step.
     kubectl get clusterstatus --all-namespaces
 
     NAMESPACE   NAME      ADDRESSES      USED/TOTAL CPU   USED/TOTAL MEMORY   USED/TOTAL STORAGE   NODE      POD       AGE       VERSION
-    mcmk12      mcmk12    9.37.135.130   7600m/38         21805Mi/74670Mi     129Gi/129Gi          8         111       4d        3.1.0-dirty
+    cluster0    hub       192.168.5.3:6443   7990m/18     21314Mi/72021Mi     0/0                  6         203       2h        v1.14.6+2e5ed54.rhos
+    spoke       spoke     example.com        7690m/18     19778Mi/72021Mi     0/0                  6         193      1h        v1.14.6+2e5ed54.rhos
+
     ```
 
 3. Get cluster join request information
@@ -240,8 +285,8 @@ You can use `ko` to deploy multicloud manager with the following step.
     kubectl get clusterjoinrequest
 
     NAME                                                      CLUSTER NAME   CLUSTER NAMESPACE   STATUS     AGE
-    clusterjoin-UOoCuEUYBMMqpNC7nEghojrt-WOBYOvKizhXQJdkJ9A   mcmk12         mcmk12              Approved   4d
-    clusterjoin-kBtZfvgOCKiyTMqvm88hRhuThh4q5LELXa8QVqt0e8E   mcmk00         mcmk04              Denied     6d
+    clusterjoin-3j4pL11QZWvIBS-0I03GUOk5P0PhZH28zltQfGPxwlo   cluster0       cluster0            Approved   31m
+    clusterjoin-4P0sL82S_Dw7eu4woI4yKWGdua7kFbdjdoL4tYg7-cE   spoke          spoke               Approved   1h
     ```
 
 4. Get certificate signing request
@@ -255,8 +300,8 @@ You can use `ko` to deploy multicloud manager with the following step.
     ```sh
     kubectl get csr
 
-    NAME                                                      AGE       REQUESTOR                                   CONDITION
-    clusterjoin-2_zZJYViKZkYCWOke1cFon3RKHXjp9ll2Ns5XkXoh5w   1h        system:serviceaccount:kube-system:default   Approved,Issued
+    NAME                                                      AGE       REQUESTOR                                        CONDITION
+    clusterjoin-3j4pL11QZWvIBS-0I03GUOk5P0PhZH28zltQfGPxwlo   1h        system:serviceaccount:multicloud-system:hub-sa   Approved,Issued
     ```
 
     approve cluster join request
