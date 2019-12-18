@@ -21,7 +21,7 @@ spec:
       - name: mcm-serviceregistry
         image: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry
         args:
-          - "/mcm-service-registry-plugin"
+          - "/serviceregistry"
           - "--dns-suffix=mcm.svc"
           - "--dns-configmap=multicloud-endpoint/mcm-serviceregistry-coredns"
           - "--hub-cluster-kubeconfig=/var/run/hub-kubeconfig/kubeconfig"
