@@ -12,7 +12,7 @@ spec:
     - name: app
       port: 443
       protocol: TCP
-      targetPort: 443
+      targetPort: 6443
   selector:
     app: mcm-klusterlet
 
@@ -45,6 +45,7 @@ spec:
             - "--cluster-name=cluster0"
             - "--cluster-namespace=cluster0"
             - "--cluster-labels=cloud=k8s,vendor=IBM,environment=test,region=us-east,datacenter=test,owner=IBM"
+            - "--port=6443"
           volumeMounts:
             - name: klusterlet-config
               mountPath: /var/run/klusterlet

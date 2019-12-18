@@ -15,7 +15,7 @@ spec:
   - name: secure
     protocol: TCP
     port: 443
-    targetPort: 443
+    targetPort: 6443
 
 ---
 
@@ -83,16 +83,19 @@ spec:
           - "--mongo-replicaset=rs0"
           - "--etcd-servers=etcd-0.etcd:2379,etcd-1.etcd:2379,etcd-2.etcd:2379"
           - "--enable-admission-plugins=HCMUserIdentity,KlusterletCA,NamespaceLifecycle"
+          - "--secure-port=6443"
+          - --cert-dir=/tmp
+          - --klusterlet-cert-dir=/tmp
         livenessProbe:
           httpGet:
             path: /healthz
             scheme: HTTPS
-            port: 443
+            port: 6443
           initialDelaySeconds: 2
           periodSeconds: 10
         readinessProbe:
           httpGet:
             path: /healthz
             scheme: HTTPS
-            port: 443
+            port: 6443
           initialDelaySeconds: 2
