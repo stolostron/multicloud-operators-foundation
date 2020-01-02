@@ -7,7 +7,6 @@ package manager
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 
+	hcmclientset "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
 	operatorapi "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/api"
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/common"
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/componentcontrol"
@@ -28,6 +28,8 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
+	clientcmdlatest "k8s.io/client-go/tools/clientcmd/api/latest"
 )
 
 // Operator is to define an operator to manage mcm components
@@ -41,7 +43,7 @@ type Operator struct {
 
 	server          *operatorapi.ServerInfo
 	bootstrapServer *operatorapi.ServerInfo
-	stopMonitorCert context.CancelFunc
+	certManager     operatorapi.CertManager
 
 	// fields for klusterlet secrets (ks)
 	ksinformer  cache.SharedIndexInformer
@@ -102,6 +104,9 @@ func NewOperator(
 		stopCh:                    stopCh,
 	}
 
+	store := &klusterletSecretStore{operator.componentController}
+	operator.certManager = operatorapi.NewCertManager(clusterNamespace, clusterName, store, operator.getHcmClient)
+
 	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			operator.enqueue(obj, operator.ksworkqueue)
@@ -117,6 +122,8 @@ func NewOperator(
 // Run is the main run loop of kluster server
 func (o *Operator) Run() {
 	defer utilruntime.HandleCrash()
+	defer o.ksworkqueue.ShutDown()
+	defer o.certManager.Stop()
 
 	go o.ksinformer.Run(o.stopCh)
 	o.bootstrap()
@@ -160,24 +167,10 @@ func (o *Operator) bootstrap() {
 		}
 
 		o.server = server
-		klog.Infof("hub server (%s) connected", o.server.Host())
+		klog.Infof("Hub server (%s) connected", o.server.Host())
 
-		// start monitoring the cert rotation on the current hub server
-		ctx, cancel := context.WithCancel(context.Background())
-		server.Conn().MonitorCert(ctx, o.handleCertRotation)
-		o.stopMonitorCert = cancel
-	}
-}
-
-func (o *Operator) handleCertRotation() {
-	if o.server == nil {
-		return
-	}
-
-	// update klusterlet secret
-	_, err := o.componentController.UpdateKlusterletSecret(o.server.Conn().ConnInfo())
-	if err != nil {
-		klog.Errorf("failed to update klusterlet secret: %v", err)
+		// start cert rotation
+		o.certManager.Start()
 	}
 }
 
@@ -211,18 +204,11 @@ func (o *Operator) handleKlusterletSecretChange(key string) error {
 		return err
 	}
 
-	// stop cert rotation monitoring on the old hub server
-	if o.stopMonitorCert != nil {
-		o.stopMonitorCert()
-		klog.V(4).Infof("stop monitoring certificate rotation with old configuration")
-	}
 	o.server = server
 	klog.Infof("Hub server (%s) connected", o.server.Host())
 
-	// start monitoring the cert rotation on the current hub server
-	ctx, cancel := context.WithCancel(context.Background())
-	server.Conn().MonitorCert(ctx, o.handleCertRotation)
-	o.stopMonitorCert = cancel
+	// restart cert rotation
+	o.certManager.Restart()
 
 	// restart other components, like klusterlet
 	err = o.componentController.RestartKlusterlet()
@@ -324,4 +310,44 @@ func (o *Operator) processNextWorkItem(queue workqueue.RateLimitingInterface, fn
 	}
 
 	return true
+}
+
+func (o *Operator) getHcmClient() hcmclientset.Interface {
+	if o.server == nil {
+		return nil
+	}
+
+	return o.server.Conn().GetHcmClient()
+}
+
+type klusterletSecretStore struct {
+	componentController *componentcontrol.Controller
+}
+
+func (s *klusterletSecretStore) Current() (*clientcmdapi.Config, error) {
+	secret, err := s.componentController.GetKlusterletSecret()
+	if err != nil {
+		return nil, err
+	}
+
+	config, ok := secret.Data[common.HubConfigSecretKey]
+	if !ok {
+		return nil, fmt.Errorf("no key [%s] found in secret", common.HubConfigSecretKey)
+	}
+
+	clientConfigObj, err := runtime.Decode(clientcmdlatest.Codec, config)
+	if err != nil {
+		return nil, err
+	}
+
+	clientConfig, ok := clientConfigObj.(*clientcmdapi.Config)
+	if !ok {
+		return nil, fmt.Errorf("wrong type of client config data")
+	}
+
+	return clientConfig, nil
+}
+
+func (s *klusterletSecretStore) Update(config []byte) (bool, error) {
+	return s.componentController.UpdateKlusterletSecret(config)
 }

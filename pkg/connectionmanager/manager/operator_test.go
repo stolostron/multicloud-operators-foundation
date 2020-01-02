@@ -6,7 +6,6 @@
 package manager
 
 import (
-	"bytes"
 	"testing"
 
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/common"
@@ -99,33 +98,5 @@ func TestSetupServer(t *testing.T) {
 		t.Errorf("failed to setup server with secret: %+v", err)
 	} else if server.Host() != "localhost" {
 		t.Errorf("failed to handle change of klusterlet secret")
-	}
-}
-
-func TestHandleCertRotation(t *testing.T) {
-	operator := newOperator()
-
-	key, cert, _ := common.NewCertKey("test.com", "hcm")
-	kconfig := common.NewClientConfig("server1", cert, key)
-	secret := &corev1.Secret{
-		Data: map[string][]byte{
-			"kubeconfig": kconfig,
-		},
-	}
-	server, err := operator.setupServer(secret)
-	if err != nil {
-		t.Errorf("failed to setup server with secret: %+v", err)
-	} else if server.Host() != "server1" {
-		t.Errorf("failed to handle change of klusterlet secret")
-	}
-
-	operator.server = server
-	operator.handleCertRotation()
-
-	updatedSecret, err := operator.kubeclient.CoreV1().Secrets("default").Get("klusterlet-secrect", metav1.GetOptions{})
-	if err != nil {
-		t.Errorf("failed to handle cert rotation: %+v", err)
-	} else if equal := bytes.Equal(secret.Data[common.HubConfigSecretKey], updatedSecret.Data[common.HubConfigSecretKey]); !equal {
-		t.Errorf("failed to handle cert rotation")
 	}
 }

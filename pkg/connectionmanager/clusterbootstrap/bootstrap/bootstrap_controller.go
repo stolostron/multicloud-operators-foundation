@@ -6,8 +6,6 @@
 package bootstrap
 
 import (
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 	"reflect"
 	"time"
@@ -20,6 +18,7 @@ import (
 	informers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
 	listers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/listers_generated/mcm/v1alpha1"
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/clusterbootstrap/rbac"
+	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/common"
 	csrv1beta1 "k8s.io/api/certificates/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -154,7 +153,6 @@ func (bc *Controller) Run() {
 
 	go wait.Until(bc.runCSRWorker, time.Second, bc.stopCh)
 	go wait.Until(bc.runHCMJoinWorker, time.Second, bc.stopCh)
-	go wait.Until(bc.runCSRValidation, 30*time.Second, bc.stopCh)
 
 	<-bc.stopCh
 	klog.Info("Shutting controller")
@@ -324,27 +322,48 @@ func (bc *Controller) approveOrDenyClusterJoinRequest(
 	hcmjoin *hcmv1alpha1.ClusterJoinRequest,
 	csr *csrv1beta1.CertificateSigningRequest, alreadyApproved bool,
 	clusters []*clusterv1alpha1.Cluster) error {
-	var nameAlreadyExists, namespaceAlreadyExists bool
-	for _, cl := range clusters {
-		// If cluster is pending or offline, always approve the csr
-		if len(cl.Status.Conditions) == 0 {
-			continue
-		}
+	var denied bool
 
-		//If the joinrequest's cluster name and namespace are same as the existing one. it's maybe a reinstall,
-		//so admin need to approve it, do not deny automatically
-		if cl.Name == hcmjoin.Spec.ClusterName && cl.Namespace == hcmjoin.Spec.ClusterNamespace {
-			return nil
+	if isRenewalRequest(hcmjoin) {
+		// deny the renewal request if the cluster does not exist
+		found := false
+		for _, cl := range clusters {
+			if cl.Name == hcmjoin.Spec.ClusterName && cl.Namespace == hcmjoin.Spec.ClusterNamespace {
+				// If cluster is pending or offline, do not approve or deny the request
+				// and let admin to handle it manually
+				if len(cl.Status.Conditions) == 0 {
+					return nil
+				}
+				found = true
+				break
+			}
 		}
-		//Do not allow one namespace has more than one cluster, and do not allow diffirent cluster has same name.
-		if cl.Name == hcmjoin.Spec.ClusterName {
-			nameAlreadyExists = true
-		}
-		if cl.Namespace == hcmjoin.Spec.ClusterNamespace {
-			namespaceAlreadyExists = true
+		denied = !found
+	} else {
+		for _, cl := range clusters {
+			// If cluster is pending or offline, always approve the csr
+			if len(cl.Status.Conditions) == 0 {
+				continue
+			}
+
+			//If the joinrequest's cluster name and namespace are same as the existing one. it's maybe a reinstall,
+			//so admin need to approve it, do not deny automatically
+			if cl.Name == hcmjoin.Spec.ClusterName && cl.Namespace == hcmjoin.Spec.ClusterNamespace {
+				return nil
+			}
+			//Do not allow one namespace has more than one cluster, and do not allow diffirent cluster has same name.
+			if cl.Name == hcmjoin.Spec.ClusterName {
+				denied = true
+				break
+			}
+			if cl.Namespace == hcmjoin.Spec.ClusterNamespace {
+				denied = true
+				break
+			}
 		}
 	}
-	if nameAlreadyExists || namespaceAlreadyExists {
+
+	if denied {
 		// update hcmjoinrequest
 		hcmjoin.Status.Phase = hcmv1alpha1.JoinDenied
 		if _, err := bc.hcmclientset.McmV1alpha1().ClusterJoinRequests().UpdateStatus(hcmjoin); err != nil {
@@ -503,72 +522,19 @@ func (bc *Controller) cleanCluster(cluster *clusterv1alpha1.Cluster) {
 	}
 }
 
-func (bc *Controller) runCSRValidation() {
-	clusterjoinrequests, err := bc.hcmjoinLister.List(labels.Everything())
-	if err != nil {
-		runtime.HandleError(err)
-		return
+func isRenewalRequest(hcmjoin *hcmv1alpha1.ClusterJoinRequest) bool {
+	if hcmjoin.Annotations == nil {
+		return false
 	}
-	for _, cjr := range clusterjoinrequests {
-		if cjr.Status.CSRStatus.Certificate == nil || len(cjr.Status.CSRStatus.Certificate) == 0 {
-			continue
-		}
-		deadline, err := bc.nextRotationDeadline(cjr.Name, cjr.Status.CSRStatus.Certificate)
-		if err != nil {
-			runtime.HandleError(err)
-			continue
-		}
-		if time.Since(deadline) > 0 {
-			err = bc.recreateCSR(cjr)
-			if err != nil {
-				runtime.HandleError(err)
-				continue
-			}
-		}
-	}
-}
 
-func (bc *Controller) nextRotationDeadline(csrName string, certificate []byte) (time.Time, error) {
-	certDERBlock, _ := pem.Decode(certificate)
-	if certDERBlock == nil || certDERBlock.Type != "CERTIFICATE" {
-		return time.Now(), fmt.Errorf("CSR %s has a bad certificate block", csrName)
+	value, ok := hcmjoin.Annotations[common.RenewalAnnotation]
+	if !ok {
+		return false
 	}
-	x509Cert, err := x509.ParseCertificate(certDERBlock.Bytes)
-	if err != nil {
-		return time.Now(), err
-	}
-	notAfter := x509Cert.NotAfter
-	totalDuration := float64(notAfter.Sub(x509Cert.NotBefore))
-	deadline := x509Cert.NotBefore.Add(func(totalDuration float64) time.Duration {
-		return wait.Jitter(time.Duration(totalDuration), 0.2) - time.Duration(totalDuration*0.3)
-	}(totalDuration))
-	klog.V(5).Infof("CSR %s certificate expiration is %v, rotation deadline is %v", csrName, notAfter, deadline)
-	return deadline, nil
-}
 
-func (bc *Controller) recreateCSR(cjr *hcmv1alpha1.ClusterJoinRequest) error {
-	err := bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().Delete(cjr.Name, &metav1.DeleteOptions{})
-	if err != nil {
-		return err
+	if value != "true" {
+		return false
 	}
-	newCSR, err := bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().Create(&csrv1beta1.CertificateSigningRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:            cjr.Name,
-			Labels:          cjr.Labels,
-			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(cjr, hcmjoinControllerKind)},
-		},
-		Spec: cjr.Spec.CSR,
-	})
-	if err != nil {
-		return err
-	}
-	newCSR.Status.Conditions = append(newCSR.Status.Conditions, csrv1beta1.CertificateSigningRequestCondition{
-		Type:           csrv1beta1.CertificateApproved,
-		Reason:         "ClusterJoinApprove",
-		Message:        "This CSR was approved by cluster join controller (rotated).",
-		LastUpdateTime: metav1.Now(),
-	})
-	_, err = bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(newCSR)
-	klog.V(5).Infof("CSR %s is rotated at %v", cjr.Name, time.Now())
-	return err
+
+	return true
 }

@@ -75,7 +75,7 @@ func (bt *BootStrapper) LoadClientCert() ([]byte, []byte, []byte, error) {
 
 	// if cert does not exist, start the informer to check hcmjoinrequest
 	if bt.clientCert == nil {
-		cert, err := bt.requestCertificate(bt.bootstrapclient, bt.clientKey)
+		cert, err := bt.requestCertificate(context.Background(), bt.bootstrapclient, bt.clientKey, false)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -87,7 +87,29 @@ func (bt *BootStrapper) LoadClientCert() ([]byte, []byte, []byte, error) {
 	return bt.clientKey, bt.clientCert, configData, nil
 }
 
-func (bt *BootStrapper) requestCertificate(client clientset.Interface, privateKeyData []byte) (certData []byte, err error) {
+// RenewClientCert renews client certification
+func (bt *BootStrapper) RenewClientCert(ctx context.Context) ([]byte, []byte, []byte, error) {
+	if bt.clientKey == nil {
+		key, err := certutil.MakeEllipticPrivateKeyPEM()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		bt.clientKey = key
+	}
+
+	// create a cluster join request with renewal annotation and wait for approval
+	cert, err := bt.requestCertificate(ctx, bt.bootstrapclient, bt.clientKey, true)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	bt.clientCert = cert
+
+	configData := common.NewClientConfig(bt.host, bt.clientCert, bt.clientKey)
+	return bt.clientKey, bt.clientCert, configData, nil
+}
+
+func (bt *BootStrapper) requestCertificate(ctx context.Context, client clientset.Interface, privateKeyData []byte, renewal bool) (certData []byte, err error) {
 	subject := Subject(bt.clusterName, bt.clusterNamespace)
 	privateKey, err := certutil.ParsePrivateKeyPEM(privateKeyData)
 	if err != nil {
@@ -113,6 +135,12 @@ func (bt *BootStrapper) requestCertificate(client clientset.Interface, privateKe
 		},
 	}
 
+	if renewal {
+		hcmjoin.Annotations = map[string]string{
+			common.RenewalAnnotation: "true",
+		}
+	}
+
 	_, err = client.McmV1alpha1().ClusterJoinRequests().Create(hcmjoin)
 	switch {
 	case err == nil:
@@ -126,11 +154,11 @@ func (bt *BootStrapper) requestCertificate(client clientset.Interface, privateKe
 		return nil, err
 	}
 
-	return bt.waitForCertificate(client, hcmjoinName, 3600*time.Second)
+	return bt.waitForCertificate(ctx, client, hcmjoinName, 3600*time.Second)
 }
 
-func (bt *BootStrapper) waitForCertificate(client clientset.Interface, name string, timeout time.Duration) (certData []byte, err error) {
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+func (bt *BootStrapper) waitForCertificate(ctx context.Context, client clientset.Interface, name string, timeout time.Duration) (certData []byte, err error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	fieldSelector := fields.OneTermEqualSelector("metadata.name", name).String()

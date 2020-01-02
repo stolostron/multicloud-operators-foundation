@@ -6,14 +6,18 @@
 package clusterbootstrap
 
 import (
+	"context"
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"testing"
+	"time"
 
 	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
 	hcmfake "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
+	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/common"
 	csrv1beta1 "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/wait"
 
 	certutil "k8s.io/client-go/util/cert"
 )
@@ -172,5 +176,73 @@ func TestDigestNames(t *testing.T) {
 	name2 = DigestedName(key2, subjects)
 	if name1 == name2 {
 		t.Errorf("name with the different key should be different")
+	}
+}
+
+func TestCertRenewal(t *testing.T) {
+	fakehcmClient := hcmfake.NewSimpleClientset()
+	bootstrapper := NewBootStrapper(fakehcmClient, "localhost", "test", "test", nil, nil)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go bootstrapper.RenewClientCert(ctx)
+
+	var request *v1alpha1.ClusterJoinRequest
+	for i := 0; i < 10; i++ {
+		time.Sleep(time.Second)
+		cjrs, err := fakehcmClient.McmV1alpha1().ClusterJoinRequests().List(metav1.ListOptions{})
+		if err == nil && len(cjrs.Items) > 0 {
+			request = &cjrs.Items[0]
+			break
+		}
+	}
+
+	if request == nil {
+		t.Errorf("CJR for cert renewal is not created in 10 seconds")
+	}
+
+	if request.Annotations == nil {
+		t.Errorf("CJR for cert renewal has no annotation")
+	}
+
+	renewal, ok := request.Annotations[common.RenewalAnnotation]
+
+	if !ok {
+		t.Errorf("CJR for cert renewal has no annotation: %s", common.RenewalAnnotation)
+	}
+
+	if renewal != "true" {
+		t.Errorf("CJR for cert renewal invalid annotation: %s:%s", common.RenewalAnnotation, renewal)
+	}
+}
+
+func TestCancelCertRenewal(t *testing.T) {
+	key, _, err := newCertKey()
+	if err != nil {
+		t.Errorf("Failed to generate client key/cert: %v", err)
+	}
+
+	hcmjoinName := newRequestName(key)
+	hcmjoin := &v1alpha1.ClusterJoinRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: hcmjoinName,
+		},
+	}
+
+	bootstrapper := newTestBootStrap(hcmjoin)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_, _, configData, err := bootstrapper.RenewClientCert(ctx)
+	if err == nil {
+		t.Errorf("Failed to cancel bootstrap")
+	}
+
+	if err != wait.ErrWaitTimeout {
+		t.Errorf("Failed to cancel bootstrap: %v", err)
+	}
+
+	if configData != nil {
+		t.Errorf("Failed to cancel bootstrap")
 	}
 }

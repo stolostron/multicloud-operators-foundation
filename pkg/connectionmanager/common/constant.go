@@ -18,4 +18,7 @@ const (
 	ClientCertFileName = "tls.crt"
 	// ClientKeyFileName is the file name of tls key
 	ClientKeyFileName = "tls.key"
+	// RenewalAnnotation is an annotation on ClusterJoinRequest which indicates
+	//the ClusterJoinRequest is created for certification renewal
+	RenewalAnnotation = "mcm.ibm.com/renewal"
 )

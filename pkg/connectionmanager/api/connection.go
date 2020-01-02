@@ -6,7 +6,6 @@
 package api
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"sync"
@@ -19,11 +18,6 @@ import (
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/clusterbootstrap"
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/common"
 	"k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/watch"
-	cache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -157,44 +151,6 @@ func generateClient(clientConfig []byte) (hcmclientset.Interface, error) {
 	return client, nil
 }
 
-// MonitorCert monitor certificate change on clusterjoinrequest and update
-// cert on connection
-func (conn *ServerConnection) MonitorCert(ctx context.Context, callback func()) {
-	subject := clusterbootstrap.Subject(conn.clusterName, conn.clusterNamespace)
-	clusterJoinName := clusterbootstrap.DigestedName(conn.clientKey, subject)
-	fieldSelector := fields.OneTermEqualSelector("metadata.name", clusterJoinName).String()
-	indexers := cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc}
-	informer := cache.NewSharedIndexInformer(
-		&cache.ListWatch{
-			ListFunc: func(options v1.ListOptions) (runtime.Object, error) {
-				options.FieldSelector = fieldSelector
-				return conn.hcmclient.McmV1alpha1().ClusterJoinRequests().List(options)
-			},
-			WatchFunc: func(options v1.ListOptions) (watch.Interface, error) {
-				options.FieldSelector = fieldSelector
-				return conn.hcmclient.McmV1alpha1().ClusterJoinRequests().Watch(options)
-			},
-		},
-		&mcmv1alpha1.ClusterJoinRequest{},
-		5*time.Minute,
-		indexers,
-	)
-
-	informer.AddEventHandler(cache.ResourceEventHandlerFuncs{
-		AddFunc: func(obj interface{}) {
-			newRequest := obj.(*mcmv1alpha1.ClusterJoinRequest)
-			conn.handleRequestUpdate(newRequest, callback)
-		},
-		UpdateFunc: func(old, new interface{}) {
-			newRequest := new.(*mcmv1alpha1.ClusterJoinRequest)
-			conn.handleRequestUpdate(newRequest, callback)
-		},
-	})
-
-	go informer.Run(ctx.Done())
-	klog.V(4).Infof("start monitoring certificate rotation on hub server")
-}
-
 // refresh cert and related config and client
 func (conn *ServerConnection) handleRequestUpdate(request *mcmv1alpha1.ClusterJoinRequest, callback func()) {
 	conn.infoLock.Lock()
@@ -250,4 +206,8 @@ func (conn *ServerConnection) KeyCert() ([]byte, []byte) {
 	conn.infoLock.RLock()
 	defer conn.infoLock.RUnlock()
 	return conn.clientKey, conn.clientCert
+}
+
+func (conn *ServerConnection) GetHcmClient() hcmclientset.Interface {
+	return conn.hcmclient
 }
