@@ -907,7 +907,7 @@ func (k *Klusterlet) getEndponitOperatorVersion() string {
 
 	deployment, err := k.kubeclientset.AppsV1beta1().Deployments(klNamespace).Get(endpointOperatorDeploymentName, v1.GetOptions{})
 	if err != nil {
-		klog.Info("Failed to get the Endpoint Operator Version", err)
+		klog.Info("Failed to get the Endpoint Operator Version: ", err)
 		return ""
 	}
 
