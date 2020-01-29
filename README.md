@@ -5,7 +5,7 @@
 
 # multicloud manager
 
-multicloud manager is the service to manager kubernetes clusters deployed on multiple cloud providers
+multicloud manager is the service to manage kubernetes clusters deployed on multiple cloud providers
 
 This is a guide on how to build and deploy multicloud manager from code.
 
