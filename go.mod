@@ -1,8 +1,10 @@
-module github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation
+module github.com/open-cluster-management/multicloud-operators-foundation
 
 go 1.12
 
 replace (
+	github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation => ./
+
 	// Pin kube version to 1.13.1
 	k8s.io/api => k8s.io/api v0.0.0-20181213150558-05914d821849
 	k8s.io/apiextensions-apiserver => k8s.io/apiextensions-apiserver v0.0.0-20181213153335-0fe22c71c476
@@ -89,6 +91,7 @@ require (
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/ugorji/go v1.1.7 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
+	github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation v0.0.0-00010101000000-000000000000
 	go.etcd.io/bbolt v1.3.3 // indirect
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
 	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7 // indirect

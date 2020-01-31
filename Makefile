@@ -23,7 +23,7 @@ REGISTRY ?= quay.io/rhibmcollab
 
 # Github host to use for checking the source tree;
 # Override this variable ue with your own value if you're working on forked repo.
-GIT_HOST ?= github.ibm.com/IBMPrivateCloud
+GIT_HOST ?= github.com/open-cluster-management
 
 PWD := $(shell pwd)
 BASE_DIR := $(shell basename $(PWD))
@@ -136,22 +136,22 @@ generate_files: generate_exes $(TYPES_FILES)
 build: mcm-apiserver mcm-webhook mcm-controller klusterlet klusterlet-connectionmanager serviceregistry
 
 mcm-apiserver:
-	@common/scripts/gobuild.sh $(BINDIR)/mcm-apiserver -ldflags '-s -w -X $(SC_PKG)/pkg.VERSION=$(VERSION) $(BUILD_LDFLAGS)' github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/mcm-apiserver
+	@common/scripts/gobuild.sh $(BINDIR)/mcm-apiserver -ldflags '-s -w -X $(SC_PKG)/pkg.VERSION=$(VERSION) $(BUILD_LDFLAGS)' github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-apiserver
 
 mcm-webhook:
-	@common/scripts/gobuild.sh $(BINDIR)/mcm-webhook github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/mcm-webhook/
+	@common/scripts/gobuild.sh $(BINDIR)/mcm-webhook github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-webhook/
 
 mcm-controller:
-	@common/scripts/gobuild.sh $(BINDIR)/mcm-controller github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/mcm-controller
+	@common/scripts/gobuild.sh $(BINDIR)/mcm-controller github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-controller
 
 klusterlet:
-	@common/scripts/gobuild.sh $(BINDIR)/klusterlet -ldflags '-s -w  $(BUILD_LDFLAGS)' github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet
+	@common/scripts/gobuild.sh $(BINDIR)/klusterlet -ldflags '-s -w  $(BUILD_LDFLAGS)' github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet
 
 klusterlet-connectionmanager:
-	@common/scripts/gobuild.sh $(BINDIR)/klusterlet-connectionmanager github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet-connectionmanager
+	@common/scripts/gobuild.sh $(BINDIR)/klusterlet-connectionmanager github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet-connectionmanager
 
 serviceregistry:
-	@common/scripts/gobuild.sh $(BINDIR)/serviceregistry github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry
+	@common/scripts/gobuild.sh $(BINDIR)/serviceregistry github.com/open-cluster-management/multicloud-operators-foundation/cmd/serviceregistry
 
 
 ############################################################
