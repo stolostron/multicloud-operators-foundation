@@ -262,11 +262,11 @@ func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 		m, genericConfig.RESTOptionsGetter, apiResourceConfigSource,
 		s.MCMStorage, klusterletClientConfig, aggregatorGetter)
 
-	aggregatorController := aggregator.NewController(
-		klusterletClientConfig.KubeClient, kubeSharedInformers, aggregatorGetter, stopCh)
-	go aggregatorController.Run()
-
 	if !s.StandAlone {
+		aggregatorController := aggregator.NewController(
+			klusterletClientConfig.KubeClient, kubeSharedInformers, aggregatorGetter, stopCh)
+		go aggregatorController.Run()
+
 		sharedInformers.Start(stopCh)
 		kubeSharedInformers.Start(stopCh)
 		clusterInformers.Start(stopCh)

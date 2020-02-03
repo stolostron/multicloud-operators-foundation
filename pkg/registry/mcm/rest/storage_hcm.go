@@ -9,7 +9,8 @@ import (
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/aggregator"
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/api"
 	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
-	hcmv1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	mcmv1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	mcmv1beta1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 	klusterlet "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/client"
 	clusterjoinstorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/mcm/clusterjoinrequest/etcd"
 	clusterstatusstorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/mcm/clusterstatus/etcd"
@@ -36,17 +37,79 @@ func (p StorageProvider) NewRESTStorage(
 	storageOptions *mcmstorage.Options,
 	clientConfig klusterlet.ClientConfig,
 	aggregatorGetter *aggregator.InfoGetter) (genericapiserver.APIGroupInfo, bool) {
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(hcmv1alpha1.GroupName, api.Scheme, api.ParameterCodec, api.Codecs)
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(mcmv1beta1.GroupName, api.Scheme, api.ParameterCodec, api.Codecs)
 	// If you add a version here, be sure to add an entry in `k8s.io/kubernetes/cmd/kube-apiserver/app/aggregator.go with
 	// specific priorities.
 	// TODO refactor the plumbing to provide the information in the APIGroupInfo
 
-	if apiResourceConfigSource.VersionEnabled(hcmv1alpha1.SchemeGroupVersion) {
-		apiGroupInfo.VersionedResourcesStorageMap[hcmv1alpha1.SchemeGroupVersion.Version] = p.v1alpha1Storage(
+	if apiResourceConfigSource.VersionEnabled(mcmv1alpha1.SchemeGroupVersion) {
+		apiGroupInfo.VersionedResourcesStorageMap[mcmv1alpha1.SchemeGroupVersion.Version] = p.v1alpha1Storage(
+			restOptionsGetter, storageOptions, clientConfig, aggregatorGetter)
+	}
+	if apiResourceConfigSource.VersionEnabled(mcmv1beta1.SchemeGroupVersion) {
+		apiGroupInfo.VersionedResourcesStorageMap[mcmv1beta1.SchemeGroupVersion.Version] = p.v1beta1Storage(
 			restOptionsGetter, storageOptions, clientConfig, aggregatorGetter)
 	}
 
 	return apiGroupInfo, true
+}
+
+func (p StorageProvider) v1beta1Storage(
+	optsGetter generic.RESTOptionsGetter,
+	storageOptions *mcmstorage.Options,
+	clientConfig klusterlet.ClientConfig,
+	aggregatorGetter *aggregator.InfoGetter) map[string]rest.Storage {
+	storage := map[string]rest.Storage{}
+
+	// work
+	workStorage, workStatusStorage, err := workstorage.NewREST(optsGetter, storageOptions)
+	if err == nil {
+		storage["works"] = workStorage
+		storage["works/status"] = workStatusStorage
+	} else {
+		klog.Errorf("failed to create works: %v", err)
+	}
+	workresultStorage, err := workresultstorage.NewWorkResultRest(optsGetter, storageOptions)
+	if err == nil {
+		storage["works/result"] = workresultStorage
+	} else {
+		klog.Errorf("failed to create works/result: %v", err)
+	}
+
+	// workset storage
+	worksetStorage, worksetStatusStorage := worksetstorage.NewREST(optsGetter)
+	storage["worksets"] = worksetStorage
+	storage["worksets/status"] = worksetStatusStorage
+
+	// workset storage
+	resourceviewStorage, resourceviewStatusStorage, err := resourceviewstorage.NewREST(optsGetter, storageOptions)
+	if err == nil {
+		storage["resourceviews"] = resourceviewStorage
+		storage["resourceviews/status"] = resourceviewStatusStorage
+	} else {
+		klog.Errorf("failed to create resourceview: %v", err)
+	}
+
+	// cluster status storage
+	clusterstatusStorage, connection := clusterstatusstorage.NewREST(optsGetter, clientConfig)
+	storage["clusterstatuses"] = clusterstatusStorage
+
+	// cluster log storage
+	if connection != nil {
+		clusterlog := clusterstatusrest.NewLogRest(optsGetter, connection)
+		clusterMonitor := clusterstatusrest.NewMonitorRest(optsGetter, connection)
+		storage["clusterstatuses/log"] = clusterlog
+		storage["clusterstatuses/monitor"] = clusterMonitor
+	}
+
+	storage["clusterstatuses/aggregator"] = clusterstatusrest.NewAggregateRest(aggregatorGetter)
+
+	// hcm join storage
+	clusterjoinStorage, clusterjoinStatusStorage := clusterjoinstorage.NewREST(optsGetter)
+	storage["clusterjoinrequests"] = clusterjoinStorage
+	storage["clusterjoinrequests/status"] = clusterjoinStatusStorage
+
+	return storage
 }
 
 func (p StorageProvider) v1alpha1Storage(

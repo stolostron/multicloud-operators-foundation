@@ -238,7 +238,7 @@ func TestRotateCert(t *testing.T) {
 	// approve cluster join request once it is created
 	var newCert []byte
 	err = wait.PollImmediateUntil(1*time.Second, func() (bool, error) {
-		cjrs, err := hcmClient.Mcm().ClusterJoinRequests().List(metav1.ListOptions{})
+		cjrs, err := hcmClient.McmV1alpha1().ClusterJoinRequests().List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}
