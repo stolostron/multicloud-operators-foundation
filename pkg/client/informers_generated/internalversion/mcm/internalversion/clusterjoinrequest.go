@@ -11,10 +11,10 @@ package internalversion
 import (
 	time "time"
 
-	mcm "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
-	internalclientset "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset"
-	internalinterfaces "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/internalversion/internalinterfaces"
-	internalversion "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/listers_generated/mcm/internalversion"
+	mcm "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
+	internalclientset "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset"
+	internalinterfaces "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/internalversion/internalinterfaces"
+	internalversion "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/listers_generated/mcm/internalversion"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	watch "k8s.io/apimachinery/pkg/watch"

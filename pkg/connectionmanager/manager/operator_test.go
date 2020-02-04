@@ -8,9 +8,9 @@ package manager
 import (
 	"testing"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/common"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/componentcontrol"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/genericoptions"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/common"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/componentcontrol"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/genericoptions"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubefake "k8s.io/client-go/kubernetes/fake"

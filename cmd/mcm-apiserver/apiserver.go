@@ -11,8 +11,8 @@ import (
 	"os"
 	"time"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/mcm-apiserver/app"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/mcm-apiserver/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-apiserver/app"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-apiserver/app/options"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/apiserver/pkg/util/logs"

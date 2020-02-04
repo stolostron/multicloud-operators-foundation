@@ -17,7 +17,7 @@ import (
 	"k8s.io/apiserver/pkg/util/flushwriter"
 	"k8s.io/klog"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/drivers"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/drivers"
 )
 
 // Server is a http.Handler which exposes kubelet functionality over HTTP.

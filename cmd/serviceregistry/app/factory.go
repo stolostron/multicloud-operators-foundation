@@ -8,9 +8,9 @@ package app
 import (
 	"strings"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry/app/options"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/serviceregistry/controller"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/serviceregistry/plugin"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/serviceregistry/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/serviceregistry/controller"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/serviceregistry/plugin"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"

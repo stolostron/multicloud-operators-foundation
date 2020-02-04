@@ -9,7 +9,7 @@
 package fake
 
 import (
-	internalversion "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset/typed/mcm/internalversion"
+	internalversion "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset/typed/mcm/internalversion"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )

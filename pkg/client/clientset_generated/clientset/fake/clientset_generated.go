@@ -9,11 +9,11 @@
 package fake
 
 import (
-	clientset "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
-	mcmv1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1alpha1"
-	fakemcmv1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1alpha1/fake"
-	mcmv1beta1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1beta1"
-	fakemcmv1beta1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1beta1/fake"
+	clientset "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
+	mcmv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1alpha1"
+	fakemcmv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1alpha1/fake"
+	mcmv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1beta1"
+	fakemcmv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1beta1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

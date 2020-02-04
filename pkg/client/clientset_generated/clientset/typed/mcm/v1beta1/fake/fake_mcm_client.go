@@ -9,7 +9,7 @@
 package fake
 
 import (
-	v1beta1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1beta1"
+	v1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1beta1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )

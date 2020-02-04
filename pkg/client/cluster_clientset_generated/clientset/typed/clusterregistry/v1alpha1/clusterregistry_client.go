@@ -9,7 +9,7 @@
 package v1alpha1
 
 import (
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset/scheme"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset/scheme"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	rest "k8s.io/client-go/rest"
 	v1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"

@@ -71,7 +71,7 @@ spec:
       serviceAccountName: hub-sa
       containers:
       - name: mcm-apiserver
-        image: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/mcm-apiserver
+        image: github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-apiserver
         imagePullPolicy: IfNotPresent
         env:
         - name: MYHUBNAME

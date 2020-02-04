@@ -17,7 +17,7 @@ import (
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/transport"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	kubeclientset "k8s.io/client-go/kubernetes"
 )
 

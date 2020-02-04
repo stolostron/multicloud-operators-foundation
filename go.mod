@@ -1,4 +1,4 @@
-module github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation
+module github.com/open-cluster-management/multicloud-operators-foundation
 
 go 1.12
 

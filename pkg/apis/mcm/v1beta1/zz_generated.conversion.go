@@ -13,7 +13,7 @@ package v1beta1
 import (
 	unsafe "unsafe"
 
-	mcm "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
+	mcm "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	conversion "k8s.io/apimachinery/pkg/conversion"

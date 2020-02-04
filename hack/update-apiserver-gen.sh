@@ -32,7 +32,7 @@ realpath() {
 
 REPO_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")"/..)
 BINDIR="${REPO_ROOT}"/output
-SC_PKG='github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation'
+SC_PKG='github.com/open-cluster-management/multicloud-operators-foundation'
 
 # Generate defaults
 "${BINDIR}"/defaulter-gen "$@" \

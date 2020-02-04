@@ -24,18 +24,18 @@ import (
 	"k8s.io/client-go/util/retry"
 	"k8s.io/client-go/util/workqueue"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
-	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	clusterinformers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
-	clusterlisters "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_listers_generated/clusterregistry/v1alpha1"
-	authzutils "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/authz"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
+	v1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	clusterinformers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
+	clusterlisters "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_listers_generated/clusterregistry/v1alpha1"
+	authzutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/authz"
 	clusterv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 
-	clientset "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
-	informers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
-	listers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/listers_generated/mcm/v1alpha1"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils"
-	equals "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/equals"
+	clientset "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
+	informers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
+	listers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/listers_generated/mcm/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	equals "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/equals"
 )
 
 // Controller manages the lifecycle of ResourceView

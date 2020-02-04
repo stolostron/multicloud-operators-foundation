@@ -24,8 +24,8 @@ package admission
 import (
 	"testing"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset"
-	informers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/internalversion"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset"
+	informers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/internalversion"
 	"k8s.io/apiserver/pkg/admission"
 )
 

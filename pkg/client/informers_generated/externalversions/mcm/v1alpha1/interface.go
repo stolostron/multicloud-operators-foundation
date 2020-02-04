@@ -9,7 +9,7 @@
 package v1alpha1
 
 import (
-	internalinterfaces "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/externalversions/internalinterfaces"
+	internalinterfaces "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

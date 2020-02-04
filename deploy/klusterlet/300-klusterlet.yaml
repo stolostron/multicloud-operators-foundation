@@ -38,7 +38,7 @@ spec:
       serviceAccountName: klusterlet-sa
       containers:
         - name: work-manager
-          image: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet
+          image: github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet
           args:
             - "/klusterlet"
             - "--controller-config-file=/var/run/klusterlet/kubeconfig"

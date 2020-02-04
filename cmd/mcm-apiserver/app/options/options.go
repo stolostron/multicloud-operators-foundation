@@ -12,8 +12,8 @@ import (
 
 	"github.com/spf13/pflag"
 
-	klusterlet "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/client"
-	mcmstorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/storage"
+	klusterlet "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/client"
+	mcmstorage "github.com/open-cluster-management/multicloud-operators-foundation/pkg/storage"
 )
 
 const (

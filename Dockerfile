@@ -1,5 +1,5 @@
 FROM docker.io/openshift/origin-release:golang-1.13 AS builder
-WORKDIR /go/src/github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/
+WORKDIR /go/src/github.com/open-cluster-management/multicloud-operators-foundation/
 COPY . .
 RUN go mod vendor
 RUN make build

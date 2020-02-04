@@ -9,9 +9,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	helmutil "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/helm"
-	restutils "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/rest"
+	v1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	helmutil "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/helm"
+	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"

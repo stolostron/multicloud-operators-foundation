@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"sync"
 
-	klusterlet "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/client"
+	klusterlet "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/client"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
 	kubeclientset "k8s.io/client-go/kubernetes"

@@ -9,8 +9,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/api"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/clusterregistry/validation"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/api"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"

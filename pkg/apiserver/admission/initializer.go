@@ -28,10 +28,10 @@ import (
 	kubeinformers "k8s.io/client-go/informers"
 	kubeclientset "k8s.io/client-go/kubernetes"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset"
-	clusterclient "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset"
-	clusterinformers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
-	informers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/internalversion"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset"
+	clusterclient "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset"
+	clusterinformers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
+	informers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/internalversion"
 )
 
 // WantsInternalHCMClientSet defines a function which sets ClientSet for admission plugins that need it

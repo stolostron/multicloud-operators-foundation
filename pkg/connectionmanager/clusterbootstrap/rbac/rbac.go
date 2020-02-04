@@ -8,9 +8,9 @@ package rbac
 import (
 	"reflect"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/clusterregistry"
-	hcmv1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	rbacv1helpers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/common/rbac"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry"
+	hcmv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	rbacv1helpers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/common/rbac"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

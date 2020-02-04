@@ -6,8 +6,8 @@
 package rest
 
 import (
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/api"
-	clusterstorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/cluster-registry/cluster/etcd"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/api"
+	clusterstorage "github.com/open-cluster-management/multicloud-operators-foundation/pkg/registry/cluster-registry/cluster/etcd"
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"

@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/api"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/api"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"github.com/spf13/pflag"

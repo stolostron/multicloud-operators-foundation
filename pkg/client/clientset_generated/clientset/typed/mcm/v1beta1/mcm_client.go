@@ -9,8 +9,8 @@
 package v1beta1
 
 import (
-	v1beta1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/scheme"
+	v1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/scheme"
 	serializer "k8s.io/apimachinery/pkg/runtime/serializer"
 	rest "k8s.io/client-go/rest"
 )

@@ -9,9 +9,9 @@
 package mcm
 
 import (
-	internalinterfaces "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/externalversions/internalinterfaces"
-	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/externalversions/mcm/v1alpha1"
-	v1beta1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/externalversions/mcm/v1beta1"
+	internalinterfaces "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions/internalinterfaces"
+	v1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions/mcm/v1alpha1"
+	v1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions/mcm/v1beta1"
 )
 
 // Interface provides access to each of this group's versions.

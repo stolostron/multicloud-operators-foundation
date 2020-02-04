@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/serviceregistry/plugin"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/serviceregistry/plugin"
 )
 
 func TestUpdateSOARecord(t *testing.T) {

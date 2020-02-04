@@ -15,8 +15,8 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/aggregator"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/aggregator"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	"k8s.io/apimachinery/pkg/runtime"
 	netutil "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/proxy"

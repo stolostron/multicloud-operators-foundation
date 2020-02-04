@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/serviceregistry/app/options"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"

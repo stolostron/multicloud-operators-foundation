@@ -9,8 +9,8 @@
 package mcm
 
 import (
-	internalinterfaces "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/internalversion/internalinterfaces"
-	internalversion "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/internalversion/mcm/internalversion"
+	internalinterfaces "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/internalversion/internalinterfaces"
+	internalversion "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/internalversion/mcm/internalversion"
 )
 
 // Interface provides access to each of this group's versions.

@@ -11,8 +11,8 @@ package options
 import (
 	"k8s.io/apiserver/pkg/admission"
 	// Admission controllers
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/plugin/pkg/klusterletca"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/plugin/pkg/useridentity"
+	"github.com/open-cluster-management/multicloud-operators-foundation/plugin/pkg/klusterletca"
+	"github.com/open-cluster-management/multicloud-operators-foundation/plugin/pkg/useridentity"
 )
 
 // registerAllAdmissionPlugins registers all admission plugins

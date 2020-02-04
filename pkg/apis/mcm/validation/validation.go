@@ -6,7 +6,7 @@
 package validation
 
 import (
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	apimachineryvalidation "k8s.io/apimachinery/pkg/api/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 )

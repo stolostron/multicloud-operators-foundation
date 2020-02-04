@@ -6,8 +6,8 @@
 package options
 
 import (
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/genericoptions"
 	"github.com/spf13/pflag"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/genericoptions"
 )
 
 // RunOptions for the klusterlet operator.

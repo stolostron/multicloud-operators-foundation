@@ -4,7 +4,7 @@
 // US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
 
 // +k8s:deepcopy-gen=package,register
-// +k8s:conversion-gen=github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm
+// +k8s:conversion-gen=github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm
 // +k8s:openapi-gen=true
 // +k8s:defaulter-gen=TypeMeta
 

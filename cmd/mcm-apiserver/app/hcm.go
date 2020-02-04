@@ -6,14 +6,14 @@
 package app
 
 import (
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/aggregator"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/aggregator"
 	"k8s.io/klog"
 
-	clusterrest "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/cluster-registry/rest"
-	hcmrest "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/mcm/rest"
-	mcmstorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/storage"
+	clusterrest "github.com/open-cluster-management/multicloud-operators-foundation/pkg/registry/cluster-registry/rest"
+	hcmrest "github.com/open-cluster-management/multicloud-operators-foundation/pkg/registry/mcm/rest"
+	mcmstorage "github.com/open-cluster-management/multicloud-operators-foundation/pkg/storage"
 
-	klusterlet "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/client"
+	klusterlet "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/client"
 	"k8s.io/apiserver/pkg/registry/generic"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/apiserver/pkg/server/storage"

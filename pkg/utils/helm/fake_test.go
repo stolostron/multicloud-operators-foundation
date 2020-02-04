@@ -20,7 +20,7 @@ package helm
 import (
 	"testing"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
 	"k8s.io/helm/pkg/helm"
 	helmrelease "k8s.io/helm/pkg/proto/hapi/release"
 )

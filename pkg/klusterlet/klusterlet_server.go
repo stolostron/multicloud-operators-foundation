@@ -17,9 +17,9 @@ import (
 
 	"k8s.io/klog"
 
-	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/drivers"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/server"
+	v1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/drivers"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/server"
 	certutil "k8s.io/client-go/util/cert"
 )
 

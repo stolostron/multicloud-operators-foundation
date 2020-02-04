@@ -11,7 +11,7 @@ package internalversion
 import (
 	"fmt"
 
-	mcm "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
+	mcm "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )

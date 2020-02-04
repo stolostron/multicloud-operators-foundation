@@ -10,9 +10,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/api"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/validation"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/api"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/validation"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"

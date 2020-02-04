@@ -14,7 +14,7 @@ Prerequisite:
 
 ## Setup
 
-Create a directory `$GOPATH/src/github.ibm.com/IBMPrivateCloud`, and clone the code into the directory.
+Create a directory `$GOPATH/src/github.com/open-cluster-management`, and clone the code into the directory.
 
 Populate the vendor directory. If necessary, set environment variable `GO111MODULE=on`.
 
