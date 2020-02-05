@@ -3,7 +3,7 @@
 Multicloud manager provides subresource under `clusterstatus/aggregator` for client agents to post data to hub.
 
 For example, An agent named search in managed cluster wants to post data to its backend search service `<service-host>:<port>/search/cluster/<cluster-name>/<sub resource>/xxx`.
-It can post data to `apis/mcm.ibm.com/v1alpha1/namespaces/<cluster-namespace>/clusterstatuses/<cluster-name>/aggregator/<sub resource>/xxx`.
+It can post data to `apis/mcm.ibm.com/v1beta1/namespaces/<cluster-namespace>/clusterstatuses/<cluster-name>/aggregator/<sub resource>/xxx`.
 The aggregated API server will proxy the requests to the backend search service who finally save the data.
 
 The value of using aggregated api as a proxy is:

@@ -44,7 +44,7 @@ func (p StorageProvider) NewRESTStorage(
 
 	if apiResourceConfigSource.VersionEnabled(mcmv1alpha1.SchemeGroupVersion) {
 		apiGroupInfo.VersionedResourcesStorageMap[mcmv1alpha1.SchemeGroupVersion.Version] = p.v1alpha1Storage(
-			restOptionsGetter, storageOptions, clientConfig, aggregatorGetter)
+			restOptionsGetter, storageOptions, clientConfig)
 	}
 	if apiResourceConfigSource.VersionEnabled(mcmv1beta1.SchemeGroupVersion) {
 		apiGroupInfo.VersionedResourcesStorageMap[mcmv1beta1.SchemeGroupVersion.Version] = p.v1beta1Storage(
@@ -115,8 +115,7 @@ func (p StorageProvider) v1beta1Storage(
 func (p StorageProvider) v1alpha1Storage(
 	optsGetter generic.RESTOptionsGetter,
 	storageOptions *mcmstorage.Options,
-	clientConfig klusterlet.ClientConfig,
-	aggregatorGetter *aggregator.InfoGetter) map[string]rest.Storage {
+	clientConfig klusterlet.ClientConfig) map[string]rest.Storage {
 	storage := map[string]rest.Storage{}
 
 	// work
@@ -159,8 +158,6 @@ func (p StorageProvider) v1alpha1Storage(
 		storage["clusterstatuses/log"] = clusterlog
 		storage["clusterstatuses/monitor"] = clusterMonitor
 	}
-
-	storage["clusterstatuses/aggregator"] = clusterstatusrest.NewAggregateRest(aggregatorGetter)
 
 	// hcm join storage
 	clusterjoinStorage, clusterjoinStatusStorage := clusterjoinstorage.NewREST(optsGetter)

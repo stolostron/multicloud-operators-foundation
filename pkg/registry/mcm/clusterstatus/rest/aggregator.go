@@ -120,7 +120,7 @@ func (h *AggregateRestHandler) ServeHTTP(w http.ResponseWriter, req *http.Reques
 
 // getPath returns the segment behind aggregator in a URL path.
 func getPath(requestPath string) string {
-	// path: /apis/mcm.ibm.com/v1alpha1/namespaces/cluster0/clusterstatuses/cluster0/aggregator/subResource/xxx
+	// path: /apis/mcm.ibm.com/v1beta1/namespaces/<cluster-namespace>/clusterstatuses/<cluster-name>/aggregator/<sub resource>/xxx
 	requestPath = strings.Trim(requestPath, "/")
 	if requestPath == "" {
 		return ""
