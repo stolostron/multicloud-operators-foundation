@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	v1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 	hcmfake "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
 	clusterfake "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset/fake"
 	informers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
@@ -195,7 +195,7 @@ func newTestKlusterlet(configMap *corev1.ConfigMap, clusterRegistry *clusterv1al
 
 	return &testKlusterlet{
 		klusterlet,
-		informerFactory.Mcm().V1alpha1().Works().Informer().GetStore(),
+		informerFactory.Mcm().V1beta1().Works().Informer().GetStore(),
 		fakekubecontrol,
 		fakehcmClient,
 		clusterFakeClient,
@@ -229,13 +229,13 @@ func newCluster() *clusterv1alpha1.Cluster {
 	}
 }
 
-func newWork(name string, workType v1alpha1.WorkType) *v1alpha1.Work {
-	work := &v1alpha1.Work{
+func newWork(name string, workType v1beta1.WorkType) *v1beta1.Work {
+	work := &v1beta1.Work{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: "test",
 		},
-		Spec: v1alpha1.WorkSpec{
+		Spec: v1beta1.WorkSpec{
 			Cluster: corev1.LocalObjectReference{
 				Name: "testcluster",
 			},
@@ -243,8 +243,8 @@ func newWork(name string, workType v1alpha1.WorkType) *v1alpha1.Work {
 		},
 	}
 
-	if workType == v1alpha1.ResourceWorkType {
-		work.Spec.Scope = v1alpha1.ResourceFilter{
+	if workType == v1beta1.ResourceWorkType {
+		work.Spec.Scope = v1beta1.ResourceFilter{
 			ResourceType: "jobs",
 		}
 	}
@@ -252,7 +252,7 @@ func newWork(name string, workType v1alpha1.WorkType) *v1alpha1.Work {
 	return work
 }
 
-func syncWork(t *testing.T, manager *testKlusterlet, work *v1alpha1.Work) {
+func syncWork(t *testing.T, manager *testKlusterlet, work *v1beta1.Work) {
 	key, err := cache.MetaNamespaceKeyFunc(work)
 	if err != nil {
 		t.Errorf("Could not get key for daemon.")
@@ -356,7 +356,7 @@ func TestReadKlusterletConfig(t *testing.T) {
 }
 
 func TestProcessWork(t *testing.T) {
-	work := newWork("work1", v1alpha1.ResourceWorkType)
+	work := newWork("work1", v1beta1.ResourceWorkType)
 	klusterlet, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
 	hcmclient := klusterlet.fakeHCMClient
 	klusterlet.workStore.Add(work)
@@ -373,8 +373,8 @@ func TestProcessWork(t *testing.T) {
 		t.Errorf("processWork() workToUpdate = %v, want %v", updateCount, 0)
 	}
 
-	work1 := newWork("work1", v1alpha1.ResourceWorkType)
-	work1.Status.Type = v1alpha1.WorkCompleted
+	work1 := newWork("work1", v1beta1.ResourceWorkType)
+	work1.Status.Type = v1beta1.WorkCompleted
 	klusterlet.workStore.Add(work1)
 	syncWork(t, klusterlet, work1)
 	for _, action := range hcmclient.Actions() {
@@ -386,8 +386,8 @@ func TestProcessWork(t *testing.T) {
 		t.Errorf("processWork() workToUpdate = %v, want %v", updateCount, 0)
 	}
 
-	work2 := newWork("work1", v1alpha1.ResourceWorkType)
-	work2.Status.Type = v1alpha1.WorkFailed
+	work2 := newWork("work1", v1beta1.ResourceWorkType)
+	work2.Status.Type = v1beta1.WorkFailed
 	klusterlet.workStore.Add(work2)
 	syncWork(t, klusterlet, work2)
 	for _, action := range hcmclient.Actions() {
@@ -401,7 +401,7 @@ func TestProcessWork(t *testing.T) {
 }
 
 func TestGetReleaseWork(t *testing.T) {
-	work := newWork("work1", v1alpha1.ResourceWorkType)
+	work := newWork("work1", v1beta1.ResourceWorkType)
 	work.ObjectMeta.Labels = map[string]string{}
 	work.Spec.Scope.ResourceType = "releases"
 	klusterlet, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
@@ -431,9 +431,9 @@ func serilizeOrDie(t *testing.T, object interface{}) []byte {
 
 func TestKubeActionWork(t *testing.T) {
 	//test kube create
-	work := newWork("work1", v1alpha1.ActionWorkType)
-	work.Spec.ActionType = v1alpha1.CreateActionType
-	work.Spec.KubeWork = &v1alpha1.KubeWorkSpec{
+	work := newWork("work1", v1beta1.ActionWorkType)
+	work.Spec.ActionType = v1beta1.CreateActionType
+	work.Spec.KubeWork = &v1beta1.KubeWorkSpec{
 		Namespace: "kube-system",
 		ObjectTemplate: runtime.RawExtension{
 			Object: klusterletIngress,
@@ -457,9 +457,9 @@ func TestKubeActionWork(t *testing.T) {
 	//Test kube update
 	gvk := klusterletIngress.GetObjectKind().GroupVersionKind()
 	klusterlet.kubeControl.SetObject(&gvk, "", "kube-system", "mcm-ingress-testcluster-klusterlet", klusterletIngress)
-	work1 := newWork("work1", v1alpha1.ActionWorkType)
-	work1.Spec.ActionType = v1alpha1.UpdateActionType
-	work1.Spec.KubeWork = &v1alpha1.KubeWorkSpec{
+	work1 := newWork("work1", v1beta1.ActionWorkType)
+	work1.Spec.ActionType = v1beta1.UpdateActionType
+	work1.Spec.KubeWork = &v1beta1.KubeWorkSpec{
 		ObjectTemplate: runtime.RawExtension{
 			Raw: serilizeOrDie(t, klusterletIngress),
 		},
@@ -467,15 +467,15 @@ func TestKubeActionWork(t *testing.T) {
 	klusterlet.workStore.Add(work1)
 	syncWork(t, klusterlet, work1)
 
-	work2 := newWork("work2", v1alpha1.ActionWorkType)
-	work2.Spec.ActionType = v1alpha1.UpdateActionType
+	work2 := newWork("work2", v1beta1.ActionWorkType)
+	work2.Spec.ActionType = v1beta1.UpdateActionType
 	klusterletIngress2 := klusterletIngress.DeepCopy()
 	klusterletIngress2.Spec.Rules = []extensionv1beta1.IngressRule{
 		{
 			Host: "test",
 		},
 	}
-	work2.Spec.KubeWork = &v1alpha1.KubeWorkSpec{
+	work2.Spec.KubeWork = &v1beta1.KubeWorkSpec{
 		ObjectTemplate: runtime.RawExtension{
 			Raw: serilizeOrDie(t, klusterletIngress2),
 		},
@@ -484,9 +484,9 @@ func TestKubeActionWork(t *testing.T) {
 	syncWork(t, klusterlet, work2)
 
 	//Test kube delete
-	work3 := newWork("work3", v1alpha1.ActionWorkType)
-	work3.Spec.ActionType = v1alpha1.DeleteActionType
-	work3.Spec.KubeWork = &v1alpha1.KubeWorkSpec{
+	work3 := newWork("work3", v1beta1.ActionWorkType)
+	work3.Spec.ActionType = v1beta1.DeleteActionType
+	work3.Spec.KubeWork = &v1beta1.KubeWorkSpec{
 		Name:      "test1",
 		Namespace: "test1",
 		Resource:  "pods",
@@ -498,9 +498,9 @@ func TestKubeActionWork(t *testing.T) {
 func TestHelmActionWork(t *testing.T) {
 	klusterlet, helmclient := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
 	//Test helm create
-	work1 := newWork("work1", v1alpha1.ActionWorkType)
-	work1.Spec.ActionType = v1alpha1.CreateActionType
-	work1.Spec.HelmWork = &v1alpha1.HelmWorkSpec{
+	work1 := newWork("work1", v1beta1.ActionWorkType)
+	work1.Spec.ActionType = v1beta1.CreateActionType
+	work1.Spec.HelmWork = &v1beta1.HelmWorkSpec{
 		ReleaseName: "mcmrelease-test2",
 		ChartURL:    "http://test",
 		Version:     "1.0",
@@ -513,9 +513,9 @@ func TestHelmActionWork(t *testing.T) {
 	}
 
 	//Test helm update
-	work2 := newWork("work2", v1alpha1.ActionWorkType)
-	work2.Spec.ActionType = v1alpha1.UpdateActionType
-	work2.Spec.HelmWork = &v1alpha1.HelmWorkSpec{
+	work2 := newWork("work2", v1beta1.ActionWorkType)
+	work2.Spec.ActionType = v1beta1.UpdateActionType
+	work2.Spec.HelmWork = &v1beta1.HelmWorkSpec{
 		ReleaseName: "mcmrelease-test2",
 		ChartURL:    "http://test",
 		Version:     "2.0",
@@ -528,9 +528,9 @@ func TestHelmActionWork(t *testing.T) {
 	}
 
 	//Test helm delete
-	work3 := newWork("work3", v1alpha1.ActionWorkType)
-	work3.Spec.ActionType = v1alpha1.DeleteActionType
-	work3.Spec.HelmWork = &v1alpha1.HelmWorkSpec{
+	work3 := newWork("work3", v1beta1.ActionWorkType)
+	work3.Spec.ActionType = v1beta1.DeleteActionType
+	work3.Spec.HelmWork = &v1beta1.HelmWorkSpec{
 		ReleaseName: "mcmrelease-test2",
 	}
 	klusterlet.workStore.Add(work3)

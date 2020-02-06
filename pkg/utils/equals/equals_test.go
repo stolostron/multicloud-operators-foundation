@@ -8,27 +8,27 @@ package utils
 import (
 	"testing"
 
-	v1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestEqualWorkSpec(t *testing.T) {
-	WorkSpecNil := &v1alpha1.WorkSpec{}
-	WorkSpecP := &v1alpha1.WorkSpec{Type: v1alpha1.WorkType("testing")}
-	WorkSpecP1 := &v1alpha1.WorkSpec{Type: v1alpha1.WorkType("testing")}
-	WorkSpecP2 := &v1alpha1.WorkSpec{Type: v1alpha1.WorkType("testing1")}
-	WorkSpecP3 := &v1alpha1.WorkSpec{Scope: v1alpha1.ResourceFilter{Name: "name1"}}
-	WorkSpecP4 := &v1alpha1.WorkSpec{Scope: v1alpha1.ResourceFilter{Name: "name2"}}
-	WorkSpecP5 := &v1alpha1.WorkSpec{HelmWork: &v1alpha1.HelmWorkSpec{ChartName: "test1"}}
-	WorkSpecP6 := &v1alpha1.WorkSpec{HelmWork: &v1alpha1.HelmWorkSpec{ChartName: "test1"}}
-	WorkSpecP7 := &v1alpha1.WorkSpec{HelmWork: &v1alpha1.HelmWorkSpec{ChartName: "test2"}}
-	WorkSpecP8 := &v1alpha1.WorkSpec{KubeWork: &v1alpha1.KubeWorkSpec{Namespace: "test1"}}
-	WorkSpecP9 := &v1alpha1.WorkSpec{KubeWork: &v1alpha1.KubeWorkSpec{Namespace: "test1"}}
-	WorkSpecP10 := &v1alpha1.WorkSpec{KubeWork: &v1alpha1.KubeWorkSpec{Namespace: "test3"}}
+	WorkSpecNil := &v1beta1.WorkSpec{}
+	WorkSpecP := &v1beta1.WorkSpec{Type: v1beta1.WorkType("testing")}
+	WorkSpecP1 := &v1beta1.WorkSpec{Type: v1beta1.WorkType("testing")}
+	WorkSpecP2 := &v1beta1.WorkSpec{Type: v1beta1.WorkType("testing1")}
+	WorkSpecP3 := &v1beta1.WorkSpec{Scope: v1beta1.ResourceFilter{Name: "name1"}}
+	WorkSpecP4 := &v1beta1.WorkSpec{Scope: v1beta1.ResourceFilter{Name: "name2"}}
+	WorkSpecP5 := &v1beta1.WorkSpec{HelmWork: &v1beta1.HelmWorkSpec{ChartName: "test1"}}
+	WorkSpecP6 := &v1beta1.WorkSpec{HelmWork: &v1beta1.HelmWorkSpec{ChartName: "test1"}}
+	WorkSpecP7 := &v1beta1.WorkSpec{HelmWork: &v1beta1.HelmWorkSpec{ChartName: "test2"}}
+	WorkSpecP8 := &v1beta1.WorkSpec{KubeWork: &v1beta1.KubeWorkSpec{Namespace: "test1"}}
+	WorkSpecP9 := &v1beta1.WorkSpec{KubeWork: &v1beta1.KubeWorkSpec{Namespace: "test1"}}
+	WorkSpecP10 := &v1beta1.WorkSpec{KubeWork: &v1beta1.KubeWorkSpec{Namespace: "test3"}}
 
 	type args struct {
-		spec1 *v1alpha1.WorkSpec
-		spec2 *v1alpha1.WorkSpec
+		spec1 *v1beta1.WorkSpec
+		spec2 *v1beta1.WorkSpec
 	}
 	tests := []struct {
 		name string
@@ -55,23 +55,23 @@ func TestEqualWorkSpec(t *testing.T) {
 }
 
 func TestEqualWorkScope(t *testing.T) {
-	ResourceFilterNil := &v1alpha1.ResourceFilter{}
-	ResourceFilterTpye1 := &v1alpha1.ResourceFilter{ResourceType: "name1"}
-	ResourceFilterTpye2 := &v1alpha1.ResourceFilter{ResourceType: "name2"}
-	ResourceFilterNamespace1 := &v1alpha1.ResourceFilter{NameSpace: "namespace1"}
-	ResourceFilterNamespace2 := &v1alpha1.ResourceFilter{NameSpace: "namespace2"}
-	ResourceFilterName1 := &v1alpha1.ResourceFilter{Name: "names1"}
-	ResourceFilterName2 := &v1alpha1.ResourceFilter{Name: "names2"}
-	ResourceFilterVersion1 := &v1alpha1.ResourceFilter{Version: "version1"}
-	ResourceFilterVersion2 := &v1alpha1.ResourceFilter{Version: "version2"}
+	ResourceFilterNil := &v1beta1.ResourceFilter{}
+	ResourceFilterTpye1 := &v1beta1.ResourceFilter{ResourceType: "name1"}
+	ResourceFilterTpye2 := &v1beta1.ResourceFilter{ResourceType: "name2"}
+	ResourceFilterNamespace1 := &v1beta1.ResourceFilter{NameSpace: "namespace1"}
+	ResourceFilterNamespace2 := &v1beta1.ResourceFilter{NameSpace: "namespace2"}
+	ResourceFilterName1 := &v1beta1.ResourceFilter{Name: "names1"}
+	ResourceFilterName2 := &v1beta1.ResourceFilter{Name: "names2"}
+	ResourceFilterVersion1 := &v1beta1.ResourceFilter{Version: "version1"}
+	ResourceFilterVersion2 := &v1beta1.ResourceFilter{Version: "version2"}
 	MatchLabels1 := &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "value1", "label2": "value2"}}
-	ResourceFilterLabelSelector1 := &v1alpha1.ResourceFilter{LabelSelector: MatchLabels1}
+	ResourceFilterLabelSelector1 := &v1beta1.ResourceFilter{LabelSelector: MatchLabels1}
 	MatchLabels2 := &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "value1", "label3": "value3"}}
-	ResourceFilterLabelSelector2 := &v1alpha1.ResourceFilter{LabelSelector: MatchLabels2}
+	ResourceFilterLabelSelector2 := &v1beta1.ResourceFilter{LabelSelector: MatchLabels2}
 
 	type args struct {
-		f1 *v1alpha1.ResourceFilter
-		f2 *v1alpha1.ResourceFilter
+		f1 *v1beta1.ResourceFilter
+		f2 *v1beta1.ResourceFilter
 	}
 	tests := []struct {
 		name string

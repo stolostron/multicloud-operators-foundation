@@ -15,7 +15,7 @@ import (
 	"k8s.io/klog"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 	clusterinformers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
 	clusterlisters "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_listers_generated/clusterregistry/v1alpha1"
 	informers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
@@ -47,20 +47,20 @@ type resourceAttr struct {
 
 // syncResources is the resource list to for gc to keeps on syncing
 var syncResources = []schema.GroupVersionResource{
-	{Group: "mcm.ibm.com", Version: "v1alpha1", Resource: "works"},
+	{Group: "mcm.ibm.com", Version: "v1beta1", Resource: "works"},
 }
 
 // watchedResources is the resource list to keep on monitoring
 var watchedResources = map[string]schema.GroupVersionResource{
-	"works":         {Group: "mcm.ibm.com", Version: "v1alpha1", Resource: "works"},
-	"resourceviews": {Group: "mcm.ibm.com", Version: "v1alpha1", Resource: "resourceviews"},
-	"worksets":      {Group: "mcm.ibm.com", Version: "v1alpha1", Resource: "worksets"},
+	"works":         {Group: "mcm.ibm.com", Version: "v1beta1", Resource: "works"},
+	"resourceviews": {Group: "mcm.ibm.com", Version: "v1beta1", Resource: "resourceviews"},
+	"worksets":      {Group: "mcm.ibm.com", Version: "v1beta1", Resource: "worksets"},
 }
 
 // expiredResources is the resource list that needs to be expired
 var expiredResources = []schema.GroupVersionResource{
-	{Group: "mcm.ibm.com", Version: "v1alpha1", Resource: "resourceviews"},
-	{Group: "mcm.ibm.com", Version: "v1alpha1", Resource: "worksets"},
+	{Group: "mcm.ibm.com", Version: "v1beta1", Resource: "resourceviews"},
+	{Group: "mcm.ibm.com", Version: "v1beta1", Resource: "worksets"},
 }
 
 // NewGarbageCollectorController returns a GarbageCollectorController
@@ -152,7 +152,7 @@ func (g *GarbageCollectorController) deleteExpiredOneResource(gvr schema.GroupVe
 
 	// ugly code to handle resourceview case...
 	if gvr.Resource == "resourceviews" {
-		view, ok := obj.(*v1alpha1.ResourceView)
+		view, ok := obj.(*v1beta1.ResourceView)
 		if !ok {
 			return fmt.Errorf("expected to get resourceview, but failed to get it")
 		}

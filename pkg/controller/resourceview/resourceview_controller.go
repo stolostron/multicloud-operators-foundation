@@ -25,7 +25,7 @@ import (
 	"k8s.io/client-go/util/workqueue"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
-	v1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 	clusterinformers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
 	clusterlisters "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_listers_generated/clusterregistry/v1alpha1"
 	authzutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/authz"
@@ -33,7 +33,7 @@ import (
 
 	clientset "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
 	informers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
-	listers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/listers_generated/mcm/v1alpha1"
+	listers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/listers_generated/mcm/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	equals "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/equals"
 )
@@ -73,8 +73,8 @@ func NewController(
 	enableRBAC bool,
 	stopCh <-chan struct{}) *Controller {
 	clusterInformer := clusterInformerFactory.Clusterregistry().V1alpha1().Clusters()
-	viewInformer := informerFactory.Mcm().V1alpha1().ResourceViews()
-	workInformer := informerFactory.Mcm().V1alpha1().Works()
+	viewInformer := informerFactory.Mcm().V1beta1().ResourceViews()
+	workInformer := informerFactory.Mcm().V1beta1().Works()
 
 	controller := &Controller{
 		hcmclientset:  hcmclientset,
@@ -97,8 +97,8 @@ func NewController(
 			controller.enqueueView(new)
 		},
 		UpdateFunc: func(old, new interface{}) {
-			oldview := old.(*v1alpha1.ResourceView)
-			newview := new.(*v1alpha1.ResourceView)
+			oldview := old.(*v1beta1.ResourceView)
+			newview := new.(*v1beta1.ResourceView)
 			if controller.needsUpdate(oldview, newview) {
 				controller.enqueueView(new)
 			}
@@ -215,7 +215,7 @@ func (rv *Controller) processView(key string) error {
 	}
 
 	// To reduce overhead on controller, do not update immediately, wait until updateInterval comes.
-	if view.Spec.Mode == v1alpha1.PeriodicResourceUpdate {
+	if view.Spec.Mode == v1beta1.PeriodicResourceUpdate {
 		viewCondition := getViewCondition(view)
 		current := metav1.Now()
 		interval := view.Spec.UpdateIntervalSeconds
@@ -252,7 +252,7 @@ func (rv *Controller) processView(key string) error {
 		workName := "view-" + view.Name
 		owners := utils.AddOwnersLabel("", "clusters", cluster.Name, cluster.Namespace)
 		owners = utils.AddOwnersLabel(owners, "resourceviews", view.Name, view.Namespace)
-		work := &v1alpha1.Work{
+		work := &v1beta1.Work{
 			ObjectMeta: metav1.ObjectMeta{
 				GenerateName: workName,
 				Namespace:    cluster.Namespace,
@@ -263,12 +263,12 @@ func (rv *Controller) processView(key string) error {
 					mcm.OwnersLabel: owners,
 				},
 			},
-			Spec: v1alpha1.WorkSpec{
-				Type: v1alpha1.ResourceWorkType,
+			Spec: v1beta1.WorkSpec{
+				Type: v1beta1.ResourceWorkType,
 				Cluster: corev1.LocalObjectReference{
 					Name: cluster.Name,
 				},
-				Scope: v1alpha1.ResourceFilter{
+				Scope: v1beta1.ResourceFilter{
 					APIGroup:              view.Spec.Scope.APIGroup,
 					LabelSelector:         view.Spec.Scope.LabelSelector.DeepCopy(),
 					FieldSelector:         view.Spec.Scope.FieldSelector,
@@ -282,7 +282,7 @@ func (rv *Controller) processView(key string) error {
 			},
 		}
 
-		_, e := rv.hcmclientset.McmV1alpha1().Works(cluster.Namespace).Create(work)
+		_, e := rv.hcmclientset.McmV1beta1().Works(cluster.Namespace).Create(work)
 		if e != nil {
 			klog.Errorf("Failed to create work %s on cluster %s, error: %+v", work.Name, cluster.Name, e)
 		}
@@ -290,7 +290,7 @@ func (rv *Controller) processView(key string) error {
 
 	utils.BatchHandle(len(worksToUpdate), func(i int) {
 		workToUpdate := worksToUpdate[i]
-		_, err := rv.hcmclientset.McmV1alpha1().Works(workToUpdate.Namespace).Update(workToUpdate)
+		_, err := rv.hcmclientset.McmV1beta1().Works(workToUpdate.Namespace).Update(workToUpdate)
 		if err != nil {
 			klog.Errorf("Failed to update work %s error: %v", workToUpdate.Name, err)
 		}
@@ -308,10 +308,10 @@ func (rv *Controller) processView(key string) error {
 }
 
 func (rv *Controller) worksShouldBeOnClusters(
-	view *v1alpha1.ResourceView,
-	clusterToWorks map[string][]*v1alpha1.Work,
+	view *v1beta1.ResourceView,
+	clusterToWorks map[string][]*v1beta1.Work,
 	clusters []*clusterv1alpha1.Cluster,
-) (clustersNeedingWorks []*clusterv1alpha1.Cluster, worksToDelete, workToUpdate []*v1alpha1.Work) {
+) (clustersNeedingWorks []*clusterv1alpha1.Cluster, worksToDelete, workToUpdate []*v1beta1.Work) {
 	for _, cluster := range clusters {
 		if _, ok := clusterToWorks[cluster.Namespace+"/"+cluster.Name]; !ok {
 			clustersNeedingWorks = append(clustersNeedingWorks, cluster)
@@ -341,7 +341,7 @@ func (rv *Controller) worksShouldBeOnClusters(
 	return clustersNeedingWorks, worksToDelete, workToUpdate
 }
 
-func (rv *Controller) getClustersToWorks(view *v1alpha1.ResourceView) (map[string][]*v1alpha1.Work, error) {
+func (rv *Controller) getClustersToWorks(view *v1beta1.ResourceView) (map[string][]*v1beta1.Work, error) {
 	selector := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			mcm.ViewLabel: view.Namespace + "." + view.Name,
@@ -357,7 +357,7 @@ func (rv *Controller) getClustersToWorks(view *v1alpha1.ResourceView) (map[strin
 		return nil, err
 	}
 
-	clusterToWorks := make(map[string][]*v1alpha1.Work)
+	clusterToWorks := make(map[string][]*v1beta1.Work)
 	for _, work := range works {
 		cluster := work.Spec.Cluster.Name
 		clusterToWorks[work.Namespace+"/"+cluster] = append(clusterToWorks[cluster], work)
@@ -367,15 +367,15 @@ func (rv *Controller) getClustersToWorks(view *v1alpha1.ResourceView) (map[strin
 }
 
 func (rv *Controller) updateViewStatus(
-	oldview *v1alpha1.ResourceView,
+	oldview *v1beta1.ResourceView,
 	clusters []*clusterv1alpha1.Cluster,
-	clusterToWorks map[string][]*v1alpha1.Work,
+	clusterToWorks map[string][]*v1beta1.Work,
 ) error {
 	view := oldview.DeepCopy()
 	status := oldview.Status.DeepCopy()
 
 	// skip update if view is done.
-	if getViewCondition(view).Type == v1alpha1.WorkCompleted {
+	if getViewCondition(view).Type == v1beta1.WorkCompleted {
 		return nil
 	}
 
@@ -394,10 +394,10 @@ func (rv *Controller) updateViewStatus(
 		finishedWorkNum++
 	}
 
-	if view.Spec.Mode == v1alpha1.PeriodicResourceUpdate {
-		status.Conditions = createViewContidion(view, v1alpha1.WorkProcessing)
+	if view.Spec.Mode == v1beta1.PeriodicResourceUpdate {
+		status.Conditions = createViewContidion(view, v1beta1.WorkProcessing)
 	} else if len(clusters) <= finishedWorkNum {
-		status.Conditions = createViewContidion(view, v1alpha1.WorkCompleted)
+		status.Conditions = createViewContidion(view, v1beta1.WorkCompleted)
 	}
 
 	if len(status.Conditions) == 0 {
@@ -413,17 +413,17 @@ func (rv *Controller) updateViewStatus(
 }
 
 func (rv *Controller) retryUpdateViewStatus(
-	view *v1alpha1.ResourceView, status *v1alpha1.ResourceViewStatus) error {
+	view *v1beta1.ResourceView, status *v1beta1.ResourceViewStatus) error {
 	// don't wait due to limited number of clients, but backoff after the default number of steps
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		view.Status = *status
-		_, updateErr := rv.hcmclientset.McmV1alpha1().ResourceViews(view.Namespace).UpdateStatus(view)
+		_, updateErr := rv.hcmclientset.McmV1beta1().ResourceViews(view.Namespace).UpdateStatus(view)
 		if updateErr == nil {
 			return nil
 		}
 
 		fieldSelector := fields.OneTermEqualSelector("metadata.name", view.Name).String()
-		viewlist, err := rv.hcmclientset.McmV1alpha1().ResourceViews(view.Namespace).List(metav1.ListOptions{FieldSelector: fieldSelector})
+		viewlist, err := rv.hcmclientset.McmV1beta1().ResourceViews(view.Namespace).List(metav1.ListOptions{FieldSelector: fieldSelector})
 		if err != nil || len(viewlist.Items) != 1 {
 			utilruntime.HandleError(fmt.Errorf("error getting updated resourceview %s/%s from lister: %v", view.Namespace, view.Name, err))
 		} else {
@@ -448,9 +448,9 @@ func (rv *Controller) enqueueView(obj interface{}) {
 }
 
 func (rv *Controller) addWork(obj interface{}) {
-	work := obj.(*v1alpha1.Work)
+	work := obj.(*v1beta1.Work)
 
-	if work.Spec.Type != v1alpha1.ResourceWorkType {
+	if work.Spec.Type != v1beta1.ResourceWorkType {
 		return
 	}
 
@@ -460,31 +460,31 @@ func (rv *Controller) addWork(obj interface{}) {
 }
 
 func (rv *Controller) updateWork(oldObj, newObj interface{}) {
-	newWork := newObj.(*v1alpha1.Work)
-	oldWork := oldObj.(*v1alpha1.Work)
+	newWork := newObj.(*v1beta1.Work)
+	oldWork := oldObj.(*v1beta1.Work)
 
-	if newWork.Spec.Type != v1alpha1.ResourceWorkType {
+	if newWork.Spec.Type != v1beta1.ResourceWorkType {
 		return
 	}
 
 	// enqueu work if it is in processing state
-	if newWork.Status.Type == v1alpha1.WorkProcessing {
+	if newWork.Status.Type == v1beta1.WorkProcessing {
 		rv.enqueueViewFromWork(newWork)
 	}
 
 	// enqueu work if it is transfer from pending to completed or failed
-	if (newWork.Status.Type == v1alpha1.WorkCompleted || newWork.Status.Type == v1alpha1.WorkFailed) && oldWork.Status.Type == "" {
+	if (newWork.Status.Type == v1beta1.WorkCompleted || newWork.Status.Type == v1beta1.WorkFailed) && oldWork.Status.Type == "" {
 		rv.enqueueViewFromWork(newWork)
 	}
 }
 
 func (rv *Controller) deleteWork(old interface{}) {
-	oldWork := old.(*v1alpha1.Work)
-	if oldWork.Spec.Type != v1alpha1.ResourceWorkType {
+	oldWork := old.(*v1beta1.Work)
+	if oldWork.Spec.Type != v1beta1.ResourceWorkType {
 		return
 	}
 
-	if oldWork.Status.Type != v1alpha1.WorkCompleted {
+	if oldWork.Status.Type != v1beta1.WorkCompleted {
 		rv.enqueueViewFromWork(oldWork)
 	}
 }
@@ -504,13 +504,13 @@ func (rv *Controller) updateCluster(oldObj, newObj interface{}) {
 			continue
 		}
 
-		if getViewCondition(view).Type != v1alpha1.WorkCompleted {
+		if getViewCondition(view).Type != v1beta1.WorkCompleted {
 			rv.enqueueView(view)
 		}
 	}
 }
 
-func (rv *Controller) updateWorkByView(view *v1alpha1.ResourceView, work *v1alpha1.Work) (*v1alpha1.Work, bool) {
+func (rv *Controller) updateWorkByView(view *v1beta1.ResourceView, work *v1beta1.Work) (*v1beta1.Work, bool) {
 	update := false
 	updateWork := work.DeepCopy()
 
@@ -557,7 +557,7 @@ func (rv *Controller) updateWorkByView(view *v1alpha1.ResourceView, work *v1alph
 	return updateWork, update
 }
 
-func (rv *Controller) enqueueViewFromWork(work *v1alpha1.Work) {
+func (rv *Controller) enqueueViewFromWork(work *v1beta1.Work) {
 	key, ok := work.Labels[mcm.ViewLabel]
 	if !ok {
 		return
@@ -572,7 +572,7 @@ func (rv *Controller) enqueueViewFromWork(work *v1alpha1.Work) {
 	rv.workqueue.Add(key)
 }
 
-func (rv *Controller) needsUpdate(oldview, newview *v1alpha1.ResourceView) bool {
+func (rv *Controller) needsUpdate(oldview, newview *v1beta1.ResourceView) bool {
 	// If it has a ControllerRef, that's all that matters.
 	if oldview.Spec.Mode != newview.Spec.Mode {
 		return true
@@ -589,7 +589,7 @@ func (rv *Controller) needsUpdate(oldview, newview *v1alpha1.ResourceView) bool 
 	return !equalResourceViewSpec(oldview.Spec.Scope, newview.Spec.Scope)
 }
 
-func equalResourceViewSpec(oldscope, newscope v1alpha1.ViewFilter) bool {
+func equalResourceViewSpec(oldscope, newscope v1beta1.ViewFilter) bool {
 	if oldscope.APIGroup != newscope.APIGroup {
 		return false
 	}
@@ -617,21 +617,21 @@ func equalResourceViewSpec(oldscope, newscope v1alpha1.ViewFilter) bool {
 	return true
 }
 
-func getViewCondition(view *v1alpha1.ResourceView) v1alpha1.ViewCondition {
+func getViewCondition(view *v1beta1.ResourceView) v1beta1.ViewCondition {
 	if len(view.Status.Conditions) == 0 {
-		return v1alpha1.ViewCondition{}
+		return v1beta1.ViewCondition{}
 	}
 
 	return view.Status.Conditions[len(view.Status.Conditions)-1]
 }
 
-func createViewContidion(view *v1alpha1.ResourceView, conditionType v1alpha1.WorkStatusType) []v1alpha1.ViewCondition {
+func createViewContidion(view *v1beta1.ResourceView, conditionType v1beta1.WorkStatusType) []v1beta1.ViewCondition {
 	conditions := view.Status.Conditions
 	if conditions == nil {
-		conditions = []v1alpha1.ViewCondition{}
+		conditions = []v1beta1.ViewCondition{}
 	}
 
-	condition := v1alpha1.ViewCondition{
+	condition := v1beta1.ViewCondition{
 		Type:           conditionType,
 		LastUpdateTime: metav1.Now(),
 	}

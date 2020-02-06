@@ -11,11 +11,11 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 )
 
 // EqualWorkSpec checks if two work specs are equal
-func EqualWorkSpec(spec1 *v1alpha1.WorkSpec, spec2 *v1alpha1.WorkSpec) bool {
+func EqualWorkSpec(spec1 *v1beta1.WorkSpec, spec2 *v1beta1.WorkSpec) bool {
 	if spec1 == spec2 {
 		return true
 	}
@@ -46,16 +46,16 @@ func EqualWorkSpec(spec1 *v1alpha1.WorkSpec, spec2 *v1alpha1.WorkSpec) bool {
 	return true
 }
 
-func EqualHelmWork(f1 *v1alpha1.HelmWorkSpec, f2 *v1alpha1.HelmWorkSpec) bool {
+func EqualHelmWork(f1 *v1beta1.HelmWorkSpec, f2 *v1beta1.HelmWorkSpec) bool {
 	return reflect.DeepEqual(f1, f2)
 }
 
-func EqualKubeWork(f1 *v1alpha1.KubeWorkSpec, f2 *v1alpha1.KubeWorkSpec) bool {
+func EqualKubeWork(f1 *v1beta1.KubeWorkSpec, f2 *v1beta1.KubeWorkSpec) bool {
 	return reflect.DeepEqual(f1, f2)
 }
 
 // EqualWorkScope checks if two work scope are equal
-func EqualWorkScope(f1 *v1alpha1.ResourceFilter, f2 *v1alpha1.ResourceFilter) bool {
+func EqualWorkScope(f1 *v1beta1.ResourceFilter, f2 *v1beta1.ResourceFilter) bool {
 	return reflect.DeepEqual(f1, f2)
 }
 

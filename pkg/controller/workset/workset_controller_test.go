@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
-	v1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
 	clusterfake "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset/fake"
 	clusterinformers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
@@ -49,8 +49,8 @@ func newTestController() (*workSetController, *fake.Clientset) {
 	return &workSetController{
 		rvc,
 		clusterInformerFactory.Clusterregistry().V1alpha1().Clusters().Informer().GetStore(),
-		informerFactory.Mcm().V1alpha1().WorkSets().Informer().GetStore(),
-		informerFactory.Mcm().V1alpha1().Works().Informer().GetStore(),
+		informerFactory.Mcm().V1beta1().WorkSets().Informer().GetStore(),
+		informerFactory.Mcm().V1beta1().Works().Informer().GetStore(),
 	}, clientset
 }
 
@@ -71,24 +71,24 @@ func newCluster(name, namespace string, status clusterv1alpha1.ClusterConditionT
 	}
 }
 
-func newWorkset(name, namespace string) *v1alpha1.WorkSet {
-	return &v1alpha1.WorkSet{
+func newWorkset(name, namespace string) *v1beta1.WorkSet {
+	return &v1beta1.WorkSet{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: v1alpha1.WorkSetSpec{
-			Template: v1alpha1.WorkTemplateSpec{
-				Spec: v1alpha1.WorkSpec{
-					Type: v1alpha1.ActionWorkType,
+		Spec: v1beta1.WorkSetSpec{
+			Template: v1beta1.WorkTemplateSpec{
+				Spec: v1beta1.WorkSpec{
+					Type: v1beta1.ActionWorkType,
 				},
 			},
 		},
 	}
 }
 
-func newWork(name, namespace, cluster, worksetName, worksetNamespace string) *v1alpha1.Work {
-	return &v1alpha1.Work{
+func newWork(name, namespace, cluster, worksetName, worksetNamespace string) *v1beta1.Work {
+	return &v1beta1.Work{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -96,8 +96,8 @@ func newWork(name, namespace, cluster, worksetName, worksetNamespace string) *v1
 				mcm.WorkSetLabel: worksetNamespace + "." + worksetName,
 			},
 		},
-		Spec: v1alpha1.WorkSpec{
-			Type:    v1alpha1.ActionWorkType,
+		Spec: v1beta1.WorkSpec{
+			Type:    v1beta1.ActionWorkType,
 			Cluster: corev1.LocalObjectReference{Name: cluster},
 		},
 	}
@@ -106,7 +106,7 @@ func newWork(name, namespace, cluster, worksetName, worksetNamespace string) *v1
 func syncAndValidateWorkset(
 	t *testing.T, manager *workSetController,
 	client *fake.Clientset,
-	workset *v1alpha1.WorkSet,
+	workset *v1beta1.WorkSet,
 	verb string,
 	expectedCreates int,
 ) {
@@ -187,7 +187,7 @@ func TestWorksShouldBeOnClusters(t *testing.T) {
 	clusters := []*clusterv1alpha1.Cluster{cluster1, cluster2}
 	workset := newWorkset("workset1", "workset1")
 
-	clusterToWorks := map[string][]*v1alpha1.Work{}
+	clusterToWorks := map[string][]*v1beta1.Work{}
 	clustersNeedingWorks, _, _ := manager.worksShouldBeOnClusters(workset, clusterToWorks, clusters)
 
 	if len(clustersNeedingWorks) != 2 {
@@ -228,7 +228,7 @@ func TestAddWork(t *testing.T) {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 0)
 	}
 
-	work.Status.Type = v1alpha1.WorkCompleted
+	work.Status.Type = v1beta1.WorkCompleted
 	manager.addWork(work)
 	if manager.workqueue.Len() != 1 {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 1)
@@ -244,14 +244,14 @@ func TestUpdateWork(t *testing.T) {
 	}
 
 	newwork := work.DeepCopy()
-	newwork.Status.Type = v1alpha1.WorkCompleted
+	newwork.Status.Type = v1beta1.WorkCompleted
 	manager.updateWork(work, newwork)
 	if manager.workqueue.Len() != 1 {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 1)
 	}
 	work2 := newWork("work2", "work2", "cluster2", "view2", "view2")
 	newwork2 := work2.DeepCopy()
-	newwork2.Status.Type = v1alpha1.WorkFailed
+	newwork2.Status.Type = v1beta1.WorkFailed
 	manager.updateWork(work2, newwork2)
 	if manager.workqueue.Len() != 2 {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 2)
@@ -266,7 +266,7 @@ func TestDeleteWork(t *testing.T) {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 1)
 	}
 
-	work.Status.Type = v1alpha1.WorkCompleted
+	work.Status.Type = v1beta1.WorkCompleted
 	manager.addWork(work)
 	if manager.workqueue.Len() != 1 {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 1)

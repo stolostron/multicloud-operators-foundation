@@ -18,7 +18,7 @@
 package helm
 
 import (
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 
 	"k8s.io/klog"
 
@@ -48,7 +48,7 @@ func NewFakeHelmControl(helmclient helm.Interface) *FakeHelmControl {
 func (hc *FakeHelmControl) CreateHelmRelease(
 	releaseName string,
 	helmreponNamespace string,
-	helmspec v1alpha1.HelmWorkSpec) (*rls.InstallReleaseResponse, error) {
+	helmspec v1beta1.HelmWorkSpec) (*rls.InstallReleaseResponse, error) {
 	chart := &chart.Chart{}
 	rls, err := hc.helmclient.InstallReleaseFromChart(
 		chart,
@@ -66,7 +66,7 @@ func (hc *FakeHelmControl) CreateHelmRelease(
 func (hc *FakeHelmControl) UpdateHelmRelease(
 	releaseName string,
 	helmreponNamespace string,
-	helmspec v1alpha1.HelmWorkSpec) (*rls.UpdateReleaseResponse, error) {
+	helmspec v1beta1.HelmWorkSpec) (*rls.UpdateReleaseResponse, error) {
 	resp, err := hc.helmclient.UpdateRelease(
 		releaseName,
 		"",

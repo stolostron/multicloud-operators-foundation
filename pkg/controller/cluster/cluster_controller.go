@@ -22,7 +22,7 @@ import (
 	informers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
 	listers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_listers_generated/clusterregistry/v1alpha1"
 	hcminformers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
-	hcmlisters "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/listers_generated/mcm/v1alpha1"
+	hcmlisters "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/listers_generated/mcm/v1beta1"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 )
@@ -53,7 +53,7 @@ func NewController(
 	healthCheckPeriod time.Duration,
 	stopCh <-chan struct{}) *Controller {
 	clusterInformer := informerFactory.Clusterregistry().V1alpha1().Clusters()
-	hcmWorkInformer := hcmInformerFactory.Mcm().V1alpha1().Works()
+	hcmWorkInformer := hcmInformerFactory.Mcm().V1beta1().Works()
 	controller := &Controller{
 		hcmClientset:      hcmClientset,
 		clusterclientset:  clusterclientset,
