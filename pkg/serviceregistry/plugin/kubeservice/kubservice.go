@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry/app/options"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/serviceregistry/plugin"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/serviceregistry/utils"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/serviceregistry/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/serviceregistry/plugin"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/serviceregistry/utils"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"

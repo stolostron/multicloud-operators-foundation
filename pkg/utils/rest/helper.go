@@ -161,7 +161,6 @@ func ParseUserGroup(groupEncoded string) (groups []string) {
 					userGroups = append(userGroups, newGroup)
 				}
 			}
-
 		} else if strings.HasPrefix(groupArray[i], "system:") {
 			userGroups = append(userGroups, groupArray[i])
 		}

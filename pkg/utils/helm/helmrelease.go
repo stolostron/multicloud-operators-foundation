@@ -14,21 +14,21 @@ package helm
 import (
 	"time"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/helm/pkg/proto/hapi/release"
 )
 
-// ConvertHelmReleaseFromRelease convert release to v1alpha1 releases
-func ConvertHelmReleaseFromRelease(rls *release.Release) v1alpha1.HelmRelease {
+// ConvertHelmReleaseFromRelease convert release to v1beta1 releases
+func ConvertHelmReleaseFromRelease(rls *release.Release) v1beta1.HelmRelease {
 	md := rls.GetChart().GetMetadata()
 	firstDeployedSecs := rls.GetInfo().GetFirstDeployed().GetSeconds()
 	lastDeployedSecs := rls.GetInfo().GetLastDeployed().GetSeconds()
-	rl := v1alpha1.HelmRelease{
+	rl := v1beta1.HelmRelease{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: rls.GetName(),
 		},
-		Spec: v1alpha1.HelmReleaseSpec{
+		Spec: v1beta1.HelmReleaseSpec{
 			Namespace:     rls.GetNamespace(),
 			Version:       rls.GetVersion(),
 			Status:        rls.GetInfo().GetStatus().GetCode().String(),

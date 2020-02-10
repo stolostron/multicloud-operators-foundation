@@ -14,7 +14,7 @@ import (
 )
 
 func TestDefaultAPIResourceConfigSource(t *testing.T) {
-	var rc1 = map[schema.GroupVersion]bool{{"mcm.ibm.com", "v1alpha1"}: true, {"clusterregistry.k8s.io", "v1alpha1"}: true}
+	var rc1 = map[schema.GroupVersion]bool{{"mcm.ibm.com", "v1beta1"}: true, {"mcm.ibm.com", "v1alpha1"}: true, {"clusterregistry.k8s.io", "v1alpha1"}: true}
 
 	tests := []struct {
 		name string

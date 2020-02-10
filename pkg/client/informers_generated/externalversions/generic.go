@@ -11,7 +11,8 @@ package externalversions
 import (
 	"fmt"
 
-	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	v1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	v1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
@@ -57,6 +58,18 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Mcm().V1alpha1().Works().Informer()}, nil
 	case v1alpha1.SchemeGroupVersion.WithResource("worksets"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Mcm().V1alpha1().WorkSets().Informer()}, nil
+
+		// Group=mcm.ibm.com, Version=v1beta1
+	case v1beta1.SchemeGroupVersion.WithResource("clusterjoinrequests"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Mcm().V1beta1().ClusterJoinRequests().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("clusterstatuses"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Mcm().V1beta1().ClusterStatuses().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("resourceviews"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Mcm().V1beta1().ResourceViews().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("works"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Mcm().V1beta1().Works().Informer()}, nil
+	case v1beta1.SchemeGroupVersion.WithResource("worksets"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Mcm().V1beta1().WorkSets().Informer()}, nil
 
 	}
 

@@ -24,7 +24,7 @@ package storage
 import (
 	"context"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/printers"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/printers"
 	metav1beta1 "k8s.io/apimachinery/pkg/apis/meta/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 )

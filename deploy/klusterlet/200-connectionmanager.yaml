@@ -19,7 +19,7 @@ spec:
       serviceAccountName: klusterlet-sa
       containers:
         - name: mcm-connectionmanager
-          image: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet-connectionmanager
+          image: github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet-connectionmanager
           args:
             - "/klusterlet-connectionmanager"
             - "--bootstrap-secret=default/klusterlet-bootstrap"

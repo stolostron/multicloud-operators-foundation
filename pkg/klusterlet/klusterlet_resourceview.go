@@ -11,16 +11,16 @@ import (
 	"encoding/json"
 	"reflect"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
-	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils"
-	helmutil "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/helm"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	helmutil "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/helm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	helmrelease "k8s.io/helm/pkg/proto/hapi/release"
 )
 
-func (k *Klusterlet) handleResourceWork(work *v1alpha1.Work) error {
+func (k *Klusterlet) handleResourceWork(work *v1beta1.Work) error {
 	result, err := k.queryResource(work.Spec.Scope)
 	// Post work result
 	if err == nil && result != nil {
@@ -48,7 +48,7 @@ func (k *Klusterlet) handleResourceWork(work *v1alpha1.Work) error {
 			return decerr
 		}
 
-		rvResult := &v1alpha1.ResourceViewResult{
+		rvResult := &v1beta1.ResourceViewResult{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      work.Name,
 				Namespace: work.Namespace,
@@ -80,16 +80,16 @@ func (k *Klusterlet) handleResourceWork(work *v1alpha1.Work) error {
 		return k.updateFailedStatus(work, err)
 	}
 
-	if work.Spec.Scope.Mode == v1alpha1.PeriodicResourceUpdate {
-		work.Status.Type = v1alpha1.WorkProcessing
+	if work.Spec.Scope.Mode == v1beta1.PeriodicResourceUpdate {
+		work.Status.Type = v1beta1.WorkProcessing
 	} else {
-		work.Status.Type = v1alpha1.WorkCompleted
+		work.Status.Type = v1beta1.WorkCompleted
 	}
 
 	work.Status.LastUpdateTime = metav1.Now()
 	// Clean up work reason
 	work.Status.Reason = ""
-	_, err = k.hcmclientset.McmV1alpha1().Works(k.config.ClusterNamespace).UpdateStatus(work)
+	_, err = k.hcmclientset.McmV1beta1().Works(k.config.ClusterNamespace).UpdateStatus(work)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (k *Klusterlet) handleResourceWork(work *v1alpha1.Work) error {
 	return nil
 }
 
-func (k *Klusterlet) queryResource(scope v1alpha1.ResourceFilter) (runtime.Object, error) {
+func (k *Klusterlet) queryResource(scope v1beta1.ResourceFilter) (runtime.Object, error) {
 	labelSelector, err := utils.ConvertLabels(scope.LabelSelector)
 	if err != nil {
 		return nil, err
@@ -105,8 +105,8 @@ func (k *Klusterlet) queryResource(scope v1alpha1.ResourceFilter) (runtime.Objec
 
 	fieldSelector := scope.FieldSelector
 
-	if scope.ResourceType == v1alpha1.ResourceReleases {
-		releaselists := []v1alpha1.HelmRelease{}
+	if scope.ResourceType == v1beta1.ResourceReleases {
+		releaselists := []v1beta1.HelmRelease{}
 		if k.helmControl != nil {
 			statusCode := []helmrelease.Status_Code{
 				helmrelease.Status_UNKNOWN,
@@ -133,14 +133,14 @@ func (k *Klusterlet) queryResource(scope v1alpha1.ResourceFilter) (runtime.Objec
 		}
 
 		if scope.ServerPrint {
-			releaseTable, relerr := helmutil.PrintReleaseTable(&v1alpha1.ResultHelmList{Items: releaselists})
+			releaseTable, relerr := helmutil.PrintReleaseTable(&v1beta1.ResultHelmList{Items: releaselists})
 			if relerr != nil {
 				return nil, relerr
 			}
 			return releaseTable, nil
 		}
 
-		return &v1alpha1.ResultHelmList{Items: releaselists}, nil
+		return &v1beta1.ResultHelmList{Items: releaselists}, nil
 	}
 
 	var obj runtime.Object

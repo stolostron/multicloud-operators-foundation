@@ -9,9 +9,9 @@
 package fake
 
 import (
-	clientset "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset"
-	mcminternalversion "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset/typed/mcm/internalversion"
-	fakemcminternalversion "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset/typed/mcm/internalversion/fake"
+	clientset "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset"
+	mcminternalversion "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset/typed/mcm/internalversion"
+	fakemcminternalversion "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset/typed/mcm/internalversion/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

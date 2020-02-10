@@ -38,6 +38,22 @@ spec:
 apiVersion: apiregistration.k8s.io/v1
 kind: APIService
 metadata:
+  name: v1beta1.mcm.ibm.com
+spec:
+  group: mcm.ibm.com
+  version: v1beta1
+  service:
+    namespace: multicloud-system
+    name: mcm-apiserver
+  insecureSkipTLSVerify: true
+  groupPriorityMinimum: 10000
+  versionPriority: 20
+
+---
+
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
   name: v1alpha1.clusterregistry.k8s.io
 spec:
   group: clusterregistry.k8s.io
@@ -71,7 +87,7 @@ spec:
       serviceAccountName: hub-sa
       containers:
       - name: mcm-apiserver
-        image: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/mcm-apiserver
+        image: github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-apiserver
         imagePullPolicy: IfNotPresent
         env:
         - name: MYHUBNAME

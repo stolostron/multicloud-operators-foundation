@@ -6,9 +6,9 @@
 package drivers
 
 import (
+	kubelogdriver "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/drivers/kube"
+	prometheus "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/drivers/prometheus"
 	"github.com/spf13/pflag"
-	kubelogdriver "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/drivers/kube"
-	prometheus "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/drivers/prometheus"
 )
 
 type DriverFactoryOptions struct {

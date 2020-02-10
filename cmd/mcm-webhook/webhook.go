@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/mattbaird/jsonpatch"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/mcm-webhook/options"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/plugin/pkg/useridentity"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-webhook/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/plugin/pkg/useridentity"
 	"k8s.io/api/admission/v1beta1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -9,9 +9,11 @@
 package fake
 
 import (
-	clientset "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
-	mcmv1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1alpha1"
-	fakemcmv1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1alpha1/fake"
+	clientset "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
+	mcmv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1alpha1"
+	fakemcmv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1alpha1/fake"
+	mcmv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1beta1"
+	fakemcmv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/typed/mcm/v1beta1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"
@@ -66,7 +68,12 @@ func (c *Clientset) McmV1alpha1() mcmv1alpha1.McmV1alpha1Interface {
 	return &fakemcmv1alpha1.FakeMcmV1alpha1{Fake: &c.Fake}
 }
 
-// Mcm retrieves the McmV1alpha1Client
-func (c *Clientset) Mcm() mcmv1alpha1.McmV1alpha1Interface {
-	return &fakemcmv1alpha1.FakeMcmV1alpha1{Fake: &c.Fake}
+// McmV1beta1 retrieves the McmV1beta1Client
+func (c *Clientset) McmV1beta1() mcmv1beta1.McmV1beta1Interface {
+	return &fakemcmv1beta1.FakeMcmV1beta1{Fake: &c.Fake}
+}
+
+// Mcm retrieves the McmV1beta1Client
+func (c *Clientset) Mcm() mcmv1beta1.McmV1beta1Interface {
+	return &fakemcmv1beta1.FakeMcmV1beta1{Fake: &c.Fake}
 }

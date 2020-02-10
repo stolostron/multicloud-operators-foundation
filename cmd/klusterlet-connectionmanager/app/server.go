@@ -6,10 +6,10 @@
 package app
 
 import (
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet-connectionmanager/app/options"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/genericoptions"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/manager"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/leaderelection"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet-connectionmanager/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/genericoptions"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/manager"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/leaderelection"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 )

@@ -9,7 +9,7 @@ package storage
 import (
 	"fmt"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/storage/mongo"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/storage/mongo"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apiserver/pkg/storage"
 )

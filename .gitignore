@@ -6,3 +6,5 @@ vendor
 generate_exes
 generate_files
 .idea
+.ko.yaml
+

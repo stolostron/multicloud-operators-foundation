@@ -8,11 +8,11 @@ package etcd
 import (
 	"context"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/printers"
-	printersinternal "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/printers/internalversion"
-	printerstorage "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/printers/storage"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/registry/mcm/workset"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/printers"
+	printersinternal "github.com/open-cluster-management/multicloud-operators-foundation/pkg/printers/internalversion"
+	printerstorage "github.com/open-cluster-management/multicloud-operators-foundation/pkg/printers/storage"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/registry/mcm/workset"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/registry/generic"

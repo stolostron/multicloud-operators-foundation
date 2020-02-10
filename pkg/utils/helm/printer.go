@@ -14,7 +14,7 @@ package helm
 import (
 	"time"
 
-	hcmv1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	mcmv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1beta1 "k8s.io/apimachinery/pkg/apis/meta/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -22,7 +22,7 @@ import (
 )
 
 // PrintReleaseTable print release table
-func PrintReleaseTable(list *hcmv1alpha1.ResultHelmList) (*metav1beta1.Table, error) {
+func PrintReleaseTable(list *mcmv1beta1.ResultHelmList) (*metav1beta1.Table, error) {
 	rows, err := PrintReleaseList(list)
 	if err != nil {
 		return nil, err
@@ -46,7 +46,7 @@ func PrintReleaseTable(list *hcmv1alpha1.ResultHelmList) (*metav1beta1.Table, er
 }
 
 // PrintRelease print a single release
-func PrintRelease(obj *hcmv1alpha1.HelmRelease) ([]metav1beta1.TableRow, error) {
+func PrintRelease(obj *mcmv1beta1.HelmRelease) ([]metav1beta1.TableRow, error) {
 	row := metav1beta1.TableRow{
 		Object: runtime.RawExtension{Object: obj},
 	}
@@ -57,7 +57,7 @@ func PrintRelease(obj *hcmv1alpha1.HelmRelease) ([]metav1beta1.TableRow, error) 
 }
 
 // PrintReleaseList print a release list
-func PrintReleaseList(list *hcmv1alpha1.ResultHelmList) ([]metav1beta1.TableRow, error) {
+func PrintReleaseList(list *mcmv1beta1.ResultHelmList) ([]metav1beta1.TableRow, error) {
 	rows := make([]metav1beta1.TableRow, 0, len(list.Items))
 	for i := range list.Items {
 		r, err := PrintRelease(&list.Items[i])

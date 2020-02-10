@@ -9,7 +9,7 @@
 package fake
 
 import (
-	mcminternalversion "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
+	mcminternalversion "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

@@ -9,7 +9,7 @@
 package internalversion
 
 import (
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset/scheme"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
-	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
-	clusterfake "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset/fake"
-	clusterinformers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
-	informers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
+	clusterfake "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset/fake"
+	clusterinformers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
+	informers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"
@@ -48,8 +48,8 @@ func newTestController() (*resourceViewController, *fake.Clientset) {
 	return &resourceViewController{
 		rvc,
 		clusterInformerFactory.Clusterregistry().V1alpha1().Clusters().Informer().GetStore(),
-		informerFactory.Mcm().V1alpha1().ResourceViews().Informer().GetStore(),
-		informerFactory.Mcm().V1alpha1().Works().Informer().GetStore(),
+		informerFactory.Mcm().V1beta1().ResourceViews().Informer().GetStore(),
+		informerFactory.Mcm().V1beta1().Works().Informer().GetStore(),
 	}, clientset
 }
 
@@ -71,18 +71,18 @@ func newCluster(
 	}
 }
 
-func newView() *v1alpha1.ResourceView {
-	return &v1alpha1.ResourceView{
+func newView() *v1beta1.ResourceView {
+	return &v1beta1.ResourceView{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "view1",
 			Namespace: "view1",
 		},
-		Spec: v1alpha1.ResourceViewSpec{},
+		Spec: v1beta1.ResourceViewSpec{},
 	}
 }
 
-func newWork(name, namespace, cluster, view, viewNamespace string) *v1alpha1.Work {
-	return &v1alpha1.Work{
+func newWork(name, namespace, cluster, view, viewNamespace string) *v1beta1.Work {
+	return &v1beta1.Work{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -90,7 +90,7 @@ func newWork(name, namespace, cluster, view, viewNamespace string) *v1alpha1.Wor
 				mcm.ViewLabel: viewNamespace + "." + view,
 			},
 		},
-		Spec: v1alpha1.WorkSpec{
+		Spec: v1beta1.WorkSpec{
 			Cluster: corev1.LocalObjectReference{Name: cluster},
 		},
 	}
@@ -99,7 +99,7 @@ func newWork(name, namespace, cluster, view, viewNamespace string) *v1alpha1.Wor
 func syncAndValidateView(
 	t *testing.T, manager *resourceViewController,
 	client *fake.Clientset,
-	view *v1alpha1.ResourceView,
+	view *v1beta1.ResourceView,
 	verb string,
 	expectedCreates int,
 ) {
@@ -155,8 +155,8 @@ func TestUpdateWorkByView(t *testing.T) {
 	manager, _ := newTestController()
 
 	type args struct {
-		view *v1alpha1.ResourceView
-		work *v1alpha1.Work
+		view *v1beta1.ResourceView
+		work *v1beta1.Work
 	}
 
 	tests := []struct {
@@ -167,24 +167,24 @@ func TestUpdateWorkByView(t *testing.T) {
 		{
 			"case1:",
 			args{
-				&v1alpha1.ResourceView{},
-				&v1alpha1.Work{},
+				&v1beta1.ResourceView{},
+				&v1beta1.Work{},
 			},
 			false,
 		},
 		{
 			"case2:",
 			args{
-				&v1alpha1.ResourceView{Spec: v1alpha1.ResourceViewSpec{Mode: v1alpha1.PeriodicResourceUpdate}},
-				&v1alpha1.Work{},
+				&v1beta1.ResourceView{Spec: v1beta1.ResourceViewSpec{Mode: v1beta1.PeriodicResourceUpdate}},
+				&v1beta1.Work{},
 			},
 			true,
 		},
 		{
 			"case3:",
 			args{
-				&v1alpha1.ResourceView{Spec: v1alpha1.ResourceViewSpec{Scope: v1alpha1.ViewFilter{Resource: "pods", ResourceName: "pod1", NameSpace: "default"}}},
-				&v1alpha1.Work{Spec: v1alpha1.WorkSpec{Scope: v1alpha1.ResourceFilter{ResourceType: "nodes", Name: "node1"}}},
+				&v1beta1.ResourceView{Spec: v1beta1.ResourceViewSpec{Scope: v1beta1.ViewFilter{Resource: "pods", ResourceName: "pod1", NameSpace: "default"}}},
+				&v1beta1.Work{Spec: v1beta1.WorkSpec{Scope: v1beta1.ResourceFilter{ResourceType: "nodes", Name: "node1"}}},
 			},
 			true,
 		},
@@ -204,8 +204,8 @@ func TestNeedUpdate(t *testing.T) {
 	manager, _ := newTestController()
 
 	type args struct {
-		view1 *v1alpha1.ResourceView
-		view2 *v1alpha1.ResourceView
+		view1 *v1beta1.ResourceView
+		view2 *v1beta1.ResourceView
 	}
 
 	tests := []struct {
@@ -216,24 +216,24 @@ func TestNeedUpdate(t *testing.T) {
 		{
 			"case1:",
 			args{
-				&v1alpha1.ResourceView{},
-				&v1alpha1.ResourceView{},
+				&v1beta1.ResourceView{},
+				&v1beta1.ResourceView{},
 			},
 			false,
 		},
 		{
 			"case2:",
 			args{
-				&v1alpha1.ResourceView{Spec: v1alpha1.ResourceViewSpec{Mode: v1alpha1.PeriodicResourceUpdate}},
-				&v1alpha1.ResourceView{},
+				&v1beta1.ResourceView{Spec: v1beta1.ResourceViewSpec{Mode: v1beta1.PeriodicResourceUpdate}},
+				&v1beta1.ResourceView{},
 			},
 			true,
 		},
 		{
 			"case3:",
 			args{
-				&v1alpha1.ResourceView{Spec: v1alpha1.ResourceViewSpec{Scope: v1alpha1.ViewFilter{Resource: "pods", NameSpace: "ns1"}}},
-				&v1alpha1.ResourceView{Spec: v1alpha1.ResourceViewSpec{Scope: v1alpha1.ViewFilter{Resource: "pods", NameSpace: "ns2"}}},
+				&v1beta1.ResourceView{Spec: v1beta1.ResourceViewSpec{Scope: v1beta1.ViewFilter{Resource: "pods", NameSpace: "ns1"}}},
+				&v1beta1.ResourceView{Spec: v1beta1.ResourceViewSpec{Scope: v1beta1.ViewFilter{Resource: "pods", NameSpace: "ns2"}}},
 			},
 			true,
 		},
@@ -251,8 +251,8 @@ func TestNeedUpdate(t *testing.T) {
 
 func TestEqualResourceViewSpec(t *testing.T) {
 	type args struct {
-		spec1 v1alpha1.ViewFilter
-		spec2 v1alpha1.ViewFilter
+		spec1 v1beta1.ViewFilter
+		spec2 v1beta1.ViewFilter
 	}
 
 	tests := []struct {
@@ -263,40 +263,40 @@ func TestEqualResourceViewSpec(t *testing.T) {
 		{
 			"case1:",
 			args{
-				v1alpha1.ViewFilter{},
-				v1alpha1.ViewFilter{},
+				v1beta1.ViewFilter{},
+				v1beta1.ViewFilter{},
 			},
 			true,
 		},
 		{
 			"case2:",
 			args{
-				v1alpha1.ViewFilter{APIGroup: "v1alph1"},
-				v1alpha1.ViewFilter{APIGroup: "v1alph2"},
+				v1beta1.ViewFilter{APIGroup: "v1alph1"},
+				v1beta1.ViewFilter{APIGroup: "v1alph2"},
 			},
 			false,
 		},
 		{
 			"case3:",
 			args{
-				v1alpha1.ViewFilter{Resource: "pods"},
-				v1alpha1.ViewFilter{Resource: "secrets"},
+				v1beta1.ViewFilter{Resource: "pods"},
+				v1beta1.ViewFilter{Resource: "secrets"},
 			},
 			false,
 		},
 		{
 			"case4:",
 			args{
-				v1alpha1.ViewFilter{ResourceName: "pod1"},
-				v1alpha1.ViewFilter{ResourceName: "pod2"},
+				v1beta1.ViewFilter{ResourceName: "pod1"},
+				v1beta1.ViewFilter{ResourceName: "pod2"},
 			},
 			false,
 		},
 		{
 			"case5:",
 			args{
-				v1alpha1.ViewFilter{NameSpace: "namespace1"},
-				v1alpha1.ViewFilter{NameSpace: "namespace2"},
+				v1beta1.ViewFilter{NameSpace: "namespace1"},
+				v1beta1.ViewFilter{NameSpace: "namespace2"},
 			},
 			false,
 		},
@@ -314,45 +314,45 @@ func TestEqualResourceViewSpec(t *testing.T) {
 
 func TestGetViewConditionType(t *testing.T) {
 	type args struct {
-		view v1alpha1.ResourceView
+		view v1beta1.ResourceView
 	}
 
 	tests := []struct {
 		name string
 		args args
-		want v1alpha1.WorkStatusType
+		want v1beta1.WorkStatusType
 	}{
 		{
 			"case1:",
 			args{
-				v1alpha1.ResourceView{Status: v1alpha1.ResourceViewStatus{Conditions: []v1alpha1.ViewCondition{}}},
+				v1beta1.ResourceView{Status: v1beta1.ResourceViewStatus{Conditions: []v1beta1.ViewCondition{}}},
 			},
 			"",
 		},
 		{
 			"case2:",
 			args{
-				v1alpha1.ResourceView{},
+				v1beta1.ResourceView{},
 			},
 			"",
 		},
 		{
 			"case1:",
 			args{
-				v1alpha1.ResourceView{
-					Status: v1alpha1.ResourceViewStatus{
-						Conditions: []v1alpha1.ViewCondition{
+				v1beta1.ResourceView{
+					Status: v1beta1.ResourceViewStatus{
+						Conditions: []v1beta1.ViewCondition{
 							{
-								Type: v1alpha1.WorkProcessing,
+								Type: v1beta1.WorkProcessing,
 							},
 							{
-								Type: v1alpha1.WorkCompleted,
+								Type: v1beta1.WorkCompleted,
 							},
 						},
 					},
 				},
 			},
-			v1alpha1.WorkCompleted,
+			v1beta1.WorkCompleted,
 		},
 	}
 
@@ -393,7 +393,7 @@ func TestWorksShouldBeOnClusters(t *testing.T) {
 	clusters := []*clusterv1alpha1.Cluster{cluster1, cluster2}
 	view := newView()
 
-	clusterToWorks := map[string][]*v1alpha1.Work{}
+	clusterToWorks := map[string][]*v1beta1.Work{}
 	clustersNeedingWorks, _, _ := manager.worksShouldBeOnClusters(view, clusterToWorks, clusters)
 
 	if len(clustersNeedingWorks) != 2 {
@@ -428,19 +428,19 @@ func TestWorksShouldBeOnClusters(t *testing.T) {
 
 func TestCreateViewCondition(t *testing.T) {
 	view := newView()
-	conditions := createViewContidion(view, v1alpha1.WorkCompleted)
+	conditions := createViewContidion(view, v1beta1.WorkCompleted)
 	if len(conditions) != 1 {
 		t.Errorf("CreateViewCondition() conditions = %v, want %v", len(conditions), 1)
 	}
 
 	view.Status.Conditions = conditions
-	conditions = createViewContidion(view, v1alpha1.WorkFailed)
+	conditions = createViewContidion(view, v1beta1.WorkFailed)
 	if len(conditions) != 2 {
 		t.Errorf("CreateViewCondition() conditions = %v, want %v", len(conditions), 2)
 	}
 
 	view.Status.Conditions = conditions
-	conditions = createViewContidion(view, v1alpha1.WorkFailed)
+	conditions = createViewContidion(view, v1beta1.WorkFailed)
 	if len(conditions) != 2 {
 		t.Errorf("CreateViewCondition() conditions = %v, want %v", len(conditions), 2)
 	}
@@ -464,8 +464,8 @@ func TestAddWork(t *testing.T) {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 0)
 	}
 
-	work.Status.Type = v1alpha1.WorkCompleted
-	work.Spec.Type = v1alpha1.ResourceWorkType
+	work.Status.Type = v1beta1.WorkCompleted
+	work.Spec.Type = v1beta1.ResourceWorkType
 	manager.addWork(work)
 	if manager.workqueue.Len() != 1 {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 1)
@@ -480,19 +480,19 @@ func TestUpdateWork(t *testing.T) {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 0)
 	}
 
-	work.Spec.Type = v1alpha1.ResourceWorkType
+	work.Spec.Type = v1beta1.ResourceWorkType
 	newwork := work.DeepCopy()
-	newwork.Status.Type = v1alpha1.WorkCompleted
+	newwork.Status.Type = v1beta1.WorkCompleted
 	manager.updateWork(work, newwork)
 	if manager.workqueue.Len() != 1 {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 1)
 	}
 
 	work1 := newWork("work2", "work2", "cluster1", "view2", "view2")
-	work1.Spec.Type = v1alpha1.ResourceWorkType
-	work1.Status.Type = v1alpha1.WorkProcessing
+	work1.Spec.Type = v1beta1.ResourceWorkType
+	work1.Status.Type = v1beta1.WorkProcessing
 	newwork1 := work1.DeepCopy()
-	newwork1.Status.Type = v1alpha1.WorkProcessing
+	newwork1.Status.Type = v1beta1.WorkProcessing
 	manager.updateWork(work1, newwork1)
 	if manager.workqueue.Len() != 2 {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 2)
@@ -502,13 +502,13 @@ func TestUpdateWork(t *testing.T) {
 func TestDeleteWork(t *testing.T) {
 	manager, _ := newTestController()
 	work := newWork("work1", "work1", "cluster1", "view1", "view1")
-	work.Spec.Type = v1alpha1.ResourceWorkType
+	work.Spec.Type = v1beta1.ResourceWorkType
 	manager.deleteWork(work)
 	if manager.workqueue.Len() != 1 {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 1)
 	}
 
-	work.Status.Type = v1alpha1.WorkCompleted
+	work.Status.Type = v1beta1.WorkCompleted
 	manager.addWork(work)
 	if manager.workqueue.Len() != 1 {
 		t.Errorf("EnqueueAddWork() queue len = %v, want %v", manager.workqueue.Len(), 1)

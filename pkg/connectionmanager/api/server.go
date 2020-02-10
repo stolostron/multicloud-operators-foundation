@@ -8,7 +8,7 @@ package api
 import (
 	"fmt"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/common"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/common"
 	corev1 "k8s.io/api/core/v1"
 )
 

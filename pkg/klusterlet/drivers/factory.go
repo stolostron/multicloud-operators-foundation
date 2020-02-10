@@ -6,8 +6,8 @@
 package drivers
 
 import (
-	kubelogdriver "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/drivers/kube"
-	prometheus "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/drivers/prometheus"
+	kubelogdriver "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/drivers/kube"
+	prometheus "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/drivers/prometheus"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 )

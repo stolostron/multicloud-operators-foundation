@@ -11,8 +11,8 @@ package internalversion
 import (
 	"time"
 
-	mcm "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
-	scheme "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset/scheme"
+	mcm "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
+	scheme "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"

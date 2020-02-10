@@ -14,8 +14,8 @@ package options
 import (
 	"os"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/drivers"
 	"github.com/spf13/pflag"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/drivers"
 	"k8s.io/client-go/tools/clientcmd"
 )
 

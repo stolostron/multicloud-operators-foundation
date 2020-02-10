@@ -20,7 +20,7 @@ package helm
 import (
 	"testing"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 	"k8s.io/helm/pkg/helm"
 	helmrelease "k8s.io/helm/pkg/proto/hapi/release"
 )
@@ -28,7 +28,7 @@ import (
 func TestFakeHelmControl(t *testing.T) {
 	helmclient := &helm.FakeClient{}
 	helmcontrol := NewFakeHelmControl(helmclient)
-	helmspec := v1alpha1.HelmWorkSpec{
+	helmspec := v1beta1.HelmWorkSpec{
 		ReleaseName: "r1",
 		ChartURL:    "https://raw.githubusercontent.com/abdasgupta/helm-repo/master/3.1-mcm-guestbook/gbf-0.1.0.tgz",
 		Namespace:   "kube-system",

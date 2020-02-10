@@ -21,10 +21,10 @@ import (
 	"testing"
 	"time"
 
-	hcmv1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	hcmclientset "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
-	hcmfake "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/common"
+	hcmv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	hcmclientset "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
+	hcmfake "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/common"
 	csrv1beta1 "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -238,7 +238,7 @@ func TestRotateCert(t *testing.T) {
 	// approve cluster join request once it is created
 	var newCert []byte
 	err = wait.PollImmediateUntil(1*time.Second, func() (bool, error) {
-		cjrs, err := hcmClient.Mcm().ClusterJoinRequests().List(metav1.ListOptions{})
+		cjrs, err := hcmClient.McmV1alpha1().ClusterJoinRequests().List(metav1.ListOptions{})
 		if err != nil {
 			return false, nil
 		}

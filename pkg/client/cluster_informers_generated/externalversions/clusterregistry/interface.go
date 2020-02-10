@@ -9,8 +9,8 @@
 package clusterregistry
 
 import (
-	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions/clusterregistry/v1alpha1"
-	internalinterfaces "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions/internalinterfaces"
+	v1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions/clusterregistry/v1alpha1"
+	internalinterfaces "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions/internalinterfaces"
 )
 
 // Interface provides access to each of this group's versions.

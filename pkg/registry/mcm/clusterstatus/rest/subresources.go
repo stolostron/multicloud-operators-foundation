@@ -19,8 +19,8 @@ import (
 	"k8s.io/apiserver/pkg/registry/generic"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
-	klusterlet "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/client"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
+	klusterlet "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/client"
 )
 
 // LogREST implements the log endpoint for a Pod

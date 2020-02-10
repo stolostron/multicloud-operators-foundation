@@ -11,9 +11,9 @@ import (
 	"os"
 	"time"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet-connectionmanager/app"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet-connectionmanager/app/options"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/signals"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet-connectionmanager/app"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet-connectionmanager/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/signals"
 
 	"k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/apiserver/pkg/util/logs"

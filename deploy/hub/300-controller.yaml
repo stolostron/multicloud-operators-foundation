@@ -23,7 +23,7 @@ spec:
       serviceAccountName: hub-sa
       containers:
       - name: mcm-controller
-        image: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/mcm-controller
+        image: github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-controller
         imagePullPolicy: IfNotPresent
         args:
           - "/mcm-controller"

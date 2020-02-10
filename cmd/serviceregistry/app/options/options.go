@@ -8,8 +8,8 @@ package options
 import (
 	"sync"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/serviceregistry/plugin"
 	"github.com/spf13/pflag"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/serviceregistry/plugin"
 )
 
 // SvcRegistryOptions represents the service registry options

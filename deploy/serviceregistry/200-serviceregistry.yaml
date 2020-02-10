@@ -19,7 +19,7 @@ spec:
       serviceAccountName: klusterlet-sa
       containers:
       - name: mcm-serviceregistry
-        image: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry
+        image: github.com/open-cluster-management/multicloud-operators-foundation/cmd/serviceregistry
         args:
           - "/serviceregistry"
           - "--dns-suffix=mcm.svc"

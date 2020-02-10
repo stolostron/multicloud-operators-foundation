@@ -8,7 +8,7 @@ package rbac
 import (
 	"testing"
 
-	rbacv1helpers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/connectionmanager/common/rbac"
+	rbacv1helpers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/common/rbac"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubefake "k8s.io/client-go/kubernetes/fake"

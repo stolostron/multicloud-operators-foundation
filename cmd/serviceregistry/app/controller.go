@@ -11,12 +11,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/serviceregistry/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/serviceregistry/clients"
+	istioplugin "github.com/open-cluster-management/multicloud-operators-foundation/pkg/serviceregistry/plugin/istio"
+	kubeingressplugin "github.com/open-cluster-management/multicloud-operators-foundation/pkg/serviceregistry/plugin/kubeingress"
+	kubeserviceplugin "github.com/open-cluster-management/multicloud-operators-foundation/pkg/serviceregistry/plugin/kubeservice"
 	"github.com/spf13/cobra"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry/app/options"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/serviceregistry/clients"
-	istioplugin "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/serviceregistry/plugin/istio"
-	kubeingressplugin "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/serviceregistry/plugin/kubeingress"
-	kubeserviceplugin "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/serviceregistry/plugin/kubeservice"
 	"k8s.io/client-go/informers"
 )
 

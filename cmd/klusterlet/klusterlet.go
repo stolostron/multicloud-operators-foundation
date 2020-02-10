@@ -17,9 +17,9 @@ import (
 	"os"
 	"time"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet/app"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet/app/options"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/signals"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet/app"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/signals"
 	"k8s.io/apiserver/pkg/util/flag"
 	"k8s.io/apiserver/pkg/util/logs"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"

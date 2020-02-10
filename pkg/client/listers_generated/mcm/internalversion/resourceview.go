@@ -9,7 +9,7 @@
 package internalversion
 
 import (
-	mcm "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
+	mcm "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"

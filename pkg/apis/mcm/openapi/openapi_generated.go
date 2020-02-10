@@ -22,48 +22,79 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterConditionFilter":  schema_pkg_apis_mcm_v1alpha1_ClusterConditionFilter(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequest":      schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequest(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestList":  schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestSpec":  schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinStatus":       schema_pkg_apis_mcm_v1alpha1_ClusterJoinStatus(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterRestOptions":      schema_pkg_apis_mcm_v1alpha1_ClusterRestOptions(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatus":           schema_pkg_apis_mcm_v1alpha1_ClusterStatus(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusList":       schema_pkg_apis_mcm_v1alpha1_ClusterStatusList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusSpec":       schema_pkg_apis_mcm_v1alpha1_ClusterStatusSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmRelease":             schema_pkg_apis_mcm_v1alpha1_HelmRelease(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmReleaseSpec":         schema_pkg_apis_mcm_v1alpha1_HelmReleaseSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmWorkSpec":            schema_pkg_apis_mcm_v1alpha1_HelmWorkSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.KubeWorkSpec":            schema_pkg_apis_mcm_v1alpha1_KubeWorkSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBinding":        schema_pkg_apis_mcm_v1alpha1_PlacementBinding(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBindingList":    schema_pkg_apis_mcm_v1alpha1_PlacementBindingList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicy":         schema_pkg_apis_mcm_v1alpha1_PlacementPolicy(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyDecision": schema_pkg_apis_mcm_v1alpha1_PlacementPolicyDecision(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyList":     schema_pkg_apis_mcm_v1alpha1_PlacementPolicyList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyRef":      schema_pkg_apis_mcm_v1alpha1_PlacementPolicyRef(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicySpec":     schema_pkg_apis_mcm_v1alpha1_PlacementPolicySpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyStatus":   schema_pkg_apis_mcm_v1alpha1_PlacementPolicyStatus(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceFilter":          schema_pkg_apis_mcm_v1alpha1_ResourceFilter(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint":            schema_pkg_apis_mcm_v1alpha1_ResourceHint(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceView":            schema_pkg_apis_mcm_v1alpha1_ResourceView(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewList":        schema_pkg_apis_mcm_v1alpha1_ResourceViewList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResult":      schema_pkg_apis_mcm_v1alpha1_ResourceViewResult(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResultList":  schema_pkg_apis_mcm_v1alpha1_ResourceViewResultList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewSpec":        schema_pkg_apis_mcm_v1alpha1_ResourceViewSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewStatus":      schema_pkg_apis_mcm_v1alpha1_ResourceViewStatus(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResultHelmList":          schema_pkg_apis_mcm_v1alpha1_ResultHelmList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Subject":                 schema_pkg_apis_mcm_v1alpha1_Subject(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewCondition":           schema_pkg_apis_mcm_v1alpha1_ViewCondition(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewFilter":              schema_pkg_apis_mcm_v1alpha1_ViewFilter(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Work":                    schema_pkg_apis_mcm_v1alpha1_Work(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkList":                schema_pkg_apis_mcm_v1alpha1_WorkList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSet":                 schema_pkg_apis_mcm_v1alpha1_WorkSet(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetList":             schema_pkg_apis_mcm_v1alpha1_WorkSetList(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetSpec":             schema_pkg_apis_mcm_v1alpha1_WorkSetSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetStatus":           schema_pkg_apis_mcm_v1alpha1_WorkSetStatus(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec":                schema_pkg_apis_mcm_v1alpha1_WorkSpec(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkStatus":              schema_pkg_apis_mcm_v1alpha1_WorkStatus(ref),
-		"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkTemplateSpec":        schema_pkg_apis_mcm_v1alpha1_WorkTemplateSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterConditionFilter":  schema_pkg_apis_mcm_v1alpha1_ClusterConditionFilter(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequest":      schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequest(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestList":  schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestSpec":  schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinStatus":       schema_pkg_apis_mcm_v1alpha1_ClusterJoinStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterRestOptions":      schema_pkg_apis_mcm_v1alpha1_ClusterRestOptions(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatus":           schema_pkg_apis_mcm_v1alpha1_ClusterStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusList":       schema_pkg_apis_mcm_v1alpha1_ClusterStatusList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusSpec":       schema_pkg_apis_mcm_v1alpha1_ClusterStatusSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmRelease":             schema_pkg_apis_mcm_v1alpha1_HelmRelease(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmReleaseSpec":         schema_pkg_apis_mcm_v1alpha1_HelmReleaseSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmWorkSpec":            schema_pkg_apis_mcm_v1alpha1_HelmWorkSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.KubeWorkSpec":            schema_pkg_apis_mcm_v1alpha1_KubeWorkSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBinding":        schema_pkg_apis_mcm_v1alpha1_PlacementBinding(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBindingList":    schema_pkg_apis_mcm_v1alpha1_PlacementBindingList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicy":         schema_pkg_apis_mcm_v1alpha1_PlacementPolicy(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyDecision": schema_pkg_apis_mcm_v1alpha1_PlacementPolicyDecision(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyList":     schema_pkg_apis_mcm_v1alpha1_PlacementPolicyList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyRef":      schema_pkg_apis_mcm_v1alpha1_PlacementPolicyRef(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicySpec":     schema_pkg_apis_mcm_v1alpha1_PlacementPolicySpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyStatus":   schema_pkg_apis_mcm_v1alpha1_PlacementPolicyStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceFilter":          schema_pkg_apis_mcm_v1alpha1_ResourceFilter(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint":            schema_pkg_apis_mcm_v1alpha1_ResourceHint(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceView":            schema_pkg_apis_mcm_v1alpha1_ResourceView(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewList":        schema_pkg_apis_mcm_v1alpha1_ResourceViewList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResult":      schema_pkg_apis_mcm_v1alpha1_ResourceViewResult(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResultList":  schema_pkg_apis_mcm_v1alpha1_ResourceViewResultList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewSpec":        schema_pkg_apis_mcm_v1alpha1_ResourceViewSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewStatus":      schema_pkg_apis_mcm_v1alpha1_ResourceViewStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResultHelmList":          schema_pkg_apis_mcm_v1alpha1_ResultHelmList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Subject":                 schema_pkg_apis_mcm_v1alpha1_Subject(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewCondition":           schema_pkg_apis_mcm_v1alpha1_ViewCondition(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewFilter":              schema_pkg_apis_mcm_v1alpha1_ViewFilter(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Work":                    schema_pkg_apis_mcm_v1alpha1_Work(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkList":                schema_pkg_apis_mcm_v1alpha1_WorkList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSet":                 schema_pkg_apis_mcm_v1alpha1_WorkSet(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetList":             schema_pkg_apis_mcm_v1alpha1_WorkSetList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetSpec":             schema_pkg_apis_mcm_v1alpha1_WorkSetSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetStatus":           schema_pkg_apis_mcm_v1alpha1_WorkSetStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec":                schema_pkg_apis_mcm_v1alpha1_WorkSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkStatus":              schema_pkg_apis_mcm_v1alpha1_WorkStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkTemplateSpec":        schema_pkg_apis_mcm_v1alpha1_WorkTemplateSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequest":       schema_pkg_apis_mcm_v1beta1_ClusterJoinRequest(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequestList":   schema_pkg_apis_mcm_v1beta1_ClusterJoinRequestList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequestSpec":   schema_pkg_apis_mcm_v1beta1_ClusterJoinRequestSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinStatus":        schema_pkg_apis_mcm_v1beta1_ClusterJoinStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterRestOptions":       schema_pkg_apis_mcm_v1beta1_ClusterRestOptions(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatus":            schema_pkg_apis_mcm_v1beta1_ClusterStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatusList":        schema_pkg_apis_mcm_v1beta1_ClusterStatusList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatusSpec":        schema_pkg_apis_mcm_v1beta1_ClusterStatusSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmRelease":              schema_pkg_apis_mcm_v1beta1_HelmRelease(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmReleaseSpec":          schema_pkg_apis_mcm_v1beta1_HelmReleaseSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmWorkSpec":             schema_pkg_apis_mcm_v1beta1_HelmWorkSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.KubeWorkSpec":             schema_pkg_apis_mcm_v1beta1_KubeWorkSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceFilter":           schema_pkg_apis_mcm_v1beta1_ResourceFilter(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceView":             schema_pkg_apis_mcm_v1beta1_ResourceView(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewList":         schema_pkg_apis_mcm_v1beta1_ResourceViewList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewResult":       schema_pkg_apis_mcm_v1beta1_ResourceViewResult(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewResultList":   schema_pkg_apis_mcm_v1beta1_ResourceViewResultList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewSpec":         schema_pkg_apis_mcm_v1beta1_ResourceViewSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewStatus":       schema_pkg_apis_mcm_v1beta1_ResourceViewStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResultHelmList":           schema_pkg_apis_mcm_v1beta1_ResultHelmList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewCondition":            schema_pkg_apis_mcm_v1beta1_ViewCondition(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewFilter":               schema_pkg_apis_mcm_v1beta1_ViewFilter(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.Work":                     schema_pkg_apis_mcm_v1beta1_Work(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkList":                 schema_pkg_apis_mcm_v1beta1_WorkList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSet":                  schema_pkg_apis_mcm_v1beta1_WorkSet(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetList":              schema_pkg_apis_mcm_v1beta1_WorkSetList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetSpec":              schema_pkg_apis_mcm_v1beta1_WorkSetSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetStatus":            schema_pkg_apis_mcm_v1beta1_WorkSetStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSpec":                 schema_pkg_apis_mcm_v1beta1_WorkSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkStatus":               schema_pkg_apis_mcm_v1beta1_WorkStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkTemplateSpec":         schema_pkg_apis_mcm_v1beta1_WorkTemplateSpec(ref),
 		"k8s.io/api/certificates/v1beta1.CertificateSigningRequest":                                                    schema_k8sio_api_certificates_v1beta1_CertificateSigningRequest(ref),
 		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestCondition":                                           schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestCondition(ref),
 		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestList":                                                schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestList(ref),
@@ -375,20 +406,20 @@ func schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequest(ref common.ReferenceCallbac
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Spec defines the request to join hcm",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestSpec"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Status defins the join status",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinStatus"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestSpec", "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -425,7 +456,7 @@ func schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestList(ref common.ReferenceCal
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequest"),
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequest"),
 									},
 								},
 							},
@@ -436,7 +467,7 @@ func schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestList(ref common.ReferenceCal
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequest", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequest", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
@@ -564,14 +595,14 @@ func schema_pkg_apis_mcm_v1alpha1_ClusterStatus(ref common.ReferenceCallback) co
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Spec defines the behavior of the Cluster.",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusSpec"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusSpec"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -608,7 +639,7 @@ func schema_pkg_apis_mcm_v1alpha1_ClusterStatusList(ref common.ReferenceCallback
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatus"),
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatus"),
 									},
 								},
 							},
@@ -619,7 +650,7 @@ func schema_pkg_apis_mcm_v1alpha1_ClusterStatusList(ref common.ReferenceCallback
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
@@ -766,14 +797,14 @@ func schema_pkg_apis_mcm_v1alpha1_HelmRelease(ref common.ReferenceCallback) comm
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Spec defines the behavior of the helm release.",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmReleaseSpec"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmReleaseSpec"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmReleaseSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmReleaseSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -1001,7 +1032,7 @@ func schema_pkg_apis_mcm_v1alpha1_PlacementBinding(ref common.ReferenceCallback)
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Subject"),
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Subject"),
 									},
 								},
 							},
@@ -1010,14 +1041,14 @@ func schema_pkg_apis_mcm_v1alpha1_PlacementBinding(ref common.ReferenceCallback)
 					"placementRef": {
 						SchemaProps: spec.SchemaProps{
 							Description: "PlacementPolicyRef references a PlacementPolicy",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyRef"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyRef"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyRef", "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Subject", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyRef", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Subject", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -1053,7 +1084,7 @@ func schema_pkg_apis_mcm_v1alpha1_PlacementBindingList(ref common.ReferenceCallb
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBinding"),
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBinding"),
 									},
 								},
 							},
@@ -1063,7 +1094,7 @@ func schema_pkg_apis_mcm_v1alpha1_PlacementBindingList(ref common.ReferenceCallb
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
@@ -1095,20 +1126,20 @@ func schema_pkg_apis_mcm_v1alpha1_PlacementPolicy(ref common.ReferenceCallback) 
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Spec of Node Template",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicySpec"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicySpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "keep consistency with fed resource",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyStatus"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicySpec", "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicySpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -1168,7 +1199,7 @@ func schema_pkg_apis_mcm_v1alpha1_PlacementPolicyList(ref common.ReferenceCallba
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicy"),
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicy"),
 									},
 								},
 							},
@@ -1179,7 +1210,7 @@ func schema_pkg_apis_mcm_v1alpha1_PlacementPolicyList(ref common.ReferenceCallba
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicy", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
@@ -1232,7 +1263,7 @@ func schema_pkg_apis_mcm_v1alpha1_PlacementPolicySpec(ref common.ReferenceCallba
 					"resourceSelector": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Deprecated since 3.1.2: replaced by resource hint",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint"),
 						},
 					},
 					"clusterSelector": {
@@ -1274,7 +1305,7 @@ func schema_pkg_apis_mcm_v1alpha1_PlacementPolicySpec(ref common.ReferenceCallba
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterConditionFilter"),
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterConditionFilter"),
 									},
 								},
 							},
@@ -1283,7 +1314,7 @@ func schema_pkg_apis_mcm_v1alpha1_PlacementPolicySpec(ref common.ReferenceCallba
 					"resourceHint": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Select Resource",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint"),
 						},
 					},
 					"compliances": {
@@ -1304,7 +1335,7 @@ func schema_pkg_apis_mcm_v1alpha1_PlacementPolicySpec(ref common.ReferenceCallba
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterConditionFilter", "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterConditionFilter", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
 	}
 }
 
@@ -1319,7 +1350,7 @@ func schema_pkg_apis_mcm_v1alpha1_PlacementPolicyStatus(ref common.ReferenceCall
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyDecision"),
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyDecision"),
 									},
 								},
 							},
@@ -1329,7 +1360,7 @@ func schema_pkg_apis_mcm_v1alpha1_PlacementPolicyStatus(ref common.ReferenceCall
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyDecision"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyDecision"},
 	}
 }
 
@@ -1469,20 +1500,20 @@ func schema_pkg_apis_mcm_v1alpha1_ResourceView(ref common.ReferenceCallback) com
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Spec defines the behavior of the work.",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewSpec"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Status describes the result of a work",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewStatus"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewSpec", "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -1519,7 +1550,7 @@ func schema_pkg_apis_mcm_v1alpha1_ResourceViewList(ref common.ReferenceCallback)
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceView"),
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceView"),
 									},
 								},
 							},
@@ -1530,7 +1561,7 @@ func schema_pkg_apis_mcm_v1alpha1_ResourceViewList(ref common.ReferenceCallback)
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceView", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceView", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
@@ -1608,7 +1639,7 @@ func schema_pkg_apis_mcm_v1alpha1_ResourceViewResultList(ref common.ReferenceCal
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResult"),
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResult"),
 									},
 								},
 							},
@@ -1619,7 +1650,7 @@ func schema_pkg_apis_mcm_v1alpha1_ResourceViewResultList(ref common.ReferenceCal
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResult", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResult", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
@@ -1638,7 +1669,7 @@ func schema_pkg_apis_mcm_v1alpha1_ResourceViewSpec(ref common.ReferenceCallback)
 					"scope": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Scope describes the filter of the view.",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewFilter"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewFilter"),
 						},
 					},
 					"summaryOnly": {
@@ -1666,7 +1697,7 @@ func schema_pkg_apis_mcm_v1alpha1_ResourceViewSpec(ref common.ReferenceCallback)
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewFilter", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewFilter", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
 	}
 }
 
@@ -1682,7 +1713,7 @@ func schema_pkg_apis_mcm_v1alpha1_ResourceViewStatus(ref common.ReferenceCallbac
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewCondition"),
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewCondition"),
 									},
 								},
 							},
@@ -1705,7 +1736,7 @@ func schema_pkg_apis_mcm_v1alpha1_ResourceViewStatus(ref common.ReferenceCallbac
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewCondition", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewCondition", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
 	}
 }
 
@@ -1742,7 +1773,7 @@ func schema_pkg_apis_mcm_v1alpha1_ResultHelmList(ref common.ReferenceCallback) c
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmRelease"),
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmRelease"),
 									},
 								},
 							},
@@ -1753,7 +1784,7 @@ func schema_pkg_apis_mcm_v1alpha1_ResultHelmList(ref common.ReferenceCallback) c
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmRelease", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmRelease", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
@@ -1916,20 +1947,20 @@ func schema_pkg_apis_mcm_v1alpha1_Work(ref common.ReferenceCallback) common.Open
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Spec defines the behavior of the work.",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Result describes the result of a work",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkStatus"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec", "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -1966,7 +1997,7 @@ func schema_pkg_apis_mcm_v1alpha1_WorkList(ref common.ReferenceCallback) common.
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Work"),
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Work"),
 									},
 								},
 							},
@@ -1977,7 +2008,7 @@ func schema_pkg_apis_mcm_v1alpha1_WorkList(ref common.ReferenceCallback) common.
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Work", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Work", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
@@ -2010,20 +2041,20 @@ func schema_pkg_apis_mcm_v1alpha1_WorkSet(ref common.ReferenceCallback) common.O
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Spec defines the behavior of the work.",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetSpec"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Status describes the result of a work",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetStatus"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetSpec", "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -2060,7 +2091,7 @@ func schema_pkg_apis_mcm_v1alpha1_WorkSetList(ref common.ReferenceCallback) comm
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSet"),
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSet"),
 									},
 								},
 							},
@@ -2071,7 +2102,7 @@ func schema_pkg_apis_mcm_v1alpha1_WorkSetList(ref common.ReferenceCallback) comm
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 
@@ -2096,14 +2127,14 @@ func schema_pkg_apis_mcm_v1alpha1_WorkSetSpec(ref common.ReferenceCallback) comm
 					"template": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Template describes the works that will be created.",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkTemplateSpec"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkTemplateSpec"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkTemplateSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkTemplateSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
 	}
 }
 
@@ -2156,7 +2187,7 @@ func schema_pkg_apis_mcm_v1alpha1_WorkSpec(ref common.ReferenceCallback) common.
 					"scope": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Scope is the scope of the work to be apply to in a cluster",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceFilter"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceFilter"),
 						},
 					},
 					"actionType": {
@@ -2169,20 +2200,20 @@ func schema_pkg_apis_mcm_v1alpha1_WorkSpec(ref common.ReferenceCallback) common.
 					"helm": {
 						SchemaProps: spec.SchemaProps{
 							Description: "HelmWork is the work to process helm operation",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmWorkSpec"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmWorkSpec"),
 						},
 					},
 					"kube": {
 						SchemaProps: spec.SchemaProps{
 							Description: "KubeWorkSpec is the work to process kubernetes operation",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.KubeWorkSpec"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.KubeWorkSpec"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmWorkSpec", "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.KubeWorkSpec", "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceFilter", "k8s.io/api/core/v1.LocalObjectReference"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmWorkSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.KubeWorkSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceFilter", "k8s.io/api/core/v1.LocalObjectReference"},
 	}
 }
 
@@ -2241,14 +2272,1498 @@ func schema_pkg_apis_mcm_v1alpha1_WorkTemplateSpec(ref common.ReferenceCallback)
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Specification of the desired behavior of the work. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status",
-							Ref:         ref("github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec"),
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ClusterJoinRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterJoinRequest is the request from klusterlet to join Manager",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec defines the request to join hcm",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequestSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status defins the join status",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequestSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ClusterJoinRequestList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterJoinRequestList is the request list from klusterlet to join manager",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of Cluster objects.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequest"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequest", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ClusterJoinRequestSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"clusterName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ClusterName is the name of the cluster",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"clusterNameSpace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ClusterNamespace is the namespace for cluster",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"csr": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CSR is the csr request spec",
+							Ref:         ref("k8s.io/api/certificates/v1beta1.CertificateSigningRequestSpec"),
+						},
+					},
+				},
+				Required: []string{"clusterName", "clusterNameSpace", "csr"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/certificates/v1beta1.CertificateSigningRequestSpec"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ClusterJoinStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Properties: map[string]spec.Schema{
+					"phase": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Phase is the pa",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"csrStatus": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CSRStatus is the status of CSR",
+							Ref:         ref("k8s.io/api/certificates/v1beta1.CertificateSigningRequestStatus"),
+						},
+					},
+				},
+				Required: []string{"phase", "csrStatus"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/certificates/v1beta1.CertificateSigningRequestStatus"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ClusterRestOptions(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterRestOptions is the option for pod",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"path": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Path is the URL path to use for the current proxy request to pod.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ClusterStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterStatus are namespaced and have unique names in the hcm.",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec defines the behavior of the Cluster.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatusSpec"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatusSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ClusterStatusList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterStatusList is a list of all the kubernetes clusters status in the hcm",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of Cluster objects.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatus"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ClusterStatusSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterStatusSpec is information about the current status of a cluster updated by cluster controller periodically.",
+				Properties: map[string]spec.Schema{
+					"masterAddresses": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MasterIP shows the master IP of managed cluster",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/api/core/v1.EndpointAddress"),
+									},
+								},
+							},
+						},
+					},
+					"consoleURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ConcoleURL shows the url of icp console in managed cluster",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"capacity": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Capacity",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/apimachinery/pkg/api/resource.Quantity"),
+									},
+								},
+							},
+						},
+					},
+					"usage": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Usage",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/apimachinery/pkg/api/resource.Quantity"),
+									},
+								},
+							},
+						},
+					},
+					"klusterletEndpoint": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KlusterletEndpoint shows the endpoint to connect to klusterlet of managed cluster",
+							Ref:         ref("k8s.io/api/core/v1.EndpointAddress"),
+						},
+					},
+					"klusterletPort": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KlusterletPort shows the port to connect to klusterlet of managed cluster",
+							Ref:         ref("k8s.io/api/core/v1.EndpointPort"),
+						},
+					},
+					"monitoringScrapeTarget": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MonitoringScrapeTarget is the scrape target to be used",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"klusterletVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version of Klusterlet",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version of member cluster",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"klusterletCA": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KlusterletCA is the ca data for klusterlet to authorize apiserver",
+							Type:        []string{"string"},
+							Format:      "byte",
+						},
+					},
+					"endpointVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version of Endpoint",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"endpointOperatorVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version of Endpoint Operator",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/api/core/v1.EndpointAddress", "k8s.io/api/core/v1.EndpointPort", "k8s.io/apimachinery/pkg/api/resource.Quantity"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_HelmRelease(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "HelmRelease is the helm release info",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec defines the behavior of the helm release.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmReleaseSpec"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmReleaseSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_HelmReleaseSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "HelmReleaseSpec is the details of helm release",
+				Properties: map[string]spec.Schema{
+					"releaseName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReleaseName",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"description": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Description",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"firstDeployed": {
+						SchemaProps: spec.SchemaProps{
+							Description: "FirstDeployed",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"lastDeployed": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastDeployed",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"manifest": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Manifest",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"chartName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ChartName",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"chartVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ChartVersion",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Namespace",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_HelmWorkSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "HelmWorkSpec is the helm work details",
+				Properties: map[string]spec.Schema{
+					"releaseName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReleaseName",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"inSecureSkipVerify": {
+						SchemaProps: spec.SchemaProps{
+							Description: "InSecureSkipVerify skip verification",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"chartName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ChartName",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"chartURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Chart url",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Namespace",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"values": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Values",
+							Type:        []string{"string"},
+							Format:      "byte",
+						},
+					},
+					"valuesURL": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ValuesURL url to a file contains value",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_KubeWorkSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "KubeWorkSpec is the kubernetes work details",
+				Properties: map[string]spec.Schema{
+					"resource": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Resource of the object",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name of the object",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Namespace of the object",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"template": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ObjectTemplate is the template of the object",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ResourceFilter(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResourceFilter is the filter of resources",
+				Properties: map[string]spec.Schema{
+					"labelSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LabelSelect is a selector that selects a set of resources",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+						},
+					},
+					"fieldSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "FieldSelector is a selector that select a set of resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiGroup": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIGroup is the api group of the resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"resourceType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ResouceType is the resource type of the subject",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the name of the subject",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the name of the subject",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"version": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Version is the version of the subject",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"serverPrint": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServerPrint is the flag to set print on server side",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"mode": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Mode is the mode for resource query",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"updateIntervalSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "UpdateIntervalSeconds",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ResourceView(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResourceView is the view of resources on a set of cluster",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec defines the behavior of the work.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status describes the result of a work",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ResourceViewList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResourceViewList is a list of all the resource view",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of Cluster objects.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceView"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceView", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ResourceViewResult(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResourceViewResult is the view result of resources on a set of cluster",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"data": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec defines the behavior of the work.",
+							Type:        []string{"string"},
+							Format:      "byte",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ResourceViewResultList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResourceViewResultList is a list of all the resource view result",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of Cluster objects.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewResult"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewResult", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ResourceViewSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResourceViewSpec is the spec for resource view",
+				Properties: map[string]spec.Schema{
+					"clusterSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Selector for clusters.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+						},
+					},
+					"scope": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Scope describes the filter of the view.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewFilter"),
+						},
+					},
+					"summaryOnly": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServerPrint is the flag to set print on server side",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"mode": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Mode is the mode for resource query",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"updateIntervalSeconds": {
+						SchemaProps: spec.SchemaProps{
+							Description: "UpdateIntervalSeconds is the inteval to update view",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewFilter", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ResourceViewStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResourceViewStatus describes the status of view",
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewCondition"),
+									},
+								},
+							},
+						},
+					},
+					"results": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Works point to the related work result on each cluster",
+							Type:        []string{"object"},
+							AdditionalProperties: &spec.SchemaOrBool{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewCondition", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ResultHelmList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResultHelmList is the list of helm release in one cluster",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Items are the items list of helm release",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmRelease"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmRelease", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ViewCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ViewCondition contains condition information for a view.",
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Type is the type of the cluster condition.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status is the status of the condition. One of True, False, Unknown.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"lastUpdateTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastUpdateTime is the last time this condition was updated.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"reason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Reason is a (brief) reason for the condition's last status change.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_ViewFilter(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ViewFilter is the filter of resources",
+				Properties: map[string]spec.Schema{
+					"labelSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LabelSelect is a selector that selects a set of resources",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+						},
+					},
+					"fieldSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "FieldSelector is a selector that select a set of resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiGroup": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIGroup is the group of resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"resource": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ResouceType is the resource type of the subject",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"resourceName": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the name of the subject",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name is the name of the subject",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_Work(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Work is the work that will be done on a set of cluster",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec defines the behavior of the work.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Result describes the result of a work",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_WorkList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WorkList is a list of all the works",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of Cluster objects.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.Work"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.Work", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_WorkSet(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WorkSet is the work set that will be done on a set of cluster",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec defines the behavior of the work.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status describes the result of a work",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_WorkSetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WorkSetList is a list of all the work set",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of Cluster objects.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSet"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_WorkSetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WorkSetSpec is the spec for workset",
+				Properties: map[string]spec.Schema{
+					"clusterSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Selector for clusters.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+						},
+					},
+					"selector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Selector for works.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+						},
+					},
+					"template": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Template describes the works that will be created.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkTemplateSpec"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkTemplateSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_WorkSetStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WorkSetStatus describes the work set status",
+				Properties: map[string]spec.Schema{
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status of the work set",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"reason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Reason is the reason of the status",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_WorkSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WorkSpec defines the work to be processes on a set of clusters",
+				Properties: map[string]spec.Schema{
+					"cluster": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Cluster is a selector of cluster",
+							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
+						},
+					},
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Type defins the type of the woke to be done",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"scope": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Scope is the scope of the work to be apply to in a cluster",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceFilter"),
+						},
+					},
+					"actionType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ActionType is the type of the action",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"helm": {
+						SchemaProps: spec.SchemaProps{
+							Description: "HelmWork is the work to process helm operation",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmWorkSpec"),
+						},
+					},
+					"kube": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KubeWorkSpec is the work to process kubernetes operation",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.KubeWorkSpec"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmWorkSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.KubeWorkSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceFilter", "k8s.io/api/core/v1.LocalObjectReference"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_WorkStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WorkStatus returns the status of the work",
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status is the status of the work result",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"reason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Reason is the reason of the current status",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"result": {
+						SchemaProps: spec.SchemaProps{
+							Description: "WorkResult references the related result of the work",
+							Ref:         ref("k8s.io/apimachinery/pkg/runtime.RawExtension"),
+						},
+					},
+					"lastUpdateTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastUpdateTime is the last status update time",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time", "k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1beta1_WorkTemplateSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WorkTemplateSpec describes work created from a template",
+				Properties: map[string]spec.Schema{
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Specification of the desired behavior of the work. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSpec"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 

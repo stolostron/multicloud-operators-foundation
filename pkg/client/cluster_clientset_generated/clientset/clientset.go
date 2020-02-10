@@ -9,7 +9,7 @@
 package clientset
 
 import (
-	clusterregistryv1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset/typed/clusterregistry/v1alpha1"
+	clusterregistryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset/typed/clusterregistry/v1alpha1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

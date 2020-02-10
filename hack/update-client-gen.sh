@@ -36,48 +36,48 @@ BINDIR=${REPO_ROOT}/output
 
 # Generate the internal clientset (pkg/client/clientset_generated/internalclientset)
 "${BINDIR}"/client-gen "$@" \
-	      --input-base github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis \
+	      --input-base github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis \
 	      --input mcm/ \
-	      --clientset-path github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated \
+	      --clientset-path github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated \
 	      --clientset-name internalclientset \
 	      --go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt
 # Generate the versioned clientset (pkg/client/clientset_generated/clientset)
 "${BINDIR}"/client-gen "$@" \
-        --input-base github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis \
-	      --input mcm/v1alpha1 \
-	      --clientset-path github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated \
-	      --clientset-name clientset \
-	      --go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt
+        --input-base github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis \
+        --input "mcm/v1alpha1,mcm/v1beta1" \
+        --clientset-path github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated \
+        --clientset-name clientset \
+        --go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt
 # generate listers after having the base client generated, and before informers
 "${BINDIR}"/lister-gen "$@" \
-	      --input-dirs="github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm,github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1" \
-	      --output-package "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/listers_generated" \
+	      --input-dirs="github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm,github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1,github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1" \
+	      --output-package "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/listers_generated" \
 	      --go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt
 # generate informers after the listers have been generated
 "${BINDIR}"/informer-gen "$@" \
 	      --go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt \
-	      --input-dirs "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm,github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1" \
-	      --internal-clientset-package "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset" \
-	      --versioned-clientset-package "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset" \
-	      --listers-package "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/listers_generated" \
-	      --output-package "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated"
+	      --input-dirs "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm,github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1,github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1" \
+	      --internal-clientset-package "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset" \
+	      --versioned-clientset-package "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset" \
+	      --listers-package "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/listers_generated" \
+	      --output-package "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated"
 
 # Generate the versioned clientset (pkg/client/clientset_generated/clientset)
 "${BINDIR}"/client-gen "$@" \
         --input-base k8s.io/cluster-registry/pkg/apis\
         --input clusterregistry/v1alpha1 \
-        --clientset-path github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_clientset_generated \
+        --clientset-path github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_clientset_generated \
         --clientset-name clientset \
         --go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt
 # generate listers after having the base client generated, and before informers
 "${BINDIR}"/lister-gen "$@" \
         	--input-dirs="k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1" \
-        	--output-package "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_listers_generated" \
+        	--output-package "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_listers_generated" \
         	--go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt
 # generate informers after the listers have been generated
 "${BINDIR}"/informer-gen "$@" \
         	--go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt \
         	--input-dirs "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1" \
-        	--versioned-clientset-package "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset" \
-        	--listers-package "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_listers_generated" \
-        	--output-package "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_informers_generated"
+        	--versioned-clientset-package "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset" \
+        	--listers-package "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_listers_generated" \
+        	--output-package "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_informers_generated"

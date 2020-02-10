@@ -9,7 +9,7 @@
 package internalclientset
 
 import (
-	mcminternalversion "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset/typed/mcm/internalversion"
+	mcminternalversion "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset/typed/mcm/internalversion"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

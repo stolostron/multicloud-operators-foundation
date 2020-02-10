@@ -17,9 +17,9 @@ import (
 
 	"k8s.io/klog"
 
-	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/drivers"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/server"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/drivers"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/server"
 	certutil "k8s.io/client-go/util/cert"
 )
 
@@ -128,7 +128,7 @@ func (k *Klusterlet) ListenAndServe(
 	}
 }
 
-func (k *Klusterlet) refreshServerIfNeeded(clusterStatus *v1alpha1.ClusterStatus) {
+func (k *Klusterlet) refreshServerIfNeeded(clusterStatus *v1beta1.ClusterStatus) {
 	// do not refresh is server is not started
 	if k.server == nil {
 		return
@@ -151,7 +151,7 @@ func (k *Klusterlet) refreshServerIfNeeded(clusterStatus *v1alpha1.ClusterStatus
 	go k.server.refresh(caData, pool)
 }
 
-func (k *Klusterlet) waitCAFromClusterStatus(clusterStatus v1alpha1.ClusterStatus, oldCA []byte) (*x509.CertPool, []byte, error) {
+func (k *Klusterlet) waitCAFromClusterStatus(clusterStatus v1beta1.ClusterStatus, oldCA []byte) (*x509.CertPool, []byte, error) {
 	if len(clusterStatus.Spec.KlusterletCA) == 0 {
 		return nil, nil, fmt.Errorf("kluster ca is empty")
 	}

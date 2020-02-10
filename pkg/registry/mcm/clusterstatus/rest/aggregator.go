@@ -15,8 +15,8 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/handlers/responsewriters"
 	"k8s.io/klog"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/aggregator"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/aggregator"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	"k8s.io/apimachinery/pkg/runtime"
 	netutil "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/proxy"
@@ -120,7 +120,7 @@ func (h *AggregateRestHandler) ServeHTTP(w http.ResponseWriter, req *http.Reques
 
 // getPath returns the segment behind aggregator in a URL path.
 func getPath(requestPath string) string {
-	// path: /apis/mcm.ibm.com/v1alpha1/namespaces/cluster0/clusterstatuses/cluster0/aggregator/subResource/xxx
+	// path: /apis/mcm.ibm.com/v1beta1/namespaces/<cluster-namespace>/clusterstatuses/<cluster-name>/aggregator/<sub resource>/xxx
 	requestPath = strings.Trim(requestPath, "/")
 	if requestPath == "" {
 		return ""

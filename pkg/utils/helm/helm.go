@@ -24,8 +24,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
 
 	"k8s.io/klog"
 
@@ -57,12 +57,12 @@ type ControlInterface interface {
 	CreateHelmRelease(
 		releaseName string,
 		helmreponNamespace string,
-		helmspec v1alpha1.HelmWorkSpec) (*rls.InstallReleaseResponse, error)
+		helmspec v1beta1.HelmWorkSpec) (*rls.InstallReleaseResponse, error)
 	//UpdateHelmRelease update a helm release
 	UpdateHelmRelease(
 		releaseName string,
 		helmreponNamespace string,
-		helmspec v1alpha1.HelmWorkSpec) (*rls.UpdateReleaseResponse, error)
+		helmspec v1beta1.HelmWorkSpec) (*rls.UpdateReleaseResponse, error)
 	//GetHelmReleases get helm releases
 	GetHelmReleases(
 		nameFilter string,
@@ -252,7 +252,7 @@ func ConnectToTiller(endpoint, key, cert, ca string, fromcfg bool) (*helm.Client
 	return client, nil
 }
 
-func (hc *Control) downloadRepo(helmspec v1alpha1.HelmWorkSpec) (string, error) {
+func (hc *Control) downloadRepo(helmspec v1beta1.HelmWorkSpec) (string, error) {
 	var chartPath string
 	var err error
 	var inSecure bool
@@ -277,7 +277,7 @@ func (hc *Control) downloadRepo(helmspec v1alpha1.HelmWorkSpec) (string, error) 
 }
 
 //CreateHelmRelease create a helm release
-func (hc *Control) CreateHelmRelease(releaseName string, helmreponNamespace string, helmspec v1alpha1.HelmWorkSpec) (*rls.InstallReleaseResponse, error) {
+func (hc *Control) CreateHelmRelease(releaseName string, helmreponNamespace string, helmspec v1beta1.HelmWorkSpec) (*rls.InstallReleaseResponse, error) {
 	chartPath, err := hc.downloadRepo(helmspec)
 	if err != nil {
 		return nil, err
@@ -302,7 +302,7 @@ func (hc *Control) CreateHelmRelease(releaseName string, helmreponNamespace stri
 
 // UpdateHelmRelease updates a helmrelease
 func (hc *Control) UpdateHelmRelease(
-	releaseName string, helmreponNamespace string, helmspec v1alpha1.HelmWorkSpec) (*rls.UpdateReleaseResponse, error) {
+	releaseName string, helmreponNamespace string, helmspec v1beta1.HelmWorkSpec) (*rls.UpdateReleaseResponse, error) {
 	chartPath, err := hc.downloadRepo(helmspec)
 	if err != nil {
 		return nil, err

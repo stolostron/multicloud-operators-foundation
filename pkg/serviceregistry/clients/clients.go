@@ -8,7 +8,7 @@ package clients
 import (
 	"sync"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/serviceregistry/app/options"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"

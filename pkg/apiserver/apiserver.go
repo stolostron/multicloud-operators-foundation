@@ -6,7 +6,8 @@
 package apiserver
 
 import (
-	hcmv1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	mcmv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	mcmv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	clusterv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
@@ -16,7 +17,8 @@ import (
 func DefaultAPIResourceConfigSource() *serverstorage.ResourceConfig {
 	ret := serverstorage.NewResourceConfig()
 	versions := []schema.GroupVersion{
-		hcmv1alpha1.SchemeGroupVersion,
+		mcmv1alpha1.SchemeGroupVersion,
+		mcmv1beta1.SchemeGroupVersion,
 		clusterv1alpha1.SchemeGroupVersion,
 	}
 

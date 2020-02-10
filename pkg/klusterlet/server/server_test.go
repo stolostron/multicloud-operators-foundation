@@ -17,7 +17,7 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/klusterlet/drivers"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/drivers"
 )
 
 type fakeAuth struct {

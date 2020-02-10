@@ -9,9 +9,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	v1alpha1 "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	helmutil "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/helm"
-	restutils "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/rest"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
+	helmutil "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/helm"
+	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -20,26 +20,26 @@ import (
 	"k8s.io/klog"
 )
 
-func (k *Klusterlet) handleActionWork(work *v1alpha1.Work) error {
+func (k *Klusterlet) handleActionWork(work *v1beta1.Work) error {
 	var err error
 	var res runtime.RawExtension
 	if work.Spec.HelmWork != nil && k.helmControl == nil {
 		return fmt.Errorf("failed to find helm client")
 	}
 	switch work.Spec.ActionType {
-	case v1alpha1.CreateActionType:
+	case v1beta1.CreateActionType:
 		if work.Spec.KubeWork != nil {
 			res, err = k.handleCreateKubeActionWork(work)
 		} else if work.Spec.HelmWork != nil {
 			res, err = k.handleCreateHelmActionWork(work, k.helmControl)
 		}
-	case v1alpha1.DeleteActionType:
+	case v1beta1.DeleteActionType:
 		if work.Spec.KubeWork != nil {
 			res, err = k.handleDeleteKubeActionWork(work)
 		} else if work.Spec.HelmWork != nil {
 			res, err = k.handleDeleteHelmActionWork(work, k.helmControl)
 		}
-	case v1alpha1.UpdateActionType:
+	case v1beta1.UpdateActionType:
 		if work.Spec.KubeWork != nil {
 			res, err = k.handleUpdateKubeActionWork(work)
 		} else if work.Spec.HelmWork != nil {
@@ -50,10 +50,10 @@ func (k *Klusterlet) handleActionWork(work *v1alpha1.Work) error {
 		return k.updateFailedStatus(work, err)
 	}
 
-	work.Status.Type = v1alpha1.WorkCompleted
+	work.Status.Type = v1beta1.WorkCompleted
 	work.Status.Result = res
 	work.Status.LastUpdateTime = metav1.Now()
-	_, err = k.hcmclientset.McmV1alpha1().Works(k.config.ClusterNamespace).UpdateStatus(work)
+	_, err = k.hcmclientset.McmV1beta1().Works(k.config.ClusterNamespace).UpdateStatus(work)
 	if err != nil {
 		return err
 	}
@@ -62,7 +62,7 @@ func (k *Klusterlet) handleActionWork(work *v1alpha1.Work) error {
 }
 
 //Create helm release
-func (k *Klusterlet) handleCreateHelmActionWork(work *v1alpha1.Work, helmcontrol helmutil.ControlInterface) (runtime.RawExtension, error) {
+func (k *Klusterlet) handleCreateHelmActionWork(work *v1beta1.Work, helmcontrol helmutil.ControlInterface) (runtime.RawExtension, error) {
 	rls, err := helmcontrol.CreateHelmRelease(work.Spec.HelmWork.ReleaseName, work.Namespace, *work.Spec.HelmWork)
 	res := runtime.RawExtension{}
 	if err != nil {
@@ -73,7 +73,7 @@ func (k *Klusterlet) handleCreateHelmActionWork(work *v1alpha1.Work, helmcontrol
 }
 
 //Create kube resource
-func (k *Klusterlet) handleCreateKubeActionWork(work *v1alpha1.Work) (runtime.RawExtension, error) {
+func (k *Klusterlet) handleCreateKubeActionWork(work *v1beta1.Work) (runtime.RawExtension, error) {
 	var err error
 	if k.config.EnableImpersonation {
 		klog.Info("enable impersonation")
@@ -88,7 +88,7 @@ func (k *Klusterlet) handleCreateKubeActionWork(work *v1alpha1.Work) (runtime.Ra
 }
 
 //Update helm release
-func (k *Klusterlet) handleUpdateHelmActionWork(work *v1alpha1.Work, helmcontrol helmutil.ControlInterface) (runtime.RawExtension, error) {
+func (k *Klusterlet) handleUpdateHelmActionWork(work *v1beta1.Work, helmcontrol helmutil.ControlInterface) (runtime.RawExtension, error) {
 	res := runtime.RawExtension{}
 	rls, err := helmcontrol.UpdateHelmRelease(work.Spec.HelmWork.ReleaseName, work.Namespace, *work.Spec.HelmWork)
 	if err != nil {
@@ -99,7 +99,7 @@ func (k *Klusterlet) handleUpdateHelmActionWork(work *v1alpha1.Work, helmcontrol
 }
 
 //Update kube resource
-func (k *Klusterlet) handleUpdateKubeActionWork(work *v1alpha1.Work) (runtime.RawExtension, error) {
+func (k *Klusterlet) handleUpdateKubeActionWork(work *v1beta1.Work) (runtime.RawExtension, error) {
 	var gvk schema.GroupVersionKind
 	var err error
 
@@ -164,7 +164,7 @@ func (k *Klusterlet) handleUpdateKubeActionWork(work *v1alpha1.Work) (runtime.Ra
 }
 
 //Delete kube resource
-func (k *Klusterlet) handleDeleteKubeActionWork(work *v1alpha1.Work) (runtime.RawExtension, error) {
+func (k *Klusterlet) handleDeleteKubeActionWork(work *v1beta1.Work) (runtime.RawExtension, error) {
 	var err error
 	if k.config.EnableImpersonation {
 		klog.Info("enable impersonation")
@@ -188,7 +188,7 @@ func (k *Klusterlet) handleDeleteKubeActionWork(work *v1alpha1.Work) (runtime.Ra
 }
 
 //Delete helm release
-func (k *Klusterlet) handleDeleteHelmActionWork(work *v1alpha1.Work, helmControl helmutil.ControlInterface) (runtime.RawExtension, error) {
+func (k *Klusterlet) handleDeleteHelmActionWork(work *v1beta1.Work, helmControl helmutil.ControlInterface) (runtime.RawExtension, error) {
 	res := runtime.RawExtension{}
 	rls, err := helmControl.DeleteHelmRelease(work.Spec.HelmWork.ReleaseName)
 	if err != nil {

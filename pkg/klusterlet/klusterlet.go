@@ -14,12 +14,12 @@ import (
 	"strings"
 	"time"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/version"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/version"
 	"k8s.io/klog"
 
-	clusterclient "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset"
-	helmutil "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/helm"
+	clusterclient "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset"
+	helmutil "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/helm"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -42,15 +42,15 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	clusterv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/api"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
-	informers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
-	listers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/listers_generated/mcm/v1alpha1"
-	resourceutils "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils"
-	equalutils "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/equals"
-	helmutils "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/helm"
-	restutils "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/rest"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/api"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
+	informers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
+	listers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/listers_generated/mcm/v1beta1"
+	resourceutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	equalutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/equals"
+	helmutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/helm"
+	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	helmenv "k8s.io/helm/pkg/helm/environment"
 
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
@@ -67,7 +67,7 @@ var clusterControllerKind = mcm.SchemeGroupVersion.WithKind("Cluster")
 
 var settings helmenv.EnvSettings
 
-type workHandlerFunc func(*v1alpha1.Work) error
+type workHandlerFunc func(*v1beta1.Work) error
 
 // Config is the klusterlet configuration definition
 type Config struct {
@@ -121,7 +121,7 @@ type Klusterlet struct {
 	podSynced  cache.InformerSynced
 	workSynced cache.InformerSynced
 
-	handlers map[v1alpha1.WorkType]workHandlerFunc
+	handlers map[v1beta1.WorkType]workHandlerFunc
 	server   *klusterletServer
 
 	// workqueue is a rate limited work queue. This is used to queue work to be
@@ -135,7 +135,7 @@ type Klusterlet struct {
 	recorder record.EventRecorder
 
 	stopCh    <-chan struct{}
-	runServer chan v1alpha1.ClusterStatus
+	runServer chan v1beta1.ClusterStatus
 }
 
 // NewKlusterlet create a new klusterlet
@@ -157,7 +157,7 @@ func NewKlusterlet(
 	podInformer := kubeInformerFactory.Core().V1().Pods()
 	pvInformer := kubeInformerFactory.Core().V1().PersistentVolumes()
 
-	workInformer := informerFactory.Mcm().V1alpha1().Works()
+	workInformer := informerFactory.Mcm().V1beta1().Works()
 
 	// Create event broadcaster
 	// Add sample-controller types to the default Kubernetes Scheme so Events can be
@@ -191,12 +191,12 @@ func NewKlusterlet(
 		workqueue:            workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "Klusterlet"),
 		recorder:             recorder,
 		stopCh:               stopCh,
-		runServer:            make(chan v1alpha1.ClusterStatus),
+		runServer:            make(chan v1beta1.ClusterStatus),
 	}
 
-	controller.handlers = map[v1alpha1.WorkType]workHandlerFunc{
-		v1alpha1.ResourceWorkType: controller.handleResourceWork,
-		v1alpha1.ActionWorkType:   controller.handleActionWork,
+	controller.handlers = map[v1beta1.WorkType]workHandlerFunc{
+		v1beta1.ResourceWorkType: controller.handleResourceWork,
+		v1beta1.ActionWorkType:   controller.handleActionWork,
 	}
 
 	klog.Info("Setting up event handlers")
@@ -205,8 +205,8 @@ func NewKlusterlet(
 	workInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.enqueueWork,
 		UpdateFunc: func(old, new interface{}) {
-			oldwork := old.(*v1alpha1.Work)
-			newwork := new.(*v1alpha1.Work)
+			oldwork := old.(*v1beta1.Work)
+			newwork := new.(*v1beta1.Work)
 			if controller.needsUpdate(oldwork, newwork) {
 				controller.cleanWorkStatus(&newwork.Status)
 				controller.enqueueWork(new)
@@ -347,12 +347,12 @@ func (k *Klusterlet) processWork(key string) error {
 		return nil
 	}
 
-	if work.Status.Type == v1alpha1.WorkCompleted {
+	if work.Status.Type == v1beta1.WorkCompleted {
 		klog.V(3).Infof("Work %s is completed or failed, so skip it", key)
 		return nil
 	}
 
-	if work.Status.Type == v1alpha1.WorkFailed && work.Spec.Scope.Mode != v1alpha1.PeriodicResourceUpdate {
+	if work.Status.Type == v1beta1.WorkFailed && work.Spec.Scope.Mode != v1beta1.PeriodicResourceUpdate {
 		klog.V(3).Infof("Work %s is failed, so skip it", key)
 		return nil
 	}
@@ -364,7 +364,7 @@ func (k *Klusterlet) processWork(key string) error {
 			return err
 		}
 
-		if work.Spec.Scope.Mode == v1alpha1.PeriodicResourceUpdate {
+		if work.Spec.Scope.Mode == v1beta1.PeriodicResourceUpdate {
 			k.workqueue.AddAfter(key, time.Duration(work.Spec.Scope.UpdateIntervalSeconds)*time.Second)
 		}
 	}
@@ -452,7 +452,7 @@ func (k *Klusterlet) syncClusterStatus() {
 	}
 }
 
-func (k *Klusterlet) cleanWorkStatus(status *v1alpha1.WorkStatus) {
+func (k *Klusterlet) cleanWorkStatus(status *v1beta1.WorkStatus) {
 	status.Type = ""
 	status.Reason = ""
 	status.Result = runtime.RawExtension{}
@@ -636,13 +636,13 @@ func (k *Klusterlet) updateClusterStatus(
 		return err
 	}
 
-	clusterStatus, err := k.hcmclientset.McmV1alpha1().ClusterStatuses(k.config.ClusterNamespace).Get(k.config.ClusterName, metav1.GetOptions{})
+	clusterStatus, err := k.hcmclientset.McmV1beta1().ClusterStatuses(k.config.ClusterNamespace).Get(k.config.ClusterName, metav1.GetOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
 		klog.Errorf("Failed to get cluster status: %v", err)
 		return err
 	}
 	if apierrors.IsNotFound(err) {
-		clusterStatus = &v1alpha1.ClusterStatus{
+		clusterStatus = &v1beta1.ClusterStatus{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            k.config.ClusterName,
 				Namespace:       k.config.ClusterNamespace,
@@ -650,9 +650,9 @@ func (k *Klusterlet) updateClusterStatus(
 				Annotations:     k.config.ClusterAnnotations,
 				OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(cluster, clusterControllerKind)},
 			},
-			Spec: v1alpha1.ClusterStatusSpec{MonitoringScrapeTarget: k.config.MonitoringScrapeTarget},
+			Spec: v1beta1.ClusterStatusSpec{MonitoringScrapeTarget: k.config.MonitoringScrapeTarget},
 		}
-		clusterStatus, err = k.hcmclientset.McmV1alpha1().ClusterStatuses(k.config.ClusterNamespace).Create(clusterStatus)
+		clusterStatus, err = k.hcmclientset.McmV1beta1().ClusterStatuses(k.config.ClusterNamespace).Create(clusterStatus)
 		if err != nil {
 			klog.Errorf("Failed to create cluster: %v", err)
 			return err
@@ -685,7 +685,7 @@ func (k *Klusterlet) updateClusterStatus(
 		corev1.ResourceCPU:     cpuCapacity,
 		corev1.ResourceMemory:  resourceutils.FormatQuatityToMi(memoryCapacity),
 		corev1.ResourceStorage: resourceutils.FormatQuatityToGi(storageCapacity),
-		v1alpha1.ResourceNodes: *resource.NewQuantity(int64(len(nodes)), resource.DecimalSI),
+		v1beta1.ResourceNodes:  *resource.NewQuantity(int64(len(nodes)), resource.DecimalSI),
 	}
 	if !equalutils.EqualResourceList(clusterStatus.Spec.Capacity, capacity) {
 		clusterStatus.Spec.Capacity = capacity
@@ -693,7 +693,7 @@ func (k *Klusterlet) updateClusterStatus(
 	}
 
 	usage := corev1.ResourceList{
-		v1alpha1.ResourcePods:  *resource.NewQuantity(int64(len(pods)), resource.DecimalSI),
+		v1beta1.ResourcePods:   *resource.NewQuantity(int64(len(pods)), resource.DecimalSI),
 		corev1.ResourceCPU:     cpuAllocation,
 		corev1.ResourceMemory:  resourceutils.FormatQuatityToMi(memoryAllocation),
 		corev1.ResourceStorage: resourceutils.FormatQuatityToGi(storageAllocation),
@@ -741,7 +741,7 @@ func (k *Klusterlet) updateClusterStatus(
 	}
 
 	if shouldUpdateStatus {
-		clusterStatus, err = k.hcmclientset.McmV1alpha1().ClusterStatuses(k.config.ClusterNamespace).Update(clusterStatus)
+		clusterStatus, err = k.hcmclientset.McmV1beta1().ClusterStatuses(k.config.ClusterNamespace).Update(clusterStatus)
 		if err != nil {
 			k.recorder.Event(clusterStatus, corev1.EventTypeWarning, "Failed to update cluster status", err.Error())
 			return err
@@ -761,15 +761,15 @@ func (k *Klusterlet) updateClusterStatus(
 	return nil
 }
 
-func (k *Klusterlet) updateFailedStatus(work *v1alpha1.Work, err error) error {
+func (k *Klusterlet) updateFailedStatus(work *v1beta1.Work, err error) error {
 	if err == nil {
 		return nil
 	}
 
 	work.Status.LastUpdateTime = metav1.Now()
-	work.Status.Type = v1alpha1.WorkFailed
+	work.Status.Type = v1beta1.WorkFailed
 	work.Status.Reason = err.Error()
-	_, updateErr := k.hcmclientset.McmV1alpha1().Works(k.config.ClusterNamespace).UpdateStatus(work)
+	_, updateErr := k.hcmclientset.McmV1beta1().Works(k.config.ClusterNamespace).UpdateStatus(work)
 	return updateErr
 }
 
@@ -893,7 +893,7 @@ func (k *Klusterlet) enqueueWork(obj interface{}) {
 	k.workqueue.AddRateLimited(key)
 }
 
-func (k *Klusterlet) needsUpdate(oldwork, newwork *v1alpha1.Work) bool {
+func (k *Klusterlet) needsUpdate(oldwork, newwork *v1beta1.Work) bool {
 	return !equalutils.EqualWorkSpec(&oldwork.Spec, &newwork.Spec)
 }
 

@@ -24,18 +24,18 @@ import (
 	"k8s.io/client-go/util/retry"
 	"k8s.io/client-go/util/workqueue"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
-	clusterinformers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
-	clusterlisters "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/cluster_listers_generated/clusterregistry/v1alpha1"
-	authzutils "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/authz"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
+	clusterinformers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
+	clusterlisters "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_listers_generated/clusterregistry/v1alpha1"
+	authzutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/authz"
 	clusterv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
-	informers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
-	listers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/listers_generated/mcm/v1alpha1"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils"
-	equals "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/utils/equals"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
+	informers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
+	listers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/listers_generated/mcm/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	equals "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/equals"
 )
 
 // Controller manages the lifecycle of workset
@@ -72,8 +72,8 @@ func NewController(
 	enableRBAC bool,
 	stopCh <-chan struct{}) *Controller {
 	clusterInformer := clusterInformerFactory.Clusterregistry().V1alpha1().Clusters()
-	worksetInformer := informerFactory.Mcm().V1alpha1().WorkSets()
-	workInformer := informerFactory.Mcm().V1alpha1().Works()
+	worksetInformer := informerFactory.Mcm().V1beta1().WorkSets()
+	workInformer := informerFactory.Mcm().V1beta1().Works()
 
 	controller := &Controller{
 		hcmclientset:  hcmclientset,
@@ -94,8 +94,8 @@ func NewController(
 	worksetInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: controller.enqueueWorkSet,
 		UpdateFunc: func(old, new interface{}) {
-			oldworkset := old.(*v1alpha1.WorkSet)
-			newworkset := new.(*v1alpha1.WorkSet)
+			oldworkset := old.(*v1beta1.WorkSet)
+			newworkset := new.(*v1beta1.WorkSet)
 			if controller.needUpdate(oldworkset, newworkset) {
 				controller.enqueueWorkSet(new)
 			}
@@ -240,7 +240,7 @@ func (w *Controller) processWorkSet(key string) error {
 		owners := utils.AddOwnersLabel("", "clusters", cluster.Name, cluster.Namespace)
 		owners = utils.AddOwnersLabel(owners, "worksets", workset.Name, workset.Namespace)
 		template := workset.Spec.Template.DeepCopy()
-		work := &v1alpha1.Work{
+		work := &v1beta1.Work{
 			ObjectMeta: template.ObjectMeta,
 			Spec:       template.Spec,
 		}
@@ -259,7 +259,7 @@ func (w *Controller) processWorkSet(key string) error {
 		work.Spec.Cluster = corev1.LocalObjectReference{
 			Name: cluster.Name,
 		}
-		_, e := w.hcmclientset.McmV1alpha1().Works(cluster.Namespace).Create(work)
+		_, e := w.hcmclientset.McmV1beta1().Works(cluster.Namespace).Create(work)
 		if e != nil {
 			klog.Errorf("Failed to create work %s on cluster %s: %v", work.Name, cluster.Name, e)
 		}
@@ -267,7 +267,7 @@ func (w *Controller) processWorkSet(key string) error {
 
 	utils.BatchHandle(len(worksToUpdate), func(i int) {
 		workToUpdate := worksToUpdate[i]
-		_, err := w.hcmclientset.McmV1alpha1().Works(workToUpdate.Namespace).Update(workToUpdate)
+		_, err := w.hcmclientset.McmV1beta1().Works(workToUpdate.Namespace).Update(workToUpdate)
 		if err != nil {
 			klog.Errorf("Failed to update work %s: %v", workToUpdate.Name, err)
 		}
@@ -275,7 +275,7 @@ func (w *Controller) processWorkSet(key string) error {
 
 	utils.BatchHandle(len(worksToDelete), func(i int) {
 		workToDelete := worksToDelete[i]
-		err := w.hcmclientset.McmV1alpha1().Works(workToDelete.Namespace).Delete(workToDelete.Name, &metav1.DeleteOptions{})
+		err := w.hcmclientset.McmV1beta1().Works(workToDelete.Namespace).Delete(workToDelete.Name, &metav1.DeleteOptions{})
 		if err != nil {
 			klog.Errorf("Failed to delete work %s", workToDelete.Name)
 		}
@@ -285,10 +285,10 @@ func (w *Controller) processWorkSet(key string) error {
 }
 
 func (w *Controller) worksShouldBeOnClusters(
-	workset *v1alpha1.WorkSet,
-	clusterToWorks map[string][]*v1alpha1.Work,
+	workset *v1beta1.WorkSet,
+	clusterToWorks map[string][]*v1beta1.Work,
 	clusters []*clusterv1alpha1.Cluster,
-) (clustersNeedingWorks []*clusterv1alpha1.Cluster, worksToDelete, workToUpdate []*v1alpha1.Work) {
+) (clustersNeedingWorks []*clusterv1alpha1.Cluster, worksToDelete, workToUpdate []*v1beta1.Work) {
 	for _, cluster := range clusters {
 		if _, ok := clusterToWorks[cluster.Namespace+"/"+cluster.Name]; !ok {
 			clustersNeedingWorks = append(clustersNeedingWorks, cluster)
@@ -318,7 +318,7 @@ func (w *Controller) worksShouldBeOnClusters(
 	return clustersNeedingWorks, worksToDelete, workToUpdate
 }
 
-func (w *Controller) getClustersToWorks(workset *v1alpha1.WorkSet) (map[string][]*v1alpha1.Work, error) {
+func (w *Controller) getClustersToWorks(workset *v1beta1.WorkSet) (map[string][]*v1beta1.Work, error) {
 	selector := &metav1.LabelSelector{
 		MatchLabels: map[string]string{
 			mcm.WorkSetLabel: workset.Namespace + "." + workset.Name,
@@ -335,7 +335,7 @@ func (w *Controller) getClustersToWorks(workset *v1alpha1.WorkSet) (map[string][
 		return nil, err
 	}
 
-	clusterToWorks := make(map[string][]*v1alpha1.Work)
+	clusterToWorks := make(map[string][]*v1beta1.Work)
 	for _, work := range works {
 		cluster := work.Spec.Cluster.Name
 		clusterToWorks[work.Namespace+"/"+cluster] = append(clusterToWorks[cluster], work)
@@ -344,7 +344,7 @@ func (w *Controller) getClustersToWorks(workset *v1alpha1.WorkSet) (map[string][
 	return clusterToWorks, nil
 }
 
-func (w *Controller) updateWorkByWorkset(workset *v1alpha1.WorkSet, work *v1alpha1.Work) (*v1alpha1.Work, bool) {
+func (w *Controller) updateWorkByWorkset(workset *v1beta1.WorkSet, work *v1beta1.Work) (*v1beta1.Work, bool) {
 	update := false
 	updateWork := work.DeepCopy()
 
@@ -359,14 +359,14 @@ func (w *Controller) updateWorkByWorkset(workset *v1alpha1.WorkSet, work *v1alph
 }
 
 func (w *Controller) updateWorkSetStatus(
-	oldworkset *v1alpha1.WorkSet,
+	oldworkset *v1beta1.WorkSet,
 	clusters []*clusterv1alpha1.Cluster,
-	clusterToWorks map[string][]*v1alpha1.Work,
+	clusterToWorks map[string][]*v1beta1.Work,
 ) error {
 	// Deepcopy workset
 	workset := oldworkset.DeepCopy()
 	status := oldworkset.Status.DeepCopy()
-	if status.Status == v1alpha1.WorkCompleted {
+	if status.Status == v1beta1.WorkCompleted {
 		return nil
 	}
 
@@ -383,14 +383,14 @@ func (w *Controller) updateWorkSetStatus(
 		if work.Status.Type == "" {
 			continue
 		}
-		if work.Status.Type == v1alpha1.WorkFailed {
+		if work.Status.Type == v1beta1.WorkFailed {
 			reason = fmt.Sprintf("%s%s(%s); ", reason, work.Status.Reason, cluster.Name)
 		}
 		finishedWorkNum++
 	}
 
 	if len(clusters) <= finishedWorkNum {
-		status.Status = v1alpha1.WorkCompleted
+		status.Status = v1beta1.WorkCompleted
 		status.Reason = reason
 	}
 
@@ -403,11 +403,11 @@ func (w *Controller) updateWorkSetStatus(
 }
 
 func (w *Controller) retryUpdateWorkSetStatus(
-	workset *v1alpha1.WorkSet, status *v1alpha1.WorkSetStatus) error {
+	workset *v1beta1.WorkSet, status *v1beta1.WorkSetStatus) error {
 	// don't wait due to limited number of clients, but backoff after the default number of steps
 	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
 		workset.Status = *status
-		_, updateErr := w.hcmclientset.McmV1alpha1().WorkSets(workset.Namespace).UpdateStatus(workset)
+		_, updateErr := w.hcmclientset.McmV1beta1().WorkSets(workset.Namespace).UpdateStatus(workset)
 		if updateErr == nil {
 			return nil
 		}
@@ -423,25 +423,25 @@ func (w *Controller) retryUpdateWorkSetStatus(
 }
 
 func (w *Controller) addWork(obj interface{}) {
-	work := obj.(*v1alpha1.Work)
+	work := obj.(*v1beta1.Work)
 	if work.Status.Type != "" {
 		w.enqueueWorkSetFromWork(work)
 	}
 }
 
 func (w *Controller) updateWork(oldObj, newObj interface{}) {
-	newWork := newObj.(*v1alpha1.Work)
-	oldWork := oldObj.(*v1alpha1.Work)
+	newWork := newObj.(*v1beta1.Work)
+	oldWork := oldObj.(*v1beta1.Work)
 
 	// enqueu work if it is transfer from pending to completed or failed
-	if (newWork.Status.Type == v1alpha1.WorkCompleted || newWork.Status.Type == v1alpha1.WorkFailed) && oldWork.Status.Type == "" {
+	if (newWork.Status.Type == v1beta1.WorkCompleted || newWork.Status.Type == v1beta1.WorkFailed) && oldWork.Status.Type == "" {
 		w.enqueueWorkSetFromWork(newWork)
 	}
 }
 
 func (w *Controller) deleteWork(old interface{}) {
-	oldWork := old.(*v1alpha1.Work)
-	if oldWork.Status.Type != v1alpha1.WorkCompleted {
+	oldWork := old.(*v1beta1.Work)
+	if oldWork.Status.Type != v1beta1.WorkCompleted {
 		w.enqueueWorkSetFromWork(oldWork)
 	}
 }
@@ -460,7 +460,7 @@ func (w *Controller) updateCluster(oldObj, newObj interface{}) {
 			continue
 		}
 
-		if workset.Status.Status != v1alpha1.WorkCompleted {
+		if workset.Status.Status != v1beta1.WorkCompleted {
 			w.enqueueWorkSet(workset)
 		}
 	}
@@ -479,7 +479,7 @@ func (w *Controller) enqueueWorkSet(obj interface{}) {
 	w.workqueue.AddRateLimited(key)
 }
 
-func (w *Controller) enqueueWorkSetFromWork(work *v1alpha1.Work) {
+func (w *Controller) enqueueWorkSetFromWork(work *v1beta1.Work) {
 	key, ok := work.Labels[mcm.WorkSetLabel]
 	if !ok {
 		return
@@ -494,11 +494,11 @@ func (w *Controller) enqueueWorkSetFromWork(work *v1alpha1.Work) {
 	w.workqueue.Add(key)
 }
 
-func (w *Controller) needUpdateWork(workset *v1alpha1.WorkSet, work *v1alpha1.Work) bool {
+func (w *Controller) needUpdateWork(workset *v1beta1.WorkSet, work *v1beta1.Work) bool {
 	return !equals.EqualWorkSpec(&workset.Spec.Template.Spec, &work.Spec)
 }
 
-func (w *Controller) needUpdate(newworkset, oldworkset *v1alpha1.WorkSet) bool {
+func (w *Controller) needUpdate(newworkset, oldworkset *v1beta1.WorkSet) bool {
 	if !reflect.DeepEqual(newworkset.Spec.ClusterSelector, oldworkset.Spec.ClusterSelector) {
 		return true
 	}

@@ -11,10 +11,10 @@ import (
 	"io/ioutil"
 	"reflect"
 
-	hcmadmission "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apiserver/admission"
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset"
-	informers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/informers_generated/internalversion"
-	listers "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/client/listers_generated/mcm/internalversion"
+	hcmadmission "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apiserver/admission"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/internalclientset"
+	informers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/internalversion"
+	listers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/listers_generated/mcm/internalversion"
 	"k8s.io/apiserver/pkg/admission"
 	"k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )

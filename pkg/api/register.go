@@ -27,8 +27,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 
-	clusterregistry "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/clusterregistry/install"
-	hcm "github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/apis/mcm/install"
+	clusterregistry "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/install"
+	hcm "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/install"
 )
 
 var (

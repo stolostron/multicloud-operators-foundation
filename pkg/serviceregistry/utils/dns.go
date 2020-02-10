@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/pkg/serviceregistry/plugin"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/serviceregistry/plugin"
 )
 
 // UpdateSOARecord updates SOA record from old DNS records
