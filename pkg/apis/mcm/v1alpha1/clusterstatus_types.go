@@ -95,6 +95,20 @@ type ClusterStatusList struct {
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
+// ClusterStatusTopology is the data for toplogy date in a cluster
+type ClusterStatusTopology struct {
+	metav1.TypeMeta `json:",inline"`
+
+	// Name must match the cluster name
+	Name string `json:"name,omitempty"`
+
+	// Data is the topology data
+	// Was previously []byte but changed to string because []byte was being corrupted by the api's Unmarshal code I think - Ethan
+	Data string `json:"data,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
 // ClusterRestOptions is the option for pod
 type ClusterRestOptions struct {
 	metav1.TypeMeta `json:",inline"`

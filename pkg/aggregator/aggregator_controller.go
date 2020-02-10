@@ -28,7 +28,7 @@ type Controller struct {
 	kubeSharedInformers informers.SharedInformerFactory
 	aggregatorLister    v1.ConfigMapLister
 	aggregatorSynced    cache.InformerSynced
-	aggregatorGetter    *InfoGetter
+	aggregatorGetters   *InfoGetters
 	workqueue           workqueue.RateLimitingInterface
 	stopCh              <-chan struct{}
 }
@@ -37,7 +37,7 @@ type Controller struct {
 func NewController(
 	dynamicClient kubernetes.Interface,
 	informerFactory informers.SharedInformerFactory,
-	aggregatorGetter *InfoGetter,
+	aggregatorGetter *InfoGetters,
 	stopCh <-chan struct{}) *Controller {
 	configMapInformer := informerFactory.Core().V1().ConfigMaps()
 	controller := &Controller{
@@ -45,7 +45,7 @@ func NewController(
 		kubeSharedInformers: informerFactory,
 		aggregatorLister:    configMapInformer.Lister(),
 		aggregatorSynced:    configMapInformer.Informer().HasSynced,
-		aggregatorGetter:    aggregatorGetter,
+		aggregatorGetters:   aggregatorGetter,
 		workqueue:           workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "aggregatorController"),
 		stopCh:              stopCh,
 	}
@@ -129,7 +129,7 @@ func (c *Controller) syncHandler(key string) error {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// configmap is deleted, delete aggregator config
-			c.aggregatorGetter.Delete(namespace + "/" + name)
+			c.aggregatorGetters.Delete(namespace + "/" + name)
 			klog.V(5).Infof("delete aggregator %#v", namespace+"/"+name)
 			return nil
 		}
@@ -137,13 +137,13 @@ func (c *Controller) syncHandler(key string) error {
 		return err
 	}
 
-	aggregatorOptions, err := getAggregatorOptions(aggregatorConfigmap)
+	aggregatorOptions, err := getClientOptions(aggregatorConfigmap)
 	if err != nil {
 		klog.Errorf("fail to get aggregator options %#v", err)
 		return err
 	}
 
-	c.aggregatorGetter.AddAndUpdate(aggregatorOptions)
+	c.aggregatorGetters.AddAndUpdate(aggregatorOptions)
 	klog.V(5).Infof("add aggregator %#v options %#v ", aggregatorConfigmap.Name, aggregatorConfigmap.Data)
 	return nil
 }
@@ -189,14 +189,14 @@ func (c *Controller) deleteAggregator(obj interface{}) {
 
 var aggregatorOptionsKey = []string{"service", "port", "path", "sub-resource", "use-id", "secret"}
 
-func getAggregatorOptions(c *corev1.ConfigMap) (*Options, error) {
+func getClientOptions(c *corev1.ConfigMap) (*ClientOptions, error) {
 	for _, key := range aggregatorOptionsKey {
 		if _, ok := c.Data[key]; !ok {
 			return nil, fmt.Errorf("there is no %v key in configmap %v in namespace %v", key, c.GetName(), c.GetNamespace())
 		}
 	}
 
-	aggratorOptions := &Options{
+	options := &ClientOptions{
 		name:        c.Namespace + "/" + c.Name,
 		service:     c.Data["service"],
 		port:        c.Data["port"],
@@ -205,8 +205,8 @@ func getAggregatorOptions(c *corev1.ConfigMap) (*Options, error) {
 		secret:      c.Data["secret"],
 	}
 	if c.Data["use-id"] == "true" {
-		aggratorOptions.useID = true
+		options.useID = true
 	}
 
-	return aggratorOptions, nil
+	return options, nil
 }

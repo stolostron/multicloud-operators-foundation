@@ -7,6 +7,7 @@
 package options
 
 import (
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/aggregator"
 	genericoptions "k8s.io/apiserver/pkg/server/options"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
 
@@ -36,10 +37,10 @@ type ServerRunOptions struct {
 	APIEnablement           *genericoptions.APIEnablementOptions
 	MCMStorage              *mcmstorage.Options
 	KlusterletClientOptions *klusterlet.ClientOptions
-
-	StandAlone         bool
-	AuthorizationQPS   float32
-	AuthorizationBurst int
+	AggregatorOptions       *aggregator.Options
+	StandAlone              bool
+	AuthorizationQPS        float32
+	AuthorizationBurst      int
 }
 
 // NewServerRunOptions creates a new ServerRunOptions object with default values.
@@ -55,6 +56,7 @@ func NewServerRunOptions() *ServerRunOptions {
 		APIEnablement:           genericoptions.NewAPIEnablementOptions(),
 		MCMStorage:              mcmstorage.NewStorageOptions(),
 		KlusterletClientOptions: klusterlet.NewClientOptions(),
+		AggregatorOptions:       aggregator.NewOptions(),
 	}
 
 	registerAllAdmissionPlugins(s.Admission.Plugins, &s.KlusterletClientOptions.CAFile)
@@ -79,4 +81,5 @@ func (options *ServerRunOptions) AddFlags(fs *pflag.FlagSet) {
 	options.Admission.AddFlags(fs)
 	options.MCMStorage.AddFlags(fs)
 	options.KlusterletClientOptions.AddFlags(fs)
+	options.AggregatorOptions.AddFlags(fs)
 }

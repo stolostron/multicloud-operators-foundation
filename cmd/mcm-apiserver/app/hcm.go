@@ -7,6 +7,7 @@ package app
 
 import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/aggregator"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/storage/mongo/weave"
 	"k8s.io/klog"
 
 	clusterrest "github.com/open-cluster-management/multicloud-operators-foundation/pkg/registry/cluster-registry/rest"
@@ -24,11 +25,12 @@ func installHCMAPIs(
 	optsGetter generic.RESTOptionsGetter,
 	apiResourceConfigSource storage.APIResourceConfigSource,
 	options *mcmstorage.Options,
+	inserter *weave.ClusterTopologyInserter,
 	clientConfig klusterlet.ClientConfig,
-	aggregatorGetter *aggregator.InfoGetter) {
+	aggregatorGetters *aggregator.Getters) {
 	hcmStorageProvider := hcmrest.StorageProvider{}
 	hcmGroupInfo, shouldInstallGroup := hcmStorageProvider.NewRESTStorage(
-		apiResourceConfigSource, optsGetter, options, clientConfig, aggregatorGetter)
+		apiResourceConfigSource, optsGetter, options, inserter, clientConfig, aggregatorGetters)
 	if !shouldInstallGroup {
 		return
 	}
