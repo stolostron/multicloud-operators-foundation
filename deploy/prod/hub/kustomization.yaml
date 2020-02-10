@@ -1,0 +1,20 @@
+resources:
+- ../../dev/hub/
+
+images:
+- name: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/mcm-apiserver
+  newName: quay.io/rhibmcollab/multicloud-manager
+  newTag: latest
+- name: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/mcm-controller
+  newName: quay.io/rhibmcollab/multicloud-manager
+  newTag: latest
+
+secretGenerator:
+- name: mcm-image-pull-secret
+  namespace: multicloud-system
+  literals:
+  - .dockerconfigjson=<AUTH INFO>
+  type: "kubernetes.io/dockerconfigjson"
+
+patchesStrategicMerge:
+- serviceaccount-patch.yaml

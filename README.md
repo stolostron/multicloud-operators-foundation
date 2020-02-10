@@ -10,6 +10,7 @@ multicloud manager is the service to manage kubernetes clusters deployed on mult
 This is a guide on how to build and deploy multicloud manager from code.
 
 Prerequisite:
+
 - ko, download at [ko](https://github.com/google/ko)
 
 ## Setup
@@ -32,35 +33,170 @@ make build
 
 make build will build all the binaries in output directory.
 
-## Deploy
+## Deploy from quay.io
+
+You can use `kustomize` to deploy multicloud manager with the following step.
+
+Install `kustomize`, you can use
+
+```sh
+curl -s "https://raw.githubusercontent.com/\
+kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
+mv kustomize /usr/local/bin/
+```
+
+More info please see: [kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md)
+
+1. Install on hub cluster
+
+    Config image repo and image pull secret in `deploy/prod/hub/kustomization.yaml`
+    > change image repo and image tag in `images` section.
+    > change `<AUTH INFO>` with your image repo login info in `secretGenerator` section. It looks like:
+
+    ```json
+    {"auths":{"https://quay.io/rhibmcollab/multicloud-manager":{"username":"<USER NAME>","password":"<TOKEN>/","auth":"<BASE64 ENACODE <USER:TOKEN>>"}}}
+    ```
+
+    Deploy hub components
+
+    ```kustomize build deploy/prod/hub | kubectl apply  -f -```
+
+    > Note:
+    > * The yaml file of ETCD StatefulSet is `deploy/dev/hub/resources/200-etcd.yaml`. And the mountPath is:
+    > ```
+    > volumeMounts:
+    > - mountPath: /etcd-data
+    > ```
+    > * The yaml file of MongoDB StatefulSet is `deploy/dev/hub/resources/200-mongo.yaml`. And the mountPath is:
+    > ```
+    > volumeMounts:
+    > - mountPath: /data/db
+    > ```
+    > * If you deploy the hub components in OpenShift, you need to adjust your scc policy by running command
+
+    ```oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default```
+
+2. Adding a spoke cluster
+
+    The context of the spoke cluster must be used or the KUBECONFIG environment variable must be defined using the spoke cluster and not the hub.
+
+    Create bootstrap secret `klusterlet-bootstrap` in `default` namespace using a kubeconfig file of the hub cluster. If the kubeconfig file includes keys, like `client-certificate` and `client-key`, which reference to local certification files, replace them with `client-certificate-data` and `client-key-data`. The corresponding values of these keys can be obtained with the command below.
+    >Note: The base64 steps are not required if you are using OpenShift.
+
+    ```sh
+    cat /path/to/cert/file | base64 --wrap=0
+    ```
+
+    And then create the secret.
+
+    ```sh
+    kubectl create secret generic klusterlet-bootstrap --from-file=kubeconfig=/<path>/kubeconfig -n default
+    ```
+
+    Customize the cluster name and namespaces of managed cluster in `deploy/dev/klusterlet/resources/300-klusterlet.yaml`.
+    Make sure that the name and namespace are unique in the hub.
+
+    ```sh
+    --cluster-name=spoke0
+    --cluster-namespace=spoke0
+    ```
+
+    Configure `default/klusterlet-bootstrap` to `bootstrap-secret` and `cluster0/cluster0` to `cluster` in `deploy/dev/klusterlet/resources/200-connectionmanager.yaml`.
+
+    ```sh
+    --bootstrap-secret=default/klusterlet-bootstrap     # namespace/bootstrap-secret
+    --cluster=spoke0/spoke0    # cluster-namespace/cluster-name
+    ```
+
+    Config image repo and image pull secret info in ```deploy/prod/klusterlet/kustomization.yaml```
+    > change image repo and image tag in `images` section
+    > change `<AUTH INFO>` with your image repo login info in `secretGenerator` section. It looks like:
+
+    ```json
+    {"auths":{"https://quay.io/rhibmcollab/multicloud-manager":{"username":"<USER NAME>","password":"<TOKEN>/","auth":"<BASE64 ENACODE <USER:TOKEN>>"}}}
+    ```
+
+    Deploy klusterlet components
+
+    ```kustomize build deploy/prod/klusterlet | kubectl apply  -f -```
+
+3. (Optional) Enable service registry on managed cluster
+
+    After klusterlet components were installed in managed cluster, Customize the cluster name and namespaces of hub or spoke cluster in `deploy/serviceregistry/200-serviceregistry`.
+    >Note: The cluster-name and cluster-namespace must reflect the same values used when defining the klusterlet configuration.
+
+    ```sh
+
+    --cluster-name=cluster0
+    --cluster-namespace=cluster0
+
+    ```
+
+    > Note: if you want to discover a NodePort type service, you need to set the cluster outside IP with args `--member-cluster-proxy-ip`
+
+    Config image repo and image pull secret info in ```deploy/prod/klusterlet/kustomization.yaml```
+    > change image repo and image tag in `images` section
+
+    Deploy service registry components
+
+    ```kustomize build deploy/prod/serviceregistry.yaml | kubectl apply  -f -```
+
+    > Note: If you deploy the service registry in OpenShift, you need to adjust your `scc` policy by running command `oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-endpoint:default`
+
+    Configure the Kubernetes DNS to forward/proxy the registered services that have `mcm.svc.` suffix to service registry DNS, e.g.
+
+    Find the mcm-svcreg-dns service cluster IP
+
+    ```sh
+    kubectl get -n multicloud-endpoint service mcm-svcreg-dns -o jsonpath='{.spec.clusterIP}'
+    ```
+
+    If there is no forward plugin in current Kubernetes DNS configuration, configure and enable the forward plugin in the Kubernetes DNS configuration with `kubectl edit -n kube-system configmap coredns`, e.g.
+
+    ```yaml
+    Corefile: |
+        .:53 {
+
+            ...
+
+            forward mcm.svc. <mcm-svcreg-dns-cluster-ip>
+        }
+    ```
+
+    If there is already a forward plugin in current Kubernetes DNS configuration, configure and enable the proxy plugin in the Kubernetes DNS configuration, e.g.
+
+    ```yaml
+    Corefile: |
+        .:53 {
+            ...
+
+            forward . /etc/resolv.conf {
+               except mcm.svc
+            }
+
+            ...
+
+            proxy mcm.svc. <mcm-svcreg-dns-cluster-ip>
+        }
+    ```
+
+## Deploy for development environment
 
 You can use `ko` to deploy multicloud manager with the following step.
+
+Install `ko`, you can use
+
+```sh
+go get github.com/google/ko/cmd/ko
+```
+
+More information see [ko](https://github.com/google/ko)
 
 > Note:
 > * Go version needs >= go1.11.
 > * Need `export GO111MODULE=on` if Go version is go1.11 or go1.12.
-> * The best practice is to configure persistent volume for ETCD and MongoDB StatefulSet.
-> * The yaml file of ETCD StatefulSet is `deploy/hub/200-etcd.yaml`. And the mountPath is:
-> ```
-> volumeMounts:
-> - mountPath: /etcd-data
-> ```
-> * The yaml file of MongoDB StatefulSet is `deploy/hub/200-mongo.yaml`. And the mountPath is:
-> ```
-> volumeMounts:
-> - mountPath: /data/db
-> ```
-> * If deploy on OCP, needs to run the following command beforehand.
-> ```
-> oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default
-> ```
 
-1. Install deployment tool **ko**
-    > More information see [ko](https://github.com/google/ko)
-
-    ```sh
-    go get github.com/google/ko/cmd/ko
-    ```
+1. Config `KO_DOCKER_REPO` for deployment tool **ko**
 
     Configure `KO_DOCKER_REPO` by running `gcloud auth configure-docker` if you are using Google Container Registry or `docker login` if you are using Docker Hub.
 
@@ -80,12 +216,21 @@ You can use `ko` to deploy multicloud manager with the following step.
     Deploy hub components
 
     ```sh
-    ko apply -f deploy/hub --base-import-paths --tags=latest
+    ko apply -f deploy/dev/hub/resources --base-import-paths --tags=latest
     ```
 
-    > Note: If you deploy the hub components in OpenShift, you need to adjust your `scc` policy by running command `oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default`
+    > Note:
+    > * The yaml file of ETCD StatefulSet is `deploy/dev/hub/resources/200-etcd.yaml`. And the mountPath is:
+    > ```
+    > volumeMounts:
+    > - mountPath: /etcd-data```
+    > * The yaml file of MongoDB StatefulSet is `deploy/dev/hub/resources/200-mongo.yaml`. And the mountPath is:
+    > ```
+    > volumeMounts:
+    > - mountPath: /data/db```
+    > * If you deploy the hub components in OpenShift, you need to adjust your `scc` policy by running command `oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default`
 
-3. Install on klusterlet on the hub cluster
+3. Install klusterlet on the hub cluster
 
     Create bootstrap secret `klusterlet-bootstrap` in `default` namespace using a kubeconfig file with any authenticated hub cluster user. If the kubeconfig file includes keys, like `client-certificate` and `client-key`, which reference to local certification files, replace them with `client-certificate-data` and `client-key-data`. The corresponding values of these keys can be obtained with the command below.
     >Note: The base64 steps are not required if you are using OpenShift.
@@ -100,7 +245,7 @@ You can use `ko` to deploy multicloud manager with the following step.
     kubectl create secret generic klusterlet-bootstrap --from-file=kubeconfig=/<path>/kubeconfig -n default
     ```
 
-   Customize the cluster name and namespaces of managed cluster in `deploy/klusterlet/300-klusterlet.yaml`.
+   Customize the cluster name and namespaces of managed cluster in `deploy/dev/klusterlet/resources/300-klusterlet.yaml`.
    Make sure that the name and namespace are unique in the hub.
 
     ```sh
@@ -108,7 +253,7 @@ You can use `ko` to deploy multicloud manager with the following step.
     --cluster-namespace=cluster0
     ```
 
-    Configure `default/klusterlet-bootstrap` to `bootstrap-secret` and `cluster0/cluster0` to `cluster` in `deploy/klusterlet/200-connectionmanager.yaml`.
+    Configure `default/klusterlet-bootstrap` to `bootstrap-secret` and `cluster0/cluster0` to `cluster` in `deploy/dev/klusterlet/resources/200-connectionmanager.yaml`.
 
     ```sh
     --bootstrap-secret=default/klusterlet-bootstrap     # namespace/bootstrap-secret
@@ -118,7 +263,7 @@ You can use `ko` to deploy multicloud manager with the following step.
     Deploy klusterlet components
 
     ```sh
-    ko apply -f deploy/klusterlet --base-import-paths --tags=latest
+    ko apply -f deploy/dev/klusterlet/resources --base-import-paths --tags=latest
     ```
 
 4. Adding a spoke cluster
@@ -138,7 +283,7 @@ You can use `ko` to deploy multicloud manager with the following step.
     kubectl create secret generic klusterlet-bootstrap --from-file=kubeconfig=/<path>/kubeconfig -n default
     ```
 
-    Customize the cluster name and namespaces of managed cluster in `deploy/klusterlet/300-klusterlet.yaml`.
+    Customize the cluster name and namespaces of managed cluster in `deploy/dev/klusterlet/resources/300-klusterlet.yaml`.
     Make sure that the name and namespace are unique in the hub.
 
     ```sh
@@ -146,7 +291,7 @@ You can use `ko` to deploy multicloud manager with the following step.
     --cluster-namespace=spoke0
     ```
 
-    Configure `default/klusterlet-bootstrap` to `bootstrap-secret` and `cluster0/cluster0` to `cluster` in `deploy/klusterlet/200-connectionmanager.yaml`.
+    Configure `default/klusterlet-bootstrap` to `bootstrap-secret` and `cluster0/cluster0` to `cluster` in `deploy/dev/klusterlet/resources/200-connectionmanager.yaml`.
 
     ```sh
     --bootstrap-secret=default/klusterlet-bootstrap     # namespace/bootstrap-secret
@@ -156,7 +301,7 @@ You can use `ko` to deploy multicloud manager with the following step.
     Deploy klusterlet components
 
     ```sh
-    ko apply -f deploy/klusterlet --base-import-paths --tags=latest
+    ko apply -f deploy/dev/klusterlet/resources --base-import-paths --tags=latest
     ```
 
 5. (Optional) Enable service registry on managed cluster

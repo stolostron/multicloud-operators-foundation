@@ -1,0 +1,7 @@
+resources:
+- resources/300-apiserver.yaml
+- resources/300-controller.yaml
+- resources/200-mongo.yaml
+- resources/200-etcd.yaml
+- resources/200-clusterrole.yaml
+- resources/100-namespace.yaml
