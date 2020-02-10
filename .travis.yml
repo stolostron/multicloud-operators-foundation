@@ -1,0 +1,75 @@
+
+dist: trusty
+
+os:
+  - linux
+
+language: go
+go: "1.13.x"
+
+services:
+  - docker
+
+addons:
+  sonarcloud:
+    organization: "open-cluster-management"
+    token:
+      secure: "pIAub2t855Ji06TCRnxZdijQmnEhA8De4Jvoq6XH7xtUW/26Pn3nKg3yhA2dQp49dnfBlwQfwb0UOWZhY5FTAb/j4DpAXCpXoemXnKgxzknNfWLMr070MZQ/MomsSlArx13lXLHi3WkJv6oyCyyGwDYtRqDYYXK7ZHNuaSnqKLvSpoJ8nZYCmKigM5kSYepYIh+wg2P7Oz/6TjhK9Lv6rvCxzNhUAizGV+W5ddY01OTjwfut0zO6PvIJqPkpcWqUNTi8GKVY2/gjr8mPCf6ZuNc4laNV+r9rvhf9cUls1zpPpCvOCGVqIA1cYQ7Agq8fEf0k+CpaJeA3IbqJEv+REasPrK9VvOaY/pg55w2tU237RiK96BQnkvQFVkpozL7Bt0Q6nCk7bNxbMY8eYYHJ8ZoTHgIw1lXH4C+ADcaMeENG+zqhvBr/Mfk3M+ZFgCkKSA2LrSL9wDoYLmZL236rJxMBPAUCvjxAd+hUlHo1PXc1aoIR8hwWbGwq2T24Telvl3z6DOXFOLd2fzF5H50imGcSd7UugAJKFLqrVuCrE9nzVhPdZS1EBMxLMnBWG0LFEGUNSLasSaMI1oG6pZJALZBz+A251rSi+EBEP9DVv101a8JYzM99ynwnhpc6AYUw0p0q6YhuTZNkX1PxWvmMfXFdjASODbsnW2z04lcc5B0="
+
+
+env:
+  global:
+    # Required
+    - OS=linux
+    - COMPONENT_TAG_EXTENSION="-${TRAVIS_COMMIT}"
+
+    # Component Specific
+    - COMPONENT_INIT_COMMAND=${TRAVIS_BUILD_DIR}/build/install-dependencies.sh
+    - COMPONENT_DEPLOY_COMMAND=${TRAVIS_BUILD_DIR}/build/deploy-to-cluster.sh
+    - COMPONENT_BUILD_COMMAND=${TRAVIS_BUILD_DIR}/build/build.sh
+    - COMPONENT_UNIT_TEST_COMMAND=${TRAVIS_BUILD_DIR}/build/run-unit-tests.sh
+    - COMPONENT_E2E_TEST_COMMAND=${TRAVIS_BUILD_DIR}/build/run-e2e-tests.sh
+
+stages:
+  - build
+  - unit-test
+  - test-e2e
+  - publish
+
+jobs:
+  include:
+    - stage: build
+      name: "Build the image and run unit tests"
+      script:
+        - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then export COMPONENT_TAG_EXTENSION="-PR${TRAVIS_PULL_REQUEST}-${TRAVIS_COMMIT}"; fi;
+        - |
+          make
+          make component/build
+          make component/push
+    - stage: unit-test
+      name: "Run unit test"
+      if: type = pull_request
+      script:
+        # Set the image tag differently for PRs
+        - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then export COMPONENT_TAG_EXTENSION="-PR${TRAVIS_PULL_REQUEST}-${TRAVIS_COMMIT}"; fi;
+        # Bootstrap the build harness, pull test image, and run unit tests.
+        - |
+          make
+          make component/test/unit
+    - stage: test-e2e
+      name: "Deploy the image to a cluster and run e2e tests"
+      if: type = pull_request
+      script:
+        #Check out a clusterpool, set up oc, deploy, run e2e tests, and return clusterpool cluster
+        - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then export COMPONENT_TAG_EXTENSION="-PR${TRAVIS_PULL_REQUEST}-${TRAVIS_COMMIT}"; fi;
+        - |
+          make
+          make component/pull
+          make component/test/e2e
+    - stage: publish
+      name: "Publish the image to quay with an official version/sha tag and publish entry to integration pipeline stage"
+      if: type = push AND branch =~ /^release-[0-9]+\..*$/
+      script:
+        - |
+          make
+          make pipeline-manifest/update PIPELINE_MANIFEST_COMPONENT_SHA256=${TRAVIS_COMMIT} PIPELINE_MANIFEST_COMPONENT_REPO=${TRAVIS_REPO_SLUG} PIPELINE_MANIFEST_BRANCH=${TRAVIS_BRANCH}
