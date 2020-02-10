@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/aggregator"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/storage/mongo/weave"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apiserver/authorization"
 
@@ -256,17 +257,23 @@ func NonBlockingRun(s *options.ServerRunOptions, stopCh <-chan struct{}) error {
 		return err
 	}
 
+	// Start mongo inserter for topology data
+	inserter, err := weave.NewClusterTopologyInserter(s.MCMStorage.Mongo, stopCh)
+	if err != nil {
+		return err
+	}
+	go inserter.Run()
+
+	aggregatorGetters := aggregator.NewGetters(s.AggregatorOptions, klusterletClientConfig.KubeClient)
+	aggregatorGetters.Run(kubeSharedInformers, stopCh)
+
 	apiResourceConfigSource := storageFactory.APIResourceConfigSource
-	aggregatorGetter := aggregator.NewGetter(klusterletClientConfig.KubeClient)
+
 	installHCMAPIs(
 		m, genericConfig.RESTOptionsGetter, apiResourceConfigSource,
-		s.MCMStorage, klusterletClientConfig, aggregatorGetter)
+		s.MCMStorage, inserter, klusterletClientConfig, aggregatorGetters)
 
 	if !s.StandAlone {
-		aggregatorController := aggregator.NewController(
-			klusterletClientConfig.KubeClient, kubeSharedInformers, aggregatorGetter, stopCh)
-		go aggregatorController.Run()
-
 		sharedInformers.Start(stopCh)
 		kubeSharedInformers.Start(stopCh)
 		clusterInformers.Start(stopCh)

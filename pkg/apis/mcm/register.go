@@ -51,6 +51,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ResourceViewList{},
 		&ResourceViewResult{},
 		&ResourceViewResultList{},
+		&LeaderVote{},
+		&LeaderVoteList{},
 		&ClusterJoinRequest{},
 		&ClusterJoinRequestList{},
 		&PlacementBinding{},
