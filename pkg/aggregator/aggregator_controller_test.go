@@ -1,3 +1,7 @@
+// licensed Materials - Property of IBM
+// (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
+// US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+
 package aggregator
 
 import (
@@ -18,7 +22,7 @@ type testContent struct {
 	objects             []runtime.Object
 	controller          *Controller
 	kubeSharedInformers kubeinformers.SharedInformerFactory
-	aggregatorGetter    *InfoGetter
+	aggregatorGetter    *InfoGetters
 }
 
 func newTestContent(t *testing.T) *testContent {
@@ -31,7 +35,7 @@ func newTestContent(t *testing.T) *testContent {
 func (c *testContent) newController() {
 	kubeClient := k8sfake.NewSimpleClientset(c.objects...)
 	c.kubeSharedInformers = kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
-	c.aggregatorGetter = NewGetter(kubeClient)
+	c.aggregatorGetter = NewInfoGetters(kubeClient)
 	c.controller = NewController(kubeClient, c.kubeSharedInformers, c.aggregatorGetter, c.stopCh)
 }
 

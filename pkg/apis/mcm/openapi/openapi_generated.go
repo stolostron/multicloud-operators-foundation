@@ -31,10 +31,15 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatus":           schema_pkg_apis_mcm_v1alpha1_ClusterStatus(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusList":       schema_pkg_apis_mcm_v1alpha1_ClusterStatusList(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusSpec":       schema_pkg_apis_mcm_v1alpha1_ClusterStatusSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusTopology":   schema_pkg_apis_mcm_v1alpha1_ClusterStatusTopology(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmRelease":             schema_pkg_apis_mcm_v1alpha1_HelmRelease(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmReleaseSpec":         schema_pkg_apis_mcm_v1alpha1_HelmReleaseSpec(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmWorkSpec":            schema_pkg_apis_mcm_v1alpha1_HelmWorkSpec(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.KubeWorkSpec":            schema_pkg_apis_mcm_v1alpha1_KubeWorkSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVote":              schema_pkg_apis_mcm_v1alpha1_LeaderVote(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVoteList":          schema_pkg_apis_mcm_v1alpha1_LeaderVoteList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVoteSpec":          schema_pkg_apis_mcm_v1alpha1_LeaderVoteSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVoteStatus":        schema_pkg_apis_mcm_v1alpha1_LeaderVoteStatus(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBinding":        schema_pkg_apis_mcm_v1alpha1_PlacementBinding(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBindingList":    schema_pkg_apis_mcm_v1alpha1_PlacementBindingList(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicy":         schema_pkg_apis_mcm_v1alpha1_PlacementPolicy(ref),
@@ -95,12 +100,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSpec":                 schema_pkg_apis_mcm_v1beta1_WorkSpec(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkStatus":               schema_pkg_apis_mcm_v1beta1_WorkStatus(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkTemplateSpec":         schema_pkg_apis_mcm_v1beta1_WorkTemplateSpec(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequest":                                                    schema_k8sio_api_certificates_v1beta1_CertificateSigningRequest(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestCondition":                                           schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestCondition(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestList":                                                schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestList(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestSpec":                                                schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestSpec(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestStatus":                                              schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestStatus(ref),
-		"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource":                                                          schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequest":                                                        schema_k8sio_api_certificates_v1beta1_CertificateSigningRequest(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestCondition":                                               schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestCondition(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestList":                                                    schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestList(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestSpec":                                                    schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestSpec(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestStatus":                                                  schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestStatus(ref),
+		"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource":                                                              schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
 		"k8s.io/api/core/v1.Affinity":                                                         schema_k8sio_api_core_v1_Affinity(ref),
 		"k8s.io/api/core/v1.AttachedVolume":                                                   schema_k8sio_api_core_v1_AttachedVolume(ref),
 		"k8s.io/api/core/v1.AvoidPods":                                                        schema_k8sio_api_core_v1_AvoidPods(ref),
@@ -768,6 +773,47 @@ func schema_pkg_apis_mcm_v1alpha1_ClusterStatusSpec(ref common.ReferenceCallback
 	}
 }
 
+func schema_pkg_apis_mcm_v1alpha1_ClusterStatusTopology(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterStatusTopology is the data for toplogy date in a cluster",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name must match the cluster name",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"data": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Data is the topology data Was previously []byte but changed to string because []byte was being corrupted by the api's Unmarshal code I think - Ethan",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{},
+	}
+}
+
 func schema_pkg_apis_mcm_v1alpha1_HelmRelease(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -997,6 +1043,170 @@ func schema_pkg_apis_mcm_v1alpha1_KubeWorkSpec(ref common.ReferenceCallback) com
 		},
 		Dependencies: []string{
 			"k8s.io/apimachinery/pkg/runtime.RawExtension"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_LeaderVote(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "LeaderVote keeps the leader election status",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec defines the leader vote spec.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVoteSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status defines the status of the current leader",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVoteStatus"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVoteSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVoteStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_LeaderVoteList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "LeaderVoteList is a list of all the leader vote",
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "List of Cluster objects.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVote"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVote", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_LeaderVoteSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "LeaderVoteSpec gives the leader vote spec",
+				Properties: map[string]spec.Schema{
+					"vote": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Vote is the number that this server vote for leader",
+							Type:        []string{"integer"},
+							Format:      "int32",
+						},
+					},
+					"kubernetesApiEndpoints": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KubernetesAPIEndpoints represents the endpoints of the API server for this cluster.",
+							Ref:         ref("k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1.KubernetesAPIEndpoints"),
+						},
+					},
+					"identity": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Identity is the identity of this server",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"vote", "identity"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1.KubernetesAPIEndpoints"},
+	}
+}
+
+func schema_pkg_apis_mcm_v1alpha1_LeaderVoteStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "LeaderVoteStatus gives the status of current leader vote result",
+				Properties: map[string]spec.Schema{
+					"role": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CurrentLeader shows the current leader identity",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"readyToServer": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ReadyToServer is the flag to show whether this leader is ready to serve",
+							Type:        []string{"boolean"},
+							Format:      "",
+						},
+					},
+					"lastUpdateTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastUpdateTime shows the last leader update time",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+				},
+				Required: []string{"role", "readyToServer", "lastUpdateTime"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
 	}
 }
 
