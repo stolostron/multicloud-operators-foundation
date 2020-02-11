@@ -1,0 +1,7 @@
+resources:
+- ../../dev/serviceregistry/
+
+images:
+- name: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry
+  newName: quay.io/rhibmcollab/multicloud-manager
+  newTag: latest

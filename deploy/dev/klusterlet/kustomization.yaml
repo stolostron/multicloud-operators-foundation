@@ -1,0 +1,5 @@
+resources:
+- resources/300-klusterlet.yaml
+- resources/200-connectionmanager.yaml
+- resources/200-clusterrole.yaml
+- resources/100-namespace.yaml

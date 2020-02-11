@@ -1,0 +1,20 @@
+resources:
+- ../../dev/klusterlet/
+
+images:
+- name: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet-connectionmanager
+  newName: quay.io/rhibmcollab/multicloud-manager
+  newTag: latest
+- name: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet
+  newName: quay.io/rhibmcollab/multicloud-manager
+  newTag: latest
+
+secretGenerator:
+- name: mcm-image-pull-secret
+  namespace: multicloud-endpoint
+  literals:
+  - .dockerconfigjson=<AUTH INFO>
+  type: "kubernetes.io/dockerconfigjson"
+
+patchesStrategicMerge:
+- serviceaccount-patch.yaml
