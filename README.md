@@ -560,7 +560,7 @@ you can view the pod log of managed cluster
 
 ```sh
 export TOKEN=<BEARER TOKEN>
-curl -k -H "Authorization: Bearer $TOKEN " https://<HUB CLUSTER HOST>:<API PORT/apis/mcm.ibm.com/v1alpha1/namespaces/<MANAGED CLUSTER NAMESPACE> /clusterstatuses/<MANAGED CLUSTER NAME>/log/<POD NAMESPACE>/<POD NAME>/<CONTAINER NAME>
+curl -k -H "Authorization: Bearer $TOKEN " https://<HUB CLUSTER HOST>:<API PORT>/apis/mcm.ibm.com/v1beta1/namespaces/<MANAGED CLUSTER NAMESPACE> /clusterstatuses/<MANAGED CLUSTER NAME>/log/<POD NAMESPACE>/<POD NAME>/<CONTAINER NAME>
 ```
 
 example:
@@ -568,5 +568,5 @@ example:
 ```sh
 export TOKEN=eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdF9oYXNoIjoiZjQ2ODcxMWRjZDc1Zjc2MDRkMGJlNWY4OTQ4NDAwYWE3MjRlOWZiNSIsInJlYWxtTmFtZSI6ImN1c3RvbVJlYWxtIiwidW5pcXVlU2VjdXJpdHlOYW1lIjoiYWRtaW4iLCJpc3MiOiJodHRwczovLzEyNy4wLjAuMTo4NDQzL2lkYXV0aC9vaWRjL2VuZHBvaW50L09QIiwiYXVkIjoiMTA2YTA3ZGNmZjVlYTVkZmM2ZmIzYjBkZGU1NzE1MjEiLCJleHAiOjE1NzE5NTE3NDAsImlhdCI6MTU3MTk1MTc0MCwic3ViIjoiYWRtaW4iLCJ0ZWFtUm9sZU1hcHBpbmdzIjpbXX0.hB0kg1-EbD7fY10aLiI8pOmPiPbgzulKQQK0Bo1SUdwMKxDEeDAQ4bMm-qrjMnsWPV2tRw_rlwTEhhu3ACY7NaWupEQRxjwTZUuXbe2SCf_ozcbGkl-TptCPRmcrx7xucPmRfQJqNJmvYdKXA31gI-1yD1YWJYjglIxLCYpXRnEmOaYDR0N0iduxeinfqbVpdmVicgIcFo5JgkuQa3hbLqqgILwKEZ3LzI98KV5DwJbQ3NOkD5HG_GQnIE8jfTn3zsbrFK4_jPq0lBmpYJZGdiJL4CBJDGBbkwg6fhTz3g7bXSdxWX_lq0V7ak9FrG6b947c05T0omiYubZdWVZMSw
 
-curl -k -H "Authorization: Bearer $TOKEN " https://9.30.183.32:8001/apis/mcm.ibm.com/v1alpha1/namespaces/cluster0/clusterstatuses/cluster0/log/kube-system/tiller-deploy-8f484458-jp5fp/tiller
+curl -k -H "Authorization: Bearer $TOKEN " https://<HUB CLUSTER HOST>:<API PORT>/apis/mcm.ibm.com/v1beta1/namespaces/cluster0/clusterstatuses/cluster0/log/kube-system/tiller-deploy-8f484458-jp5fp/tiller
 ```

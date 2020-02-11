@@ -65,6 +65,7 @@ ifneq ("$(realpath $(DEST))", "$(realpath $(PWD))")
 endif
 
 include common/Makefile.common.mk
+include test/e2e/Makefile.e2e.mk
 
 ############################################################
 # format section
@@ -83,7 +84,13 @@ lint: lint-all
 ############################################################
 
 test:
-	@go test ${TESTARGS} ./...
+	@go test ${TESTARGS} $(shell go list ./... | grep -v /test/)
+
+############################################################
+# e2e test section
+############################################################
+
+e2e-test: run-all-e2e-test
 
 ############################################################
 # coverage section
