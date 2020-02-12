@@ -18,8 +18,8 @@ BUILD_LOCALLY ?= 1
 
 # Image URL to use all building/pushing image targets;
 # Use your own docker registry and image name for dev/test by overridding the IMG and REGISTRY environment variable.
-IMG ?= multicloud-manager
-REGISTRY ?= quay.io/rhibmcollab
+IMG ?= $(shell cat COMPONENT_NAME 2> /dev/null)
+REGISTRY ?= quay.io/open-cluster-management
 
 # Github host to use for checking the source tree;
 # Override this variable ue with your own value if you're working on forked repo.
@@ -34,8 +34,7 @@ export GOPATH ?= $(GOPATH_DEFAULT)
 TESTARGS_DEFAULT := "-v"
 export TESTARGS ?= $(TESTARGS_DEFAULT)
 DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
-VERSION ?= $(shell git describe --exact-match 2> /dev/null || \
-                 git describe --match=$(git rev-parse --short=8 HEAD) --always --dirty --abbrev=8)
+VERSION ?= $(shell cat COMPONENT_VERSION 2> /dev/null)
 BINDIR ?= output
 BUILD_LDFLAGS  = $(shell hack/version.sh $(BASE_DIR) $(GIT_HOST)/$(BASE_DIR))
 TYPES_FILES = $(shell find pkg/apis -name types.go)
@@ -56,13 +55,20 @@ ifeq ($(CONTAINER_ENGINE),)
 	CONTAINER_ENGINE = $(shell podman version > /dev/null && echo podman || echo docker)
 endif
 
-.PHONY: all fmt lint test coverage build images build-push-images
-
-all: fmt lint test build images
+.PHONY: fmt lint test coverage build images build-push-images
 
 ifneq ("$(realpath $(DEST))", "$(realpath $(PWD))")
     $(error Please run 'make' from $(DEST). Current directory is $(PWD))
 endif
+
+# GITHUB_USER containing '@' char must be escaped with '%40'
+GITHUB_USER := $(shell echo $(GITHUB_USER) | sed 's/@/%40/g')
+GITHUB_TOKEN ?=
+
+-include $(shell curl -H 'Authorization: token ${GITHUB_TOKEN}' -H 'Accept: application/vnd.github.v4.raw' -L https://api.github.com/repos/open-cluster-management/build-harness-extensions/contents/templates/Makefile.build-harness-bootstrap -o .build-harness-bootstrap; echo .build-harness-bootstrap)
+
+default::
+	@echo "Build Harness Bootstrapped"
 
 include common/Makefile.common.mk
 include test/e2e/Makefile.e2e.mk
@@ -165,17 +171,9 @@ serviceregistry:
 # images section
 ############################################################
 
-images: build-push-images
-
-ifeq ($(BUILD_LOCALLY),0)
-    export CONFIG_DOCKER_TARGET = config-docker
-endif
-
-build-push-images: $(CONFIG_DOCKER_TARGET)
-	@$(CONTAINER_ENGINE) build . -f Dockerfile -t $(REGISTRY)/$(IMG):$(VERSION)
-	@$(CONTAINER_ENGINE) tag $(REGISTRY)/$(IMG):$(VERSION) $(REGISTRY)/$(IMG):latest
-	@$(CONTAINER_ENGINE) push $(REGISTRY)/$(IMG):$(VERSION)
-	@$(CONTAINER_ENGINE) push $(REGISTRY)/$(IMG):latest
+build-images:
+	@$(CONTAINER_ENGINE) build . -f Dockerfile -t ${IMAGE_NAME_AND_VERSION}
+	@$(CONTAINER_ENGINE) tag ${IMAGE_NAME_AND_VERSION} $(REGISTRY)/$(IMG):latest
 
 ############################################################
 # clean section
