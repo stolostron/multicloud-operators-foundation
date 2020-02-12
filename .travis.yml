@@ -30,7 +30,6 @@ env:
   global:
     # Required
     - OS=linux
-    - COMPONENT_TAG_EXTENSION="-${TRAVIS_COMMIT}"
 
     # Component Specific
     - COMPONENT_INIT_COMMAND=${TRAVIS_BUILD_DIR}/build/install-dependencies.sh
