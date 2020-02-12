@@ -10,6 +10,15 @@ go: "1.13.x"
 services:
   - docker
 
+# Only build on master, stable branches and tag
+# The stable branch and tag should be leading with numbers
+branches:
+  only:
+    - master
+    - /^[0-9]+\..*$/
+    - /^v[0-9]+\..*$/
+    - /^release-[0-9]+\..*$/
+
 addons:
   sonarcloud:
     organization: "open-cluster-management"
