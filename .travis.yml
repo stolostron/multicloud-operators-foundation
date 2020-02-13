@@ -54,7 +54,6 @@ jobs:
         - |
           make
           make component/init
-  include:
     - stage: lint
       name: "Run code lint"
       script:
