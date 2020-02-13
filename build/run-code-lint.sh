@@ -18,8 +18,9 @@ chmod +x "${LINT_TOOLS_PATH}"/hadolint
 # install yamllint
 pip install --user yamllint
 
-# install mdl
+# install markdown lint
 gem install mdl
+gem install awesome_bot
 
 export PATH="${LINT_TOOLS_PATH}":"${PATH}"
 
