@@ -83,13 +83,13 @@ var _ = Describe("Worksets", func() {
 	})
 
 	Describe("Creating a workset", func() {
-		It("should be created sucessfully", func() {
+		It("should be created successfully", func() {
 			exists, err := common.HasResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(exists).Should(BeTrue())
 		})
 
-		It("should be handled by controller sucessfully", func() {
+		It("should be handled by controller successfully", func() {
 			// check if controller create works correctly
 			labelSelector := fmt.Sprintf("mcm.ibm.com/workset=%s.%s", obj.GetNamespace(), obj.GetName())
 			Eventually(func() (int, error) {
@@ -102,7 +102,7 @@ var _ = Describe("Worksets", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(Equal(len(clusters)))
 		})
 
-		It("should be executed on managed cluster sucessfully", func() {
+		It("should be executed on managed cluster successfully", func() {
 			if !hasManagedClusters {
 				Skip("No managed cluster found")
 			}
@@ -133,7 +133,7 @@ var _ = Describe("Worksets", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should be deleted sucessfully", func() {
+		It("should be deleted successfully", func() {
 			// check if the resource is deleted eventually
 			Eventually(func() (bool, error) {
 				return common.HasResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())

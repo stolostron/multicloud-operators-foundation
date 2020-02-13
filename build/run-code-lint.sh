@@ -5,24 +5,24 @@ set -o nounset
 set -o pipefail
 set -o xtrace
 
-# prepare lint tools
-LINT_TOOLS_PATH="${HOME}"/lint-tools
-
+# Prepare lint tools
+# Install hadolint
+HADOLINT_PATH="${HOME}"/hadolint
 mkdir -p "${LINT_TOOLS_PATH}"
-
-# install hadolint
 wget -P "${LINT_TOOLS_PATH}" https://github.com/hadolint/hadolint/releases/download/v1.17.5/hadolint-Linux-x86_64
 mv "${LINT_TOOLS_PATH}"/hadolint-Linux-x86_64 "${LINT_TOOLS_PATH}"/hadolint
 chmod +x "${LINT_TOOLS_PATH}"/hadolint
+export PATH="${LINT_TOOLS_PATH}":"${PATH}"
 
-# install yamllint
+# Install yamllint
 pip install --user yamllint
 
-# install markdown lint
+# Install markdown lint
 gem install mdl
 gem install awesome_bot
 
-export PATH="${LINT_TOOLS_PATH}":"${PATH}"
+# Install golangci-lint
+curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.23.6
 
-# start lint ...
+# Start lint task
 make lint

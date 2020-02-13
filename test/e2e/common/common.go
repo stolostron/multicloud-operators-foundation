@@ -104,7 +104,7 @@ func GetReadyManagedClusters(dynamicClient dynamic.Interface) ([]*unstructured.U
 			return nil, err
 		}
 
-		if ok == false || len(conditions) == 0 {
+		if !ok || len(conditions) == 0 {
 			continue
 		}
 
@@ -200,7 +200,10 @@ func HasClusterResource(dynamicClient dynamic.Interface, gvr schema.GroupVersion
 }
 
 // CreateClusterResource ...
-func CreateClusterResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func CreateClusterResource(
+	dynamicClient dynamic.Interface,
+	gvr schema.GroupVersionResource,
+	obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	return dynamicClient.Resource(gvr).Create(obj, metav1.CreateOptions{})
 }
 
@@ -210,7 +213,10 @@ func CreateResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionReso
 }
 
 // UpdateResourceStatus ...
-func UpdateResourceStatus(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+func UpdateResourceStatus(
+	dynamicClient dynamic.Interface,
+	gvr schema.GroupVersionResource,
+	obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	obj = obj.DeepCopy()
 	obj.SetResourceVersion("")
 	return dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).UpdateStatus(obj, metav1.UpdateOptions{})
@@ -269,6 +275,6 @@ func GenerateCSR(clusterNamespace, clusterName string, key []byte) (string, erro
 		return "", err
 	}
 
-	csr := base64.StdEncoding.EncodeToString([]byte(data))
+	csr := base64.StdEncoding.EncodeToString(data)
 	return csr, nil
 }
