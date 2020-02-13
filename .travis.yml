@@ -51,7 +51,8 @@ jobs:
       name: "Lint code"
       script:
         - |
-          bash ${TRAVIS_BUILD_DIR}/build/run-lint.sh
+          make
+          make lint
     - stage: build
       name: "Build the image and run unit tests"
       script:
