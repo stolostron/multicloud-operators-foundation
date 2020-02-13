@@ -1,7 +1,15 @@
 #!/bin/bash
 
-# Install lint tools
-wget -P /usr/local/bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.17.5/hadolint-Linux-x86_64
-chmod +x /usr/local/bin/hadolint
+set -o errexi
+set -o nounset
+set -o pipefail
+set -o xtrace
 
-exit 0;
+# Install lint tools
+LINT_TOOLS_PATH="${HOME}"/lint-tools
+mkdir -p "${LINT_TOOLS_PATH}"
+
+export PATH=$LINT_TOOLS_PATH:$PATH
+
+wget -P "${LINT_TOOLS_PATH}"/hadolint https://github.com/hadolint/hadolint/releases/download/v1.17.5/hadolint-Linux-x86_64
+chmod +x "${LINT_TOOLS_PATH}"/hadolint
