@@ -57,6 +57,7 @@ jobs:
     - stage: lint
       name: "Run code lint"
       script:
+        - export PATH="${HOME}"/lint-tools:$PATH
         - |
           make
           make lint
