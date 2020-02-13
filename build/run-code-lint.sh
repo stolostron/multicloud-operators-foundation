@@ -14,6 +14,8 @@ wget -P "${LINT_TOOLS_PATH}" https://github.com/hadolint/hadolint/releases/downl
 mv "${LINT_TOOLS_PATH}"/hadolint-Linux-x86_64 "${LINT_TOOLS_PATH}"/hadolint
 chmod +x "${LINT_TOOLS_PATH}"/hadolint
 
+pip install --user yamllint
+
 export PATH="${LINT_TOOLS_PATH}":"${PATH}"
 
 # start lint ...
