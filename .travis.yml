@@ -35,7 +35,7 @@ env:
     - COMPONENT_INIT_COMMAND=${TRAVIS_BUILD_DIR}/build/install-dependencies.sh
     - COMPONENT_DEPLOY_COMMAND=${TRAVIS_BUILD_DIR}/build/deploy-to-cluster.sh
     - COMPONENT_BUILD_COMMAND=${TRAVIS_BUILD_DIR}/build/build.sh
-    - COMPONENT_UNIT_TEST_COMMAND=${TRAVIS_BUILD_DIR}/build/run-lint.sh
+    - COMPONENT_LINT_COMMAND=${TRAVIS_BUILD_DIR}/build/run-lint.sh
     - COMPONENT_UNIT_TEST_COMMAND=${TRAVIS_BUILD_DIR}/build/run-unit-tests.sh
     - COMPONENT_E2E_TEST_COMMAND=${TRAVIS_BUILD_DIR}/build/run-e2e-tests.sh
 
