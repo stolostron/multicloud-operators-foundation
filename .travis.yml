@@ -39,7 +39,6 @@ env:
     - COMPONENT_E2E_TEST_COMMAND=${TRAVIS_BUILD_DIR}/build/run-e2e-tests.sh
 
 stages:
-  - install-dependencies
   - lint
   - build
   - unit-test
@@ -48,19 +47,9 @@ stages:
 
 jobs:
   include:
-    - stage: install-dependencies
-      name: "Install dependencies"
-      script:
-        - |
-          make
-          make component/init
     - stage: lint
       name: "Run code lint"
-      script:
-        - export PATH="${HOME}"/lint-tools:$PATH
-        - |
-          make
-          make lint
+      script: bash ${TRAVIS_BUILD_DIR}/build/run-code-lint.sh
     - stage: build
       name: "Build the image and run unit tests"
       script:
