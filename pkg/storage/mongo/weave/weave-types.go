@@ -85,7 +85,6 @@ type DataJSON struct {
 }
 
 func (wdj DataJSON) AppRelTopology() (*Topology, error) {
-	var weavetopo TopologyJSON
 	hcmtopo := make(Topology)
 
 	// Build the HCM topology out of the weavescope pod topology
@@ -94,31 +93,36 @@ func (wdj DataJSON) AppRelTopology() (*Topology, error) {
 		currentRl := node.ReleaseLabel()
 		if strings.HasSuffix(key, PodSuffix) && currentRl != "" { // We only want pods which have at least one adjacency and a release label.
 			for _, connList := range node.ConnectionLists {
-				if connList.ID == OutgoingConnectionsID { // Occasionally things are adjacent to "the internet" or something like that so have to check if it's a pod
-					for _, conn := range connList.Connections {
-						if destinationNode, exists := weavetopo.Nodes[conn.NodeID]; exists { // If the pod id we just found exists on the other side, we need its release label
-							if otherRl := destinationNode.ReleaseLabel(); otherRl != "" && otherRl != currentRl {
-								newRel := TopologyEdge{currentRl, otherRl}
-								hcmtopo[newRel] = hcmtopo.Has(newRel) // If we already have it we create it with active=true, else active=false
-							}
-						}
-					}
-				} else if connList.ID == IncomingConnectionsID {
-					for _, conn := range connList.Connections {
-						if destinationNode, exists := weavetopo.Nodes[conn.NodeID]; exists { // If the pod id we just found exists on the other side, we need its release label
-							if otherRl := destinationNode.ReleaseLabel(); otherRl != "" && otherRl != currentRl {
-								// We officially have two connected pods which both have release labels, so add the rel to the hcm topology. But only if it's not already there.
-								// Notice here that I put the dest and src in backwards from before. this is for incoming connections, so the "source" is actually the other node.
-								newRel := TopologyEdge{otherRl, currentRl}
-								hcmtopo[newRel] = hcmtopo.Has(newRel) // If we already have it we create it with active=true, else active=false
-							}
-						}
-					}
-				}
+				addNewEdge(connList, currentRl, hcmtopo)
 			}
 		}
 	}
 	return &hcmtopo, nil
+}
+
+func addNewEdge(connList ConnectionListJSON, currentRl string, hcmtopo Topology) {
+	var weavetopo TopologyJSON
+	if connList.ID == OutgoingConnectionsID { // Occasionally things are adjacent to "the internet" or something like that so have to check if it's a pod
+		for _, conn := range connList.Connections {
+			if destinationNode, exists := weavetopo.Nodes[conn.NodeID]; exists { // If the pod id we just found exists on the other side, we need its release label
+				if otherRl := destinationNode.ReleaseLabel(); otherRl != "" && otherRl != currentRl {
+					newRel := TopologyEdge{currentRl, otherRl}
+					hcmtopo[newRel] = hcmtopo.Has(newRel) // If we already have it we create it with active=true, else active=false
+				}
+			}
+		}
+	} else if connList.ID == IncomingConnectionsID {
+		for _, conn := range connList.Connections {
+			if destinationNode, exists := weavetopo.Nodes[conn.NodeID]; exists { // If the pod id we just found exists on the other side, we need its release label
+				if otherRl := destinationNode.ReleaseLabel(); otherRl != "" && otherRl != currentRl {
+					// We officially have two connected pods which both have release labels, so add the rel to the hcm topology. But only if it's not already there.
+					// Notice here that I put the dest and src in backwards from before. this is for incoming connections, so the "source" is actually the other node.
+					newRel := TopologyEdge{otherRl, currentRl}
+					hcmtopo[newRel] = hcmtopo.Has(newRel) // If we already have it we create it with active=true, else active=false
+				}
+			}
+		}
+	}
 }
 
 // Crawls through the newly unmarshalled json object to find the release label, or returns empty string if there is none.

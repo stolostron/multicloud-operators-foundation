@@ -77,13 +77,13 @@ var _ = Describe("Clusterjoinrequests", func() {
 	})
 
 	Describe("Creating a clusterjoinrequest", func() {
-		It("should be created sucessfully", func() {
+		It("should be created successfully", func() {
 			exists, err := common.HasClusterResource(dynamicClient, gvr, obj.GetName())
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(exists).Should(BeTrue())
 		})
 
-		It("should be approved by controller sucessfully", func() {
+		It("should be approved by controller successfully", func() {
 			Eventually(func() (string, error) {
 				cjr, err := common.GetClusterResource(dynamicClient, gvr, obj.GetName())
 				if err != nil {
@@ -109,7 +109,7 @@ var _ = Describe("Clusterjoinrequests", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should be deleted sucessfully", func() {
+		It("should be deleted successfully", func() {
 			// check if the resource is deleted eventually
 			Eventually(func() (bool, error) {
 				return common.HasClusterResource(dynamicClient, gvr, obj.GetName())

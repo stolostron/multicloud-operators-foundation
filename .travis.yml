@@ -39,6 +39,7 @@ env:
     - COMPONENT_E2E_TEST_COMMAND=${TRAVIS_BUILD_DIR}/build/run-e2e-tests.sh
 
 stages:
+  - lint
   - build
   - unit-test
   - test-e2e
@@ -46,6 +47,10 @@ stages:
 
 jobs:
   include:
+    - stage: lint
+      name: "Run code lint"
+      if: type = pull_request
+      script: bash ${TRAVIS_BUILD_DIR}/build/run-code-lint.sh
     - stage: build
       name: "Build the image and run unit tests"
       script:

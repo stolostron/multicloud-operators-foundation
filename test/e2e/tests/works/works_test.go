@@ -86,13 +86,13 @@ var _ = Describe("Works", func() {
 
 	Describe("Creating a work", func() {
 		createSpecsForWorks := func() {
-			It("should be created sucessfully", func() {
+			It("should be created successfully", func() {
 				exists, err := common.HasResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(exists).Should(BeTrue())
 			})
 
-			It("should be executed on managed cluster sucessfully", func() {
+			It("should be executed on managed cluster successfully", func() {
 				if !hasManagedClusters {
 					Skip("No managed cluster found")
 				}
@@ -160,7 +160,7 @@ var _ = Describe("Works", func() {
 			Ω(err).ShouldNot(HaveOccurred())
 		})
 
-		It("should be deleted sucessfully", func() {
+		It("should be deleted successfully", func() {
 			// check if the resource is deleted eventually
 			Eventually(func() (bool, error) {
 				return common.HasResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())

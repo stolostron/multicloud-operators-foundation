@@ -152,7 +152,6 @@ func ExtractUnencodeDecompressUnmarshal(data string) ([]MongoResource, error) {
 }
 
 func constructBsonRelationshipsArray(datum MongoResource, clusterDocID objectid.ObjectID) []*bson.Value {
-
 	values := []*bson.Value{}
 	if len(datum.Labels) > 0 {
 		for _, rel := range datum.Relationships {
@@ -171,6 +170,7 @@ func constructBsonRelationshipsArray(datum MongoResource, clusterDocID objectid.
 	}
 	return nil
 }
+
 func constructBsonLabels(datum MongoResource) []*bson.Value {
 	values := []*bson.Value{}
 	if len(datum.Labels) > 0 {
@@ -185,11 +185,10 @@ func constructBsonLabels(datum MongoResource) []*bson.Value {
 	}
 	return nil
 }
-func constructBsonDocuments(allData []MongoResource, clusterDocID objectid.ObjectID) []interface{} {
 
+func constructBsonDocuments(allData []MongoResource, clusterDocID objectid.ObjectID) []interface{} {
 	allDocuments := []interface{}{}
 	for _, datum := range allData {
-
 		singleDoc := bson.NewDocument(
 			bson.EC.String("topology", datum.Topology),
 			bson.EC.ArrayFromElements("labels", constructBsonLabels(datum)...),
@@ -206,11 +205,9 @@ func constructBsonDocuments(allData []MongoResource, clusterDocID objectid.Objec
 		}
 
 		allDocuments = append(allDocuments, singleDoc)
-
 	}
 
 	return allDocuments
-
 }
 
 func (m MongoStorage) GetMongoResourceByUID(uid string) (MongoResource, error) {
@@ -246,6 +243,7 @@ func containsKey(keys bson.Keys, key string, prefix []string) bool {
 
 	return false
 }
+
 func (m MongoStorage) createClusterDoc(clusterName string) MongoResource {
 	klog.V(5).Info("Creating cluster", clusterName)
 
@@ -354,7 +352,6 @@ func (m MongoStorage) InsertAndRemoveOldDocs(allData []MongoResource) error {
 		}
 	}
 	return nil
-
 }
 
 //Extracts mongo resources from ClusterStatusTopology object
@@ -387,7 +384,6 @@ func (m MongoStorage) RemoveAllMatchingData(epoch int64, clusterDocID objectid.O
 
 // Removes anything with a cluster field pointing to the given objectID
 func (m MongoStorage) RemoveIncorrectClusterIDDocs(clusterDocID objectid.ObjectID) (bool, error) {
-
 	// delete the old docs pointing to old cluster doc
 	res, err := m.Collection.DeleteMany(context.Background(), bson.NewDocument(
 		bson.EC.ObjectID("cluster", clusterDocID)))

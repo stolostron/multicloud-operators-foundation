@@ -137,7 +137,7 @@ var _ = Describe("Clusters", func() {
 			cjr, err = common.CreateClusterResource(dynamicClient, cjrGVR, cjr)
 			Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", cjrGVR.Resource)
 
-			// wait untill clusterjoinrequest is approved
+			// wait until clusterjoinrequest is approved
 			var certificate string
 			Eventually(func() (string, error) {
 				cjr, err = common.GetClusterResource(dynamicClient, cjrGVR, cjr.GetName())
