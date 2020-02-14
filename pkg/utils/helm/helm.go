@@ -126,51 +126,7 @@ func searchTillerEndpoint(client kubernetes.Interface) (string, error) {
 	}
 
 	for _, item := range services.Items {
-		ports := item.Spec.Ports
-		switch item.Spec.Type {
-		case corev1.ServiceTypeClusterIP:
-			ip = item.Spec.ClusterIP
-			if ip == "None" {
-				resolvedIps, _ := net.LookupHost("tiller-deploy")
-				for _, resolvedIP := range resolvedIps {
-					ip = resolvedIP
-					break
-				}
-			}
-			for _, p := range ports {
-				if p.Port != 0 {
-					port = strconv.Itoa(int(p.Port))
-					break
-				}
-			}
-		case corev1.ServiceTypeNodePort:
-			ip, err = searchTillerPodIP(client)
-			if err != nil {
-				break
-			}
-			for _, p := range ports {
-				if p.NodePort != 0 {
-					port = strconv.Itoa(int(p.NodePort))
-					break
-				}
-			}
-		case corev1.ServiceTypeLoadBalancer:
-			ip = item.Spec.LoadBalancerIP
-			for _, p := range ports {
-				if p.NodePort != 0 {
-					port = strconv.Itoa(int(p.NodePort))
-					break
-				}
-			}
-		case corev1.ServiceTypeExternalName:
-			ip = item.Spec.ExternalName
-			for _, p := range ports {
-				if p.NodePort != 0 {
-					port = strconv.Itoa(int(p.NodePort))
-					break
-				}
-			}
-		}
+		ip, port = findServiceIPAndPort(item, client)
 	}
 
 	if ip == "" {
@@ -178,6 +134,59 @@ func searchTillerEndpoint(client kubernetes.Interface) (string, error) {
 	}
 
 	return ip + ":" + port, nil
+}
+
+func findServiceIPAndPort(svc corev1.Service, client kubernetes.Interface) (string, string) {
+	var err error
+	var ip string
+	var port string
+
+	ports := svc.Spec.Ports
+	switch svc.Spec.Type {
+	case corev1.ServiceTypeClusterIP:
+		ip = svc.Spec.ClusterIP
+		if ip == "None" {
+			resolvedIps, _ := net.LookupHost("tiller-deploy")
+			for _, resolvedIP := range resolvedIps {
+				ip = resolvedIP
+				break
+			}
+		}
+		for _, p := range ports {
+			if p.Port != 0 {
+				port = strconv.Itoa(int(p.Port))
+				break
+			}
+		}
+	case corev1.ServiceTypeNodePort:
+		ip, err = searchTillerPodIP(client)
+		if err != nil {
+			break
+		}
+		for _, p := range ports {
+			if p.NodePort != 0 {
+				port = strconv.Itoa(int(p.NodePort))
+				break
+			}
+		}
+	case corev1.ServiceTypeLoadBalancer:
+		ip = svc.Spec.LoadBalancerIP
+		for _, p := range ports {
+			if p.NodePort != 0 {
+				port = strconv.Itoa(int(p.NodePort))
+				break
+			}
+		}
+	case corev1.ServiceTypeExternalName:
+		ip = svc.Spec.ExternalName
+		for _, p := range ports {
+			if p.NodePort != 0 {
+				port = strconv.Itoa(int(p.NodePort))
+				break
+			}
+		}
+	}
+	return ip, port
 }
 
 // Initialize initialize helm
