@@ -18,6 +18,8 @@ type Interface interface {
 	ClusterJoinRequests() ClusterJoinRequestInformer
 	// ClusterStatuses returns a ClusterStatusInformer.
 	ClusterStatuses() ClusterStatusInformer
+	// LeaderVotes returns a LeaderVoteInformer.
+	LeaderVotes() LeaderVoteInformer
 	// PlacementBindings returns a PlacementBindingInformer.
 	PlacementBindings() PlacementBindingInformer
 	// PlacementPolicies returns a PlacementPolicyInformer.
@@ -49,6 +51,11 @@ func (v *version) ClusterJoinRequests() ClusterJoinRequestInformer {
 // ClusterStatuses returns a ClusterStatusInformer.
 func (v *version) ClusterStatuses() ClusterStatusInformer {
 	return &clusterStatusInformer{factory: v.factory, namespace: v.namespace, tweakListOptions: v.tweakListOptions}
+}
+
+// LeaderVotes returns a LeaderVoteInformer.
+func (v *version) LeaderVotes() LeaderVoteInformer {
+	return &leaderVoteInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }
 
 // PlacementBindings returns a PlacementBindingInformer.

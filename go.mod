@@ -105,7 +105,6 @@ require (
 	k8s.io/apiserver v0.0.0-20181213151703-3ccfe8365421
 	k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
 	k8s.io/cluster-registry v0.0.0-20180711215825-1e7f92e96c20
-	k8s.io/helm v0.0.0-20180919182530-2e55dbe1fdb5
 	k8s.io/klog v0.3.0
 	k8s.io/kube-openapi v0.0.0-20190918143330-0270cf2f1c1d
 	k8s.io/utils v0.0.0-20190923111123-69764acb6e8e // indirect

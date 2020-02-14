@@ -77,9 +77,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatus":            schema_pkg_apis_mcm_v1beta1_ClusterStatus(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatusList":        schema_pkg_apis_mcm_v1beta1_ClusterStatusList(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatusSpec":        schema_pkg_apis_mcm_v1beta1_ClusterStatusSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmRelease":              schema_pkg_apis_mcm_v1beta1_HelmRelease(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmReleaseSpec":          schema_pkg_apis_mcm_v1beta1_HelmReleaseSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmWorkSpec":             schema_pkg_apis_mcm_v1beta1_HelmWorkSpec(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.KubeWorkSpec":             schema_pkg_apis_mcm_v1beta1_KubeWorkSpec(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceFilter":           schema_pkg_apis_mcm_v1beta1_ResourceFilter(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceView":             schema_pkg_apis_mcm_v1beta1_ResourceView(ref),
@@ -88,7 +85,6 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewResultList":   schema_pkg_apis_mcm_v1beta1_ResourceViewResultList(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewSpec":         schema_pkg_apis_mcm_v1beta1_ResourceViewSpec(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewStatus":       schema_pkg_apis_mcm_v1beta1_ResourceViewStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResultHelmList":           schema_pkg_apis_mcm_v1beta1_ResultHelmList(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewCondition":            schema_pkg_apis_mcm_v1beta1_ViewCondition(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewFilter":               schema_pkg_apis_mcm_v1beta1_ViewFilter(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.Work":                     schema_pkg_apis_mcm_v1beta1_Work(ref),
@@ -2884,197 +2880,6 @@ func schema_pkg_apis_mcm_v1beta1_ClusterStatusSpec(ref common.ReferenceCallback)
 	}
 }
 
-func schema_pkg_apis_mcm_v1beta1_HelmRelease(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "HelmRelease is the helm release info",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
-						},
-					},
-					"spec": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Spec defines the behavior of the helm release.",
-							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmReleaseSpec"),
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmReleaseSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
-	}
-}
-
-func schema_pkg_apis_mcm_v1beta1_HelmReleaseSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "HelmReleaseSpec is the details of helm release",
-				Properties: map[string]spec.Schema{
-					"releaseName": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ReleaseName",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"description": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Description",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"firstDeployed": {
-						SchemaProps: spec.SchemaProps{
-							Description: "FirstDeployed",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
-					"lastDeployed": {
-						SchemaProps: spec.SchemaProps{
-							Description: "LastDeployed",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
-						},
-					},
-					"manifest": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Manifest",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"chartName": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ChartName",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"chartVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ChartVersion",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"namespace": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Namespace",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"version": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Version",
-							Type:        []string{"integer"},
-							Format:      "int32",
-						},
-					},
-					"status": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Status",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
-	}
-}
-
-func schema_pkg_apis_mcm_v1beta1_HelmWorkSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "HelmWorkSpec is the helm work details",
-				Properties: map[string]spec.Schema{
-					"releaseName": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ReleaseName",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"inSecureSkipVerify": {
-						SchemaProps: spec.SchemaProps{
-							Description: "InSecureSkipVerify skip verification",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
-					"chartName": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ChartName",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"version": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Version",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"chartURL": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Chart url",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"namespace": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Namespace",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"values": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Values",
-							Type:        []string{"string"},
-							Format:      "byte",
-						},
-					},
-					"valuesURL": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ValuesURL url to a file contains value",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-				},
-			},
-		},
-		Dependencies: []string{},
-	}
-}
-
 func schema_pkg_apis_mcm_v1beta1_KubeWorkSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3468,54 +3273,6 @@ func schema_pkg_apis_mcm_v1beta1_ResourceViewStatus(ref common.ReferenceCallback
 	}
 }
 
-func schema_pkg_apis_mcm_v1beta1_ResultHelmList(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
-		Schema: spec.Schema{
-			SchemaProps: spec.SchemaProps{
-				Description: "ResultHelmList is the list of helm release in one cluster",
-				Properties: map[string]spec.Schema{
-					"kind": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"apiVersion": {
-						SchemaProps: spec.SchemaProps{
-							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"metadata": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
-							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
-						},
-					},
-					"items": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Items are the items list of helm release",
-							Type:        []string{"array"},
-							Items: &spec.SchemaOrArray{
-								Schema: &spec.Schema{
-									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmRelease"),
-									},
-								},
-							},
-						},
-					},
-				},
-				Required: []string{"items"},
-			},
-		},
-		Dependencies: []string{
-			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmRelease", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
-	}
-}
-
 func schema_pkg_apis_mcm_v1beta1_ViewCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3891,12 +3648,6 @@ func schema_pkg_apis_mcm_v1beta1_WorkSpec(ref common.ReferenceCallback) common.O
 							Format:      "",
 						},
 					},
-					"helm": {
-						SchemaProps: spec.SchemaProps{
-							Description: "HelmWork is the work to process helm operation",
-							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmWorkSpec"),
-						},
-					},
 					"kube": {
 						SchemaProps: spec.SchemaProps{
 							Description: "KubeWorkSpec is the work to process kubernetes operation",
@@ -3907,7 +3658,7 @@ func schema_pkg_apis_mcm_v1beta1_WorkSpec(ref common.ReferenceCallback) common.O
 			},
 		},
 		Dependencies: []string{
-			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.HelmWorkSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.KubeWorkSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceFilter", "k8s.io/api/core/v1.LocalObjectReference"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.KubeWorkSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceFilter", "k8s.io/api/core/v1.LocalObjectReference"},
 	}
 }
 

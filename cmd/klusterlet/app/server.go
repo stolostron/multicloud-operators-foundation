@@ -31,7 +31,6 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/drivers"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/server"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/signals"
-	helmutil "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/helm"
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	"k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -210,12 +209,6 @@ func RunKlusterletServer(s *options.KlusterletRunOptions, stopCh <-chan struct{}
 		klog.Fatalln("Failed to initialize tls", err.Error())
 	}
 
-	// create helm client
-	helmClient, err := helmutil.Initialize(s.TillerEndpoint, s.TillerKeyFile, s.TillerCertFile, s.TillerCAFile, clusterClient)
-	if err != nil {
-		klog.Errorf("failed to connect to tiller: %v", err)
-	}
-
 	clusterLabels, err := apilabels.ConvertSelectorToLabelsMap(strings.TrimSuffix(s.ClusterLabels, ","))
 	if err != nil {
 		klog.Errorf("Invalid label string: %s", s.ClusterLabels)
@@ -232,7 +225,6 @@ func RunKlusterletServer(s *options.KlusterletRunOptions, stopCh <-chan struct{}
 		time.Minute*10,
 		informers.WithNamespace(s.ClusterNamespace),
 	)
-	helmControl := helmutil.NewHelmControl(helmClient, controllerClient)
 
 	// create and run resource mapper
 	discoveryClient := cacheddiscovery.NewMemCacheClient(clusterClient.Discovery())
@@ -293,7 +285,6 @@ func RunKlusterletServer(s *options.KlusterletRunOptions, stopCh <-chan struct{}
 		kubeDynamicClientSet,
 		controllerKubeClient,
 		clusterClientSet,
-		helmControl,
 		kubeControl,
 		kubeInformerFactory,
 		informerFactory,
