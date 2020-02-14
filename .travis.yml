@@ -54,6 +54,7 @@ jobs:
           make
           make component/build
           make component/push
+          make imagescan/status
     - stage: unit-test
       name: "Run unit test"
       if: type = pull_request
