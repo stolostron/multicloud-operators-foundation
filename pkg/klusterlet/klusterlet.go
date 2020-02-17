@@ -55,7 +55,6 @@ const (
 	controllerAgentName            = "klusterlet"
 	clusterStatusUpdateFrequency   = 30 * time.Second
 	endpointOperatorDeploymentName = "ibm-multicluster-endpoint-operator"
-	endpointName                   = "endpoint"
 )
 
 var clusterControllerKind = mcm.SchemeGroupVersion.WithKind("Cluster")
