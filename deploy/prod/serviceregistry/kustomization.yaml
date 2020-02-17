@@ -2,6 +2,6 @@ resources:
 - ../../dev/serviceregistry/
 
 images:
-- name: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/serviceregistry
-  newName: quay.io/rhibmcollab/multicloud-manager
-  newTag: latest
+- name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/serviceregistry
+  newName: quay.io/open-cluster-management/multicloud-manager
+  newTag: 0.0.1
