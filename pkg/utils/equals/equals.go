@@ -35,19 +35,11 @@ func EqualWorkSpec(spec1 *v1beta1.WorkSpec, spec2 *v1beta1.WorkSpec) bool {
 		return false
 	}
 
-	if !EqualHelmWork(spec1.HelmWork, spec2.HelmWork) {
-		return false
-	}
-
 	if !EqualKubeWork(spec1.KubeWork, spec2.KubeWork) {
 		return false
 	}
 
 	return true
-}
-
-func EqualHelmWork(f1 *v1beta1.HelmWorkSpec, f2 *v1beta1.HelmWorkSpec) bool {
-	return reflect.DeepEqual(f1, f2)
 }
 
 func EqualKubeWork(f1 *v1beta1.KubeWorkSpec, f2 *v1beta1.KubeWorkSpec) bool {

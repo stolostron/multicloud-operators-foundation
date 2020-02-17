@@ -7,10 +7,8 @@ package klusterlet
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
-	helmutil "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/helm"
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -23,28 +21,13 @@ import (
 func (k *Klusterlet) handleActionWork(work *v1beta1.Work) error {
 	var err error
 	var res runtime.RawExtension
-	if work.Spec.HelmWork != nil && k.helmControl == nil {
-		return fmt.Errorf("failed to find helm client")
-	}
 	switch work.Spec.ActionType {
 	case v1beta1.CreateActionType:
-		if work.Spec.KubeWork != nil {
-			res, err = k.handleCreateKubeActionWork(work)
-		} else if work.Spec.HelmWork != nil {
-			res, err = k.handleCreateHelmActionWork(work, k.helmControl)
-		}
+		res, err = k.handleCreateKubeActionWork(work)
 	case v1beta1.DeleteActionType:
-		if work.Spec.KubeWork != nil {
-			res, err = k.handleDeleteKubeActionWork(work)
-		} else if work.Spec.HelmWork != nil {
-			res, err = k.handleDeleteHelmActionWork(work, k.helmControl)
-		}
+		res, err = k.handleDeleteKubeActionWork(work)
 	case v1beta1.UpdateActionType:
-		if work.Spec.KubeWork != nil {
-			res, err = k.handleUpdateKubeActionWork(work)
-		} else if work.Spec.HelmWork != nil {
-			res, err = k.handleUpdateHelmActionWork(work, k.helmControl)
-		}
+		res, err = k.handleUpdateKubeActionWork(work)
 	}
 	if err != nil {
 		return k.updateFailedStatus(work, err)
@@ -61,17 +44,6 @@ func (k *Klusterlet) handleActionWork(work *v1beta1.Work) error {
 	return nil
 }
 
-//Create helm release
-func (k *Klusterlet) handleCreateHelmActionWork(work *v1beta1.Work, helmcontrol helmutil.ControlInterface) (runtime.RawExtension, error) {
-	rls, err := helmcontrol.CreateHelmRelease(work.Spec.HelmWork.ReleaseName, work.Namespace, *work.Spec.HelmWork)
-	res := runtime.RawExtension{}
-	if err != nil {
-		return res, err
-	}
-	rl := helmutil.ConvertHelmReleaseFromRelease(rls.GetRelease())
-	return runtime.RawExtension{Object: &rl}, nil
-}
-
 //Create kube resource
 func (k *Klusterlet) handleCreateKubeActionWork(work *v1beta1.Work) (runtime.RawExtension, error) {
 	var err error
@@ -85,17 +57,6 @@ func (k *Klusterlet) handleCreateKubeActionWork(work *v1beta1.Work) (runtime.Raw
 		_, err = k.kubeControl.Create(work.Spec.KubeWork.Namespace, work.Spec.KubeWork.ObjectTemplate, nil)
 	}
 	return work.Spec.KubeWork.ObjectTemplate, err
-}
-
-//Update helm release
-func (k *Klusterlet) handleUpdateHelmActionWork(work *v1beta1.Work, helmcontrol helmutil.ControlInterface) (runtime.RawExtension, error) {
-	res := runtime.RawExtension{}
-	rls, err := helmcontrol.UpdateHelmRelease(work.Spec.HelmWork.ReleaseName, work.Namespace, *work.Spec.HelmWork)
-	if err != nil {
-		return res, err
-	}
-	rl := helmutil.ConvertHelmReleaseFromRelease(rls.GetRelease())
-	return runtime.RawExtension{Object: &rl}, nil
 }
 
 //Update kube resource
@@ -185,15 +146,4 @@ func (k *Klusterlet) handleDeleteKubeActionWork(work *v1beta1.Work) (runtime.Raw
 		)
 	}
 	return runtime.RawExtension{}, err
-}
-
-//Delete helm release
-func (k *Klusterlet) handleDeleteHelmActionWork(work *v1beta1.Work, helmControl helmutil.ControlInterface) (runtime.RawExtension, error) {
-	res := runtime.RawExtension{}
-	rls, err := helmControl.DeleteHelmRelease(work.Spec.HelmWork.ReleaseName)
-	if err != nil {
-		return res, err
-	}
-	rl := helmutil.ConvertHelmReleaseFromRelease(rls.GetRelease())
-	return runtime.RawExtension{Object: &rl}, nil
 }

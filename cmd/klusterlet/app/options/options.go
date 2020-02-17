@@ -112,14 +112,6 @@ func (s *KlusterletRunOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&s.KlusterletService, "klusterlet-service", s.KlusterletService, ""+
 		"Klusterlet service created in managed cluster, in the format of namespace/name")
 
-	// Helm
-	fs.StringVar(&s.HelmReleasePrefix, "helm-release-prefix", s.HelmReleasePrefix,
-		"name prefix of helm release deployed by klusterlet")
-	fs.StringVar(&s.TillerEndpoint, "tiller-endpoint", s.TillerEndpoint, "endpoint to connect to tiller")
-	fs.StringVar(&s.TillerCertFile, "tiller-cert", s.TillerCertFile, "cert file to connect to tiller")
-	fs.StringVar(&s.TillerKeyFile, "tiller-key", s.TillerKeyFile, "key file to connect to tiller")
-	fs.StringVar(&s.TillerCAFile, "tiller-ca", s.TillerCAFile, "ca file to connect to tiller")
-
 	// Authentication
 	fs.StringVar(&s.CertDir, "cert-directory", s.CertDir, "certificate directory")
 	fs.StringVar(&s.CertSecret, "client-cert-secret", s.CertSecret, "client certificate stored in the target cluster")
