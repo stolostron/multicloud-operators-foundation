@@ -14,10 +14,8 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	helmutil "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/helm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	helmrelease "k8s.io/helm/pkg/proto/hapi/release"
 )
 
 func (k *Klusterlet) handleResourceWork(work *v1beta1.Work) error {
@@ -104,44 +102,6 @@ func (k *Klusterlet) queryResource(scope v1beta1.ResourceFilter) (runtime.Object
 	}
 
 	fieldSelector := scope.FieldSelector
-
-	if scope.ResourceType == v1beta1.ResourceReleases {
-		releaselists := []v1beta1.HelmRelease{}
-		if k.helmControl != nil {
-			statusCode := []helmrelease.Status_Code{
-				helmrelease.Status_UNKNOWN,
-				helmrelease.Status_DEPLOYED,
-				helmrelease.Status_DELETED,
-				helmrelease.Status_DELETING,
-				helmrelease.Status_FAILED,
-				helmrelease.Status_PENDING_INSTALL,
-				helmrelease.Status_PENDING_UPGRADE,
-				helmrelease.Status_PENDING_ROLLBACK,
-			}
-			releases, e := k.helmControl.GetHelmReleases(
-				scope.Name, statusCode, scope.NameSpace, 256)
-			if e != nil {
-				return nil, e
-			}
-
-			if releases != nil {
-				for _, release := range releases.Releases {
-					rl := helmutil.ConvertHelmReleaseFromRelease(release)
-					releaselists = append(releaselists, rl)
-				}
-			}
-		}
-
-		if scope.ServerPrint {
-			releaseTable, relerr := helmutil.PrintReleaseTable(&v1beta1.ResultHelmList{Items: releaselists})
-			if relerr != nil {
-				return nil, relerr
-			}
-			return releaseTable, nil
-		}
-
-		return &v1beta1.ResultHelmList{Items: releaselists}, nil
-	}
 
 	var obj runtime.Object
 	if scope.Name == "" {

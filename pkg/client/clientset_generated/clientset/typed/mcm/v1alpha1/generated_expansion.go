@@ -12,6 +12,8 @@ type ClusterJoinRequestExpansion interface{}
 
 type ClusterStatusExpansion interface{}
 
+type LeaderVoteExpansion interface{}
+
 type PlacementBindingExpansion interface{}
 
 type PlacementPolicyExpansion interface{}

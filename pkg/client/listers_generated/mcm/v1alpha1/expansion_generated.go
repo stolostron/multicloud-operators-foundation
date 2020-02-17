@@ -20,6 +20,10 @@ type ClusterStatusListerExpansion interface{}
 // ClusterStatusNamespaceLister.
 type ClusterStatusNamespaceListerExpansion interface{}
 
+// LeaderVoteListerExpansion allows custom methods to be added to
+// LeaderVoteLister.
+type LeaderVoteListerExpansion interface{}
+
 // PlacementBindingListerExpansion allows custom methods to be added to
 // PlacementBindingLister.
 type PlacementBindingListerExpansion interface{}

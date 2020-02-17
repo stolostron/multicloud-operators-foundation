@@ -58,10 +58,6 @@ type WorkSpec struct {
 	// ActionType is the type of the action
 	ActionType ActionType `json:"actionType,omitempty"`
 
-	// HelmWork is the work to process helm operation
-	// +optional
-	HelmWork *HelmWorkSpec `json:"helm,omitempty"`
-
 	// KubeWorkSpec is the work to process kubernetes operation
 	KubeWork *KubeWorkSpec `json:"kube,omitempty"`
 }
@@ -155,33 +151,6 @@ type ResourceFilter struct {
 	UpdateIntervalSeconds int `json:"updateIntervalSeconds,omitempty"`
 }
 
-// HelmWorkSpec is the helm work details
-type HelmWorkSpec struct {
-	// ReleaseName
-	ReleaseName string `json:"releaseName,omitempty"`
-
-	//InSecureSkipVerify skip verification
-	InSecureSkipVerify bool `json:"inSecureSkipVerify,omitempty"`
-
-	// ChartName
-	ChartName string `json:"chartName,omitempty"`
-
-	// Version
-	Version string `json:"version,omitempty"`
-
-	// Chart url
-	ChartURL string `json:"chartURL,omitempty"`
-
-	// Namespace
-	Namespace string `json:"namespace,omitempty"`
-
-	// Values
-	Values []byte `json:"values,omitempty"`
-
-	// ValuesURL url to a file contains value
-	ValuesURL string `json:"valuesURL,omitempty"`
-}
-
 // WorkStatusType defines the type of work status
 type WorkStatusType string
 
@@ -208,66 +177,6 @@ type KubeWorkSpec struct {
 
 	// ObjectTemplate is the template of the object
 	ObjectTemplate runtime.RawExtension `json:"template,omitempty"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// ResultHelmList is the list of helm release in one cluster
-type ResultHelmList struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard list metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds
-	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
-	// Items are the items list of helm release
-	Items []HelmRelease `json:"items"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// HelmRelease is the helm release info
-type HelmRelease struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
-	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	// Spec defines the behavior of the helm release.
-	Spec HelmReleaseSpec `json:"spec,omitempty"`
-}
-
-// HelmReleaseSpec is the details of helm release
-type HelmReleaseSpec struct {
-	// ReleaseName
-	ReleaseName string `json:"releaseName,omitempty"`
-
-	// Description
-	Description string `json:"description,omitempty"`
-
-	// FirstDeployed
-	FirstDeployed metav1.Time `json:"firstDeployed,omitempty"`
-
-	// LastDeployed
-	LastDeployed metav1.Time `json:"lastDeployed,omitempty"`
-
-	// Manifest
-	Manifest string `json:"manifest,omitempty"`
-
-	// ChartName
-	ChartName string `json:"chartName,omitempty"`
-
-	// ChartVersion
-	ChartVersion string `json:"chartVersion,omitempty"`
-
-	// Namespace
-	Namespace string `json:"namespace,omitempty"`
-
-	// Version
-	Version int32 `json:"version,omitempty"`
-
-	// Status
-	Status string `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
