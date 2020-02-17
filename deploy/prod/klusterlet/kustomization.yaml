@@ -2,11 +2,11 @@ resources:
 - ../../dev/klusterlet/
 
 images:
-- name: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet-connectionmanager
-  newName: quay.io/rhibmcollab/multicloud-manager
+- name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet-connectionmanager
+  newName: quay.io/open-cluster-management/multicloud-manager
   newTag: latest
-- name: github.ibm.com/IBMPrivateCloud/multicloud-operators-foundation/cmd/klusterlet
-  newName: quay.io/rhibmcollab/multicloud-manager
+- name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet
+  newName: quay.io/open-cluster-management/multicloud-manager
   newTag: latest
 
 secretGenerator:
