@@ -8,7 +8,6 @@ package klusterlet
 import (
 	"fmt"
 	"net"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -27,7 +26,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
@@ -57,7 +55,6 @@ const (
 	controllerAgentName            = "klusterlet"
 	clusterStatusUpdateFrequency   = 30 * time.Second
 	endpointOperatorDeploymentName = "ibm-multicluster-endpoint-operator"
-	endpointName                   = "endpoint"
 )
 
 var clusterControllerKind = mcm.SchemeGroupVersion.WithKind("Cluster")
@@ -694,7 +691,6 @@ func (k *Klusterlet) updateClusterStatus(
 	clusterStatus.Spec.KlusterletVersion = version.Get().GitVersion
 	clusterStatus.Spec.Version = k.config.ServerVersion
 	clusterStatus.Spec.EndpointOperatorVersion = k.getEndponitOperatorVersion()
-	clusterStatus.Spec.EndpointVersion = k.getEndpointVersion()
 
 	// Config klusterlet endpoint
 	klusterletEndpoint, klusterletPort, err := k.readKlusterletConfig()
@@ -888,38 +884,4 @@ func (k *Klusterlet) getEndponitOperatorVersion() string {
 	}
 
 	return strings.Split(deployment.Spec.Template.Spec.Containers[0].Image, ":")[1]
-}
-
-// getEndpointVersion gets the Endpoint/Klusterlet Version
-func (k *Klusterlet) getEndpointVersion() string {
-	endpointGVR := schema.GroupVersionResource{
-		Group:    "multicloud.ibm.com",
-		Version:  "v1beta1",
-		Resource: "endpoints",
-	}
-
-	klNamespace := os.Getenv("POD_NAMESPACE")
-	if klNamespace == "" {
-		klog.Warningf("Failed to get Endpoint/Klusterlet Namespace")
-		return ""
-	}
-
-	endpoint, err := k.kubeDynamicClientset.Resource(endpointGVR).Namespace(klNamespace).Get(endpointName, metav1.GetOptions{})
-	if err != nil {
-		klog.Info("Failed to get the CR Endpoint endpoint")
-		return ""
-	}
-
-	mapObj := endpoint.UnstructuredContent()
-	spec := reflect.ValueOf(mapObj["spec"])
-	var vers string
-	if spec.Kind() == reflect.Map {
-		for _, k := range spec.MapKeys() {
-			if fmt.Sprintf("%v", k) == "version" {
-				vers = spec.MapIndex(k).Interface().(string)
-				break
-			}
-		}
-	}
-	return vers
 }
