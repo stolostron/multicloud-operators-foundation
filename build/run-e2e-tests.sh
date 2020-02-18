@@ -36,7 +36,7 @@ kubectl create secret docker-registry -n multicloud-system mcm-image-pull-secret
 
 HUB_PATH=${GOPATH}/src/github.com/open-cluster-management/multicloud-operators-foundation/deploy/dev/hub
 
-cat <<EOF >>"${HUB_PATH}"/serviceaccount-patch.yaml
+cat <<EOF >"${HUB_PATH}"/serviceaccount-patch.yaml
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -60,18 +60,18 @@ kubectl apply -k "${HUB_PATH}"
 
 # Wait for the hub cluster ready
 for i in {1..7}; do
-    if [ $i -eq 7 ]; then
-        echo "Failed to run e2e test, the hub cluster is not ready..."
-        kubectl -n multicloud-system get pods
-        kubectl get pods -n multicloud-system | grep mcm-apiserver | awk '{print $1}' | xargs kubectl -n multicloud-system describe pod
-        kubectl get pods -n multicloud-system | grep mcm-apiserver | awk '{print $1}' | xargs kubectl -n multicloud-system logs -f
-        exit 1
-    fi
-
     if ! kubectl get clusters --all-namespaces
     then
+        if [ $i -eq 7 ]; then
+            echo "Failed to run e2e test, the hub cluster is not ready within 3 minutes"
+            kubectl -n multicloud-system get pods
+            exit 1
+        fi
         sleep 30
     else
         break
     fi
 done
+
+# Run e2e test
+make e2e-test
