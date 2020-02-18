@@ -27,7 +27,7 @@ then
 fi
 
 # Deploy hub cluster
-kubectl create namespaces multicloud-system
+kubectl create namespace multicloud-system
 
 kubectl create secret docker-registry -n multicloud-system mcm-image-pull-secret \
   --docker-server=quay.io \
