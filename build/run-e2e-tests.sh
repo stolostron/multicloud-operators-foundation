@@ -27,13 +27,33 @@ then
 fi
 
 # Deploy hub cluster
+kubectl create namespaces multicloud-system
+
+kubectl create secret docker-registry -n multicloud-system mcm-image-pull-secret \
+  --docker-server=quay.io \
+  --docker-username="${DOCKER_USER}" \
+  --docker-password="${DOCKER_PASS}"
+
 HUB_PATH=${GOPATH}/src/github.com/open-cluster-management/multicloud-operators-foundation/deploy/dev/hub
+
+cat <<EOF >>"${HUB_PATH}"/serviceaccount-patch.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: hub-sa
+  namespace: multicloud-system
+imagePullSecrets:
+- name: mcm-image-pull-secret
+EOF
+
 cat <<EOF >>"${HUB_PATH}"/kustomization.yaml
 images:
 - name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-apiserver
   newName: $IMAGE_NAME_AND_VERSION
 - name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-controller
   newName: $IMAGE_NAME_AND_VERSION
+patchesStrategicMerge:
+- serviceaccount-patch.yaml
 EOF
 
 kubectl apply -k "${HUB_PATH}"

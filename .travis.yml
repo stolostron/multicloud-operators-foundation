@@ -39,18 +39,18 @@ env:
     - COMPONENT_E2E_TEST_COMMAND=${TRAVIS_BUILD_DIR}/build/run-e2e-tests.sh
 
 stages:
-  - lint
+#  - lint
   - build
-  - unit-test
+#  - unit-test
   - test-e2e
   - publish
 
 jobs:
   include:
-    - stage: lint
-      name: "Run code lint"
-      if: type = pull_request
-      script: bash ${TRAVIS_BUILD_DIR}/build/run-code-lint.sh
+    # - stage: lint
+    #   name: "Run code lint"
+    #   if: type = pull_request
+    #   script: bash ${TRAVIS_BUILD_DIR}/build/run-code-lint.sh
     - stage: build
       name: "Build the image and run unit tests"
       script:
@@ -60,16 +60,16 @@ jobs:
           make component/build
           make component/push
           make imagescan/status
-    - stage: unit-test
-      name: "Run unit test"
-      if: type = pull_request
-      script:
-        # Set the image tag differently for PRs
-        - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then export COMPONENT_TAG_EXTENSION="-PR${TRAVIS_PULL_REQUEST}-${TRAVIS_COMMIT}"; fi;
-        # Bootstrap the build harness, pull test image, and run unit tests.
-        - |
-          make
-          make component/test/unit
+    # - stage: unit-test
+    #   name: "Run unit test"
+    #   if: type = pull_request
+    #   script:
+    #     # Set the image tag differently for PRs
+    #     - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then export COMPONENT_TAG_EXTENSION="-PR${TRAVIS_PULL_REQUEST}-${TRAVIS_COMMIT}"; fi;
+    #     # Bootstrap the build harness, pull test image, and run unit tests.
+    #     - |
+    #       make
+    #       make component/test/unit
     - stage: test-e2e
       name: "Deploy the image to a cluster and run e2e tests"
       if: type = pull_request
@@ -78,7 +78,6 @@ jobs:
         - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then export COMPONENT_TAG_EXTENSION="-PR${TRAVIS_PULL_REQUEST}-${TRAVIS_COMMIT}"; fi;
         - |
           make
-          make component/pull
           make component/test/e2e
     - stage: publish
       name: "Publish the image to quay with an official version/sha tag and publish entry to integration pipeline stage"
