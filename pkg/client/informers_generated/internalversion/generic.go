@@ -47,6 +47,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Mcm().InternalVersion().ClusterJoinRequests().Informer()}, nil
 	case mcm.SchemeGroupVersion.WithResource("clusterstatuses"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Mcm().InternalVersion().ClusterStatuses().Informer()}, nil
+	case mcm.SchemeGroupVersion.WithResource("leadervotes"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Mcm().InternalVersion().LeaderVotes().Informer()}, nil
 	case mcm.SchemeGroupVersion.WithResource("placementbindings"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Mcm().InternalVersion().PlacementBindings().Informer()}, nil
 	case mcm.SchemeGroupVersion.WithResource("placementpolicies"):

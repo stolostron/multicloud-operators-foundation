@@ -70,8 +70,8 @@ require (
 	github.com/modern-go/reflect2 v0.0.0-20180701023420-4b7aa43c6742 // indirect
 	github.com/mongodb/mongo-go-driver v0.0.0-20180808171322-9b26cbb1a61a
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
-	github.com/onsi/ginkgo v1.10.1
-	github.com/onsi/gomega v1.7.0
+	github.com/onsi/ginkgo v1.12.0
+	github.com/onsi/gomega v1.7.1
 	github.com/openshift/api v0.0.0-20190401220125-3a6077f1f910 // indirect
 	github.com/openshift/client-go v0.0.0-20190401163519-84c2b942258a
 	github.com/pborman/uuid v0.0.0-20170612153648-e790cca94e6c // indirect
@@ -93,7 +93,6 @@ require (
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
 	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
-	golang.org/x/sys v0.0.0-20190813064441-fde4db37ae7a // indirect
 	golang.org/x/time v0.0.0-20190308202827-9d24e82272b4 // indirect
 	golang.org/x/tools v0.0.0-20191209225234-22774f7dae43 // indirect
 	gopkg.in/inf.v0 v0.0.0-20180326172332-d2d2541c53f1 // indirect
@@ -105,7 +104,6 @@ require (
 	k8s.io/apiserver v0.0.0-20181213151703-3ccfe8365421
 	k8s.io/client-go v0.0.0-20181213151034-8d9ed539ba31
 	k8s.io/cluster-registry v0.0.0-20180711215825-1e7f92e96c20
-	k8s.io/helm v0.0.0-20180919182530-2e55dbe1fdb5
 	k8s.io/klog v0.3.0
 	k8s.io/kube-openapi v0.0.0-20190918143330-0270cf2f1c1d
 	k8s.io/utils v0.0.0-20190923111123-69764acb6e8e // indirect

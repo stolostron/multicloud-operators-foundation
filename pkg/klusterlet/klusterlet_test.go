@@ -14,7 +14,6 @@ import (
 	hcmfake "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
 	clusterfake "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset/fake"
 	informers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
-	helmutil "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/helm"
 	corev1 "k8s.io/api/core/v1"
 	extensionv1beta1 "k8s.io/api/extensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +21,6 @@ import (
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/tools/cache"
 	clusterv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
-	"k8s.io/helm/pkg/helm"
 
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	routev1Fake "github.com/openshift/client-go/route/clientset/versioned/fake"
@@ -159,8 +157,7 @@ var (
 	}
 )
 
-func newTestKlusterlet(configMap *corev1.ConfigMap, clusterRegistry *clusterv1alpha1.Cluster) (
-	*testKlusterlet, *helm.FakeClient) {
+func newTestKlusterlet(configMap *corev1.ConfigMap, clusterRegistry *clusterv1alpha1.Cluster) *testKlusterlet {
 	fakeKubeClient := kubefake.NewSimpleClientset(
 		configMap, kubeNode, kubeEndpoints,
 		kubeMonitoringService, kubeMonitoringSecret,
@@ -169,8 +166,6 @@ func newTestKlusterlet(configMap *corev1.ConfigMap, clusterRegistry *clusterv1al
 	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
 	fakehcmClient := hcmfake.NewSimpleClientset()
 	clusterFakeClient := clusterfake.NewSimpleClientset(clusterRegistry)
-	helmclient := &helm.FakeClient{}
-	helmcontrol := helmutil.NewFakeHelmControl(helmclient)
 
 	informerFactory := informers.NewSharedInformerFactory(fakehcmClient, time.Minute*10)
 	kubeInformerFactory := kubeinformers.NewSharedInformerFactory(fakeKubeClient, time.Minute*10)
@@ -187,7 +182,7 @@ func newTestKlusterlet(configMap *corev1.ConfigMap, clusterRegistry *clusterv1al
 
 	klusterlet := NewKlusterlet(
 		config, fakeKubeClient, fakeRouteV1Client, fakehcmClient, nil,
-		fakeHubKubeClient, clusterFakeClient, helmcontrol, fakekubecontrol, kubeInformerFactory, informerFactory, nil)
+		fakeHubKubeClient, clusterFakeClient, fakekubecontrol, kubeInformerFactory, informerFactory, nil)
 
 	klusterlet.nodeSynced = alwaysReady
 	klusterlet.podSynced = alwaysReady
@@ -199,7 +194,7 @@ func newTestKlusterlet(configMap *corev1.ConfigMap, clusterRegistry *clusterv1al
 		fakekubecontrol,
 		fakehcmClient,
 		clusterFakeClient,
-	}, helmclient
+	}
 }
 
 func newCluster() *clusterv1alpha1.Cluster {
@@ -262,7 +257,7 @@ func syncWork(t *testing.T, manager *testKlusterlet, work *v1beta1.Work) {
 
 func TestSyncClusterStatus(t *testing.T) {
 	//Check if the cluster in cluster registry is created once the cluster is first created.
-	klusterlet, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
 	hcmclient := klusterlet.fakeHCMClient
 	clusterclient := klusterlet.fakeClusterClient
 	klusterlet.syncClusterStatus()
@@ -304,7 +299,7 @@ func TestSyncClusterStatus(t *testing.T) {
 		},
 	}
 
-	klusterlet, _ = newTestKlusterlet(refreshedAPIConfig, newCluster())
+	klusterlet = newTestKlusterlet(refreshedAPIConfig, newCluster())
 	clusterclient = klusterlet.fakeClusterClient
 	klusterlet.syncClusterStatus()
 
@@ -327,7 +322,7 @@ func TestSyncClusterStatus(t *testing.T) {
 }
 
 func TestReadKlusterletConfig(t *testing.T) {
-	klusterlet, _ := newTestKlusterlet(apiConfig, newCluster())
+	klusterlet := newTestKlusterlet(apiConfig, newCluster())
 	//Test setting klusterlet address as IP
 	klusterlet.config.KlusterletAddress = "192.168.0.1"
 	endpoint, _, _ := klusterlet.readKlusterletConfig()
@@ -357,7 +352,7 @@ func TestReadKlusterletConfig(t *testing.T) {
 
 func TestProcessWork(t *testing.T) {
 	work := newWork("work1", v1beta1.ResourceWorkType)
-	klusterlet, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
 	hcmclient := klusterlet.fakeHCMClient
 	klusterlet.workStore.Add(work)
 	syncWork(t, klusterlet, work)
@@ -404,7 +399,7 @@ func TestGetReleaseWork(t *testing.T) {
 	work := newWork("work1", v1beta1.ResourceWorkType)
 	work.ObjectMeta.Labels = map[string]string{}
 	work.Spec.Scope.ResourceType = "releases"
-	klusterlet, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
 	hcmclient := klusterlet.fakeHCMClient
 	klusterlet.workStore.Add(work)
 	syncWork(t, klusterlet, work)
@@ -439,7 +434,7 @@ func TestKubeActionWork(t *testing.T) {
 			Object: klusterletIngress,
 		},
 	}
-	klusterlet, _ := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
+	klusterlet := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
 	hcmclient := klusterlet.fakeHCMClient
 	klusterlet.workStore.Add(work)
 	syncWork(t, klusterlet, work)
@@ -493,50 +488,4 @@ func TestKubeActionWork(t *testing.T) {
 	}
 	klusterlet.workStore.Add(work3)
 	syncWork(t, klusterlet, work3)
-}
-
-func TestHelmActionWork(t *testing.T) {
-	klusterlet, helmclient := newTestKlusterlet(apiConfig, &clusterv1alpha1.Cluster{})
-	//Test helm create
-	work1 := newWork("work1", v1beta1.ActionWorkType)
-	work1.Spec.ActionType = v1beta1.CreateActionType
-	work1.Spec.HelmWork = &v1beta1.HelmWorkSpec{
-		ReleaseName: "mcmrelease-test2",
-		ChartURL:    "http://test",
-		Version:     "1.0",
-	}
-	klusterlet.workStore.Add(work1)
-	syncWork(t, klusterlet, work1)
-
-	if len((helmclient).Rels) != 1 {
-		t.Errorf("syncDeployer() release = %v, want %v", len(helmclient.Rels), 1)
-	}
-
-	//Test helm update
-	work2 := newWork("work2", v1beta1.ActionWorkType)
-	work2.Spec.ActionType = v1beta1.UpdateActionType
-	work2.Spec.HelmWork = &v1beta1.HelmWorkSpec{
-		ReleaseName: "mcmrelease-test2",
-		ChartURL:    "http://test",
-		Version:     "2.0",
-	}
-	klusterlet.workStore.Add(work2)
-	syncWork(t, klusterlet, work2)
-
-	if len((helmclient).Rels) != 1 {
-		t.Errorf("syncDeployer() release = %v, want %v", len(helmclient.Rels), 1)
-	}
-
-	//Test helm delete
-	work3 := newWork("work3", v1beta1.ActionWorkType)
-	work3.Spec.ActionType = v1beta1.DeleteActionType
-	work3.Spec.HelmWork = &v1beta1.HelmWorkSpec{
-		ReleaseName: "mcmrelease-test2",
-	}
-	klusterlet.workStore.Add(work3)
-	syncWork(t, klusterlet, work3)
-
-	if len((helmclient).Rels) != 0 {
-		t.Errorf("syncDeployer() release = %v, want %v", len(helmclient.Rels), 0)
-	}
 }

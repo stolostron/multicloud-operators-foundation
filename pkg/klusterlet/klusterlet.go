@@ -8,7 +8,6 @@ package klusterlet
 import (
 	"fmt"
 	"net"
-	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -19,7 +18,6 @@ import (
 	"k8s.io/klog"
 
 	clusterclient "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset"
-	helmutil "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/helm"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,7 +26,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
@@ -49,9 +46,7 @@ import (
 	listers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/listers_generated/mcm/v1beta1"
 	resourceutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	equalutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/equals"
-	helmutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/helm"
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
-	helmenv "k8s.io/helm/pkg/helm/environment"
 
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 )
@@ -60,12 +55,9 @@ const (
 	controllerAgentName            = "klusterlet"
 	clusterStatusUpdateFrequency   = 30 * time.Second
 	endpointOperatorDeploymentName = "ibm-multicluster-endpoint-operator"
-	endpointName                   = "endpoint"
 )
 
 var clusterControllerKind = mcm.SchemeGroupVersion.WithKind("Cluster")
-
-var settings helmenv.EnvSettings
 
 type workHandlerFunc func(*v1beta1.Work) error
 
@@ -109,9 +101,6 @@ type Klusterlet struct {
 	// clusterclientset is a clientset for cluster registry api
 	clusterclientset clusterclient.Interface
 
-	//helmControl is the interface to helm
-	helmControl helmutil.ControlInterface
-
 	nodeLister v1listers.NodeLister
 	podLister  v1listers.PodLister
 	pvLister   v1listers.PersistentVolumeLister
@@ -147,7 +136,6 @@ func NewKlusterlet(
 	kubeDynamicClientset dynamic.Interface,
 	hubkubeclientset kubernetes.Interface,
 	clusterclientset clusterclient.Interface,
-	helmControl helmutil.ControlInterface,
 	kubeControl restutils.KubeControlInterface,
 	kubeInformerFactory kubeinformers.SharedInformerFactory,
 	informerFactory informers.SharedInformerFactory,
@@ -170,7 +158,6 @@ func NewKlusterlet(
 	}
 	recorder := eventBroadcaster.NewRecorder(api.Scheme, corev1.EventSource{Component: controllerAgentName})
 
-	settings = helmutils.GenerateSettings()
 	controller := &Klusterlet{
 		config:               config,
 		kubeclientset:        kubeclientset,
@@ -180,7 +167,6 @@ func NewKlusterlet(
 		hcmclientset:         hcmclientset,
 		hubkubeclientset:     hubkubeclientset,
 		clusterclientset:     clusterclientset,
-		helmControl:          helmControl,
 		nodeLister:           nodeInformer.Lister(),
 		podLister:            podInformer.Lister(),
 		workLister:           workInformer.Lister(),
@@ -221,19 +207,6 @@ func NewKlusterlet(
 func (k *Klusterlet) Run(workers int) {
 	defer utilruntime.HandleCrash()
 	defer k.workqueue.ShutDown()
-
-	// Initilize helm home
-	err := helmutils.EnsureDirectories(settings.Home)
-	if err != nil {
-		klog.Errorf("failed to run workers %v", err)
-		return
-	}
-	//generate helm repository file
-	err = helmutils.EnsureDefaultRepos(settings.Home)
-	if err != nil {
-		klog.Errorf("failed to run workers %v", err)
-		return
-	}
 
 	// Wait for the caches to be synced before starting workers
 	klog.Info("Waiting for kubernetes informer caches to sync")
@@ -718,7 +691,6 @@ func (k *Klusterlet) updateClusterStatus(
 	clusterStatus.Spec.KlusterletVersion = version.Get().GitVersion
 	clusterStatus.Spec.Version = k.config.ServerVersion
 	clusterStatus.Spec.EndpointOperatorVersion = k.getEndponitOperatorVersion()
-	clusterStatus.Spec.EndpointVersion = k.getEndpointVersion()
 
 	// Config klusterlet endpoint
 	klusterletEndpoint, klusterletPort, err := k.readKlusterletConfig()
@@ -912,38 +884,4 @@ func (k *Klusterlet) getEndponitOperatorVersion() string {
 	}
 
 	return strings.Split(deployment.Spec.Template.Spec.Containers[0].Image, ":")[1]
-}
-
-// getEndpointVersion gets the Endpoint/Klusterlet Version
-func (k *Klusterlet) getEndpointVersion() string {
-	endpointGVR := schema.GroupVersionResource{
-		Group:    "multicloud.ibm.com",
-		Version:  "v1beta1",
-		Resource: "endpoints",
-	}
-
-	klNamespace := os.Getenv("POD_NAMESPACE")
-	if klNamespace == "" {
-		klog.Warningf("Failed to get Endpoint/Klusterlet Namespace")
-		return ""
-	}
-
-	endpoint, err := k.kubeDynamicClientset.Resource(endpointGVR).Namespace(klNamespace).Get(endpointName, metav1.GetOptions{})
-	if err != nil {
-		klog.Info("Failed to get the CR Endpoint endpoint")
-		return ""
-	}
-
-	mapObj := endpoint.UnstructuredContent()
-	spec := reflect.ValueOf(mapObj["spec"])
-	var vers string
-	if spec.Kind() == reflect.Map {
-		for _, k := range spec.MapKeys() {
-			if fmt.Sprintf("%v", k) == "version" {
-				vers = spec.MapIndex(k).Interface().(string)
-				break
-			}
-		}
-	}
-	return vers
 }

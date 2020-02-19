@@ -9,7 +9,7 @@ import (
 	"reflect"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry"
-	hcmv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	rbacv1helpers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/common/rbac"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -22,10 +22,13 @@ var clusterKind = clusterregistry.SchemeGroupVersion.WithKind("Cluster")
 // BuildClusterRoleRules builds the clusteroles
 func buildRoleRules() []rbacv1.PolicyRule {
 	return []rbacv1.PolicyRule{
-		rbacv1helpers.NewRule("create", "get", "list", "update").Groups(hcmv1alpha1.GroupName).Resources("clusterstatuses").RuleOrDie(),
-		rbacv1helpers.NewRule("get", "list", "watch").Groups(hcmv1alpha1.GroupName).Resources("works").RuleOrDie(),
-		rbacv1helpers.NewRule("create").Groups(hcmv1alpha1.GroupName).Resources("works/result").RuleOrDie(),
-		rbacv1helpers.NewRule("patch", "update").Groups(hcmv1alpha1.GroupName).Resources("works/status").RuleOrDie(),
+		rbacv1helpers.NewRule("create", "get", "list", "update").Groups(mcm.GroupName).Resources("clusterstatuses").RuleOrDie(),
+		rbacv1helpers.NewRule("create").Groups(mcm.GroupName).Resources("clusterstatuses/topology").RuleOrDie(),
+		rbacv1helpers.NewRule("create", "get").Groups(mcm.GroupName).Resources("clusterstatuses/aggregator").RuleOrDie(),
+		rbacv1helpers.NewRule("create", "get").Groups(mcm.GroupName).Resources("clusterstatuses/metering-receiver").RuleOrDie(),
+		rbacv1helpers.NewRule("get", "list", "watch").Groups(mcm.GroupName).Resources("works").RuleOrDie(),
+		rbacv1helpers.NewRule("create").Groups(mcm.GroupName).Resources("works/result").RuleOrDie(),
+		rbacv1helpers.NewRule("patch", "update").Groups(mcm.GroupName).Resources("works/status").RuleOrDie(),
 		rbacv1helpers.NewRule("create", "get", "update").Groups("clusterregistry.k8s.io").Resources("clusters").RuleOrDie(),
 		rbacv1helpers.NewRule("patch", "update").Groups("clusterregistry.k8s.io").Resources("clusters/status").RuleOrDie(),
 		rbacv1helpers.NewRule("get", "list", "watch", "update", "patch").Groups("compliance.mcm.ibm.com").Resources("compliances").RuleOrDie(),
