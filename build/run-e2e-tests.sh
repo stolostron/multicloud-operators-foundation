@@ -17,7 +17,10 @@ export PATH="${KUBECTL_PATH}":"${PATH}"
 
 # Install kind
 GO111MODULE="on" go get sigs.k8s.io/kind@v0.7.0
-kind create cluster
+
+# Create a cluster
+CLUSTER_NAME="multicloud-hub"
+kind create cluster --name ${CLUSTER_NAME}
 
 # Check kind cluster
 if ! kubectl cluster-info
@@ -26,25 +29,27 @@ then
     exit 1
 fi
 
-# Deploy hub cluster
-kubectl create namespace multicloud-system
+kind load docker-image --name="${CLUSTER_NAME}" "${IMAGE_NAME_AND_VERSION}"
 
-kubectl create secret docker-registry -n multicloud-system mcm-image-pull-secret \
-  --docker-server=quay.io \
-  --docker-username="${DOCKER_USER}" \
-  --docker-password="${DOCKER_PASS}"
+# Deploy hub cluster
+# kubectl create namespace multicloud-system
+
+# kubectl create secret docker-registry -n multicloud-system mcm-image-pull-secret \
+#   --docker-server=quay.io \
+#   --docker-username="${DOCKER_USER}" \
+#   --docker-password="${DOCKER_PASS}"
 
 HUB_PATH=${GOPATH}/src/github.com/open-cluster-management/multicloud-operators-foundation/deploy/dev/hub
 
-cat <<EOF >"${HUB_PATH}"/serviceaccount-patch.yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: hub-sa
-  namespace: multicloud-system
-imagePullSecrets:
-- name: mcm-image-pull-secret
-EOF
+# cat <<EOF >"${HUB_PATH}"/serviceaccount-patch.yaml
+# apiVersion: v1
+# kind: ServiceAccount
+# metadata:
+#   name: hub-sa
+#   namespace: multicloud-system
+# imagePullSecrets:
+# - name: mcm-image-pull-secret
+# EOF
 
 cat <<EOF >>"${HUB_PATH}"/kustomization.yaml
 images:
@@ -52,8 +57,6 @@ images:
   newName: $IMAGE_NAME_AND_VERSION
 - name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-controller
   newName: $IMAGE_NAME_AND_VERSION
-patchesStrategicMerge:
-- serviceaccount-patch.yaml
 EOF
 
 kubectl apply -k "${HUB_PATH}"
