@@ -40,19 +40,12 @@ type KubeServicePlugin struct {
 func NewKubeServicePlugin(memberKubeClient kubernetes.Interface,
 	memberInformerFactory informers.SharedInformerFactory,
 	options *options.SvcRegistryOptions) *KubeServicePlugin {
-	var err error
-	proxyIP := options.ClusterProxyIP
-	if proxyIP == "" {
-		if proxyIP, err = utils.FindClusterProxyIPFromConfigmap(memberKubeClient); err != nil {
-			klog.Warningf("failed to find cluster proxy ip, %v", err)
-		}
-	}
 	return &KubeServicePlugin{
 		clusterName:      options.ClusterName,
 		clusterZone:      options.ClusterZone,
 		clusterRegion:    options.ClusterRegion,
 		clusterNamespace: options.ClusterNamespace,
-		clusterProxyIP:   proxyIP,
+		clusterProxyIP:   options.ClusterProxyIP,
 		memberKubeClient: memberKubeClient,
 		informer:         memberInformerFactory.Core().V1().Services().Informer(),
 		serviceLister:    memberInformerFactory.Core().V1().Services().Lister(),
@@ -128,8 +121,12 @@ func (s *KubeServicePlugin) SyncRegisteredEndpoints(
 	for _, service := range services {
 		_, annotated := s.isAnnotatedService(service)
 		if annotated && !s.hasBeenRegisterd(registeredEdpoints, service) {
+			ep := s.toEndpoints(service)
+			if ep == nil {
+				continue
+			}
 			// service does not register
-			toCreate = append(toCreate, s.toEndpoints(service))
+			toCreate = append(toCreate, ep)
 		}
 	}
 	return toCreate, toDelete, toUpdate

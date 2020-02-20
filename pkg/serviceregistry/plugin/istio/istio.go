@@ -63,19 +63,12 @@ func NewIstioPlugin(memberKubeClient kubernetes.Interface,
 	memberDynamicClient dynamic.Interface,
 	memberInformerFactory informers.SharedInformerFactory,
 	options *options.SvcRegistryOptions) *IstioPlugin {
-	var err error
-	proxyIP := options.ClusterProxyIP
-	if proxyIP == "" {
-		if proxyIP, err = utils.FindClusterProxyIPFromConfigmap(memberKubeClient); err != nil {
-			klog.Warningf("failed to find cluster proxy ip, %v", err)
-		}
-	}
 	return &IstioPlugin{
 		clusterName:       options.ClusterName,
 		clusterNamespace:  options.ClusterNamespace,
 		registryNamespace: options.IstioPluginOptions.ServiceEntryRegistryNamespace,
 		ingressName:       options.IstioPluginOptions.IstioIngressGateway,
-		clusterProxyIP:    proxyIP,
+		clusterProxyIP:    options.ClusterProxyIP,
 		memberKubeClient:  memberKubeClient,
 		serviceEntryClient: memberDynamicClient.Resource(schema.GroupVersionResource{
 			Group:    "networking.istio.io",
