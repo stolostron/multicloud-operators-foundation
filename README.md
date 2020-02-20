@@ -47,6 +47,7 @@ More info please see: [kustomize](https://github.com/kubernetes-sigs/kustomize/b
 
     - Change image repo and image tag in `images` section
     - Change `<AUTH INFO>` with your image repo login info in `secretGenerator` section. It looks like:
+
         ```json
         {"auths":{"https://quay.io/open-cluster-management/multicloud-manager":{"username":"<USER NAME>","password":"<TOKEN>/","auth":"<BASE64 ENACODE <USER:TOKEN>>"}}}
         ```
@@ -59,19 +60,19 @@ More info please see: [kustomize](https://github.com/kubernetes-sigs/kustomize/b
 
     > Note:
     > * The yaml file of ETCD StatefulSet is `deploy/dev/hub/resources/200-etcd.yaml`. And the mountPath is:
-    >   ```
-    >   volumeMounts:
-    >   - mountPath: /etcd-data
-    >   ```
+    > ```
+    > volumeMounts:
+    > - mountPath: /etcd-data
+    > ```
     > * The yaml file of MongoDB StatefulSet is `deploy/dev/hub/resources/200-mongo.yaml`. And the mountPath is:
-    >   ```
-    >   volumeMounts:
-    >   - mountPath: /data/db
-    >   ```
+    > ```
+    > volumeMounts:
+    > - mountPath: /data/db
+    > ```
     > * If you deploy the hub components in OpenShift, you need to adjust your scc policy by running command
-    >   ```
-    >   oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default
-    >   ```
+    > ```
+    > oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default
+    > ```
 
 2. Adding a spoke cluster
 
@@ -107,9 +108,10 @@ More info please see: [kustomize](https://github.com/kubernetes-sigs/kustomize/b
     ```
 
     Config image repo and image pull secret info in `deploy/prod/klusterlet/kustomization.yaml`
-    
+
     - Change image repo and image tag in `images` section
     - Change `<AUTH INFO>` with your image repo login info in `secretGenerator` section. It looks like:
+
         ```json
         {"auths":{"https://quay.io/open-cluster-management/multicloud-manager":{"username":"<USER NAME>","password":"<TOKEN>/","auth":"<BASE64 ENACODE <USER:TOKEN>>"}}}
         ```
@@ -223,19 +225,19 @@ More information see [ko](https://github.com/google/ko)
 
     > Note:
     > * The yaml file of ETCD StatefulSet is `deploy/dev/hub/resources/200-etcd.yaml`. And the mountPath is:
-    >   ```
-    >   volumeMounts:
-    >   - mountPath: /etcd-data
-    >   ```
+    > ```
+    > volumeMounts:
+    > - mountPath: /etcd-data
+    > ```
     > * The yaml file of MongoDB StatefulSet is `deploy/dev/hub/resources/200-mongo.yaml`. And the mountPath is:
-    >   ```
-    >   volumeMounts:
-    >   - mountPath: /data/db
-    >   ```
+    > ```
+    > volumeMounts:
+    > - mountPath: /data/db
+    > ```
     > * If you deploy the hub components in OpenShift, you need to adjust your `scc` policy by running command
-    >   ```
-    >   oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default
-    >   ```
+    > ```
+    > oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default
+    > ```
 
 3. Install klusterlet on the hub cluster
 
