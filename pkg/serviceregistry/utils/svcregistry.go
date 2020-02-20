@@ -28,36 +28,6 @@ const (
 	ServiceDiscoveryPrefix     = "service-discovery"
 )
 
-// FindClusterProxyIPFromConfigmap returns cluster proxy IP from kube-system/icp-management-ingress-config
-func FindClusterProxyIPFromConfigmap(clientset kubernetes.Interface) (string, error) {
-	configmap, err := clientset.CoreV1().ConfigMaps("kube-public").Get("ibmcloud-cluster-info", metav1.GetOptions{})
-	if err == nil {
-		proxyIP, ok := configmap.Data["proxy_address"]
-		if !ok {
-			return "", fmt.Errorf("cannot find proxy_ip from kube-public/ibmcloud-cluster-info")
-		}
-		return proxyIP, nil
-	}
-	configmap, err = clientset.CoreV1().ConfigMaps("kube-system").Get("icp-management-ingress-config", metav1.GetOptions{})
-	if err != nil {
-		return "", err
-	}
-	uiCfg := configmap.Data["ui-config.json"]
-	var uiCfgRawMap map[string]*json.RawMessage
-	if err := json.Unmarshal([]byte(uiCfg), &uiCfgRawMap); err != nil {
-		return "", err
-	}
-	var uiConfiguration map[string]string
-	if err := json.Unmarshal(*uiCfgRawMap["uiConfiguration"], &uiConfiguration); err != nil {
-		return "", err
-	}
-	proxyIP, ok := uiConfiguration["proxy_ip"]
-	if !ok || proxyIP == "" {
-		return "", fmt.Errorf("cannot find proxy_ip from kube-system/icp-management-ingress-config")
-	}
-	return proxyIP, nil
-}
-
 // SplitRegisteredEndpointsName splits a registered endpoints name and returns the endpoints corresponding resource's type,
 // namespace and name
 func SplitRegisteredEndpointsName(endpointsName string) (resType, resNamespace, resName string, err error) {

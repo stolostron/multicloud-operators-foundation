@@ -9,10 +9,6 @@ multicloud manager is the service to manage kubernetes clusters deployed on mult
 
 This is a guide on how to build and deploy multicloud manager from code.
 
-Prerequisite:
-
-- ko, download at [ko](https://github.com/google/ko)
-
 ## Setup
 
 Create a directory `$GOPATH/src/github.com/open-cluster-management`, and clone the code into the directory.
@@ -40,9 +36,7 @@ You can use `kustomize` to deploy multicloud manager with the following step.
 Install `kustomize`, you can use
 
 ```sh
-curl -s "https://raw.githubusercontent.com/\
-kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash
-mv kustomize /usr/local/bin/
+curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash mv kustomize /usr/local/bin/
 ```
 
 More info please see: [kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md)
@@ -50,38 +44,42 @@ More info please see: [kustomize](https://github.com/kubernetes-sigs/kustomize/b
 1. Install on hub cluster
 
     Config image repo and image pull secret in `deploy/prod/hub/kustomization.yaml`
-    > change image repo and image tag in `images` section.
-    > change `<AUTH INFO>` with your image repo login info in `secretGenerator` section. It looks like:
 
-    ```json
-    {"auths":{"https://quay.io/rhibmcollab/multicloud-manager":{"username":"<USER NAME>","password":"<TOKEN>/","auth":"<BASE64 ENACODE <USER:TOKEN>>"}}}
-    ```
+    - Change image repo and image tag in `images` section
+    - Change `<AUTH INFO>` with your image repo login info in `secretGenerator` section. It looks like:
+        ```json
+        {"auths":{"https://quay.io/open-cluster-management/multicloud-manager":{"username":"<USER NAME>","password":"<TOKEN>/","auth":"<BASE64 ENACODE <USER:TOKEN>>"}}}
+        ```
 
     Deploy hub components
 
-    ```kustomize build deploy/prod/hub | kubectl apply  -f -```
+    ```sh
+    kustomize build deploy/prod/hub | kubectl apply  -f -
+    ```
 
     > Note:
     > * The yaml file of ETCD StatefulSet is `deploy/dev/hub/resources/200-etcd.yaml`. And the mountPath is:
-    > ```
-    > volumeMounts:
-    > - mountPath: /etcd-data
-    > ```
+    >   ```
+    >   volumeMounts:
+    >   - mountPath: /etcd-data
+    >   ```
     > * The yaml file of MongoDB StatefulSet is `deploy/dev/hub/resources/200-mongo.yaml`. And the mountPath is:
-    > ```
-    > volumeMounts:
-    > - mountPath: /data/db
-    > ```
+    >   ```
+    >   volumeMounts:
+    >   - mountPath: /data/db
+    >   ```
     > * If you deploy the hub components in OpenShift, you need to adjust your scc policy by running command
-
-    ```oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default```
+    >   ```
+    >   oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default
+    >   ```
 
 2. Adding a spoke cluster
 
     The context of the spoke cluster must be used or the KUBECONFIG environment variable must be defined using the spoke cluster and not the hub.
 
     Create bootstrap secret `klusterlet-bootstrap` in `default` namespace using a kubeconfig file of the hub cluster. If the kubeconfig file includes keys, like `client-certificate` and `client-key`, which reference to local certification files, replace them with `client-certificate-data` and `client-key-data`. The corresponding values of these keys can be obtained with the command below.
-    >Note: The base64 steps are not required if you are using OpenShift.
+
+    > Note: The base64 steps are not required if you are using OpenShift.
 
     ```sh
     cat /path/to/cert/file | base64 --wrap=0
@@ -108,38 +106,42 @@ More info please see: [kustomize](https://github.com/kubernetes-sigs/kustomize/b
     --cluster=spoke0/spoke0    # cluster-namespace/cluster-name
     ```
 
-    Config image repo and image pull secret info in ```deploy/prod/klusterlet/kustomization.yaml```
-    > change image repo and image tag in `images` section
-    > change `<AUTH INFO>` with your image repo login info in `secretGenerator` section. It looks like:
-
-    ```json
-    {"auths":{"https://quay.io/rhibmcollab/multicloud-manager":{"username":"<USER NAME>","password":"<TOKEN>/","auth":"<BASE64 ENACODE <USER:TOKEN>>"}}}
-    ```
+    Config image repo and image pull secret info in `deploy/prod/klusterlet/kustomization.yaml`
+    
+    - Change image repo and image tag in `images` section
+    - Change `<AUTH INFO>` with your image repo login info in `secretGenerator` section. It looks like:
+        ```json
+        {"auths":{"https://quay.io/open-cluster-management/multicloud-manager":{"username":"<USER NAME>","password":"<TOKEN>/","auth":"<BASE64 ENACODE <USER:TOKEN>>"}}}
+        ```
 
     Deploy klusterlet components
 
-    ```kustomize build deploy/prod/klusterlet | kubectl apply  -f -```
+    ```sh
+    kustomize build deploy/prod/klusterlet | kubectl apply  -f -
+    ```
 
 3. (Optional) Enable service registry on managed cluster
 
     After klusterlet components were installed in managed cluster, Customize the cluster name and namespaces of hub or spoke cluster in `deploy/serviceregistry/200-serviceregistry`.
-    >Note: The cluster-name and cluster-namespace must reflect the same values used when defining the klusterlet configuration.
+
+    > Note: The cluster-name and cluster-namespace must reflect the same values used when defining the klusterlet configuration.
 
     ```sh
-
     --cluster-name=cluster0
     --cluster-namespace=cluster0
-
     ```
 
-    > Note: if you want to discover a NodePort type service, you need to set the cluster outside IP with args `--member-cluster-proxy-ip`
+    > Note: if your cluser does not have a load balancer or you want to discover a NodePort type service, you need to set the cluster outside IP with args `--member-cluster-proxy-ip`
 
-    Config image repo and image pull secret info in ```deploy/prod/klusterlet/kustomization.yaml```
-    > change image repo and image tag in `images` section
+    Config image repo in `deploy/prod/serviceregistry/kustomization.yaml`
+
+    - Change image repo and image tag in `images` section
 
     Deploy service registry components
 
-    ```kustomize build deploy/prod/serviceregistry.yaml | kubectl apply  -f -```
+    ```sh
+    kustomize build deploy/prod/serviceregistry.yaml | kubectl apply  -f -
+    ```
 
     > Note: If you deploy the service registry in OpenShift, you need to adjust your `scc` policy by running command `oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-endpoint:default`
 
@@ -221,19 +223,25 @@ More information see [ko](https://github.com/google/ko)
 
     > Note:
     > * The yaml file of ETCD StatefulSet is `deploy/dev/hub/resources/200-etcd.yaml`. And the mountPath is:
-    > ```
-    > volumeMounts:
-    > - mountPath: /etcd-data```
+    >   ```
+    >   volumeMounts:
+    >   - mountPath: /etcd-data
+    >   ```
     > * The yaml file of MongoDB StatefulSet is `deploy/dev/hub/resources/200-mongo.yaml`. And the mountPath is:
-    > ```
-    > volumeMounts:
-    > - mountPath: /data/db```
-    > * If you deploy the hub components in OpenShift, you need to adjust your `scc` policy by running command `oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default`
+    >   ```
+    >   volumeMounts:
+    >   - mountPath: /data/db
+    >   ```
+    > * If you deploy the hub components in OpenShift, you need to adjust your `scc` policy by running command
+    >   ```
+    >   oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-system:default
+    >   ```
 
 3. Install klusterlet on the hub cluster
 
     Create bootstrap secret `klusterlet-bootstrap` in `default` namespace using a kubeconfig file with any authenticated hub cluster user. If the kubeconfig file includes keys, like `client-certificate` and `client-key`, which reference to local certification files, replace them with `client-certificate-data` and `client-key-data`. The corresponding values of these keys can be obtained with the command below.
-    >Note: The base64 steps are not required if you are using OpenShift.
+
+    > Note: The base64 steps are not required if you are using OpenShift.
 
     ```sh
     cat /path/to/cert/file | base64 --wrap=0
@@ -307,14 +315,15 @@ More information see [ko](https://github.com/google/ko)
 5. (Optional) Enable service registry on managed cluster
 
     After klusterlet components were installed in managed cluster, Customize the cluster name and namespaces of hub or spoke cluster in `deploy/serviceregistry/200-serviceregistry`.
-    >Note: The cluster-name and cluster-namespace must reflect the same values used when defining the klusterlet configuration.
+
+    > Note: The cluster-name and cluster-namespace must reflect the same values used when defining the klusterlet configuration.
 
     ```sh
     --cluster-name=cluster0
     --cluster-namespace=cluster0
     ```
 
-    > Note: if you want to discover a NodePort type service, you need to set the cluster outside IP with args `--member-cluster-proxy-ip`
+    > Note: if your cluser does not have a load balancer or you want to discover a NodePort type service, you need to set the cluster outside IP with args `--member-cluster-proxy-ip`
 
     Deploy service registry components
 
