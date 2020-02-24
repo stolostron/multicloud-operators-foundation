@@ -60,6 +60,7 @@ jobs:
           make component/build
           make component/push
           make imagescan/status
+          make security/scans
     - stage: unit-test
       name: "Run unit test"
       if: type = pull_request
