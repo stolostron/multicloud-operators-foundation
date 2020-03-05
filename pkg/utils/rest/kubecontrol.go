@@ -198,7 +198,7 @@ func (r *KubeControl) Patch(
 		return nil, err
 	}
 
-	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Patch(name, pt, data, metav1.UpdateOptions{})
+	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Patch(name, pt, data, metav1.PatchOptions{})
 }
 
 func (r *KubeControl) Replace(namespace string, overwrite bool, raw runtime.RawExtension) (runtime.Object, error) {

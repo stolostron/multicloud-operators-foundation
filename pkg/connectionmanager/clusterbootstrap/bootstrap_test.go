@@ -15,15 +15,17 @@ import (
 	v1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1"
 	hcmfake "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/common"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	csrv1beta1 "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/util/keyutil"
 
 	certutil "k8s.io/client-go/util/cert"
 )
 
 func newCertKey() ([]byte, []byte, error) {
-	signingKey, err := certutil.NewPrivateKey()
+	signingKey, err := utils.NewPrivateKey()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -33,12 +35,12 @@ func newCertKey() ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 
-	key, err := certutil.NewPrivateKey()
+	key, err := utils.NewPrivateKey()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	cert, err := certutil.NewSignedCert(
+	cert, err := utils.NewSignedCert(
 		certutil.Config{
 			CommonName: "hcm",
 			Usages:     []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
@@ -49,7 +51,7 @@ func newCertKey() ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 
-	return certutil.EncodePrivateKeyPEM(key), certutil.EncodeCertPEM(cert), nil
+	return utils.EncodePrivateKeyPEM(key), utils.EncodeCertPEM(cert), nil
 }
 
 func newRequestName(key []byte) string {
@@ -152,12 +154,12 @@ func TestBootStrapWithDeny(t *testing.T) {
 }
 
 func TestDigestNames(t *testing.T) {
-	key1, err := certutil.MakeEllipticPrivateKeyPEM()
+	key1, err := keyutil.MakeEllipticPrivateKeyPEM()
 	if err != nil {
 		t.Errorf("Failed to generate key: %v", err)
 	}
 
-	key2, err := certutil.MakeEllipticPrivateKeyPEM()
+	key2, err := keyutil.MakeEllipticPrivateKeyPEM()
 	if err != nil {
 		t.Errorf("Failed to generate key: %v", err)
 	}

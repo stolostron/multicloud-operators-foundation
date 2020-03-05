@@ -36,12 +36,12 @@ func toSelectableFields(resourceview *mcm.ResourceView) fields.Set {
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 	resourceview, ok := obj.(*mcm.ResourceView)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a resourceview")
+		return nil, nil, fmt.Errorf("given object is not a resourceview")
 	}
-	return labels.Set(resourceview.ObjectMeta.Labels), toSelectableFields(resourceview), resourceview.Initializers != nil, nil
+	return labels.Set(resourceview.ObjectMeta.Labels), toSelectableFields(resourceview), nil
 }
 
 func MatchResourceView(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {

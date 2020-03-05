@@ -297,6 +297,11 @@ func RegisterConversions(s *runtime.Scheme) error {
 	}); err != nil {
 		return err
 	}
+	if err := s.AddConversionFunc((*mcm.WorkSpec)(nil), (*WorkSpec)(nil), func(a, b interface{}, scope conversion.Scope) error {
+		return Convert_mcm_WorkSpec_To_v1beta1_WorkSpec(a.(*mcm.WorkSpec), b.(*WorkSpec), scope)
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 

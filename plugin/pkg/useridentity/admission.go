@@ -6,6 +6,7 @@
 package useridentity
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -98,7 +99,7 @@ func transferToUserInfo(user user.Info) authenticationv1.UserInfo {
 	}
 }
 
-func (b *annotateUserIdentity) Admit(a admission.Attributes) error {
+func (b *annotateUserIdentity) Admit(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
 	// we need to wait for our caches to warm
 	if !b.WaitForReady() {
 		return admission.NewForbidden(a, fmt.Errorf("not yet ready to handle request"))

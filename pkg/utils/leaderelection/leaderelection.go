@@ -114,6 +114,7 @@ func createResourceLock(kubeClient kubernetes.Interface, componentName string,
 		namespace,
 		componentName+"-leader-election",
 		kubeClient.CoreV1(),
+		kubeClient.CoordinationV1(),
 		resourcelock.ResourceLockConfig{
 			Identity:      id,
 			EventRecorder: eventRecorder,

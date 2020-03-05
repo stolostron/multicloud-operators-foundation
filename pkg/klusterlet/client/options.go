@@ -10,8 +10,10 @@ import (
 	"path"
 	"time"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"github.com/spf13/pflag"
 	certutil "k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/keyutil"
 )
 
 // ClientOptions is the options for klusterlet client
@@ -64,7 +66,7 @@ func (s *ClientOptions) MaybeDefaultWithSelfSignedCerts(publicAddress string) er
 	}
 
 	if !canReadCertAndKey {
-		caKey, err := certutil.NewPrivateKey()
+		caKey, err := utils.NewPrivateKey()
 		if err != nil {
 			return err
 		}
@@ -77,20 +79,20 @@ func (s *ClientOptions) MaybeDefaultWithSelfSignedCerts(publicAddress string) er
 			return err
 		}
 
-		key, err := certutil.NewPrivateKey()
+		key, err := utils.NewPrivateKey()
 		if err != nil {
 			return err
 		}
 
 		config.Usages = []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth}
-		cert, err := certutil.NewSignedCert(config, key, caCert, caKey)
+		cert, err := utils.NewSignedCert(config, key, caCert, caKey)
 		if err != nil {
 			return err
 		}
 
-		caData := certutil.EncodeCertPEM(caCert)
-		keyData := certutil.EncodePrivateKeyPEM(key)
-		certData := certutil.EncodeCertPEM(cert)
+		caData := utils.EncodeCertPEM(caCert)
+		keyData := utils.EncodePrivateKeyPEM(key)
+		certData := utils.EncodeCertPEM(cert)
 
 		if err := certutil.WriteCert(s.CertFile, certData); err != nil {
 			return err
@@ -99,7 +101,7 @@ func (s *ClientOptions) MaybeDefaultWithSelfSignedCerts(publicAddress string) er
 			return err
 		}
 
-		if err := certutil.WriteKey(s.KeyFile, keyData); err != nil {
+		if err := keyutil.WriteKey(s.KeyFile, keyData); err != nil {
 			return err
 		}
 	}

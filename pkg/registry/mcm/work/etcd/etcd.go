@@ -134,17 +134,17 @@ func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOp
 	if work.Spec.Type == mcm.ResourceWorkType {
 		key, _ := genericregistry.NamespaceKeyFunc(ctx, "", name)
 		key = strings.TrimPrefix(key, "/")
-		if err := r.resultStore.Delete(ctx, key, nil, &storage.Preconditions{}); err != nil {
+		if err := r.resultStore.Delete(ctx, key, nil, &storage.Preconditions{}, rest.ValidateAllObjectFunc); err != nil {
 			return nil, false, err
 		}
 	}
-	return r.store.Delete(ctx, name, options)
+	return r.store.Delete(ctx, name, rest.ValidateAllObjectFunc, options)
 }
 
 // DeleteCollection removes all items returned by List with a given ListOptions from storage.
 func (r *REST) DeleteCollection(
 	ctx context.Context, options *metav1.DeleteOptions, listOptions *metainternalversion.ListOptions) (runtime.Object, error) {
-	return r.store.DeleteCollection(ctx, options, listOptions)
+	return r.store.DeleteCollection(ctx, rest.ValidateAllObjectFunc, options, listOptions)
 }
 
 func (r *REST) ConvertToTable(
