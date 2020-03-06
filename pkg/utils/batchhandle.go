@@ -8,7 +8,7 @@ package utils
 import (
 	"sync"
 
-	"k8s.io/client-go/util/integer"
+	"k8s.io/utils/integer"
 )
 
 var maxBatchSize = 500

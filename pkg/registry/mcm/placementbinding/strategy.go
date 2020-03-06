@@ -35,12 +35,12 @@ func toSelectableFields(placementBinding *mcm.PlacementBinding) fields.Set {
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 	placementBinding, ok := obj.(*mcm.PlacementBinding)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a placementBinding")
+		return nil, nil, fmt.Errorf("given object is not a placementBinding")
 	}
-	return labels.Set(placementBinding.ObjectMeta.Labels), toSelectableFields(placementBinding), placementBinding.Initializers != nil, nil
+	return labels.Set(placementBinding.ObjectMeta.Labels), toSelectableFields(placementBinding), nil
 }
 
 func MatchPlacementBinding(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {

@@ -240,7 +240,7 @@ func newIstioPlugin() (*IstioPlugin, cache.Store) {
 	options.ClusterProxyIP = "1.2.3.4"
 
 	//prepare an istio namespace
-	kubeClient.Core().Namespaces().Create(&v1.Namespace{
+	kubeClient.CoreV1().Namespaces().Create(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "istio-test",
 			Labels: map[string]string{"istio-injection": "enabled"},

@@ -13,7 +13,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/serviceregistry/app"
 	"github.com/spf13/pflag"
 
-	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/component-base/logs"
 )
 
 func main() {

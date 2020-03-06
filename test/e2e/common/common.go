@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/tools/clientcmd"
 	certutil "k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/keyutil"
 
 	"os"
 	"os/user"
@@ -232,13 +233,13 @@ func DeleteResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionReso
 }
 
 func GeneratePrivateKey() ([]byte, error) {
-	return certutil.MakeEllipticPrivateKeyPEM()
+	return keyutil.MakeEllipticPrivateKeyPEM()
 }
 
 func GenerateCSR(clusterNamespace, clusterName string, key []byte) (string, error) {
 	if key == nil {
 		var err error
-		key, err = certutil.MakeEllipticPrivateKeyPEM()
+		key, err = keyutil.MakeEllipticPrivateKeyPEM()
 		if err != nil {
 			return "", err
 		}
@@ -249,7 +250,7 @@ func GenerateCSR(clusterNamespace, clusterName string, key []byte) (string, erro
 		CommonName:   "hcm:clusters:" + clusterNamespace + ":" + clusterName,
 	}
 
-	privateKey, err := certutil.ParsePrivateKeyPEM(key)
+	privateKey, err := keyutil.ParsePrivateKeyPEM(key)
 	if err != nil {
 		return "", err
 	}

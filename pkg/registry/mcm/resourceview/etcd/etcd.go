@@ -127,13 +127,13 @@ func (r *REST) List(ctx context.Context, options *metainternalversion.ListOption
 
 // Delete removes the item from storage.
 func (r *REST) Delete(ctx context.Context, name string, options *metav1.DeleteOptions) (runtime.Object, bool, error) {
-	return r.store.Delete(ctx, name, options)
+	return r.store.Delete(ctx, name, rest.ValidateAllObjectFunc, options)
 }
 
 // DeleteCollection removes all items returned by List with a given ListOptions from storage.
 func (r *REST) DeleteCollection(
 	ctx context.Context, options *metav1.DeleteOptions, listOptions *metainternalversion.ListOptions) (runtime.Object, error) {
-	return r.store.DeleteCollection(ctx, options, listOptions)
+	return r.store.DeleteCollection(ctx, rest.ValidateAllObjectFunc, options, listOptions)
 }
 
 func (r *REST) ConvertToTable(

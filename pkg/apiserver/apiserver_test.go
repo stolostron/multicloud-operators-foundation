@@ -20,12 +20,12 @@ func TestDefaultAPIResourceConfigSource(t *testing.T) {
 		name string
 		want *serverstorage.ResourceConfig
 	}{
-		{"case1:", &serverstorage.ResourceConfig{rc1}},
+		{"case1:", &serverstorage.ResourceConfig{GroupVersionConfigs: rc1}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := DefaultAPIResourceConfigSource(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("DefaultAPIResourceConfigSource() = %v, want %v", got, tt.want)
+			if got := DefaultAPIResourceConfigSource(); !reflect.DeepEqual(got.GroupVersionConfigs, tt.want.GroupVersionConfigs) {
+				t.Errorf("DefaultAPIResourceConfigSource() = %v, want %v", got.GroupVersionConfigs, tt.want.GroupVersionConfigs)
 			}
 		})
 	}

@@ -6,6 +6,7 @@
 package klusterletca
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -87,13 +88,22 @@ func TestClusterStatusAppend(t *testing.T) {
 	informerFactory.Start(wait.NeverStop)
 	cluster := newCluster()
 	err = handler.(admission.MutationInterface).Admit(
+		context.TODO(),
 		admission.NewAttributesRecord(
 			cluster,
 			nil,
 			clusterv1alpha1.Kind("cluster").WithVersion("version"),
 			cluster.Namespace,
 			cluster.Name,
-			clusterv1alpha1.Resource("clusters").WithVersion("version"), "", admission.Create, true, &user.DefaultInfo{}))
+			clusterv1alpha1.Resource("clusters").WithVersion("version"),
+			"",
+			admission.Create,
+			&metav1.CreateOptions{},
+			true,
+			&user.DefaultInfo{},
+		),
+		nil,
+	)
 	if err != nil {
 		t.Errorf("unexpected error %q returned from admission handler.", err.Error())
 	}

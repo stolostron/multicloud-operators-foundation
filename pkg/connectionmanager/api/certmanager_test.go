@@ -25,6 +25,7 @@ import (
 	hcmclientset "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset"
 	hcmfake "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/common"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	csrv1beta1 "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -94,7 +95,7 @@ func (s *fakeStore) Update(config []byte) (bool, error) {
 }
 
 func newCertKey(duration time.Duration) (*rsa.PrivateKey, *x509.Certificate, []byte, []byte, error) {
-	caKey, err := certutil.NewPrivateKey()
+	caKey, err := utils.NewPrivateKey()
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -104,7 +105,7 @@ func newCertKey(duration time.Duration) (*rsa.PrivateKey, *x509.Certificate, []b
 		return nil, nil, nil, nil, err
 	}
 
-	key, err := certutil.NewPrivateKey()
+	key, err := utils.NewPrivateKey()
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -114,7 +115,7 @@ func newCertKey(duration time.Duration) (*rsa.PrivateKey, *x509.Certificate, []b
 		return nil, nil, nil, nil, err
 	}
 
-	return caKey, caCert, certutil.EncodePrivateKeyPEM(key), certutil.EncodeCertPEM(cert), nil
+	return caKey, caCert, utils.EncodePrivateKeyPEM(key), utils.EncodeCertPEM(cert), nil
 }
 
 func newSignedCert(key crypto.Signer, caCert *x509.Certificate, caKey crypto.Signer, duration time.Duration) (*x509.Certificate, error) {

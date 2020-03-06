@@ -29,7 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
-	utilflag "k8s.io/apiserver/pkg/util/flag"
+	cliflag "k8s.io/component-base/cli/flag"
 )
 
 // NewStorageFactory builds the DefaultStorageFactory.
@@ -43,9 +43,8 @@ func NewStorageFactory(
 	storageEncodingOverrides map[string]schema.GroupVersion,
 	resourceEncodingOverrides []schema.GroupVersionResource,
 	defaultAPIResourceConfig *serverstorage.ResourceConfig,
-	resourceConfigOverrides utilflag.ConfigurationMap) (*serverstorage.DefaultStorageFactory, error) {
-	resourceEncodingConfig := mergeGroupEncodingConfigs(defaultResourceEncoding, storageEncodingOverrides)
-	resourceEncodingConfig = mergeResourceEncodingConfigs(resourceEncodingConfig, resourceEncodingOverrides)
+	resourceConfigOverrides cliflag.ConfigurationMap) (*serverstorage.DefaultStorageFactory, error) {
+	resourceEncodingConfig := mergeResourceEncodingConfigs(defaultResourceEncoding, resourceEncodingOverrides)
 	apiResourceConfig, err := mergeAPIResourceConfigs(defaultAPIResourceConfig, resourceConfigOverrides)
 	if err != nil {
 		return nil, err
@@ -66,22 +65,10 @@ func mergeResourceEncodingConfigs(
 	return resourceEncodingConfig
 }
 
-// Merges the given defaultResourceConfig with specifc GroupVersion overrides.
-func mergeGroupEncodingConfigs(
-	defaultResourceEncoding *serverstorage.DefaultResourceEncodingConfig,
-	storageEncodingOverrides map[string]schema.GroupVersion) *serverstorage.DefaultResourceEncodingConfig {
-	resourceEncodingConfig := defaultResourceEncoding
-	for group, storageEncodingVersion := range storageEncodingOverrides {
-		resourceEncodingConfig.SetVersionEncoding(
-			group, storageEncodingVersion, schema.GroupVersion{Group: group, Version: runtime.APIVersionInternal})
-	}
-	return resourceEncodingConfig
-}
-
 // Merges the given defaultAPIResourceConfig with the given resourceConfigOverrides.
 func mergeAPIResourceConfigs(
 	defaultAPIResourceConfig *serverstorage.ResourceConfig,
-	resourceConfigOverrides utilflag.ConfigurationMap) (*serverstorage.ResourceConfig, error) {
+	resourceConfigOverrides cliflag.ConfigurationMap) (*serverstorage.ResourceConfig, error) {
 	resourceConfig := defaultAPIResourceConfig
 	overrides := resourceConfigOverrides
 

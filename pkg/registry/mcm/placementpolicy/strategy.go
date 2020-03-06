@@ -35,12 +35,12 @@ func toSelectableFields(placementpolicy *mcm.PlacementPolicy) fields.Set {
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 	placementpolicy, ok := obj.(*mcm.PlacementPolicy)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a placementpolicy")
+		return nil, nil, fmt.Errorf("given object is not a placementpolicy")
 	}
-	return labels.Set(placementpolicy.ObjectMeta.Labels), toSelectableFields(placementpolicy), placementpolicy.Initializers != nil, nil
+	return labels.Set(placementpolicy.ObjectMeta.Labels), toSelectableFields(placementpolicy), nil
 }
 
 func MatchPlacementPolicy(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {
