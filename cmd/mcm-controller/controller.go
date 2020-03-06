@@ -15,8 +15,8 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-controller/app/options"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/signals"
 
-	"k8s.io/apiserver/pkg/util/flag"
-	"k8s.io/apiserver/pkg/util/logs"
+	"k8s.io/component-base/cli/flag"
+	"k8s.io/component-base/logs"
 
 	"github.com/spf13/pflag"
 )

@@ -312,7 +312,12 @@ func (m *store) GuaranteedUpdate(
 
 // Delete removes the specified key and returns the value that existed at that spot.
 // If key didn't exist, it will return NotFound storage error.
-func (m *store) Delete(ctx context.Context, key string, out runtime.Object, preconditions *storage.Preconditions) error {
+func (m *store) Delete(
+	ctx context.Context,
+	key string,
+	out runtime.Object,
+	preconditions *storage.Preconditions,
+	validateObjectFunc storage.ValidateObjectFunc) error {
 	namespace, name, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
 		return err

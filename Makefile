@@ -113,6 +113,7 @@ generate_exes: $(BINDIR)/defaulter-gen \
   $(BINDIR)/client-gen \
   $(BINDIR)/lister-gen \
   $(BINDIR)/informer-gen \
+  $(BINDIR)/openapi-gen \
 
 $(BINDIR)/defaulter-gen:
 	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/defaulter-gen
@@ -131,6 +132,9 @@ $(BINDIR)/lister-gen:
 
 $(BINDIR)/informer-gen:
 	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/informer-gen
+
+$(BINDIR)/openapi-gen:
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/openapi-gen
 
 # Regenerate all files if the gen exes changed or any "types.go" files changed
 generate_files: generate_exes $(TYPES_FILES)
@@ -163,7 +167,6 @@ klusterlet-connectionmanager:
 
 serviceregistry:
 	@common/scripts/gobuild.sh $(BINDIR)/serviceregistry github.com/open-cluster-management/multicloud-operators-foundation/cmd/serviceregistry
-
 
 ############################################################
 # images section

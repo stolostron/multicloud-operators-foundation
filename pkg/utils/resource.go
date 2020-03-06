@@ -59,7 +59,7 @@ func PodRequestsAndLimits(
 	for _, container := range pod.Spec.Containers {
 		for name, quantity := range container.Resources.Requests {
 			if value, ok := reqs[name]; !ok {
-				reqs[name] = *quantity.Copy()
+				reqs[name] = quantity.DeepCopy()
 			} else {
 				value.Add(quantity)
 				reqs[name] = value
@@ -67,7 +67,7 @@ func PodRequestsAndLimits(
 		}
 		for name, quantity := range container.Resources.Limits {
 			if value, ok := limits[name]; !ok {
-				limits[name] = *quantity.Copy()
+				limits[name] = quantity.DeepCopy()
 			} else {
 				value.Add(quantity)
 				limits[name] = value
@@ -79,21 +79,21 @@ func PodRequestsAndLimits(
 		for name, quantity := range container.Resources.Requests {
 			value, ok := reqs[name]
 			if !ok {
-				reqs[name] = *quantity.Copy()
+				reqs[name] = quantity.DeepCopy()
 				continue
 			}
 			if quantity.Cmp(value) > 0 {
-				reqs[name] = *quantity.Copy()
+				reqs[name] = quantity.DeepCopy()
 			}
 		}
 		for name, quantity := range container.Resources.Limits {
 			value, ok := limits[name]
 			if !ok {
-				limits[name] = *quantity.Copy()
+				limits[name] = quantity.DeepCopy()
 				continue
 			}
 			if quantity.Cmp(value) > 0 {
-				limits[name] = *quantity.Copy()
+				limits[name] = quantity.DeepCopy()
 			}
 		}
 	}

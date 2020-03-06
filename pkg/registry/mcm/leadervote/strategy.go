@@ -35,12 +35,12 @@ func ToSelectableFields(leadervote *mcm.LeaderVote) fields.Set {
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 	leadervote, ok := obj.(*mcm.LeaderVote)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a leadervote")
+		return nil, nil, fmt.Errorf("given object is not a leadervote")
 	}
-	return labels.Set(leadervote.ObjectMeta.Labels), ToSelectableFields(leadervote), leadervote.Initializers != nil, nil
+	return labels.Set(leadervote.ObjectMeta.Labels), ToSelectableFields(leadervote), nil
 }
 
 func MatchLeaderVote(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {

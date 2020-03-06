@@ -64,7 +64,7 @@ SC_PKG='github.com/open-cluster-management/multicloud-operators-foundation'
 	 --output-file-base zz_generated.conversion
 
 # generate openapi for servicecatalog and settings group
-"${GOPATH}"/bin/openapi-gen "$@" \
+"${BINDIR}"/openapi-gen "$@" \
 	--v 1 --logtostderr \
 	--go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt \
 	--input-dirs "${SC_PKG}/pkg/apis/mcm/v1alpha1,${SC_PKG}/pkg/apis/mcm/v1beta1,k8s.io/api/core/v1,k8s.io/apimachinery/pkg/api/resource,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/version,k8s.io/apimachinery/pkg/runtime,k8s.io/apimachinery/pkg/util/intstr,k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1,k8s.io/api/certificates/v1beta1" \

@@ -188,18 +188,18 @@ func TestGetDNSPrefix(t *testing.T) {
 
 func TestIsIstioEnabledNamespace(t *testing.T) {
 	client := kubefake.NewSimpleClientset()
-	client.Core().Namespaces().Create(&v1.Namespace{
+	client.CoreV1().Namespaces().Create(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "test0",
 			Labels: map[string]string{"istio-injection": "enabled"},
 		},
 	})
-	client.Core().Namespaces().Create(&v1.Namespace{
+	client.CoreV1().Namespaces().Create(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test1",
 		},
 	})
-	client.Core().Namespaces().Create(&v1.Namespace{
+	client.CoreV1().Namespaces().Create(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "test0",
 			Labels: map[string]string{"istio-injection": "disabled"},

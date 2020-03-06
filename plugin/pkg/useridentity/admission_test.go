@@ -6,6 +6,7 @@
 package useridentity
 
 import (
+	"context"
 	"encoding/base64"
 	"testing"
 	"time"
@@ -72,13 +73,22 @@ func TestUserIdentityAnnotate(t *testing.T) {
 		Groups: []string{"group1", "group2"},
 	}
 	err = handler.(admission.MutationInterface).Admit(
+		context.TODO(),
 		admission.NewAttributesRecord(
 			&work,
 			nil,
 			mcm.Kind("Work").WithVersion("version"),
 			work.Namespace,
 			work.Name,
-			mcm.Resource("works").WithVersion("version"), "", admission.Create, true, userInfo))
+			mcm.Resource("works").WithVersion("version"),
+			"",
+			admission.Create,
+			&metav1.CreateOptions{},
+			true,
+			userInfo,
+		),
+		nil,
+	)
 	if err != nil {
 		t.Errorf("unexpected error %q returned from admission handler.", err.Error())
 	}
@@ -131,13 +141,22 @@ func TestUserIdentityAnnotateWithIAM(t *testing.T) {
 		Groups: []string{"icp:dev:admin", "icp:test:admin", "icp:default:member", "system:authenticated"},
 	}
 	err = handler.(admission.MutationInterface).Admit(
+		context.TODO(),
 		admission.NewAttributesRecord(
 			&work,
 			nil,
 			mcm.Kind("Work").WithVersion("version"),
 			work.Namespace,
 			work.Name,
-			mcm.Resource("works").WithVersion("version"), "", admission.Create, true, userInfo))
+			mcm.Resource("works").WithVersion("version"),
+			"",
+			admission.Create,
+			&metav1.CreateOptions{},
+			true,
+			userInfo,
+		),
+		nil,
+	)
 	if err != nil {
 		t.Errorf("unexpected error %q returned from admission handler.", err.Error())
 	}

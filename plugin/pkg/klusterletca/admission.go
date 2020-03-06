@@ -6,6 +6,7 @@
 package klusterletca
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -44,7 +45,8 @@ type klusterletCAAppend struct {
 	*admission.Handler
 }
 
-func (b *klusterletCAAppend) Admit(a admission.Attributes) error {
+// Admit(ctx context.Context, a Attributes, o ObjectInterfaces) (err error)
+func (b *klusterletCAAppend) Admit(ctx context.Context, a admission.Attributes, o admission.ObjectInterfaces) error {
 	if shouldIgnore(a) {
 		return nil
 	}
