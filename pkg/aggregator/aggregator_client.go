@@ -31,6 +31,7 @@ type ClientOptions struct {
 
 // ConnectionInfoGetter is getter to get connection info
 type ConnectionInfoGetter struct {
+	name            string
 	proxyPath       string
 	scheme          string
 	host            string
@@ -92,6 +93,7 @@ func (a *InfoGetters) Get(subResource string) (*ConnectionInfoGetter, bool) {
 // NewConnectionInfoGetter returns a new info getter
 func NewConnectionInfoGetter(o *ClientOptions, client kubeclientset.Interface) *ConnectionInfoGetter {
 	connInfo := &ConnectionInfoGetter{
+		name:      o.name,
 		proxyPath: "/" + o.path + "/",
 		scheme:    "https",
 		port:      o.port,
@@ -127,11 +129,22 @@ func (k *ConnectionInfoGetter) loadSecret() {
 		klog.Warningf("kube client is nil, skip secret load")
 		return
 	}
+
 	namespace, name, err := cache.SplitMetaNamespaceKey(k.secret)
 	if err != nil {
 		klog.Errorf("Secret %s format is not correct, %v", k.secret, err)
 		return
 	}
+
+	if namespace == "" {
+		defaultNamespace, _, err := cache.SplitMetaNamespaceKey(k.name)
+		if err != nil && defaultNamespace != "" {
+			klog.Errorf("connInfo name %s format is not correct, %v", k.name, err)
+			return
+		}
+		namespace = defaultNamespace
+	}
+
 	secret, err := k.client.CoreV1().Secrets(namespace).Get(name, metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("Failed to get secret %s, %v", k.secret, err)
