@@ -104,6 +104,7 @@ func checkAndRefreshConnection(
 		// Check the connection by trying to count docs
 		_, err := newStore.collection.CountDocuments(context.TODO(), map[string]string{})
 		if err != nil {
+			klog.Warning("Disconnect and re-connect mongo since meet error :", err)
 			discErr := client.Disconnect(context.Background()) // Disconnect old connection
 			if discErr != nil {
 				klog.Error("Error disconnecting old MongoDB connection: ", discErr.Error())
@@ -254,7 +255,9 @@ func (m *store) List(
 	}
 	cursor, err := m.collection.Find(context.Background(), &filterDoc)
 	defer func() {
-		err = cursor.Close(context.Background())
+		if cursor != nil {
+			err = cursor.Close(context.Background())
+		}
 	}()
 	if err != nil {
 		return err
