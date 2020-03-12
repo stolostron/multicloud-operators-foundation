@@ -47,17 +47,36 @@ type WorkList struct {
 // WorkSpec defines the work to be processes on a set of clusters
 type WorkSpec struct {
 	// Cluster is a selector of cluster
-	Cluster v1.LocalObjectReference `json:"cluster,omitempty"`
+	Cluster    v1.LocalObjectReference `json:"cluster,omitempty"`
+	WorkSchema WorkSchema              `json:"WorkSchema,omitempty"`
+}
 
-	// Type defins the type of the woke to be done
-	Type WorkType `json:"type,omitempty"`
+// WorkSchema define the work action
+// +union
+type WorkSchema struct {
+	// Type is the type of work selected in that union.
+	// +unionDiscriminator
+	Type WorkType `json:"type,omitempty" protobuf:"name=type,casttype=WorkType"`
 
+	//Resource work can get resources from managed clusters.
+	// +optional
+	ResourceWork ResourceWork `json:"resourceWork,omitempty"`
+
+	//Action work can apply kube resource in managed clusters
+	// +optional
+	ActionWork ActionWork `json:"actionWork,omitempty"`
+}
+
+//ResourceWork can get resources from managed clusters.
+type ResourceWork struct {
 	// Scope is the scope of the work to be apply to in a cluster
 	Scope ResourceFilter `json:"scope,omitempty"`
+}
 
+//ActionWork can apply kube resource in managed clusters
+type ActionWork struct {
 	// ActionType is the type of the action
 	ActionType ActionType `json:"actionType,omitempty"`
-
 	// KubeWorkSpec is the work to process kubernetes operation
 	KubeWork *KubeWorkSpec `json:"kube,omitempty"`
 }
@@ -82,11 +101,11 @@ type WorkType string
 
 // These are types of the work.
 const (
-	// PolicyWork
-	ResourceWorkType WorkType = "Resource"
+	// Resource work
+	ResourceWorkType WorkType = "ResourceWork"
 
-	// action work
-	ActionWorkType WorkType = "Action"
+	// Action work
+	ActionWorkType WorkType = "ActionWork"
 )
 
 // ActionType defines the type of the action

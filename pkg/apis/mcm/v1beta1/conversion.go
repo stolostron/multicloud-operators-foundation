@@ -9,3 +9,9 @@ import (
 func Convert_mcm_WorkSpec_To_v1beta1_WorkSpec(out *mcm.WorkSpec, in *WorkSpec, s conversion.Scope) error {
 	return autoConvert_mcm_WorkSpec_To_v1beta1_WorkSpec(out, in, s)
 }
+
+// Convert_v1beta1_WorkSpec_To_mcm_WorkSpec convert v1beta1 workspec to internal version
+func Convert_v1beta1_WorkSpec_To_mcm_WorkSpec(in *WorkSpec, out *mcm.WorkSpec, s conversion.Scope) error {
+	return nil
+}
+

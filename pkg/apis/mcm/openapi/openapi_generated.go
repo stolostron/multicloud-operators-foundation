@@ -69,6 +69,7 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec":                schema_pkg_apis_mcm_v1alpha1_WorkSpec(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkStatus":              schema_pkg_apis_mcm_v1alpha1_WorkStatus(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkTemplateSpec":        schema_pkg_apis_mcm_v1alpha1_WorkTemplateSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ActionWork":               schema_pkg_apis_mcm_v1beta1_ActionWork(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequest":       schema_pkg_apis_mcm_v1beta1_ClusterJoinRequest(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequestList":   schema_pkg_apis_mcm_v1beta1_ClusterJoinRequestList(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequestSpec":   schema_pkg_apis_mcm_v1beta1_ClusterJoinRequestSpec(ref),
@@ -85,10 +86,12 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewResultList":   schema_pkg_apis_mcm_v1beta1_ResourceViewResultList(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewSpec":         schema_pkg_apis_mcm_v1beta1_ResourceViewSpec(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewStatus":       schema_pkg_apis_mcm_v1beta1_ResourceViewStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceWork":             schema_pkg_apis_mcm_v1beta1_ResourceWork(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewCondition":            schema_pkg_apis_mcm_v1beta1_ViewCondition(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewFilter":               schema_pkg_apis_mcm_v1beta1_ViewFilter(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.Work":                     schema_pkg_apis_mcm_v1beta1_Work(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkList":                 schema_pkg_apis_mcm_v1beta1_WorkList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSchema":               schema_pkg_apis_mcm_v1beta1_WorkSchema(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSet":                  schema_pkg_apis_mcm_v1beta1_WorkSet(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetList":              schema_pkg_apis_mcm_v1beta1_WorkSetList(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetSpec":              schema_pkg_apis_mcm_v1beta1_WorkSetSpec(ref),
@@ -2546,6 +2549,34 @@ func schema_pkg_apis_mcm_v1alpha1_WorkTemplateSpec(ref common.ReferenceCallback)
 	}
 }
 
+func schema_pkg_apis_mcm_v1beta1_ActionWork(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ActionWork can apply kube resource in managed clusters",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"actionType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ActionType is the type of the action",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"kube": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KubeWorkSpec is the work to process kubernetes operation",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.KubeWorkSpec"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.KubeWorkSpec"},
+	}
+}
+
 func schema_pkg_apis_mcm_v1beta1_ClusterJoinRequest(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3348,6 +3379,27 @@ func schema_pkg_apis_mcm_v1beta1_ResourceViewStatus(ref common.ReferenceCallback
 	}
 }
 
+func schema_pkg_apis_mcm_v1beta1_ResourceWork(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ResourceWork can get resources from managed clusters.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"scope": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Scope is the scope of the work to be apply to in a cluster",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceFilter"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceFilter"},
+	}
+}
+
 func schema_pkg_apis_mcm_v1beta1_ViewCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3542,6 +3594,53 @@ func schema_pkg_apis_mcm_v1beta1_WorkList(ref common.ReferenceCallback) common.O
 	}
 }
 
+func schema_pkg_apis_mcm_v1beta1_WorkSchema(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "WorkSchema define the work action",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Type is the type of work selected in that union.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"resourceWork": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Resource work can get resources from managed clusters.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceWork"),
+						},
+					},
+					"actionWork": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Action work can apply kube resource in managed clusters",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ActionWork"),
+						},
+					},
+				},
+			},
+			VendorExtensible: spec.VendorExtensible{
+				Extensions: spec.Extensions{
+					"x-kubernetes-unions": []interface{}{
+						map[string]interface{}{
+							"discriminator": "type",
+							"fields-to-discriminateBy": map[string]interface{}{
+								"actionWork":   "ActionWork",
+								"resourceWork": "ResourceWork",
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ActionWork", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceWork"},
+	}
+}
+
 func schema_pkg_apis_mcm_v1beta1_WorkSet(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -3711,37 +3810,16 @@ func schema_pkg_apis_mcm_v1beta1_WorkSpec(ref common.ReferenceCallback) common.O
 							Ref:         ref("k8s.io/api/core/v1.LocalObjectReference"),
 						},
 					},
-					"type": {
+					"WorkSchema": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Type defins the type of the woke to be done",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"scope": {
-						SchemaProps: spec.SchemaProps{
-							Description: "Scope is the scope of the work to be apply to in a cluster",
-							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceFilter"),
-						},
-					},
-					"actionType": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ActionType is the type of the action",
-							Type:        []string{"string"},
-							Format:      "",
-						},
-					},
-					"kube": {
-						SchemaProps: spec.SchemaProps{
-							Description: "KubeWorkSpec is the work to process kubernetes operation",
-							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.KubeWorkSpec"),
+							Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSchema"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.KubeWorkSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceFilter", "k8s.io/api/core/v1.LocalObjectReference"},
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSchema", "k8s.io/api/core/v1.LocalObjectReference"},
 	}
 }
 

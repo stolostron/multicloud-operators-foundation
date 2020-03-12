@@ -24,21 +24,6 @@ func EqualWorkSpec(spec1 *v1beta1.WorkSpec, spec2 *v1beta1.WorkSpec) bool {
 		return false
 	}
 
-	if spec1.Type != spec2.Type {
-		return false
-	}
-
-	if spec1.ActionType != spec2.ActionType {
-		return false
-	}
-	if !EqualWorkScope(&spec1.Scope, &spec2.Scope) {
-		return false
-	}
-
-	if !EqualKubeWork(spec1.KubeWork, spec2.KubeWork) {
-		return false
-	}
-
 	return true
 }
 
