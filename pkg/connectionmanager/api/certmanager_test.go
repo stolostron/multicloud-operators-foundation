@@ -26,7 +26,6 @@ import (
 	hcmfake "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/common"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	csrv1beta1 "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -181,7 +180,7 @@ func sign(crDER []byte, caCert *x509.Certificate, caKey crypto.Signer, duration 
 
 func approveCJR(hcmClient hcmclientset.Interface, cjr *hcmv1alpha1.ClusterJoinRequest,
 	caCert *x509.Certificate, caKey crypto.Signer, duration time.Duration) ([]byte, error) {
-	block, _ := pem.Decode(cjr.Spec.CSR.Request)
+	block, _ := pem.Decode(cjr.Spec.Request)
 	if block == nil || block.Type != "CERTIFICATE REQUEST" {
 		return nil, fmt.Errorf("pem block type must be CERTIFICATE REQUEST")
 	}
@@ -195,25 +194,22 @@ func approveCJR(hcmClient hcmclientset.Interface, cjr *hcmv1alpha1.ClusterJoinRe
 		return nil, err
 	}
 
-	cjr.Status.Phase = hcmv1alpha1.JoinApproved
-	cjr.Status.CSRStatus = csrv1beta1.CertificateSigningRequestStatus{
-		Conditions: []csrv1beta1.CertificateSigningRequestCondition{
-			{
-				Type:           csrv1beta1.CertificateApproved,
-				Reason:         "ClusterJoinApprove",
-				Message:        "This CSR was approved by cluster join controller.",
-				LastUpdateTime: metav1.Now(),
-			},
-		},
-		Certificate: pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der}),
-	}
+	cjr.Status.Phase = hcmv1alpha1.JoinPhaseApproved
+	cjr.Status.Conditions = append(cjr.Status.Conditions, hcmv1alpha1.CLusterJoinRequestConditions{
+		Type:           hcmv1alpha1.JoinTypeApproved,
+		Reason:         "ClusterJoinApprove",
+		Message:        "This CSR was approved by cluster join controller.",
+		LastUpdateTime: metav1.Now(),
+	})
+
+	cjr.Status.Certificate = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
 
 	_, err = hcmClient.McmV1alpha1().ClusterJoinRequests().UpdateStatus(cjr)
 	if err != nil {
 		return nil, err
 	}
 
-	return cjr.Status.CSRStatus.Certificate, nil
+	return cjr.Status.Certificate, nil
 }
 
 func TestRotateCert(t *testing.T) {

@@ -129,10 +129,10 @@ func (bt *BootStrapper) requestCertificate(ctx context.Context, client clientset
 		Spec: hcmv1alpha1.ClusterJoinRequestSpec{
 			ClusterName:      bt.clusterName,
 			ClusterNamespace: bt.clusterNamespace,
-			CSR: certificates.CertificateSigningRequestSpec{
-				Request: csrData,
-				Usages:  clientCertUsage,
-			},
+			Request:          csrData,
+		},
+		Status: hcmv1alpha1.ClusterJoinRequestStatus{
+			Phase: hcmv1alpha1.JoinPhasePending,
 		},
 	}
 
@@ -187,10 +187,10 @@ func (bt *BootStrapper) waitForCertificate(ctx context.Context, client clientset
 				return false, nil
 			}
 			hcmjoin := event.Object.(*hcmv1alpha1.ClusterJoinRequest)
-			if hcmjoin.Status.Phase == hcmv1alpha1.JoinDenied {
+			if hcmjoin.Status.Phase == hcmv1alpha1.JoinPhaseDenied {
 				return false, fmt.Errorf("hcm join request is not approved")
 			}
-			if hcmjoin.Status.Phase == hcmv1alpha1.JoinApproved && len(hcmjoin.Status.CSRStatus.Certificate) != 0 {
+			if hcmjoin.Status.Phase == hcmv1alpha1.JoinPhaseApproved && len(hcmjoin.Status.Certificate) != 0 {
 				return true, nil
 			}
 			return false, nil
@@ -205,7 +205,7 @@ func (bt *BootStrapper) waitForCertificate(ctx context.Context, client clientset
 		return nil, err
 	}
 
-	return event.Object.(*hcmv1alpha1.ClusterJoinRequest).Status.CSRStatus.Certificate, nil
+	return event.Object.(*hcmv1alpha1.ClusterJoinRequest).Status.Certificate, nil
 }
 
 // This digest should include all the relevant pieces of the CSR we care about.

@@ -141,7 +141,7 @@ func TestDenyJoinCJRWithDuplicatedNamespace(t *testing.T) {
 		t.Errorf("error to approve cjr: %v", err)
 	}
 
-	if hcmjoin.Status.Phase != hcmv1alpha1.JoinDenied {
+	if hcmjoin.Status.Phase != hcmv1alpha1.JoinPhaseDenied {
 		t.Errorf("CJR should be denied for cluster namespace exists: c1")
 	}
 }
@@ -162,7 +162,7 @@ func TestDenyJoinCJRWithDuplicatedName(t *testing.T) {
 		t.Errorf("error to approve cjr: %v", err)
 	}
 
-	if hcmjoin.Status.Phase != hcmv1alpha1.JoinDenied {
+	if hcmjoin.Status.Phase != hcmv1alpha1.JoinPhaseDenied {
 		t.Errorf("CJR should be denied for cluster name exists: c1")
 	}
 }
@@ -206,7 +206,7 @@ func TestDenyRenewalCJRFromUnknownCluster(t *testing.T) {
 		t.Errorf("error to approve cjr: %v", err)
 	}
 
-	if hcmjoin.Status.Phase != hcmv1alpha1.JoinDenied {
+	if hcmjoin.Status.Phase != hcmv1alpha1.JoinPhaseDenied {
 		t.Errorf("CJR should be denied for cluster does not exists")
 	}
 }

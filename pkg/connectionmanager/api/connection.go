@@ -155,7 +155,7 @@ func generateClient(clientConfig []byte) (hcmclientset.Interface, error) {
 func (conn *ServerConnection) handleRequestUpdate(request *mcmv1alpha1.ClusterJoinRequest, callback func()) {
 	conn.infoLock.Lock()
 	defer conn.infoLock.Unlock()
-	certificate := request.Status.CSRStatus.Certificate
+	certificate := request.Status.Certificate
 	if !reflect.DeepEqual(certificate, conn.clientCert) {
 		klog.V(4).Infof("handle certification rotate request")
 		conn.clientCert = certificate

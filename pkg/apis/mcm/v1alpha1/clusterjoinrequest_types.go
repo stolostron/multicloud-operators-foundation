@@ -6,7 +6,6 @@
 package v1alpha1
 
 import (
-	csrv1beta1 "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -14,57 +13,77 @@ import (
 // +genclient:nonNamespaced
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ClusterJoinRequest is the request from klusterlet to join Manager
+// ClusterJoinRequest is the request from spoke cluster to join Hub
 type ClusterJoinRequest struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	// Spec defines the request to join hcm
+	// Spec defines the request information to join Hub
 	Spec ClusterJoinRequestSpec `json:"spec,omitempty"`
-
-	// Status defins the join status
-	Status ClusterJoinStatus `json:"status,omitempty"`
+	// Derived information about the request.
+	// +optional
+	Status ClusterJoinRequestStatus `json:"status,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// ClusterJoinRequestList is the request list from klusterlet to join manager
+// ClusterJoinRequestList is the request list from spoke cluster to join Hub
 type ClusterJoinRequestList struct {
 	metav1.TypeMeta `json:",inline"`
-	// Standard list metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
-
-	// List of Cluster objects.
-	Items []ClusterJoinRequest `json:"items"`
+	Items           []ClusterJoinRequest `json:"items"`
 }
 
 type ClusterJoinRequestSpec struct {
-	// ClusterName is the name of the cluster
+	// The name of the spoke cluster
 	ClusterName string `json:"clusterName"`
-
-	// ClusterNamespace is the namespace for cluster
+	// The namespace for the spoke cluster
 	ClusterNamespace string `json:"clusterNameSpace"`
-
-	// CSR is the csr request spec
-	CSR csrv1beta1.CertificateSigningRequestSpec `json:"csr"`
+	// Base64-encoded PKCS#10 CSR data for certificate
+	Request []byte `json:"request"`
 }
 
-type JoinRequestPhase string
+type ClusterJoinRequestPhase string
 
-// These are the possible conditions for a certificate request.
+// These are the possible phase for a cluster join request.
 const (
-	JoinApproved JoinRequestPhase = "Approved"
-	JoinDenied   JoinRequestPhase = "Denied"
+	JoinPhaseApproved ClusterJoinRequestPhase = "Succeeded"
+	JoinPhaseDenied   ClusterJoinRequestPhase = "Failed"
+	JoinPhasePending  ClusterJoinRequestPhase = "Pending"
 )
 
-type ClusterJoinStatus struct {
-	// Phase is the pa
-	Phase JoinRequestPhase `json:"phase"`
-	// CSRStatus is the status of CSR
-	CSRStatus csrv1beta1.CertificateSigningRequestStatus `json:"csrStatus"`
+type ClusterJoinRequestType string
+
+// These are the possible conditions for a cluster join request.
+const (
+	JoinTypeApproved ClusterJoinRequestType = "Approved"
+	JoinTypeDenied   ClusterJoinRequestType = "Denied"
+)
+
+type ClusterJoinRequestStatus struct {
+	// Conditions applied to the request, such as approval or denial.
+	// +optional
+	Conditions []CLusterJoinRequestConditions `json:"conditions,omitempty"`
+	// If request was approved, the controller will place the issued certificate here.
+	// +optional
+	Certificate []byte `json:"certificate,omitempty"`
+	// The request phase, currently Approved, Denied or Pending.
+	// +optional
+	Phase ClusterJoinRequestPhase `json:"phase,omitempty"`
+}
+
+type CLusterJoinRequestConditions struct {
+	// request approval state, currently Approved or Denied.
+	// +optional
+	Type ClusterJoinRequestType `json:"type,omitempty"`
+	// brief reason for the request state
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// human readable message with details about the request state
+	// +optional
+	Message string `json:"message,omitempty"`
+	// timestamp for the last update to this condition
+	// +optional
+	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
 }

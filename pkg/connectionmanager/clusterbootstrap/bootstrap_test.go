@@ -16,7 +16,6 @@ import (
 	hcmfake "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/common"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	csrv1beta1 "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/util/keyutil"
@@ -80,11 +79,9 @@ func TestBootStrapWithNoSecret(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: hcmjoinName,
 		},
-		Status: v1alpha1.ClusterJoinStatus{
-			Phase: v1alpha1.JoinApproved,
-			CSRStatus: csrv1beta1.CertificateSigningRequestStatus{
-				Certificate: cert,
-			},
+		Status: v1alpha1.ClusterJoinRequestStatus{
+			Phase:       v1alpha1.JoinPhaseApproved,
+			Certificate: cert,
 		},
 	}
 
@@ -109,11 +106,9 @@ func TestBootStrapWithSecret(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: hcmjoinName,
 		},
-		Status: v1alpha1.ClusterJoinStatus{
-			Phase: v1alpha1.JoinApproved,
-			CSRStatus: csrv1beta1.CertificateSigningRequestStatus{
-				Certificate: cert,
-			},
+		Status: v1alpha1.ClusterJoinRequestStatus{
+			Phase:       v1alpha1.JoinPhaseApproved,
+			Certificate: cert,
 		},
 	}
 
@@ -138,8 +133,8 @@ func TestBootStrapWithDeny(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: hcmjoinName,
 		},
-		Status: v1alpha1.ClusterJoinStatus{
-			Phase: v1alpha1.JoinDenied,
+		Status: v1alpha1.ClusterJoinRequestStatus{
+			Phase: v1alpha1.JoinPhaseDenied,
 		},
 	}
 

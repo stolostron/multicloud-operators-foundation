@@ -55,7 +55,7 @@ func MatchClusterJoinRequest(label labels.Selector, field fields.Selector) apist
 // PrepareForCreate clears fields that are not allowed to be set by end users on creation.
 func (clusterjoinrequestStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object) {
 	clusterjoinrequest := obj.(*mcm.ClusterJoinRequest)
-	clusterjoinrequest.Status = mcm.ClusterJoinStatus{}
+	clusterjoinrequest.Status = mcm.ClusterJoinRequestStatus{}
 }
 
 // Validate validates a new clusterjoinrequest.

@@ -362,7 +362,7 @@ func printHCMJoin(obj *hcm.ClusterJoinRequest, options printers.PrintOptions) ([
 	}
 	joinStatus := string(obj.Status.Phase)
 	if len(joinStatus) == 0 {
-		joinStatus = "Pending"
+		joinStatus = string(hcm.JoinPhasePending)
 	}
 	row.Cells = append(row.Cells, obj.Name, obj.Spec.ClusterName, obj.Spec.ClusterNamespace, joinStatus,
 		translateTimestamp(obj.CreationTimestamp))

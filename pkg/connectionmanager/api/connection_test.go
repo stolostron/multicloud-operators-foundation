@@ -14,7 +14,6 @@ import (
 	hcmfake "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/fake"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/clusterbootstrap"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/common"
-	csrv1beta1 "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
@@ -38,11 +37,9 @@ func newConnection(clientConfig, clientCert, clientKey []byte) *ServerConnection
 		ObjectMeta: metav1.ObjectMeta{
 			Name: newRequestName(clientKey),
 		},
-		Status: v1alpha1.ClusterJoinStatus{
-			Phase: v1alpha1.JoinApproved,
-			CSRStatus: csrv1beta1.CertificateSigningRequestStatus{
-				Certificate: clientCert,
-			},
+		Status: v1alpha1.ClusterJoinRequestStatus{
+			Phase:       v1alpha1.JoinPhaseApproved,
+			Certificate: clientCert,
 		},
 	}
 
@@ -90,11 +87,9 @@ func TestHandleJoinRequest(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test",
 		},
-		Status: v1alpha1.ClusterJoinStatus{
-			Phase: v1alpha1.JoinApproved,
-			CSRStatus: csrv1beta1.CertificateSigningRequestStatus{
-				Certificate: cert2,
-			},
+		Status: v1alpha1.ClusterJoinRequestStatus{
+			Phase:       v1alpha1.JoinPhaseApproved,
+			Certificate: cert2,
 		},
 	}
 

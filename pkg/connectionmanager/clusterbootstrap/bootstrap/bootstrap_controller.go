@@ -63,6 +63,12 @@ var hcmjoinControllerKind = mcm.SchemeGroupVersion.WithKind("ClusterJoinRequest"
 
 type queueHandlerFunc func(key string) error
 
+var clientCertUsage = []csrv1beta1.KeyUsage{
+	csrv1beta1.UsageDigitalSignature,
+	csrv1beta1.UsageKeyEncipherment,
+	csrv1beta1.UsageClientAuth,
+}
+
 // NewController create a bootstrapcontroller object
 func NewController(
 	kubeclientset kubernetes.Interface,
@@ -263,7 +269,10 @@ func (bc *Controller) hcmJoinHandler(key string) error {
 					Labels:          hcmjoin.Labels,
 					OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(hcmjoin, hcmjoinControllerKind)},
 				},
-				Spec: hcmjoin.Spec.CSR,
+				Spec: csrv1beta1.CertificateSigningRequestSpec{
+					Request: hcmjoin.Spec.Request,
+					Usages:  clientCertUsage,
+				},
 			}
 			csr, createErr = bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().Create(csr)
 
@@ -290,12 +299,12 @@ func (bc *Controller) updateHCMJoinStatus(hcmjoin *hcmv1alpha1.ClusterJoinReques
 	}
 
 	// If hcmjoin is denied, deny csr and return
-	if hcmjoin.Status.Phase == hcmv1alpha1.JoinDenied {
+	if hcmjoin.Status.Phase == hcmv1alpha1.JoinPhaseDenied {
 		if !alreadyDenied {
 			csr.Status.Conditions = append(csr.Status.Conditions, csrv1beta1.CertificateSigningRequestCondition{
 				Type:           csrv1beta1.CertificateDenied,
-				Reason:         "HCMClusterJoinDenied",
-				Message:        "This CSR was denied by hcm cluster join controller.",
+				Reason:         "CertificateDenied",
+				Message:        "This csr " + csr.Name + " was denied by Hub.",
 				LastUpdateTime: metav1.Now(),
 			})
 			_, err := bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(csr)
@@ -306,7 +315,7 @@ func (bc *Controller) updateHCMJoinStatus(hcmjoin *hcmv1alpha1.ClusterJoinReques
 		return nil
 	}
 
-	if hcmjoin.Status.Phase != hcmv1alpha1.JoinApproved {
+	if hcmjoin.Status.Phase != hcmv1alpha1.JoinPhaseApproved {
 		// Check if cluster is unique
 		clusters, err := bc.clusterLister.List(labels.Everything())
 		if err != nil {
@@ -365,15 +374,15 @@ func (bc *Controller) approveOrDenyClusterJoinRequest(
 
 	if denied {
 		// update hcmjoinrequest
-		hcmjoin.Status.Phase = hcmv1alpha1.JoinDenied
+		hcmjoin.Status.Phase = hcmv1alpha1.JoinPhaseDenied
 		if _, err := bc.hcmclientset.McmV1alpha1().ClusterJoinRequests().UpdateStatus(hcmjoin); err != nil {
 			return err
 		}
 	} else if bc.autoApproveClusterJoinRequest && !alreadyApproved {
 		csr.Status.Conditions = append(csr.Status.Conditions, csrv1beta1.CertificateSigningRequestCondition{
 			Type:           csrv1beta1.CertificateApproved,
-			Reason:         "ClusterJoinApprove",
-			Message:        "This CSR was approved by cluster join controller.",
+			Reason:         "CertificateApproved",
+			Message:        "This CSR " + csr.Name + " was approved by Hub.",
 			LastUpdateTime: metav1.Now(),
 		})
 		if _, err := bc.kubeclientset.CertificatesV1beta1().CertificateSigningRequests().UpdateApproval(csr); err != nil {
@@ -461,12 +470,26 @@ func (bc *Controller) csrHandler(key string) error {
 		return nil
 	}
 
-	if alreadyDenied && hcmjoin.Status.Phase != hcmv1alpha1.JoinDenied {
-		hcmjoin.Status.Phase = hcmv1alpha1.JoinDenied
-		hcmjoin.Status.CSRStatus = csr.Status
+	if alreadyDenied && hcmjoin.Status.Phase != hcmv1alpha1.JoinPhaseDenied {
+		hcmjoin.Status.Phase = hcmv1alpha1.JoinPhaseDenied
+		condition := hcmv1alpha1.CLusterJoinRequestConditions{
+			Type:           hcmv1alpha1.JoinTypeDenied,
+			Reason:         "ClusterJoinRequestDenied",
+			Message:        "This csr " + csr.Name + " was denied by Hub.",
+			LastUpdateTime: metav1.Now(),
+		}
+		hcmjoin.Status.Conditions = append(hcmjoin.Status.Conditions, condition)
+		hcmjoin.Status.Certificate = []byte{}
 	} else if alreadyApproved && len(csr.Status.Certificate) != 0 {
-		hcmjoin.Status.Phase = hcmv1alpha1.JoinApproved
-		hcmjoin.Status.CSRStatus = csr.Status
+		hcmjoin.Status.Phase = hcmv1alpha1.JoinPhaseApproved
+		condition := hcmv1alpha1.CLusterJoinRequestConditions{
+			Type:           hcmv1alpha1.JoinTypeApproved,
+			Reason:         "ClusterJoinRequestApproved",
+			Message:        "This csr " + csr.Name + " was approved by Hub.",
+			LastUpdateTime: metav1.Now(),
+		}
+		hcmjoin.Status.Conditions = append(hcmjoin.Status.Conditions, condition)
+		hcmjoin.Status.Certificate = csr.Status.Certificate
 
 		err = bc.createRoles(hcmjoin)
 		if err != nil {
