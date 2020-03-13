@@ -1,4 +1,5 @@
 // +build integration
+
 package resourceviews_test
 
 import (

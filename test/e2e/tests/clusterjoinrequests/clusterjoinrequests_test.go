@@ -1,4 +1,5 @@
 // +build integration
+
 package clusterjoinrequests_test
 
 import (
