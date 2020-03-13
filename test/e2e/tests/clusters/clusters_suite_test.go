@@ -1,3 +1,4 @@
+// +build integration
 package clusters_test
 
 import (
