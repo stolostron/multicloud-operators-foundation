@@ -8,3 +8,10 @@ generate_files
 .idea
 .ko.yaml
 .build-harness-bootstrap
+build-harness
+build-harness-extensions
+.build-harness
+# override build harness vendoring
+!vbh/.build-harness-vendorized
+!vbh/build-harness
+!vbh/build-harness-extensions
