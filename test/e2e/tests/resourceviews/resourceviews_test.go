@@ -84,7 +84,7 @@ var _ = Describe("Resourceviews", func() {
 
 	Describe("Creating a resourceview", func() {
 		It("should be created successfully", func() {
-			exists, err := common.HasResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())
+			exists, err := common.HasResource(dynamicClient, gvr, "test-not exist", obj.GetName())
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(exists).Should(BeTrue())
 		})
