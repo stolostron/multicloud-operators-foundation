@@ -77,7 +77,7 @@ jobs:
           echo ">>>> View coverage.out" ; cat coverage.out
           echo ">>>> Run gosec" ; gosec --quiet -fmt sonarqube -out gosec.json -no-fail ./...
           echo ">>>> View gosec.json" ; cat gosec.json
-          unset SONARQUBE_SCANNER_PARAMS
+          # unset SONARQUBE_SCANNER_PARAMS
           echo ">>>> Running sonar" ; sonar-scanner --debug
           # make sonar/go
     - stage: test-e2e
