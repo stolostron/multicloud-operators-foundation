@@ -16,7 +16,7 @@ type SearchOptions struct {
 
 // AddFlags adds flags for ServerRunOptions fields to be specified via FlagSet.
 func (s *SearchOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&s.Connection.Secret, "aggregator-secret", "kube-system/search-search-secrets", ""+
+	fs.StringVar(&s.Connection.Secret, "aggregator-secret", s.Connection.Secret, ""+
 		"Secret file for search aggregator connection")
 	fs.StringVar(&s.Connection.Host, "aggregator-host", s.Connection.Host, ""+
 		"Aggregator host Name")
