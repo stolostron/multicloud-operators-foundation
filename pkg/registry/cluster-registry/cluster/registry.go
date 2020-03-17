@@ -86,6 +86,6 @@ func (s *storage) UpdateCluster(
 }
 
 func (s *storage) DeleteCluster(ctx context.Context, name string) error {
-	_, _, err := s.Delete(ctx, name, nil)
+	_, _, err := s.Delete(ctx, name, rest.ValidateAllObjectFunc, &metav1.DeleteOptions{})
 	return err
 }

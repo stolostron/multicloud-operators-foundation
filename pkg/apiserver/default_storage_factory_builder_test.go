@@ -28,7 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	serverstorage "k8s.io/apiserver/pkg/server/storage"
 	"k8s.io/apiserver/pkg/storage/storagebackend"
-	utilflag "k8s.io/apiserver/pkg/util/flag"
+	cliflag "k8s.io/component-base/cli/flag"
 )
 
 func TestNewStorageFactory(t *testing.T) {
@@ -36,17 +36,13 @@ func TestNewStorageFactory(t *testing.T) {
 	defaultResourceEncoding := &serverstorage.DefaultResourceEncodingConfig{}
 	resourceEncodingOverrides := []schema.GroupVersionResource{}
 	storageEncodingOverrides := map[string]schema.GroupVersion{}
-	resourceEncodingConfig := mergeGroupEncodingConfigs(defaultResourceEncoding, storageEncodingOverrides)
-	if resourceEncodingConfig == nil {
-		t.Errorf("fake test running failed")
-	}
-	resourceEncodingConfig = mergeResourceEncodingConfigs(defaultResourceEncoding, resourceEncodingOverrides)
+	resourceEncodingConfig := mergeResourceEncodingConfigs(defaultResourceEncoding, resourceEncodingOverrides)
 	if resourceEncodingConfig == nil {
 		t.Errorf("fake test running failed")
 	}
 
 	defaultAPIResourceConfig := &serverstorage.ResourceConfig{}
-	resourceConfigOverrides := utilflag.ConfigurationMap{}
+	resourceConfigOverrides := cliflag.ConfigurationMap{}
 	_, err := NewStorageFactory(
 		storageConfig, "", nil, defaultResourceEncoding, storageEncodingOverrides,
 		resourceEncodingOverrides, defaultAPIResourceConfig, resourceConfigOverrides)
@@ -62,7 +58,7 @@ func Test_mergeAPIResourceConfigs(t *testing.T) {
 	groupVersionConfigs := map[schema.GroupVersion]bool{g1v1: true, g1v2: true, g2v1: false}
 	defaultAPIResourceConfig := &serverstorage.ResourceConfig{GroupVersionConfigs: groupVersionConfigs}
 
-	resourceConfigOverrides := utilflag.ConfigurationMap{"conf1": "val1", "api/all": "val2"}
+	resourceConfigOverrides := cliflag.ConfigurationMap{"conf1": "val1", "api/all": "val2"}
 
 	want := &serverstorage.ResourceConfig{GroupVersionConfigs: map[schema.GroupVersion]bool{g1v1: true, g1v2: true, g2v1: false}}
 	wantErr := false
@@ -75,7 +71,7 @@ func Test_mergeAPIResourceConfigs(t *testing.T) {
 		t.Errorf("mergeAPIResourceConfigs() = %v, want %v ", result, want)
 	}
 
-	resourceConfigOverrides1 := utilflag.ConfigurationMap{"api/all/": "val3", "api/v1": "vvv1"}
+	resourceConfigOverrides1 := cliflag.ConfigurationMap{"api/all/": "val3", "api/v1": "vvv1"}
 	_, err1 := mergeAPIResourceConfigs(defaultAPIResourceConfig, resourceConfigOverrides1)
 	if err1 == nil {
 		t.Errorf("Coverred that interface have disabled")

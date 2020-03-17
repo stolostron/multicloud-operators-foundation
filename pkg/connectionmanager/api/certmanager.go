@@ -18,7 +18,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	certutil "k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/keyutil"
 	"k8s.io/klog"
 )
 
@@ -105,7 +105,7 @@ func (m *certManager) Start() {
 
 			// create a new private key
 			if key == nil {
-				key, err = certutil.MakeEllipticPrivateKeyPEM()
+				key, err = keyutil.MakeEllipticPrivateKeyPEM()
 				if err != nil {
 					utilruntime.HandleError(fmt.Errorf("unable to generate a private key: %v", err))
 				}

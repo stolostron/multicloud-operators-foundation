@@ -26,6 +26,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	watchtools "k8s.io/client-go/tools/watch"
 	certutil "k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/keyutil"
 	"k8s.io/klog"
 )
 
@@ -66,7 +67,7 @@ func NewBootStrapper(
 // LoadClientCert load config
 func (bt *BootStrapper) LoadClientCert() ([]byte, []byte, []byte, error) {
 	if bt.clientKey == nil {
-		key, err := certutil.MakeEllipticPrivateKeyPEM()
+		key, err := keyutil.MakeEllipticPrivateKeyPEM()
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -90,7 +91,7 @@ func (bt *BootStrapper) LoadClientCert() ([]byte, []byte, []byte, error) {
 // RenewClientCert renews client certification
 func (bt *BootStrapper) RenewClientCert(ctx context.Context) ([]byte, []byte, []byte, error) {
 	if bt.clientKey == nil {
-		key, err := certutil.MakeEllipticPrivateKeyPEM()
+		key, err := keyutil.MakeEllipticPrivateKeyPEM()
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -111,7 +112,7 @@ func (bt *BootStrapper) RenewClientCert(ctx context.Context) ([]byte, []byte, []
 
 func (bt *BootStrapper) requestCertificate(ctx context.Context, client clientset.Interface, privateKeyData []byte, renewal bool) (certData []byte, err error) {
 	subject := Subject(bt.clusterName, bt.clusterNamespace)
-	privateKey, err := certutil.ParsePrivateKeyPEM(privateKeyData)
+	privateKey, err := keyutil.ParsePrivateKeyPEM(privateKeyData)
 	if err != nil {
 		return nil, fmt.Errorf("invalid private key for certificate request: %v", err)
 	}

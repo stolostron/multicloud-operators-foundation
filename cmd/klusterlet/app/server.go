@@ -41,6 +41,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	certutil "k8s.io/client-go/util/cert"
+	"k8s.io/client-go/util/keyutil"
 
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 )
@@ -100,7 +101,7 @@ func InitializeTLS(s *options.KlusterletRunOptions) (*server.TLSOptions, error) 
 				return nil, err
 			}
 
-			if err := certutil.WriteKey(s.TLSPrivateKeyFile, key); err != nil {
+			if err := keyutil.WriteKey(s.TLSPrivateKeyFile, key); err != nil {
 				return nil, err
 			}
 

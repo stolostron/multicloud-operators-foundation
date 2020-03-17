@@ -36,12 +36,12 @@ func toSelectableFields(workset *mcm.WorkSet) fields.Set {
 }
 
 // GetAttrs returns labels and fields of a given object for filtering purposes.
-func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, bool, error) {
+func GetAttrs(obj runtime.Object) (labels.Set, fields.Set, error) {
 	workset, ok := obj.(*mcm.WorkSet)
 	if !ok {
-		return nil, nil, false, fmt.Errorf("given object is not a workset")
+		return nil, nil, fmt.Errorf("given object is not a workset")
 	}
-	return labels.Set(workset.ObjectMeta.Labels), toSelectableFields(workset), workset.Initializers != nil, nil
+	return labels.Set(workset.ObjectMeta.Labels), toSelectableFields(workset), nil
 }
 
 func MatchWorkSet(label labels.Selector, field fields.Selector) apistorage.SelectionPredicate {

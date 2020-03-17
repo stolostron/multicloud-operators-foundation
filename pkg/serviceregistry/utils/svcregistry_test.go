@@ -14,48 +14,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 )
 
-func TestFindClusterProxyIPFromClusterInfoConfigmap(t *testing.T) {
-	configmap := &v1.ConfigMap{
-		Data: map[string]string{
-			"cluster_address":         "9.46.73.10",
-			"proxy_address":           "9.46.73.106",
-			"proxy_ingress_http_port": "80",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "ibmcloud-cluster-info",
-		},
-	}
-	client := kubefake.NewSimpleClientset()
-	client.Core().ConfigMaps("kube-public").Create(configmap)
-	proxyIP, err := FindClusterProxyIPFromConfigmap(client)
-	if err != nil {
-		t.Fatalf("Failed to find prox-ip from configmap")
-	}
-	if proxyIP != "9.46.73.106" {
-		t.Fatalf("Expected to get 1.2.3.4, but get %s", proxyIP)
-	}
-}
-
-func TestFindClusterProxyIPFromIngressConfigmap(t *testing.T) {
-	configmap := &v1.ConfigMap{
-		Data: map[string]string{
-			"ui-config.json": "{\"uiConfiguration\":{\"proxy_ip\":\"1.2.3.4\"}}",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "icp-management-ingress-config",
-		},
-	}
-	client := kubefake.NewSimpleClientset()
-	client.Core().ConfigMaps("kube-system").Create(configmap)
-	proxyIP, err := FindClusterProxyIPFromConfigmap(client)
-	if err != nil {
-		t.Fatalf("Failed to find prox-ip from configmap")
-	}
-	if proxyIP != "1.2.3.4" {
-		t.Fatalf("Expected to get 1.2.3.4, but get %s", proxyIP)
-	}
-}
-
 func TestSplitRegisteredEndpointsName(t *testing.T) {
 	invalidName := "cluster1.kube-service.default.httpbin"
 	resType, resNamespace, resName, err := SplitRegisteredEndpointsName(invalidName)
@@ -188,18 +146,18 @@ func TestGetDNSPrefix(t *testing.T) {
 
 func TestIsIstioEnabledNamespace(t *testing.T) {
 	client := kubefake.NewSimpleClientset()
-	client.Core().Namespaces().Create(&v1.Namespace{
+	client.CoreV1().Namespaces().Create(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "test0",
 			Labels: map[string]string{"istio-injection": "enabled"},
 		},
 	})
-	client.Core().Namespaces().Create(&v1.Namespace{
+	client.CoreV1().Namespaces().Create(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test1",
 		},
 	})
-	client.Core().Namespaces().Create(&v1.Namespace{
+	client.CoreV1().Namespaces().Create(&v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "test0",
 			Labels: map[string]string{"istio-injection": "disabled"},

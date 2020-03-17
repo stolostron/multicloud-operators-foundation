@@ -3,9 +3,8 @@
 package clusters_test
 
 import (
-	"time"
-
 	"encoding/base64"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -230,6 +229,173 @@ var _ = Describe("Clusters", func() {
 					}
 					return true, nil
 				}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+			})
+		})
+
+		AfterEach(func() {
+			// delete the resource created
+			err = common.DeleteResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())
+			Ω(err).ShouldNot(HaveOccurred())
+
+			// delete clusterjoinrequest created
+			err = common.DeleteClusterResource(dynamicClient, cjrGVR, cjr.GetName())
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+	})
+
+	Describe("Deny cluster join request", func() {
+		var cjr *unstructured.Unstructured
+		var data string
+
+		BeforeEach(func() {
+			// create a CSR with a private key
+			key, err := common.GeneratePrivateKey()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			data, err = common.GenerateCSR(namespace, namespace, key)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			// create clusterjoinrequest for the new cluster
+			cjr, err = common.LoadResourceFromJSON(template.ClusterJoinRequestTemplate)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = unstructured.SetNestedField(cjr.Object, namespace, "spec", "clusterNameSpace")
+			Ω(err).ShouldNot(HaveOccurred())
+			err = unstructured.SetNestedField(cjr.Object, namespace, "spec", "clusterName")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = unstructured.SetNestedField(cjr.Object, data, "spec", "csr", "request")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			cjr, err = common.CreateClusterResource(dynamicClient, cjrGVR, cjr)
+			Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", cjrGVR.Resource)
+
+			// wait until clusterjoinrequest is approved
+			var certificate string
+			Eventually(func() (string, error) {
+				cjr, err = common.GetClusterResource(dynamicClient, cjrGVR, cjr.GetName())
+				if err != nil {
+					return "", err
+				}
+
+				certificate, _, err = unstructured.NestedString(cjr.Object, "status", "csrStatus", "certificate")
+				return certificate, err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(BeZero())
+
+			// create a new client with certificate from clusterjoinrequest status
+			certificateBytes, err := base64.StdEncoding.DecodeString(certificate)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			host, err := common.GetHostFromClientConfig()
+			Ω(err).ShouldNot(HaveOccurred())
+
+			newDynamicClient, err := newDynamicClientWithCertAndKey(host, certificateBytes, key)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			// wait until role and rolebinding are created
+			Eventually(func() (bool, error) {
+				exists, err := common.HasResource(dynamicClient, roleGVR, obj.GetNamespace(), obj.GetName())
+				if err != nil || !exists {
+					return false, err
+				}
+
+				return common.HasResource(dynamicClient, roleBindingGVR, obj.GetNamespace(), obj.GetName())
+			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+
+			// update cluster status with the new client
+			err = setStatusType(obj, "OK")
+			Ω(err).ShouldNot(HaveOccurred())
+
+			obj, err = common.UpdateResourceStatus(newDynamicClient, gvr, obj)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			// marked as Ready by controller successfully
+			Eventually(func() (interface{}, error) {
+				cluster, err := common.GetResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())
+				if err != nil {
+					return "", err
+				}
+
+				condition, err := getConditionFromStatus(cluster)
+				if err != nil {
+					return "", err
+				}
+				if condition == nil {
+					return "", nil
+				}
+
+				return condition["type"], nil
+			}, eventuallyTimeout, eventuallyInterval).Should(Equal("OK"))
+
+		})
+
+		Context("Deny clusterjoinrequest because of cluster name exist", func() {
+			var cjrn *unstructured.Unstructured
+			BeforeEach(func() {
+				// create new clusterjoinrequest for exist cluster namespace
+				cjrn, err = common.LoadResourceFromJSON(template.ClusterJoinRequestTemplate)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = unstructured.SetNestedField(cjrn.Object, namespace, "spec", "clusterNameSpace")
+				Ω(err).ShouldNot(HaveOccurred())
+				err = unstructured.SetNestedField(cjrn.Object, namespace+"-DuplicateNamespace", "spec", "clusterName")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = unstructured.SetNestedField(cjrn.Object, data, "spec", "csr", "request")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				cjrn, err = common.CreateClusterResource(dynamicClient, cjrGVR, cjrn)
+				Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", cjrGVR.Resource)
+			})
+			It("should be denied by controller successfully", func() {
+				Eventually(func() (string, error) {
+					cjrn, err := common.GetClusterResource(dynamicClient, cjrGVR, cjrn.GetName())
+					if err != nil {
+						return "", err
+					}
+
+					phase, _, err := unstructured.NestedString(cjrn.Object, "status", "phase")
+					return phase, err
+				}, eventuallyTimeout, eventuallyInterval).Should(Equal("Denied"))
+			})
+			AfterEach(func() {
+				// delete clusterjoinrequest created
+				err = common.DeleteClusterResource(dynamicClient, cjrGVR, cjrn.GetName())
+				Ω(err).ShouldNot(HaveOccurred())
+			})
+		})
+		Context("Deny clusterjoinrequest because of cluster namespace exist", func() {
+			var cjrns *unstructured.Unstructured
+			BeforeEach(func() {
+				// create new clusterjoinrequest for exist cluster name
+				cjrns, err = common.LoadResourceFromJSON(template.ClusterJoinRequestTemplate)
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = unstructured.SetNestedField(cjrns.Object, namespace+"-DuplicateName", "spec", "clusterNameSpace")
+				Ω(err).ShouldNot(HaveOccurred())
+				err = unstructured.SetNestedField(cjrns.Object, namespace, "spec", "clusterName")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				err = unstructured.SetNestedField(cjrns.Object, data, "spec", "csr", "request")
+				Ω(err).ShouldNot(HaveOccurred())
+
+				cjrns, err = common.CreateClusterResource(dynamicClient, cjrGVR, cjrns)
+				Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", cjrGVR.Resource)
+			})
+			It("should be denied by controller successfully", func() {
+				Eventually(func() (string, error) {
+					cjrns, err := common.GetClusterResource(dynamicClient, cjrGVR, cjrns.GetName())
+					if err != nil {
+						return "", err
+					}
+					phase, _, err := unstructured.NestedString(cjrns.Object, "status", "phase")
+					return phase, err
+				}, eventuallyTimeout, eventuallyInterval).Should(Equal("Denied"))
+			})
+			AfterEach(func() {
+				// delete clusterjoinrequest created
+				err = common.DeleteClusterResource(dynamicClient, cjrGVR, cjrns.GetName())
+				Ω(err).ShouldNot(HaveOccurred())
 			})
 		})
 

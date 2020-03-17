@@ -64,7 +64,7 @@ func (in *ClusterJoinRequest) DeepCopyObject() runtime.Object {
 func (in *ClusterJoinRequestList) DeepCopyInto(out *ClusterJoinRequestList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ClusterJoinRequest, len(*in))
@@ -183,7 +183,7 @@ func (in *ClusterStatus) DeepCopyObject() runtime.Object {
 func (in *ClusterStatusList) DeepCopyInto(out *ClusterStatusList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ClusterStatus, len(*in))
@@ -396,7 +396,7 @@ func (in *LeaderVote) DeepCopyObject() runtime.Object {
 func (in *LeaderVoteList) DeepCopyInto(out *LeaderVoteList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]LeaderVote, len(*in))
@@ -495,7 +495,7 @@ func (in *PlacementBinding) DeepCopyObject() runtime.Object {
 func (in *PlacementBindingList) DeepCopyInto(out *PlacementBindingList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]PlacementBinding, len(*in))
@@ -572,7 +572,7 @@ func (in *PlacementPolicyDecision) DeepCopy() *PlacementPolicyDecision {
 func (in *PlacementPolicyList) DeepCopyInto(out *PlacementPolicyList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]PlacementPolicy, len(*in))
@@ -760,7 +760,7 @@ func (in *ResourceView) DeepCopyObject() runtime.Object {
 func (in *ResourceViewList) DeepCopyInto(out *ResourceViewList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ResourceView, len(*in))
@@ -824,7 +824,7 @@ func (in *ResourceViewResult) DeepCopyObject() runtime.Object {
 func (in *ResourceViewResultList) DeepCopyInto(out *ResourceViewResultList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]ResourceViewResult, len(*in))
@@ -909,7 +909,7 @@ func (in *ResourceViewStatus) DeepCopy() *ResourceViewStatus {
 func (in *ResultHelmList) DeepCopyInto(out *ResultHelmList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]HelmRelease, len(*in))
@@ -1024,7 +1024,7 @@ func (in *Work) DeepCopyObject() runtime.Object {
 func (in *WorkList) DeepCopyInto(out *WorkList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]Work, len(*in))
@@ -1085,7 +1085,7 @@ func (in *WorkSet) DeepCopyObject() runtime.Object {
 func (in *WorkSetList) DeepCopyInto(out *WorkSetList) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
-	out.ListMeta = in.ListMeta
+	in.ListMeta.DeepCopyInto(&out.ListMeta)
 	if in.Items != nil {
 		in, out := &in.Items, &out.Items
 		*out = make([]WorkSet, len(*in))

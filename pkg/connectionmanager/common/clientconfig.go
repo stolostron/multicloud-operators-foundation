@@ -9,6 +9,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	clientcmdlatest "k8s.io/client-go/tools/clientcmd/api/latest"
@@ -68,7 +69,7 @@ func NewClientConfig(host string, cert, key []byte) []byte {
 
 // NewCertKey generate cert and key
 func NewCertKey(caCommonName, certCommonName string) ([]byte, []byte, error) {
-	signingKey, err := certutil.NewPrivateKey()
+	signingKey, err := utils.NewPrivateKey()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -78,12 +79,12 @@ func NewCertKey(caCommonName, certCommonName string) ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 
-	key, err := certutil.NewPrivateKey()
+	key, err := utils.NewPrivateKey()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	cert, err := certutil.NewSignedCert(
+	cert, err := utils.NewSignedCert(
 		certutil.Config{
 			CommonName: certCommonName,
 			Usages:     []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
@@ -94,5 +95,5 @@ func NewCertKey(caCommonName, certCommonName string) ([]byte, []byte, error) {
 		return nil, nil, err
 	}
 
-	return certutil.EncodePrivateKeyPEM(key), certutil.EncodeCertPEM(cert), nil
+	return utils.EncodePrivateKeyPEM(key), utils.EncodeCertPEM(cert), nil
 }
