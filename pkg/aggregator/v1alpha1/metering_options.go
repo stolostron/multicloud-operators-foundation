@@ -16,7 +16,7 @@ type MeteringOptions struct {
 
 // AddFlags adds flags for ServerRunOptions fields to be specified via FlagSet.
 func (s *MeteringOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&s.Connection.Secret, "metering-secret", "kube-system/icp-metering-receiver-proxy-secret", ""+
+	fs.StringVar(&s.Connection.Secret, "metering-secret", s.Connection.Secret, ""+
 		"Secret file for metering connection")
 	fs.StringVar(&s.Connection.Host, "metering-host", s.Connection.Host, ""+
 		"Aggregator host Name")
