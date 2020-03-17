@@ -20,6 +20,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/clusterbootstrap/rbac"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controller/cluster"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controller/gc"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controller/inventory"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controller/resourceview"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controller/serviceregistry"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controller/workset"
@@ -117,6 +118,10 @@ func RunController(s *options.ControllerRunOptions, stopCh <-chan struct{}) erro
 		srController := serviceregistry.NewServiceRegistryController(
 			kubeclientset, kubeInformerFactory, clusterInformerFactory, stopCh)
 		go srController.Run()
+	}
+
+	if s.EnableInventory {
+		go inventory.Run(hcmCfg, stopCh)
 	}
 
 	bootstrapController := bootstrap.NewController(kubeclientset, hcmClient,
