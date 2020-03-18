@@ -63,7 +63,6 @@ jobs:
           make security/scans
     - stage: unit-test
       name: "Run unit test"
-      if: type = pull_request
       script:
         # Set the image tag differently for PRs
         - if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then export COMPONENT_TAG_EXTENSION="-PR${TRAVIS_PULL_REQUEST}-${TRAVIS_COMMIT}"; fi;
