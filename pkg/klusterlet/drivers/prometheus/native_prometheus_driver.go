@@ -26,8 +26,10 @@ type NativePrometheusDriver struct {
 }
 
 const (
-	keyFile          = "tls.key"
-	certFile         = "tls.crt"
+	keyFile  = "tls.key"
+	certFile = "tls.crt"
+	//this is token path, not a hardcode token
+	/* #nosec G101 */
 	bearerTokenPath  = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 	NativeDriverType = "native-prometheus"
 )
