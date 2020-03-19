@@ -114,6 +114,8 @@ generate_exes: $(BINDIR)/defaulter-gen \
   $(BINDIR)/lister-gen \
   $(BINDIR)/informer-gen \
   $(BINDIR)/openapi-gen \
+  $(BINDIR)/go-to-protobuf \
+  $(BINDIR)/protoc-gen-gogo \
 
 $(BINDIR)/defaulter-gen:
 	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/defaulter-gen
@@ -135,6 +137,12 @@ $(BINDIR)/informer-gen:
 
 $(BINDIR)/openapi-gen:
 	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/openapi-gen
+
+$(BINDIR)/go-to-protobuf:
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/go-to-protobuf
+
+$(BINDIR)/protoc-gen-gogo:
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/protoc-gen-gogo
 
 # Regenerate all files if the gen exes changed or any "types.go" files changed
 generate_files: generate_exes $(TYPES_FILES)
