@@ -86,7 +86,7 @@ type WorkType string
 
 // These are types of the work.
 const (
-	// PolicyWork
+	// resource work
 	ResourceWorkType WorkType = "Resource"
 
 	// action work
@@ -152,7 +152,7 @@ type ResourceFilter struct {
 
 	// UpdateIntervalSeconds
 	// +optional
-	UpdateIntervalSeconds int `json:"updateIntervalSeconds,omitempty" protobuf:"varint,10,opt,name=updateIntervalSeconds"`
+	UpdateIntervalSeconds int32 `json:"updateIntervalSeconds,omitempty" protobuf:"varint,10,opt,name=updateIntervalSeconds"`
 }
 
 // HelmWorkSpec is the helm work details

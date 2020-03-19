@@ -19,10 +19,10 @@ type ResourceViewList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty"`
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// List of Cluster objects.
-	Items []ResourceView `json:"items"`
+	Items []ResourceView `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // +genclient
@@ -34,86 +34,86 @@ type ResourceView struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty"`
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec defines the behavior of the work.
 	// +optional
-	Spec ResourceViewSpec `json:"spec,omitempty"`
+	Spec ResourceViewSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
 	// Status describes the result of a work
 	// +optional
-	Status ResourceViewStatus `json:"status,omitempty"`
+	Status ResourceViewStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
 // ResourceViewSpec is the spec for resource view
 type ResourceViewSpec struct {
 	// Selector for clusters.
-	ClusterSelector *metav1.LabelSelector `json:"clusterSelector,omitempty"`
+	ClusterSelector *metav1.LabelSelector `json:"clusterSelector,omitempty" protobuf:"bytes,1,opt,name=clusterSelector"`
 
 	// Scope describes the filter of the view.
-	Scope ViewFilter `json:"scope,omitempty"`
+	Scope ViewFilter `json:"scope,omitempty" protobuf:"bytes,2,opt,name=scope"`
 
-	// ServerPrint is the flag to set print on server side
+	// SummaryOnly is the flag to return only summary
 	// +optional
-	SummaryOnly bool `json:"summaryOnly,omitempty"`
+	SummaryOnly bool `json:"summaryOnly,omitempty" protobuf:"bool,3,opt,name=summaryOnly"`
 
 	// Mode is the mode for resource query
 	// +optional
-	Mode ResourceFilterMode `json:"mode,omitempty"`
+	Mode ResourceFilterMode `json:"mode,omitempty" protobuf:"bytes,4,opt,name=mode"`
 
 	// UpdateIntervalSeconds is the inteval to update view
 	// +optional
-	UpdateIntervalSeconds int `json:"updateIntervalSeconds,omitempty"`
+	UpdateIntervalSeconds int32 `json:"updateIntervalSeconds,omitempty" protobuf:"varint,5,opt,name=updateIntervalSeconds"`
 }
 
 // ViewFilter is the filter of resources
 type ViewFilter struct {
 	// LabelSelect is a selector that selects a set of resources
 	// +optional
-	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
+	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty" protobuf:"bytes,1,opt,name=labelSelector"`
 
 	// FieldSelector is a selector that select a set of resources
 	// +optional
-	FieldSelector string `json:"fieldSelector,omitempty"`
+	FieldSelector string `json:"fieldSelector,omitempty" protobuf:"bytes,2,opt,name=fieldSelector"`
 
 	// APIGroup is the group of resources
 	// +optional
-	APIGroup string `json:"apiGroup,omitempty"`
+	APIGroup string `json:"apiGroup,omitempty" protobuf:"bytes,3,opt,name=apiGroup"`
 
 	// ResouceType is the resource type of the subject
 	// +optional
-	Resource string `json:"resource,omitempty"`
+	Resource string `json:"resource,omitempty" protobuf:"bytes,4,opt,name=resource"`
 
 	// Name is the name of the subject
 	// +optional
-	ResourceName string `json:"resourceName,omitempty"`
+	ResourceName string `json:"resourceName,omitempty" protobuf:"bytes,5,opt,name=resourceName"`
 
 	// Name is the name of the subject
 	// +optional
-	NameSpace string `json:"namespace,omitempty"`
+	NameSpace string `json:"namespace,omitempty" protobuf:"bytes,6,opt,name=namespace"`
 }
 
 // ResourceViewStatus describes the status of view
 type ResourceViewStatus struct {
-	Conditions []ViewCondition `json:"conditions,omitempty"`
+	Conditions []ViewCondition `json:"conditions,omitempty" protobuf:"bytes,1,rep,name=conditions"`
 
 	// Works point to the related work result on each cluster
-	Results map[string]runtime.RawExtension `json:"results,omitempty"`
+	Results map[string]runtime.RawExtension `json:"results,omitempty" protobuf:"bytes,2,rep,name=results"`
 }
 
 // ViewCondition contains condition information for a view.
 type ViewCondition struct {
 	// Type is the type of the cluster condition.
-	Type WorkStatusType `json:"type,omitempty"`
+	Type WorkStatusType `json:"type,omitempty" protobuf:"bytes,1,opt,name=results"`
 
 	// Status is the status of the condition. One of True, False, Unknown.
-	Status v1.ConditionStatus `json:"status,omitempty"`
+	Status v1.ConditionStatus `json:"status,omitempty" protobuf:"bytes,2,opt,name=status"`
 
 	// LastUpdateTime is the last time this condition was updated.
 	// +optional
-	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty"`
+	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty" protobuf:"bytes,3,opt,name=lastUpdateTime"`
 
 	// Reason is a (brief) reason for the condition's last status change.
 	// +optional
-	Reason string `json:"reason,omitempty"`
+	Reason string `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason"`
 }
