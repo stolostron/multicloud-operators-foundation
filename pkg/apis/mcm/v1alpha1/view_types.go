@@ -53,13 +53,13 @@ type ResourceViewSpec struct {
 	// Scope describes the filter of the view.
 	Scope ViewFilter `json:"scope,omitempty" protobuf:"bytes,2,opt,name=scope"`
 
-	// SummaryOnly is the flag to return only summary
-	// +optional
-	SummaryOnly bool `json:"summaryOnly,omitempty" protobuf:"bool,3,opt,name=summaryOnly"`
-
 	// Mode is the mode for resource query
 	// +optional
 	Mode ResourceFilterMode `json:"mode,omitempty" protobuf:"bytes,4,opt,name=mode"`
+
+	// SummaryOnly is the flag to return only summary
+	// +optional
+	SummaryOnly bool `json:"summaryOnly,omitempty" protobuf:"bool,3,opt,name=summaryOnly"`
 
 	// UpdateIntervalSeconds is the inteval to update view
 	// +optional

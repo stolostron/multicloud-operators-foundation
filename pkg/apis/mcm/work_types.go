@@ -150,13 +150,13 @@ type ResourceFilter struct {
 	// +optional
 	Version string `json:"version,omitempty" protobuf:"bytes,7,opt,name=version"`
 
-	// ServerPrint is the flag to set print on server side
-	// +optional
-	ServerPrint bool `json:"serverPrint,omitempty" protobuf:"bytes,8,opt,name=serverPrint"`
-
 	// Mode is the mode for resource query
 	// +optional
 	Mode ResourceFilterMode `json:"mode,omitempty" protobuf:"bytes,9,opt,name=mode"`
+
+	// ServerPrint is the flag to set print on server side
+	// +optional
+	ServerPrint bool `json:"serverPrint,omitempty" protobuf:"bytes,8,opt,name=serverPrint"`
 
 	// UpdateIntervalSeconds
 	// +optional

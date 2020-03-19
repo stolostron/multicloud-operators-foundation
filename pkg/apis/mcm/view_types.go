@@ -50,14 +50,6 @@ type ResourceView struct {
 
 // ResourceViewSpec is the spec for resource view
 type ResourceViewSpec struct {
-	// SummaryOnly is the flag to return only summary
-	// +optional
-	SummaryOnly bool `json:"summaryOnly,omitempty" protobuf:"bool,3,opt,name=summaryOnly"`
-
-	// UpdateIntervalSeconds is the inteval to update view
-	// +optional
-	UpdateIntervalSeconds int32 `json:"updateIntervalSeconds,omitempty" protobuf:"varint,5,opt,name=updateIntervalSeconds"`
-
 	// Selector for clusters.
 	ClusterSelector *metav1.LabelSelector `json:"clusterSelector,omitempty" protobuf:"bytes,1,opt,name=clusterSelector"`
 
@@ -67,6 +59,14 @@ type ResourceViewSpec struct {
 	// Mode is the mode for resource query
 	// +optional
 	Mode ResourceFilterMode `json:"mode,omitempty" protobuf:"bytes,4,opt,name=mode"`
+
+	// SummaryOnly is the flag to return only summary
+	// +optional
+	SummaryOnly bool `json:"summaryOnly,omitempty" protobuf:"bool,3,opt,name=summaryOnly"`
+
+	// UpdateIntervalSeconds is the inteval to update view
+	// +optional
+	UpdateIntervalSeconds int32 `json:"updateIntervalSeconds,omitempty" protobuf:"varint,5,opt,name=updateIntervalSeconds"`
 }
 
 // ViewFilter is the filter of resources
