@@ -115,7 +115,7 @@ generate_exes: $(BINDIR)/defaulter-gen \
   $(BINDIR)/informer-gen \
   $(BINDIR)/openapi-gen \
   $(BINDIR)/go-to-protobuf \
-#  $(BINDIR)/protoc-gen-gogo \
+  $(BINDIR)/protoc-gen-gogo \
 
 $(BINDIR)/defaulter-gen:
 	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/defaulter-gen
@@ -141,15 +141,15 @@ $(BINDIR)/openapi-gen:
 $(BINDIR)/go-to-protobuf:
 	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/go-to-protobuf
 
-#$(BINDIR)/protoc-gen-gogo:
-#	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/protoc-gen-gogo
+$(BINDIR)/protoc-gen-gogo:
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/protoc-gen-gogo
 
 # Regenerate all files if the gen exes changed or any "types.go" files changed
 generate_files: generate_exes $(TYPES_FILES)
   # generate apiserver deps
 	hack/update-apiserver-gen.sh
-  # generate prototype
-#	hack/update-protobuf.sh
+  # generate protobuf
+	hack/update-protobuf.sh
   # generate all pkg/client contents
 	hack/update-client-gen.sh
 
