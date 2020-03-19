@@ -19,6 +19,7 @@ import (
 	"math"
 	"math/big"
 	"os"
+	pathfilepath "path/filepath"
 	"time"
 
 	"k8s.io/client-go/util/cert"
@@ -36,7 +37,7 @@ const (
 // WriteKeyCertToFile write key/cert to a certain cert path
 func WriteKeyCertToFile(certDir string, key, cert []byte) (string, error) {
 	if _, err := os.Stat(certDir); os.IsNotExist(err) {
-		direrr := os.MkdirAll(certDir, 0755)
+		direrr := os.MkdirAll(certDir, 0750)
 		if direrr != nil {
 			return "", direrr
 		}
@@ -129,8 +130,8 @@ func EncodePrivateKeyPEM(key *rsa.PrivateKey) []byte {
 	return pem.EncodeToMemory(&block)
 }
 
-func readAll(filePth string) ([]byte, error) {
-	f, err := os.Open(filePth)
+func readAll(filePath string) ([]byte, error) {
+	f, err := os.Open(pathfilepath.Clean(filePath))
 	if err != nil {
 		return nil, err
 	}
