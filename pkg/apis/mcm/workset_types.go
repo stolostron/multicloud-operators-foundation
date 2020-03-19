@@ -14,16 +14,16 @@ const WorkSetLabel = "mcm.ibm.com/workset"
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// WorkSetList is a list of all the works
+// WorkSetList is a list of all the work set
 type WorkSetList struct {
-	metav1.TypeMeta
+	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// List of Cluster objects.
-	Items []WorkSet
+	Items []WorkSet `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // +genclient
@@ -31,30 +31,31 @@ type WorkSetList struct {
 
 // WorkSet is the work set that will be done on a set of cluster
 type WorkSet struct {
-	metav1.TypeMeta
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec defines the behavior of the work.
 	// +optional
-	Spec WorkSetSpec
+	Spec WorkSetSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+
 	// Status describes the result of a work
 	// +optional
-	Status WorkSetStatus
+	Status WorkSetStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
 // WorkSetSpec is the spec for workset
 type WorkSetSpec struct {
-	// Selector for works.
-	ClusterSelector *metav1.LabelSelector
+	// Selector for clusters.
+	ClusterSelector *metav1.LabelSelector `json:"clusterSelector,omitempty" protobuf:"bytes,1,opt,name=clusterSelector"`
 
 	// Selector for works.
-	Selector *metav1.LabelSelector
+	Selector *metav1.LabelSelector `json:"selector,omitempty" protobuf:"bytes,2,opt,name=selector"`
 
 	// Template describes the works that will be created.
-	Template WorkTemplateSpec
+	Template WorkTemplateSpec `json:"template,omitempty" protobuf:"bytes,3,opt,name=template"`
 }
 
 // WorkTemplateSpec describes work created from a template
@@ -62,19 +63,19 @@ type WorkTemplateSpec struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// Specification of the desired behavior of the pod.
+	// Specification of the desired behavior of the work.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#spec-and-status
 	// +optional
-	Spec WorkSpec
+	Spec WorkSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 }
 
 // WorkSetStatus describes the work set status
 type WorkSetStatus struct {
 	// Status of the work set
-	Status WorkStatusType
+	Status WorkStatusType `json:"status,omitempty" protobuf:"bytes,1,opt,name=status"`
 
 	// Reason is the reason of the status
-	Reason string
+	Reason string `json:"reason,omitempty" protobuf:"bytes,2,opt,name=reason"`
 }
