@@ -16,17 +16,17 @@ import (
 
 // ClusterJoinRequest is the request from klusterlet to join manager
 type ClusterJoinRequest struct {
-	metav1.TypeMeta
+	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta
+	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// Spec defines the request to join hcm
-	Spec ClusterJoinRequestSpec
+	Spec ClusterJoinRequestSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 
 	// Status defins the join status
-	Status ClusterJoinStatus
+	Status ClusterJoinStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -37,21 +37,21 @@ type ClusterJoinRequestList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta
+	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
 	// List of Cluster objects.
-	Items []ClusterJoinRequest
+	Items []ClusterJoinRequest `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 type ClusterJoinRequestSpec struct {
 	// ClusterName is the name of the cluster
-	ClusterName string
+	ClusterName string `json:"clusterName" protobuf:"bytes,1,opt,name=clusterName"`
 
 	// ClusterNamespace is the namespace for cluster
-	ClusterNamespace string
+	ClusterNamespace string `json:"clusterNameSpace" protobuf:"bytes,2,opt,name=clusterNamespace"`
 
 	// CSR is the csr request spec
-	CSR csrv1beta1.CertificateSigningRequestSpec
+	CSR csrv1beta1.CertificateSigningRequestSpec `json:"csr" protobuf:"bytes,3,opt,name=csr"`
 }
 
 type JoinRequestPhase string
@@ -64,7 +64,7 @@ const (
 
 type ClusterJoinStatus struct {
 	// Phase is the pa
-	Phase JoinRequestPhase
+	Phase JoinRequestPhase `json:"phase" protobuf:"bytes,1,opt,name=phase"`
 	// CSRStatus is the status of CSR
-	CSRStatus csrv1beta1.CertificateSigningRequestStatus
+	CSRStatus csrv1beta1.CertificateSigningRequestStatus `json:"csrStatus" protobuf:"bytes,2,opt,name=csrStatus"`
 }
