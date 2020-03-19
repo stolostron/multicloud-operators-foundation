@@ -42,11 +42,10 @@ To skip protobuf generation, set \$PROTO_OPTIONAL."
   exit 1
 fi
 
-#PATH="$PATH:/Users/weiliu/Workspace/code-generator/output" go-to-protobuf \
 PATH="$PATH:$BINDIR" go-to-protobuf \
   --output-base="${GOPATH}/src" \
   --apimachinery-packages='-k8s.io/apimachinery/pkg/util/intstr,-k8s.io/apimachinery/pkg/api/resource,-k8s.io/apimachinery/pkg/runtime/schema,-k8s.io/apimachinery/pkg/runtime,-k8s.io/apimachinery/pkg/apis/meta/v1,-k8s.io/apimachinery/pkg/apis/meta/v1beta1,-k8s.io/api/core/v1,-k8s.io/api/rbac/v1' \
   --go-header-file=${REPO_ROOT}/hack/custom-boilerplate.go.txt \
   --proto-import=${REPO_ROOT}/third_party/protobuf \
   --proto-import=${REPO_ROOT}/vendor \
-  --packages="${SC_PKG}/pkg/apis/mcm/v1beta2"
+  --packages="${SC_PKG}/pkg/apis/mcm/v1alpha1"

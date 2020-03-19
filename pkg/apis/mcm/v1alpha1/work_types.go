@@ -152,11 +152,7 @@ type ResourceFilter struct {
 
 	// UpdateIntervalSeconds
 	// +optional
-<<<<<<< HEAD
-	UpdateIntervalSeconds int `json:"updateIntervalSeconds,omitempty" protobuf:"varint,10,opt,name=mode"`
-=======
 	UpdateIntervalSeconds int `json:"updateIntervalSeconds,omitempty" protobuf:"varint,10,opt,name=updateIntervalSeconds"`
->>>>>>> e568cb45587c0829e36ecf15d6252bc5d92932c7
 }
 
 // HelmWorkSpec is the helm work details
