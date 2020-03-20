@@ -26,7 +26,7 @@ func newClientset() *fake.Clientset {
 				Name:      fmt.Sprintf("pod%d", i+1),
 				Namespace: namespace,
 				Labels: map[string]string{
-					"component": "mcm-apiserver",
+					"app": "mcm-apiserver",
 				},
 			},
 		}
@@ -56,7 +56,7 @@ func TestReloadAPIServer(t *testing.T) {
 	clientset := newClientset()
 
 	pods, _ := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("component=%s", componentName),
+		LabelSelector: fmt.Sprintf("app=%s", appName),
 	})
 
 	if len(pods.Items) != 2 {
@@ -87,7 +87,7 @@ func TestReloadAPIServer(t *testing.T) {
 	// wait for reloader deleting pods
 	time.Sleep(10 * time.Second)
 	pods, _ = clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("component=%s", componentName),
+		LabelSelector: fmt.Sprintf("app=%s", appName),
 	})
 
 	if len(pods.Items) != 0 {
@@ -102,7 +102,7 @@ func TestReloaderWithoutCAUpdate(t *testing.T) {
 	clientset := newClientset()
 
 	pods, _ := clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("component=%s", componentName),
+		LabelSelector: fmt.Sprintf("app=%s", appName),
 	})
 
 	if len(pods.Items) != 2 {
@@ -135,7 +135,7 @@ func TestReloaderWithoutCAUpdate(t *testing.T) {
 	// wait for reloader to handle change
 	time.Sleep(5 * time.Second)
 	pods, _ = clientset.CoreV1().Pods(namespace).List(metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("component=%s", componentName),
+		LabelSelector: fmt.Sprintf("app=%s", appName),
 	})
 
 	if len(pods.Items) != 2 {
