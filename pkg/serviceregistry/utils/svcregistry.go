@@ -24,7 +24,7 @@ const (
 	ServiceDiscoveryAnnotation = "mcm.ibm.com/service-discovery"
 	LoadBalancerAnnotation     = "mcm.ibm.com/load-balancer"
 	ClusterIPAnnotation        = "mcm.ibm.com/cluster-ip"
-	DeployablePrefix           = "app.ibm.com"
+	DeployablePrefix           = "apps.open-cluster-management.io"
 	ServiceDiscoveryPrefix     = "service-discovery"
 )
 
