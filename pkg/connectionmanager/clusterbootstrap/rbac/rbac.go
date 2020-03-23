@@ -38,8 +38,8 @@ func buildRoleRules() []rbacv1.PolicyRule {
 		rbacv1helpers.NewRule("create", "update", "patch").Groups("").Resources("events").RuleOrDie(),
 		rbacv1helpers.NewRule("create", "update", "delete").Groups("").Resources("secrets").RuleOrDie(),
 		// for deployables
-		rbacv1helpers.NewRule("get", "list", "watch").Groups("app.ibm.com").Resources("deployables").RuleOrDie(),
-		rbacv1helpers.NewRule("patch", "update").Groups("app.ibm.com").Resources("deployables/status").RuleOrDie(),
+		rbacv1helpers.NewRule("get", "list", "watch").Groups("apps.open-cluster-management.io").Resources("deployables").RuleOrDie(),
+		rbacv1helpers.NewRule("patch", "update").Groups("apps.open-cluster-management.io").Resources("deployables/status").RuleOrDie(),
 	}
 }
 
