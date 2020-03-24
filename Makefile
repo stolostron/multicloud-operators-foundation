@@ -156,22 +156,22 @@ generate_files: generate_exes $(TYPES_FILES)
 build: mcm-apiserver mcm-webhook mcm-controller klusterlet klusterlet-connectionmanager serviceregistry
 
 mcm-apiserver:
-	@common/scripts/gobuild.sh $(BINDIR)/mcm-apiserver -ldflags '-s -w -X $(SC_PKG)/pkg.VERSION=$(VERSION) $(BUILD_LDFLAGS)' github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-apiserver
+	@common/scripts/gobuild.sh $(BINDIR)/mcm-apiserver -ldflags '-s -w -X $(SC_PKG)/pkg.VERSION=$(VERSION) $(BUILD_LDFLAGS)' ./cmd/mcm-apiserver
 
 mcm-webhook:
-	@common/scripts/gobuild.sh $(BINDIR)/mcm-webhook github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-webhook/
+	@common/scripts/gobuild.sh $(BINDIR)/mcm-webhook ./cmd/mcm-webhook/
 
 mcm-controller:
-	@common/scripts/gobuild.sh $(BINDIR)/mcm-controller github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-controller
+	@common/scripts/gobuild.sh $(BINDIR)/mcm-controller ./cmd/mcm-controller
 
 klusterlet:
-	@common/scripts/gobuild.sh $(BINDIR)/klusterlet -ldflags '-s -w  $(BUILD_LDFLAGS)' github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet
+	@common/scripts/gobuild.sh $(BINDIR)/klusterlet -ldflags '-s -w  $(BUILD_LDFLAGS)' ./cmd/klusterlet
 
 klusterlet-connectionmanager:
-	@common/scripts/gobuild.sh $(BINDIR)/klusterlet-connectionmanager github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet-connectionmanager
+	@common/scripts/gobuild.sh $(BINDIR)/klusterlet-connectionmanager ./cmd/klusterlet-connectionmanager
 
 serviceregistry:
-	@common/scripts/gobuild.sh $(BINDIR)/serviceregistry github.com/open-cluster-management/multicloud-operators-foundation/cmd/serviceregistry
+	@common/scripts/gobuild.sh $(BINDIR)/serviceregistry ./cmd/serviceregistry
 
 ############################################################
 # images section
