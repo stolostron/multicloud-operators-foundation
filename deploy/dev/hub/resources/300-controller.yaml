@@ -29,4 +29,5 @@ spec:
           - "/mcm-controller"
           - "--enable-rbac"
           - "--enable-service-registry"
+          - "--enable-inventory"
           - "--leader-elect=true"
