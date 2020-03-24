@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	eventuallyTimeout  = 30
+	eventuallyTimeout  = 60
 	eventuallyInterval = 1
 )
 
@@ -40,12 +40,6 @@ var podGVR = schema.GroupVersionResource{
 	Group:    "",
 	Version:  "v1",
 	Resource: "pods",
-}
-
-var deployGVR = schema.GroupVersionResource{
-	Group:    "apps",
-	Version:  "v1",
-	Resource: "deployments",
 }
 
 var (
@@ -77,7 +71,7 @@ var _ = Describe("ConnectionManager", func() {
 			Eventually(func() bool {
 				pods, err := common.ListResource(dynamicClient, podGVR, apiserverNS, apiserverLabel)
 				if err != nil {
-					fmt.Fprintf(GinkgoWriter, "failed list the apiserver pods: %v\n", err)
+					fmt.Fprintf(GinkgoWriter, "failed to list the apiserver pods: %v\n", err)
 					return false
 				}
 				if pods[0].GetName() != apiserverName {
@@ -92,25 +86,12 @@ var _ = Describe("ConnectionManager", func() {
 			err := dynamicClient.Resource(configMapGVR).Namespace(configMapNS).Delete(configMapName, &metav1.DeleteOptions{})
 			Ω(err).ShouldNot(HaveOccurred())
 			Eventually(func() bool {
-				deploy, err := common.GetResource(dynamicClient, deployGVR, apiserverNS, apiserverDeployName)
+				_, err := common.GetReadyManagedClusters(dynamicClient)
 				if err != nil {
-					fmt.Fprintf(GinkgoWriter, "failed get the apiserver deployment: %v\n", err)
+					fmt.Fprintf(GinkgoWriter, "failed to get clusters: %v, retry again\n", err)
 					return false
 				}
-				readyReplicas, _, err := unstructured.NestedInt64(deploy.Object, "status", "readyReplicas")
-				if err != nil {
-					fmt.Fprintf(GinkgoWriter, "failed get the apiserver ready replicas: %v\n", err)
-					return false
-				}
-				replicas, _, err := unstructured.NestedInt64(deploy.Object, "status", "replicas")
-				if err != nil {
-					fmt.Fprintf(GinkgoWriter, "failed get the apiserver replicas: %v\n", err)
-					return false
-				}
-				if readyReplicas == replicas {
-					return true
-				}
-				return false
+				return true
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
 	})
