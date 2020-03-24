@@ -25,8 +25,8 @@ PWD := $(shell pwd)
 BASE_DIR := $(shell basename $(PWD))
 
 # Keep an existing GOPATH, make a private one if it is undefined
-GOPATH_DEFAULT := $(PWD)/.go
-export GOPATH ?= $(GOPATH_DEFAULT)
+# GOPATH_DEFAULT := $(PWD)/.go
+# export GOPATH ?= $(GOPATH_DEFAULT)
 TESTARGS_DEFAULT := "-v"
 export TESTARGS ?= $(TESTARGS_DEFAULT)
 DEST ?= $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
