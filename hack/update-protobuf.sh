@@ -47,4 +47,4 @@ PATH="$PATH:$BINDIR" go-to-protobuf \
   --go-header-file="${REPO_ROOT}"/hack/custom-boilerplate.go.txt \
   --proto-import="${REPO_ROOT}"/third_party/protobuf \
   --proto-import="${REPO_ROOT}"/vendor \
-  --packages="${SC_PKG}/pkg/apis/mcm/v1alpha1,${SC_PKG}/pkg/apis/mcm/v1beta1,${SC_PKG}/pkg/apis/mcm"
+  --packages="${SC_PKG}/pkg/apis/clusterregistry/v1alpha1,${SC_PKG}/pkg/apis/mcm/v1alpha1,${SC_PKG}/pkg/apis/mcm/v1beta1,${SC_PKG}/pkg/apis/mcm"
