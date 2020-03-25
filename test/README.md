@@ -34,6 +34,7 @@ Below is the list of all available test suites:
 * resourceviews
 * works
 * worksets
+* connectionmanager
 
 ### Results
 
