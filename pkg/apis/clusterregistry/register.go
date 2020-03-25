@@ -8,7 +8,6 @@ package clusterregistry
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
 
 // GroupName is the group name use in this package
@@ -34,8 +33,8 @@ var (
 
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(SchemeGroupVersion,
-		&v1alpha1.Cluster{},
-		&v1alpha1.ClusterList{},
+		&Cluster{},
+		&ClusterList{},
 	)
 
 	return nil

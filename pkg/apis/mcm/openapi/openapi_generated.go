@@ -22,88 +22,97 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterConditionFilter":    schema_pkg_apis_mcm_v1alpha1_ClusterConditionFilter(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequest":        schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequest(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestList":    schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestSpec":    schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinStatus":         schema_pkg_apis_mcm_v1alpha1_ClusterJoinStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterRestOptions":        schema_pkg_apis_mcm_v1alpha1_ClusterRestOptions(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatus":             schema_pkg_apis_mcm_v1alpha1_ClusterStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusList":         schema_pkg_apis_mcm_v1alpha1_ClusterStatusList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusSpec":         schema_pkg_apis_mcm_v1alpha1_ClusterStatusSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusTopology":     schema_pkg_apis_mcm_v1alpha1_ClusterStatusTopology(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmRelease":               schema_pkg_apis_mcm_v1alpha1_HelmRelease(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmReleaseSpec":           schema_pkg_apis_mcm_v1alpha1_HelmReleaseSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmWorkSpec":              schema_pkg_apis_mcm_v1alpha1_HelmWorkSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.KubeWorkSpec":              schema_pkg_apis_mcm_v1alpha1_KubeWorkSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.KubernetesAPIEndpoints":    schema_pkg_apis_mcm_v1alpha1_KubernetesAPIEndpoints(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVote":                schema_pkg_apis_mcm_v1alpha1_LeaderVote(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVoteList":            schema_pkg_apis_mcm_v1alpha1_LeaderVoteList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVoteSpec":            schema_pkg_apis_mcm_v1alpha1_LeaderVoteSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVoteStatus":          schema_pkg_apis_mcm_v1alpha1_LeaderVoteStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBinding":          schema_pkg_apis_mcm_v1alpha1_PlacementBinding(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBindingList":      schema_pkg_apis_mcm_v1alpha1_PlacementBindingList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicy":           schema_pkg_apis_mcm_v1alpha1_PlacementPolicy(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyDecision":   schema_pkg_apis_mcm_v1alpha1_PlacementPolicyDecision(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyList":       schema_pkg_apis_mcm_v1alpha1_PlacementPolicyList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyRef":        schema_pkg_apis_mcm_v1alpha1_PlacementPolicyRef(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicySpec":       schema_pkg_apis_mcm_v1alpha1_PlacementPolicySpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyStatus":     schema_pkg_apis_mcm_v1alpha1_PlacementPolicyStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceFilter":            schema_pkg_apis_mcm_v1alpha1_ResourceFilter(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint":              schema_pkg_apis_mcm_v1alpha1_ResourceHint(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceView":              schema_pkg_apis_mcm_v1alpha1_ResourceView(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewList":          schema_pkg_apis_mcm_v1alpha1_ResourceViewList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResult":        schema_pkg_apis_mcm_v1alpha1_ResourceViewResult(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResultList":    schema_pkg_apis_mcm_v1alpha1_ResourceViewResultList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewSpec":          schema_pkg_apis_mcm_v1alpha1_ResourceViewSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewStatus":        schema_pkg_apis_mcm_v1alpha1_ResourceViewStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResultHelmList":            schema_pkg_apis_mcm_v1alpha1_ResultHelmList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ServerAddressByClientCIDR": schema_pkg_apis_mcm_v1alpha1_ServerAddressByClientCIDR(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Subject":                   schema_pkg_apis_mcm_v1alpha1_Subject(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewCondition":             schema_pkg_apis_mcm_v1alpha1_ViewCondition(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewFilter":                schema_pkg_apis_mcm_v1alpha1_ViewFilter(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Work":                      schema_pkg_apis_mcm_v1alpha1_Work(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkList":                  schema_pkg_apis_mcm_v1alpha1_WorkList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSet":                   schema_pkg_apis_mcm_v1alpha1_WorkSet(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetList":               schema_pkg_apis_mcm_v1alpha1_WorkSetList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetSpec":               schema_pkg_apis_mcm_v1alpha1_WorkSetSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetStatus":             schema_pkg_apis_mcm_v1alpha1_WorkSetStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec":                  schema_pkg_apis_mcm_v1alpha1_WorkSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkStatus":                schema_pkg_apis_mcm_v1alpha1_WorkStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkTemplateSpec":          schema_pkg_apis_mcm_v1alpha1_WorkTemplateSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequest":         schema_pkg_apis_mcm_v1beta1_ClusterJoinRequest(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequestList":     schema_pkg_apis_mcm_v1beta1_ClusterJoinRequestList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequestSpec":     schema_pkg_apis_mcm_v1beta1_ClusterJoinRequestSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinStatus":          schema_pkg_apis_mcm_v1beta1_ClusterJoinStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterRestOptions":         schema_pkg_apis_mcm_v1beta1_ClusterRestOptions(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatus":              schema_pkg_apis_mcm_v1beta1_ClusterStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatusList":          schema_pkg_apis_mcm_v1beta1_ClusterStatusList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatusSpec":          schema_pkg_apis_mcm_v1beta1_ClusterStatusSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.KubeWorkSpec":               schema_pkg_apis_mcm_v1beta1_KubeWorkSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceFilter":             schema_pkg_apis_mcm_v1beta1_ResourceFilter(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceView":               schema_pkg_apis_mcm_v1beta1_ResourceView(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewList":           schema_pkg_apis_mcm_v1beta1_ResourceViewList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewResult":         schema_pkg_apis_mcm_v1beta1_ResourceViewResult(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewResultList":     schema_pkg_apis_mcm_v1beta1_ResourceViewResultList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewSpec":           schema_pkg_apis_mcm_v1beta1_ResourceViewSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewStatus":         schema_pkg_apis_mcm_v1beta1_ResourceViewStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewCondition":              schema_pkg_apis_mcm_v1beta1_ViewCondition(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewFilter":                 schema_pkg_apis_mcm_v1beta1_ViewFilter(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.Work":                       schema_pkg_apis_mcm_v1beta1_Work(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkList":                   schema_pkg_apis_mcm_v1beta1_WorkList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSet":                    schema_pkg_apis_mcm_v1beta1_WorkSet(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetList":                schema_pkg_apis_mcm_v1beta1_WorkSetList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetSpec":                schema_pkg_apis_mcm_v1beta1_WorkSetSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetStatus":              schema_pkg_apis_mcm_v1beta1_WorkSetStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSpec":                   schema_pkg_apis_mcm_v1beta1_WorkSpec(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkStatus":                 schema_pkg_apis_mcm_v1beta1_WorkStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkTemplateSpec":           schema_pkg_apis_mcm_v1beta1_WorkTemplateSpec(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequest":                                                          schema_k8sio_api_certificates_v1beta1_CertificateSigningRequest(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestCondition":                                                 schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestCondition(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestList":                                                      schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestList(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestSpec":                                                      schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestSpec(ref),
-		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestStatus":                                                    schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestStatus(ref),
-		"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource":                                                                schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.AuthInfo":                  schema_pkg_apis_clusterregistry_v1alpha1_AuthInfo(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.Cluster":                   schema_pkg_apis_clusterregistry_v1alpha1_Cluster(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ClusterCondition":          schema_pkg_apis_clusterregistry_v1alpha1_ClusterCondition(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ClusterList":               schema_pkg_apis_clusterregistry_v1alpha1_ClusterList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ClusterSpec":               schema_pkg_apis_clusterregistry_v1alpha1_ClusterSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ClusterStatus":             schema_pkg_apis_clusterregistry_v1alpha1_ClusterStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.KubernetesAPIEndpoints":    schema_pkg_apis_clusterregistry_v1alpha1_KubernetesAPIEndpoints(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ObjectReference":           schema_pkg_apis_clusterregistry_v1alpha1_ObjectReference(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ServerAddressByClientCIDR": schema_pkg_apis_clusterregistry_v1alpha1_ServerAddressByClientCIDR(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterConditionFilter":                schema_pkg_apis_mcm_v1alpha1_ClusterConditionFilter(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequest":                    schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequest(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestList":                schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinRequestSpec":                schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequestSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterJoinStatus":                     schema_pkg_apis_mcm_v1alpha1_ClusterJoinStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterRestOptions":                    schema_pkg_apis_mcm_v1alpha1_ClusterRestOptions(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatus":                         schema_pkg_apis_mcm_v1alpha1_ClusterStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusList":                     schema_pkg_apis_mcm_v1alpha1_ClusterStatusList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusSpec":                     schema_pkg_apis_mcm_v1alpha1_ClusterStatusSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ClusterStatusTopology":                 schema_pkg_apis_mcm_v1alpha1_ClusterStatusTopology(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmRelease":                           schema_pkg_apis_mcm_v1alpha1_HelmRelease(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmReleaseSpec":                       schema_pkg_apis_mcm_v1alpha1_HelmReleaseSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.HelmWorkSpec":                          schema_pkg_apis_mcm_v1alpha1_HelmWorkSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.KubeWorkSpec":                          schema_pkg_apis_mcm_v1alpha1_KubeWorkSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.KubernetesAPIEndpoints":                schema_pkg_apis_mcm_v1alpha1_KubernetesAPIEndpoints(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVote":                            schema_pkg_apis_mcm_v1alpha1_LeaderVote(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVoteList":                        schema_pkg_apis_mcm_v1alpha1_LeaderVoteList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVoteSpec":                        schema_pkg_apis_mcm_v1alpha1_LeaderVoteSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.LeaderVoteStatus":                      schema_pkg_apis_mcm_v1alpha1_LeaderVoteStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBinding":                      schema_pkg_apis_mcm_v1alpha1_PlacementBinding(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementBindingList":                  schema_pkg_apis_mcm_v1alpha1_PlacementBindingList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicy":                       schema_pkg_apis_mcm_v1alpha1_PlacementPolicy(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyDecision":               schema_pkg_apis_mcm_v1alpha1_PlacementPolicyDecision(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyList":                   schema_pkg_apis_mcm_v1alpha1_PlacementPolicyList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyRef":                    schema_pkg_apis_mcm_v1alpha1_PlacementPolicyRef(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicySpec":                   schema_pkg_apis_mcm_v1alpha1_PlacementPolicySpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.PlacementPolicyStatus":                 schema_pkg_apis_mcm_v1alpha1_PlacementPolicyStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceFilter":                        schema_pkg_apis_mcm_v1alpha1_ResourceFilter(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceHint":                          schema_pkg_apis_mcm_v1alpha1_ResourceHint(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceView":                          schema_pkg_apis_mcm_v1alpha1_ResourceView(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewList":                      schema_pkg_apis_mcm_v1alpha1_ResourceViewList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResult":                    schema_pkg_apis_mcm_v1alpha1_ResourceViewResult(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewResultList":                schema_pkg_apis_mcm_v1alpha1_ResourceViewResultList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewSpec":                      schema_pkg_apis_mcm_v1alpha1_ResourceViewSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResourceViewStatus":                    schema_pkg_apis_mcm_v1alpha1_ResourceViewStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ResultHelmList":                        schema_pkg_apis_mcm_v1alpha1_ResultHelmList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ServerAddressByClientCIDR":             schema_pkg_apis_mcm_v1alpha1_ServerAddressByClientCIDR(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Subject":                               schema_pkg_apis_mcm_v1alpha1_Subject(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewCondition":                         schema_pkg_apis_mcm_v1alpha1_ViewCondition(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewFilter":                            schema_pkg_apis_mcm_v1alpha1_ViewFilter(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.Work":                                  schema_pkg_apis_mcm_v1alpha1_Work(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkList":                              schema_pkg_apis_mcm_v1alpha1_WorkList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSet":                               schema_pkg_apis_mcm_v1alpha1_WorkSet(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetList":                           schema_pkg_apis_mcm_v1alpha1_WorkSetList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetSpec":                           schema_pkg_apis_mcm_v1alpha1_WorkSetSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSetStatus":                         schema_pkg_apis_mcm_v1alpha1_WorkSetStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkSpec":                              schema_pkg_apis_mcm_v1alpha1_WorkSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkStatus":                            schema_pkg_apis_mcm_v1alpha1_WorkStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.WorkTemplateSpec":                      schema_pkg_apis_mcm_v1alpha1_WorkTemplateSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequest":                     schema_pkg_apis_mcm_v1beta1_ClusterJoinRequest(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequestList":                 schema_pkg_apis_mcm_v1beta1_ClusterJoinRequestList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinRequestSpec":                 schema_pkg_apis_mcm_v1beta1_ClusterJoinRequestSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterJoinStatus":                      schema_pkg_apis_mcm_v1beta1_ClusterJoinStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterRestOptions":                     schema_pkg_apis_mcm_v1beta1_ClusterRestOptions(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatus":                          schema_pkg_apis_mcm_v1beta1_ClusterStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatusList":                      schema_pkg_apis_mcm_v1beta1_ClusterStatusList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ClusterStatusSpec":                      schema_pkg_apis_mcm_v1beta1_ClusterStatusSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.KubeWorkSpec":                           schema_pkg_apis_mcm_v1beta1_KubeWorkSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceFilter":                         schema_pkg_apis_mcm_v1beta1_ResourceFilter(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceView":                           schema_pkg_apis_mcm_v1beta1_ResourceView(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewList":                       schema_pkg_apis_mcm_v1beta1_ResourceViewList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewResult":                     schema_pkg_apis_mcm_v1beta1_ResourceViewResult(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewResultList":                 schema_pkg_apis_mcm_v1beta1_ResourceViewResultList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewSpec":                       schema_pkg_apis_mcm_v1beta1_ResourceViewSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ResourceViewStatus":                     schema_pkg_apis_mcm_v1beta1_ResourceViewStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewCondition":                          schema_pkg_apis_mcm_v1beta1_ViewCondition(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewFilter":                             schema_pkg_apis_mcm_v1beta1_ViewFilter(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.Work":                                   schema_pkg_apis_mcm_v1beta1_Work(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkList":                               schema_pkg_apis_mcm_v1beta1_WorkList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSet":                                schema_pkg_apis_mcm_v1beta1_WorkSet(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetList":                            schema_pkg_apis_mcm_v1beta1_WorkSetList(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetSpec":                            schema_pkg_apis_mcm_v1beta1_WorkSetSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSetStatus":                          schema_pkg_apis_mcm_v1beta1_WorkSetStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkSpec":                               schema_pkg_apis_mcm_v1beta1_WorkSpec(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkStatus":                             schema_pkg_apis_mcm_v1beta1_WorkStatus(ref),
+		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.WorkTemplateSpec":                       schema_pkg_apis_mcm_v1beta1_WorkTemplateSpec(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequest":                                                                      schema_k8sio_api_certificates_v1beta1_CertificateSigningRequest(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestCondition":                                                             schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestCondition(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestList":                                                                  schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestList(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestSpec":                                                                  schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestSpec(ref),
+		"k8s.io/api/certificates/v1beta1.CertificateSigningRequestStatus":                                                                schema_k8sio_api_certificates_v1beta1_CertificateSigningRequestStatus(ref),
+		"k8s.io/api/core/v1.AWSElasticBlockStoreVolumeSource":                                                                            schema_k8sio_api_core_v1_AWSElasticBlockStoreVolumeSource(ref),
 		"k8s.io/api/core/v1.Affinity":                                                         schema_k8sio_api_core_v1_Affinity(ref),
 		"k8s.io/api/core/v1.AttachedVolume":                                                   schema_k8sio_api_core_v1_AttachedVolume(ref),
 		"k8s.io/api/core/v1.AvoidPods":                                                        schema_k8sio_api_core_v1_AvoidPods(ref),
@@ -372,6 +381,338 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 	}
 }
 
+func schema_pkg_apis_clusterregistry_v1alpha1_AuthInfo(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "AuthInfo holds information that describes how a client can get credentials to access the cluster. For example, OAuth2 client registration endpoints and supported flows, or Kerberos server locations.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"user": {
+						SchemaProps: spec.SchemaProps{
+							Description: "User references an object that contains implementation-specific details about how a user should authenticate against this cluster.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ObjectReference"),
+						},
+					},
+					"controller": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Controller references an object that contains implementation-specific details about how a controller should authenticate. A simple use case for this would be to reference a secret in another namespace that stores a bearer token that can be used to authenticate against this cluster's API server.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ObjectReference"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ObjectReference"},
+	}
+}
+
+func schema_pkg_apis_clusterregistry_v1alpha1_Cluster(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Cluster contains information about a cluster in a cluster registry.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard object's metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec is the specification of the cluster. This may or may not be reconciled by an active controller.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ClusterSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status is the status of the cluster.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ClusterStatus"),
+						},
+					},
+				},
+			},
+			VendorExtensible: spec.VendorExtensible{
+				Extensions: spec.Extensions{
+					"x-kubernetes-print-columns": "custom-columns=NAME:.metadata.name,CIDR:.spec.kubernetesApiEndpoints.serverEndpoints[].clientCIDR,SERVER:.spec.kubernetesApiEndpoints.serverEndpoints[].serverAddress,CREATION TIME:.metadata.creationTimestamp",
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ClusterSpec", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ClusterStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_pkg_apis_clusterregistry_v1alpha1_ClusterCondition(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterCondition contains condition information for a cluster.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"type": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Type is the type of the cluster condition.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status is the status of the condition. One of True, False, Unknown.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"lastHeartbeatTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastHeartbeatTime is the last time this condition was updated.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"lastTransitionTime": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LastTransitionTime is the last time the condition changed from one status to another.",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+					"reason": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Reason is a (brief) reason for the condition's last status change.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"message": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Message is a human-readable message indicating details about the last status change.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"type", "status"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
+func schema_pkg_apis_clusterregistry_v1alpha1_ClusterList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Type: []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.Cluster"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.Cluster", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_pkg_apis_clusterregistry_v1alpha1_ClusterSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterSpec contains the specification of a cluster.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kubernetesApiEndpoints": {
+						SchemaProps: spec.SchemaProps{
+							Description: "KubernetesAPIEndpoints represents the endpoints of the API server for this cluster.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.KubernetesAPIEndpoints"),
+						},
+					},
+					"authInfo": {
+						SchemaProps: spec.SchemaProps{
+							Description: "AuthInfo contains public information that can be used to authenticate to and authorize with this cluster. It is not meant to store private information (e.g., tokens or client certificates) and cluster registry implementations are not expected to provide hardened storage for secrets.",
+							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.AuthInfo"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.AuthInfo", "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.KubernetesAPIEndpoints"},
+	}
+}
+
+func schema_pkg_apis_clusterregistry_v1alpha1_ClusterStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterStatus contains the status of a cluster.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Conditions contains the different condition statuses for this cluster.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ClusterCondition"),
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ClusterCondition"},
+	}
+}
+
+func schema_pkg_apis_clusterregistry_v1alpha1_KubernetesAPIEndpoints(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "KubernetesAPIEndpoints represents the endpoints for one and only one Kubernetes API server.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"serverEndpoints": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServerEndpoints specifies the address(es) of the Kubernetes API server’s network identity or identities.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ServerAddressByClientCIDR"),
+									},
+								},
+							},
+						},
+					},
+					"caBundle": {
+						SchemaProps: spec.SchemaProps{
+							Description: "CABundle contains the certificate authority information.",
+							Type:        []string{"string"},
+							Format:      "byte",
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1.ServerAddressByClientCIDR"},
+	}
+}
+
+func schema_pkg_apis_clusterregistry_v1alpha1_ObjectReference(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ObjectReference contains enough information to let you inspect or modify the referred object.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind contains the kind of the referent, e.g., Secret or ConfigMap More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Name contains the name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"namespace": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Namespace contains the namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_pkg_apis_clusterregistry_v1alpha1_ServerAddressByClientCIDR(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ServerAddressByClientCIDR helps clients determine the server address that they should use, depending on the ClientCIDR that they match.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"clientCIDR": {
+						SchemaProps: spec.SchemaProps{
+							Description: "The CIDR with which clients can match their IP to figure out if they should use the corresponding server address.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"serverAddress": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Address of this server, suitable for a client that matches the above CIDR. This can be a hostname, hostname:port, IP or IP:port.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func schema_pkg_apis_mcm_v1alpha1_ClusterConditionFilter(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -400,7 +741,7 @@ func schema_pkg_apis_mcm_v1alpha1_ClusterJoinRequest(ref common.ReferenceCallbac
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ClusterJoinRequest is the request from klusterlet to join Manager",
+				Description: "ClusterJoinRequest is the request from klusterlet to join manager",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -1700,17 +2041,17 @@ func schema_pkg_apis_mcm_v1alpha1_ResourceFilter(ref common.ReferenceCallback) c
 							Format:      "",
 						},
 					},
-					"serverPrint": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ServerPrint is the flag to set print on server side",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
 					"mode": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Mode is the mode for resource query",
 							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"serverPrint": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServerPrint is the flag to set print on server side",
+							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
@@ -1959,17 +2300,17 @@ func schema_pkg_apis_mcm_v1alpha1_ResourceViewSpec(ref common.ReferenceCallback)
 							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1alpha1.ViewFilter"),
 						},
 					},
-					"summaryOnly": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ServerPrint is the flag to set print on server side",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
 					"mode": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Mode is the mode for resource query",
 							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"summaryOnly": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SummaryOnly is the flag to return only summary",
+							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
@@ -3107,17 +3448,17 @@ func schema_pkg_apis_mcm_v1beta1_ResourceFilter(ref common.ReferenceCallback) co
 							Format:      "",
 						},
 					},
-					"serverPrint": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ServerPrint is the flag to set print on server side",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
 					"mode": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Mode is the mode for resource query",
 							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"serverPrint": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServerPrint is the flag to set print on server side",
+							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},
@@ -3342,17 +3683,17 @@ func schema_pkg_apis_mcm_v1beta1_ResourceViewSpec(ref common.ReferenceCallback) 
 							Ref:         ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm/v1beta1.ViewFilter"),
 						},
 					},
-					"summaryOnly": {
-						SchemaProps: spec.SchemaProps{
-							Description: "ServerPrint is the flag to set print on server side",
-							Type:        []string{"boolean"},
-							Format:      "",
-						},
-					},
 					"mode": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Mode is the mode for resource query",
 							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"summaryOnly": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ServerPrint is the flag to set print on server side",
+							Type:        []string{"boolean"},
 							Format:      "",
 						},
 					},

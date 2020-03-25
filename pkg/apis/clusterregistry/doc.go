@@ -21,4 +21,4 @@ limitations under the License.
 // +k8s:openapi-gen=true
 // +k8s:defaulter-gen=TypeMeta
 // +groupName=clusterregistry.k8s.io
-package v1alpha1
+package clusterregistry
