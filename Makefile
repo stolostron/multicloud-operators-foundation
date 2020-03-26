@@ -29,7 +29,7 @@ BASE_DIR := $(shell basename $(PWD))
 # export GOPATH ?= $(GOPATH_DEFAULT)
 TESTARGS_DEFAULT := "-v"
 export TESTARGS ?= $(TESTARGS_DEFAULT)
-DEST ?= $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
+DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 VERSION ?= $(shell cat COMPONENT_VERSION 2> /dev/null)
 BINDIR ?= output
 BUILD_LDFLAGS  = $(shell hack/version.sh $(BASE_DIR) $(GIT_HOST)/$(BASE_DIR))
@@ -69,7 +69,7 @@ default::
 	@echo "Build Harness Bootstrapped"
 
 include common/Makefile.common.mk
-#include test/e2e/Makefile.e2e.mk
+include test/e2e/Makefile.e2e.mk
 
 
 ############################################################
@@ -95,7 +95,7 @@ test:
 # e2e test section
 ############################################################
 
-#e2e-test: run-all-e2e-test
+e2e-test: run-all-e2e-test
 
 ############################################################
 # coverage section
