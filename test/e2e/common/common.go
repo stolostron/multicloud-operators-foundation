@@ -3,9 +3,10 @@ package common
 import (
 	"crypto/x509/pkix"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
-	"strings"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/template"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -34,6 +35,11 @@ var NamespaceGVR = schema.GroupVersionResource{
 	Group:    "",
 	Version:  "v1",
 	Resource: "namespaces",
+}
+var workGVR = schema.GroupVersionResource{
+	Group:    "mcm.ibm.com",
+	Version:  "v1beta1",
+	Resource: "works",
 }
 
 func getKubeConfigFile() (string, error) {
@@ -91,11 +97,6 @@ func GetReadyManagedClusters(dynamicClient dynamic.Interface) ([]*unstructured.U
 
 	readyClusters := make([]*unstructured.Unstructured, 0)
 	for _, cluster := range clusters.Items {
-		// ignore the clusters created by testing
-		if strings.HasPrefix(cluster.GetNamespace(), "test-automation-") {
-			continue
-		}
-
 		conditions, ok, err := unstructured.NestedSlice(cluster.Object, "status", "conditions")
 		if err != nil {
 			return nil, err
@@ -142,7 +143,7 @@ func ListResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResour
 
 	resources := make([]*unstructured.Unstructured, 0)
 	for _, item := range list.Items {
-		resources = append(resources, &item)
+		resources = append(resources, item.DeepCopy())
 	}
 
 	return resources, nil
@@ -261,4 +262,127 @@ func GenerateCSR(clusterNamespace, clusterName string, key []byte) (string, erro
 
 	csr := base64.StdEncoding.EncodeToString(data)
 	return csr, nil
+}
+
+func SetStatusType(obj *unstructured.Unstructured, statusType string) error {
+	conditions, _, err := unstructured.NestedSlice(obj.Object, "status", "conditions")
+	if err != nil {
+		return err
+	}
+
+	if conditions == nil {
+		conditions = make([]interface{}, 0)
+	}
+
+	if len(conditions) == 0 {
+		conditions = append(conditions, map[string]interface{}{
+			"type": statusType,
+		})
+		err := unstructured.SetNestedField(obj.Object, conditions, "status", "conditions")
+		if err != nil {
+			return err
+		}
+	} else {
+		condition := conditions[0].(map[string]interface{})
+		condition["type"] = statusType
+	}
+
+	return nil
+}
+
+func GetConditionFromStatus(obj *unstructured.Unstructured) (map[string]interface{}, error) {
+	conditions, _, err := unstructured.NestedSlice(obj.Object, "status", "conditions")
+	if err != nil {
+		return nil, err
+	}
+
+	if conditions == nil {
+		return nil, nil
+	}
+
+	condition, _ := conditions[0].(map[string]interface{})
+	return condition, nil
+}
+func UpdateWorkStatus(dynamicClient dynamic.Interface, work *unstructured.Unstructured, status string) (*unstructured.Unstructured, error) {
+	err := unstructured.SetNestedField(work.Object, status, "status", "type")
+	if err != nil {
+		return nil, err
+	}
+
+	curTime := metav1.Now().Format("2006-01-02T15:04:05Z07:00")
+	err = unstructured.SetNestedField(work.Object, curTime, "status", "lastUpdateTime")
+	if err != nil {
+		return nil, err
+	}
+
+	var res map[string]interface{}
+	err = json.Unmarshal([]byte(template.ActionWorkTemplate), &res)
+	if err != nil {
+		return nil, err
+	}
+	err = unstructured.SetNestedMap(work.Object, res, "status", "result")
+	if err != nil {
+		return nil, err
+	}
+	//update work status mannually.
+	work, err = UpdateResourceStatus(dynamicClient, workGVR, work)
+	if err != nil {
+		return nil, err
+	}
+	return work, nil
+}
+
+func CreateCluster(dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
+	// create a namespace for testing
+	ns, err := LoadResourceFromJSON(template.NamespaceTemplate)
+	if err != nil {
+		return nil, err
+	}
+	ns, err = CreateClusterResource(dynamicClient, NamespaceGVR, ns)
+	if err != nil {
+		return nil, err
+	}
+	clusterNamespace := ns.GetName()
+
+	fakeCluster, err := LoadResourceFromJSON(template.ClusterTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	// setup fakeCluster
+	err = unstructured.SetNestedField(fakeCluster.Object, clusterNamespace, "metadata", "namespace")
+	if err != nil {
+		return nil, err
+	}
+	err = unstructured.SetNestedField(fakeCluster.Object, clusterNamespace, "metadata", "name")
+	if err != nil {
+		return nil, err
+	}
+
+	// create a fakeCluster
+	fakeCluster, err = CreateResource(dynamicClient, clusterGVR, fakeCluster)
+	if err != nil {
+		return nil, err
+	}
+
+	exists, err := HasResource(dynamicClient, clusterGVR, fakeCluster.GetNamespace(), fakeCluster.GetName())
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, fmt.Errorf("failed to get cluster: %v", err)
+	}
+
+	// update fakeCluster status with the new client
+	err = SetStatusType(fakeCluster, "OK")
+	if err != nil {
+		return nil, err
+	}
+
+	fakeCluster, err = UpdateResourceStatus(dynamicClient, clusterGVR, fakeCluster)
+	if err != nil {
+		return nil, err
+	}
+
+	return fakeCluster, nil
 }
