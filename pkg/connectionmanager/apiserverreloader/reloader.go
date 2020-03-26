@@ -21,7 +21,7 @@ import (
 const (
 	namespace                    = "kube-system"
 	configmapName                = "extension-apiserver-authentication"
-	componentName                = "mcm-apiserver"
+	appName                      = "mcm-apiserver"
 	clientCAFileKey              = "client-ca-file"
 	requestHeaderClientCAFileKey = "requestheader-client-ca-file"
 	maxRetryNumber               = 3
@@ -127,8 +127,8 @@ func (r *Reloader) reload(ctx context.Context) {
 
 func (r *Reloader) reloadAPIServer(ctx context.Context) error {
 	// get all pods of api server
-	pods, err := r.kubeclient.CoreV1().Pods(namespace).List(metav1.ListOptions{
-		LabelSelector: fmt.Sprintf("component=%s", componentName),
+	pods, err := r.kubeclient.CoreV1().Pods(metav1.NamespaceAll).List(metav1.ListOptions{
+		LabelSelector: fmt.Sprintf("app=%s", appName),
 	})
 
 	if err != nil {
@@ -145,8 +145,9 @@ func (r *Reloader) reloadAPIServer(ctx context.Context) error {
 			return nil
 		default:
 			// delete pod
+			podNamespace := pods.Items[i].GetNamespace()
 			podName := pods.Items[i].GetName()
-			err := r.kubeclient.CoreV1().Pods(namespace).Delete(podName, &metav1.DeleteOptions{})
+			err := r.kubeclient.CoreV1().Pods(podNamespace).Delete(podName, &metav1.DeleteOptions{})
 			if err != nil {
 				klog.Errorf("Caught error when deleting pod [%v] of API server: %v", podName, err)
 				return err

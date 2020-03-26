@@ -38,13 +38,11 @@ ifndef TEST_SUITE
 	@exit -1
 endif
 ifneq ($(wildcard test/e2e/tests/${TEST_SUITE}),)
-	@ginkgo -v --slowSpecThreshold=15 --failFast test/e2e/tests/${TEST_SUITE}/... | tee ${LOGFILE}
-	@echo Log was created: ${LOGFILE}
+	@ginkgo -v -tags integration --slowSpecThreshold=15 --failFast test/e2e/tests/${TEST_SUITE}/... 
 else
 	$(info Test suite [${TEST_SUITE}] not exists)
 	@exit -1
 endif
 
 run-all-e2e-test: init-e2e-test
-	@ginkgo -v --slowSpecThreshold=15 --failFast test/e2e/tests/... | tee ${LOGFILE}
-	@echo Log was created: ${LOGFILE}
+	@ginkgo -v -tags integration --slowSpecThreshold=15 --failFast test/e2e/tests/... 

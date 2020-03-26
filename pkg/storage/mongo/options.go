@@ -50,8 +50,8 @@ func (m *Options) AddFlags(fs *pflag.FlagSet) {
 // NewMongoOptions create mongooptions
 func NewMongoOptions() *Options {
 	options := &Options{
-		MongoUser:         os.Getenv("MONGO_ROOT_USERNAME"),
-		MongoPassword:     os.Getenv("MONGO_ROOT_PASSWORD"),
+		MongoUser:         os.Getenv("MONGO_USERNAME"),
+		MongoPassword:     os.Getenv("MONGO_PASSWORD"),
 		MongoSSLCa:        os.Getenv("MONGO_SSLCA"),
 		MongoSSLCert:      os.Getenv("MONGO_SSLCERT"),
 		MongoSSLKey:       os.Getenv("MONGO_SSLKEY"),

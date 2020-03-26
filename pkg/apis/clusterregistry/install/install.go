@@ -8,9 +8,9 @@ package install
 import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/clusterregistry/v1alpha1"
 )
 
 // Install registers the API group and adds types to a scheme
