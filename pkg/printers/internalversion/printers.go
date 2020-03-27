@@ -43,8 +43,6 @@ func AddHandlers(h printers.PrintHandler) {
 		{Name: "Pod", Type: "string"},
 		{Name: "Age", Type: "string", Description: metav1.ObjectMeta{}.SwaggerDoc()["creationTimestamp"]},
 		{Name: "Version", Type: "string"},
-		{Name: "KlusterletVersion", Type: "string"},
-		{Name: "EndpointOperatorVersion", Type: "string"},
 	}
 	addTableHandler(h, clusterStatusColumnDefinitions, printClusterStatus)
 	addTableHandler(h, clusterStatusColumnDefinitions, printClusterStatusList)
@@ -247,14 +245,12 @@ func printClusterStatus(obj *hcm.ClusterStatus, options printers.PrintOptions) (
 		node = nodedata.String()
 	}
 
-	version := obj.Spec.KlusterletVersion
 	serverVersion := obj.Spec.Version
-	endpointOptVers := obj.Spec.EndpointOperatorVersion
 
 	addresses := convertEndpointAddresses(obj.Spec.MasterAddresses)
 
 	row.Cells = append(row.Cells, obj.Name, addresses, usedcpu+"/"+cpu, usedmemory+"/"+memory, usedstorage+"/"+storage, node, pod,
-		translateTimestamp(obj.CreationTimestamp), serverVersion, version, endpointOptVers)
+		translateTimestamp(obj.CreationTimestamp), serverVersion)
 	return []metav1beta1.TableRow{row}, nil
 }
 
