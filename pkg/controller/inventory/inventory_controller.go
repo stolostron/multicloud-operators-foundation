@@ -461,6 +461,7 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *inventoryv1alpha1.
 				Reason:  "SyncSetCreated",
 				Message: "SyncSet created successfully",
 			})
+			return nil
 		}
 		// other error. fail reconcile
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
