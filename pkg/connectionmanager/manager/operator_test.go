@@ -100,3 +100,30 @@ func TestSetupServer(t *testing.T) {
 		t.Errorf("failed to handle change of klusterlet secret")
 	}
 }
+
+func TestProcessNextWorkItem(t *testing.T) {
+	operator := newOperator()
+	key, cert, _ := common.NewCertKey("test.com", "hcm")
+	kconfig := common.NewClientConfig("localhost", cert, key)
+	bootstrapSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bootstrap-secret",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"kubeconfig": kconfig,
+		},
+	}
+	klusterletSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "klusterlet-secrect",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"kubeconfig": kconfig,
+		},
+	}
+	operator.enqueue(bootstrapSecret, operator.ksworkqueue)
+	operator.enqueue(klusterletSecret, operator.ksworkqueue)
+	operator.processNextWorkItem(operator.ksworkqueue, operator.handleKlusterletSecretChange)
+}
