@@ -171,7 +171,7 @@ var _ = Describe("Clusters", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 
 			// update cluster status with the new client
-			err = setStatusType(obj, "OK")
+			err = common.SetStatusType(obj, "OK")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			obj, err = common.UpdateResourceStatus(newDynamicClient, gvr, obj)
@@ -187,7 +187,7 @@ var _ = Describe("Clusters", func() {
 						return "", err
 					}
 
-					condition, err := getConditionFromStatus(cluster)
+					condition, err := common.GetConditionFromStatus(cluster)
 					if err != nil {
 						return "", err
 					}
@@ -213,7 +213,7 @@ var _ = Describe("Clusters", func() {
 					if err != nil {
 						return false, err
 					}
-					condition, err := getConditionFromStatus(cluster)
+					condition, err := common.GetConditionFromStatus(cluster)
 					if err != nil {
 						return false, err
 					}
@@ -303,7 +303,7 @@ var _ = Describe("Clusters", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 
 			// update cluster status with the new client
-			err = setStatusType(obj, "OK")
+			err = common.SetStatusType(obj, "OK")
 			Ω(err).ShouldNot(HaveOccurred())
 
 			obj, err = common.UpdateResourceStatus(newDynamicClient, gvr, obj)
@@ -316,7 +316,7 @@ var _ = Describe("Clusters", func() {
 					return "", err
 				}
 
-				condition, err := getConditionFromStatus(cluster)
+				condition, err := common.GetConditionFromStatus(cluster)
 				if err != nil {
 					return "", err
 				}
@@ -431,46 +431,6 @@ var _ = Describe("Clusters", func() {
 		Ω(err).ShouldNot(HaveOccurred())
 	})
 })
-
-func setStatusType(obj *unstructured.Unstructured, statusType string) error {
-	conditions, _, err := unstructured.NestedSlice(obj.Object, "status", "conditions")
-	if err != nil {
-		return err
-	}
-
-	if conditions == nil {
-		conditions = make([]interface{}, 0)
-	}
-
-	if len(conditions) == 0 {
-		conditions = append(conditions, map[string]interface{}{
-			"type": statusType,
-		})
-		err := unstructured.SetNestedField(obj.Object, conditions, "status", "conditions")
-		if err != nil {
-			return err
-		}
-	} else {
-		condition := conditions[0].(map[string]interface{})
-		condition["type"] = statusType
-	}
-
-	return nil
-}
-
-func getConditionFromStatus(obj *unstructured.Unstructured) (map[string]interface{}, error) {
-	conditions, _, err := unstructured.NestedSlice(obj.Object, "status", "conditions")
-	if err != nil {
-		return nil, err
-	}
-
-	if conditions == nil {
-		return nil, nil
-	}
-
-	condition, _ := conditions[0].(map[string]interface{})
-	return condition, nil
-}
 
 func newDynamicClientWithCertAndKey(host string, cert, key []byte) (dynamic.Interface, error) {
 	config := clientcmdapi.Config{

@@ -8,6 +8,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/common"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/template"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 )
@@ -96,7 +97,10 @@ var _ = Describe("Works", func() {
 
 			It("should be executed on managed cluster successfully", func() {
 				if !hasManagedClusters {
-					Skip("No managed cluster found")
+					work, err := common.GetResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())
+					Ω(err).ShouldNot(HaveOccurred())
+					_, err = common.UpdateWorkStatus(dynamicClient, work, "Completed")
+					Ω(err).ShouldNot(HaveOccurred())
 				}
 
 				Eventually(func() (string, error) {
