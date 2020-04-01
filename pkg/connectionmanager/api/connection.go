@@ -114,7 +114,7 @@ func (conn *ServerConnection) Bootstrap() error {
 					!errors.IsServerTimeout(err) {
 					return err
 				}
-				klog.Infof("wait to hub (%s) approve cluster join request, %v", conn.hubName, err)
+				klog.Infof("retry after %d seconds to bootstrap, due to bootstrap error: %v", waitTime, err)
 				time.Sleep(waitTime)
 				if waitTime < maxWaitTime {
 					waitTime += initWaitTime
