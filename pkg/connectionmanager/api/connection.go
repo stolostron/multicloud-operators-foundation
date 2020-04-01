@@ -18,6 +18,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/clusterbootstrap"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/common"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -105,7 +106,8 @@ func (conn *ServerConnection) Bootstrap() error {
 		for {
 			key, cert, config, err := conn.bootstrapper.LoadClientCert()
 			if err != nil {
-				if !errors.IsNotFound(err) &&
+				if errors.ReasonForError(err) != metav1.StatusReasonUnknown &&
+					!errors.IsNotFound(err) &&
 					!errors.IsServiceUnavailable(err) &&
 					!errors.IsTimeout(err) &&
 					!errors.IsInternalError(err) &&
