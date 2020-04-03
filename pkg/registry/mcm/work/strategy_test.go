@@ -6,11 +6,11 @@
 package work
 
 import (
-	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 	"testing"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 func TestValidateWork(t *testing.T) {
