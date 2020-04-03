@@ -42,7 +42,7 @@ const (
 	// BareMetalHostKind contains the value of kind BareMetalHost
 	BareMetalHostKind = "BareMetalHost"
 	// BareMetalAssetFinalizer is the finalizer used on BareMetalAsset resource
-	BareMetalAssetFinalizer = "baremetalasset.midas.io"
+	BareMetalAssetFinalizer = "baremetalasset.inventory.open-cluster-management.io"
 )
 
 const (
