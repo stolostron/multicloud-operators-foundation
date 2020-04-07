@@ -114,7 +114,7 @@ func (conn *ServerConnection) Bootstrap() error {
 					!errors.IsServerTimeout(err) {
 					return err
 				}
-				klog.Infof("retry after %d seconds to bootstrap, due to bootstrap error: %v", waitTime, err)
+				klog.Infof("retry after %d seconds to bootstrap, due to bootstrap error: %v", waitTime/time.Second, err)
 				time.Sleep(waitTime)
 				if waitTime < maxWaitTime {
 					waitTime += initWaitTime
