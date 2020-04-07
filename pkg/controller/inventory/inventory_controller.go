@@ -8,7 +8,7 @@ import (
 	"time"
 
 	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	midasv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
+	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
 	bmaerrors "github.com/open-cluster-management/multicloud-operators-foundation/pkg/controller/inventory/errors"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	objectreferencesv1 "github.com/openshift/custom-resource-status/objectreferences/v1"
@@ -42,7 +42,7 @@ const (
 	// BareMetalHostKind contains the value of kind BareMetalHost
 	BareMetalHostKind = "BareMetalHost"
 	// BareMetalAssetFinalizer is the finalizer used on BareMetalAsset resource
-	BareMetalAssetFinalizer = "baremetalasset.midas.io"
+	BareMetalAssetFinalizer = "baremetalasset.inventory.open-cluster-management.io"
 )
 
 const (
@@ -55,7 +55,7 @@ var AddToSchemes runtime.SchemeBuilder
 
 func init() {
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, midasv1alpha1.SchemeBuilder.AddToScheme)
+	AddToSchemes = append(AddToSchemes, inventoryv1alpha1.SchemeBuilder.AddToScheme)
 }
 
 func Run(config *rest.Config, stopch <-chan struct{}) {
@@ -101,7 +101,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource BareMetalAsset
-	err = c.Watch(&source.Kind{Type: &midasv1alpha1.BareMetalAsset{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &inventoryv1alpha1.BareMetalAsset{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Watch for changes to secondary resource Secrets and requeue the owner BareMetalAsset
 	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestForOwner{
 		IsController: true,
-		OwnerType:    &midasv1alpha1.BareMetalAsset{},
+		OwnerType:    &inventoryv1alpha1.BareMetalAsset{},
 	})
 	if err != nil {
 		return err
@@ -127,7 +127,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					klog.Error("SyncSet handler received non-SyncSet object")
 					return []reconcile.Request{}
 				}
-				bmas := &midasv1alpha1.BareMetalAssetList{}
+				bmas := &inventoryv1alpha1.BareMetalAssetList{}
 				err := mgr.GetClient().List(context.TODO(), bmas,
 					client.MatchingFields{"metadata.name": syncSet.Name},
 					client.MatchingLabels{
@@ -166,7 +166,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					klog.Error("ClusterDeployment handler received non-ClusterDeployment object")
 					return []reconcile.Request{}
 				}
-				bmas := &midasv1alpha1.BareMetalAssetList{}
+				bmas := &inventoryv1alpha1.BareMetalAssetList{}
 				err := mgr.GetClient().List(context.TODO(), bmas,
 					client.MatchingLabels{
 						ClusterDeploymentNameLabel:      clusterDeployment.Name,
@@ -215,7 +215,7 @@ func (r *ReconcileBareMetalAsset) Reconcile(request reconcile.Request) (reconcil
 	klog.Info("Reconciling BareMetalAsset")
 
 	// Fetch the BareMetalAsset instance
-	instance := &midasv1alpha1.BareMetalAsset{}
+	instance := &inventoryv1alpha1.BareMetalAsset{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -255,9 +255,10 @@ func (r *ReconcileBareMetalAsset) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, nil
 	}
 
-	for _, f := range []func(*midasv1alpha1.BareMetalAsset) error{
+	for _, f := range []func(*inventoryv1alpha1.BareMetalAsset) error{
 		r.checkAssetSecret,
 		r.ensureLabels,
+		r.cleanupOldHiveSyncSet,
 		r.checkClusterDeployment,
 		r.ensureHiveSyncSet,
 		r.checkHiveSyncSetInstance,
@@ -290,7 +291,7 @@ func (r *ReconcileBareMetalAsset) Reconcile(request reconcile.Request) (reconcil
 }
 
 // checkAssetSecret verifies that we can find the secret listed in the BareMetalAsset
-func (r *ReconcileBareMetalAsset) checkAssetSecret(instance *midasv1alpha1.BareMetalAsset) error {
+func (r *ReconcileBareMetalAsset) checkAssetSecret(instance *inventoryv1alpha1.BareMetalAsset) error {
 	secretName := instance.Spec.BMC.CredentialsName
 
 	secret := &corev1.Secret{}
@@ -299,7 +300,7 @@ func (r *ReconcileBareMetalAsset) checkAssetSecret(instance *midasv1alpha1.BareM
 		if errors.IsNotFound(err) {
 			klog.Errorf("Secret (%s/%s) not found, %v", instance.Namespace, secretName, err)
 			conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-				Type:    midasv1alpha1.ConditionCredentialsFound,
+				Type:    inventoryv1alpha1.ConditionCredentialsFound,
 				Status:  corev1.ConditionFalse,
 				Reason:  "SecretNotFound",
 				Message: err.Error(),
@@ -322,7 +323,7 @@ func (r *ReconcileBareMetalAsset) checkAssetSecret(instance *midasv1alpha1.BareM
 
 	// add condition to status
 	conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-		Type:    midasv1alpha1.ConditionCredentialsFound,
+		Type:    inventoryv1alpha1.ConditionCredentialsFound,
 		Status:  corev1.ConditionTrue,
 		Reason:  "SecretFound",
 		Message: fmt.Sprintf("A secret with the name %v in namespace %v was found", secretName, instance.Namespace),
@@ -342,7 +343,7 @@ func (r *ReconcileBareMetalAsset) checkAssetSecret(instance *midasv1alpha1.BareM
 	return nil
 }
 
-func (r *ReconcileBareMetalAsset) ensureLabels(instance *midasv1alpha1.BareMetalAsset) error {
+func (r *ReconcileBareMetalAsset) ensureLabels(instance *inventoryv1alpha1.BareMetalAsset) error {
 	labels := k8slabels.CloneAndAddLabel(instance.Labels, ClusterDeploymentNameLabel, instance.Spec.ClusterDeployment.Name)
 	labels = k8slabels.AddLabel(labels, ClusterDeploymentNamespaceLabel, instance.Spec.ClusterDeployment.Namespace)
 	labels = k8slabels.AddLabel(labels, RoleLabel, string(instance.Spec.Role))
@@ -355,7 +356,7 @@ func (r *ReconcileBareMetalAsset) ensureLabels(instance *midasv1alpha1.BareMetal
 }
 
 // checkClusterDeployment verifies that we can find the ClusterDeployment specified in the BareMetalAsset
-func (r *ReconcileBareMetalAsset) checkClusterDeployment(instance *midasv1alpha1.BareMetalAsset) error {
+func (r *ReconcileBareMetalAsset) checkClusterDeployment(instance *inventoryv1alpha1.BareMetalAsset) error {
 	clusterDeploymentName := instance.Spec.ClusterDeployment.Name
 	clusterDeploymentNamespace := instance.Spec.ClusterDeployment.Namespace
 
@@ -363,48 +364,14 @@ func (r *ReconcileBareMetalAsset) checkClusterDeployment(instance *midasv1alpha1
 	// that it has been removed from the spec
 	if clusterDeploymentName == "" {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    midasv1alpha1.ConditionClusterDeploymentFound,
+			Type:    inventoryv1alpha1.ConditionClusterDeploymentFound,
 			Status:  corev1.ConditionFalse,
 			Reason:  "NoneSpecified",
 			Message: "No cluster deployment specified",
 		})
-		conditionsv1.RemoveStatusCondition(&instance.Status.Conditions, midasv1alpha1.ConditionAssetSyncStarted)
-		conditionsv1.RemoveStatusCondition(&instance.Status.Conditions, midasv1alpha1.ConditionAssetSyncCompleted)
+		conditionsv1.RemoveStatusCondition(&instance.Status.Conditions, inventoryv1alpha1.ConditionAssetSyncStarted)
+		conditionsv1.RemoveStatusCondition(&instance.Status.Conditions, inventoryv1alpha1.ConditionAssetSyncCompleted)
 
-		// Without a clusterName, we do not know what namespace the syncset is in.
-		// Get the syncset from relatedobjects if it exists
-		hscRef := corev1.ObjectReference{}
-		for _, ro := range instance.Status.RelatedObjects {
-			if ro.Name == instance.Name && ro.Kind == "SyncSet" && ro.APIVersion == hivev1.SchemeGroupVersion.String() {
-				hscRef = ro
-				break
-			}
-		}
-		if hscRef == (corev1.ObjectReference{}) {
-			// No syncset found in relatedObjects. Nothing to do.
-			return bmaerrors.NewNoClusterError()
-		}
-
-		// If clusterName is not specified, delete the syncset if it exists
-		klog.Infof("Cleaning up Hive SyncSet (%s/%s)", hscRef.Namespace, hscRef.Name)
-		err := r.client.Delete(context.TODO(), &hivev1.SyncSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: hscRef.Namespace,
-				Name:      hscRef.Name,
-			},
-		})
-		if err != nil {
-			if !errors.IsNotFound(err) {
-				klog.Errorf("Failed to delete Hive SyncSet, %s", err)
-				return err
-			}
-		}
-
-		// Remove SyncSet from related objects
-		if err := objectreferencesv1.RemoveObjectReference(&instance.Status.RelatedObjects, hscRef); err != nil {
-			klog.Errorf("Failed to remove reference, %v", err)
-			return err
-		}
 		return bmaerrors.NewNoClusterError()
 	}
 
@@ -416,7 +383,7 @@ func (r *ReconcileBareMetalAsset) checkClusterDeployment(instance *midasv1alpha1
 		if errors.IsNotFound(err) {
 			klog.Errorf("ClusterDeployment (%s/%s) not found, %v", clusterDeploymentNamespace, clusterDeploymentName, err)
 			conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-				Type:    midasv1alpha1.ConditionClusterDeploymentFound,
+				Type:    inventoryv1alpha1.ConditionClusterDeploymentFound,
 				Status:  corev1.ConditionFalse,
 				Reason:  "ClusterDeploymentNotFound",
 				Message: err.Error(),
@@ -428,7 +395,7 @@ func (r *ReconcileBareMetalAsset) checkClusterDeployment(instance *midasv1alpha1
 
 	// add condition
 	conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-		Type:    midasv1alpha1.ConditionClusterDeploymentFound,
+		Type:    inventoryv1alpha1.ConditionClusterDeploymentFound,
 		Status:  corev1.ConditionTrue,
 		Reason:  "ClusterDeploymentFound",
 		Message: fmt.Sprintf("A ClusterDeployment with the name %v in namespace %v was found", cd.Name, cd.Namespace),
@@ -437,7 +404,7 @@ func (r *ReconcileBareMetalAsset) checkClusterDeployment(instance *midasv1alpha1
 	return nil
 }
 
-func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *midasv1alpha1.BareMetalAsset) error {
+func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *inventoryv1alpha1.BareMetalAsset) error {
 	hsc := r.newHiveSyncSet(instance)
 	found := &hivev1.SyncSet{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: hsc.Name, Namespace: hsc.Namespace}, found)
@@ -447,7 +414,7 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *midasv1alpha1.Bare
 			if err != nil {
 				klog.Errorf("Failed to create Hive SyncSet, %v", err)
 				conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-					Type:    midasv1alpha1.ConditionAssetSyncStarted,
+					Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
 					Status:  corev1.ConditionFalse,
 					Reason:  "SyncSetCreationFailed",
 					Message: "Failed to create SyncSet",
@@ -456,15 +423,16 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *midasv1alpha1.Bare
 			}
 
 			conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-				Type:    midasv1alpha1.ConditionAssetSyncStarted,
+				Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
 				Status:  corev1.ConditionTrue,
 				Reason:  "SyncSetCreated",
 				Message: "SyncSet created successfully",
 			})
+			return nil
 		}
 		// other error. fail reconcile
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    midasv1alpha1.ConditionAssetSyncStarted,
+			Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
 			Status:  corev1.ConditionFalse,
 			Reason:  "SyncSetGetFailed",
 			Message: "Failed to get SyncSet",
@@ -498,7 +466,7 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *midasv1alpha1.Bare
 		if err != nil {
 			klog.Errorf("Failed to update Hive SyncSet (%s/%s), %v", hsc.Namespace, hsc.Name, err)
 			conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-				Type:    midasv1alpha1.ConditionAssetSyncStarted,
+				Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
 				Status:  corev1.ConditionFalse,
 				Reason:  "SyncSetUpdateFailed",
 				Message: "Failed to update SyncSet",
@@ -506,7 +474,7 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *midasv1alpha1.Bare
 			return err
 		}
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    midasv1alpha1.ConditionAssetSyncStarted,
+			Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
 			Status:  corev1.ConditionTrue,
 			Reason:  "SyncSetUpdated",
 			Message: "SyncSet updated successfully",
@@ -515,7 +483,7 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *midasv1alpha1.Bare
 	return nil
 }
 
-func (r *ReconcileBareMetalAsset) newHiveSyncSet(instance *midasv1alpha1.BareMetalAsset) *hivev1.SyncSet {
+func (r *ReconcileBareMetalAsset) newHiveSyncSet(instance *inventoryv1alpha1.BareMetalAsset) *hivev1.SyncSet {
 	bmhJSON, err := json.Marshal(r.newBareMetalHost(instance))
 	if err != nil {
 		klog.Errorf("Error marshaling baremetalhost, %v", err)
@@ -553,7 +521,7 @@ func (r *ReconcileBareMetalAsset) newHiveSyncSet(instance *midasv1alpha1.BareMet
 						},
 						TargetRef: hivev1.SecretReference{
 							Name:      instance.Spec.BMC.CredentialsName,
-							Namespace: midasv1alpha1.ManagedClusterResourceNamespace,
+							Namespace: inventoryv1alpha1.ManagedClusterResourceNamespace,
 						},
 					},
 				},
@@ -568,7 +536,7 @@ func (r *ReconcileBareMetalAsset) newHiveSyncSet(instance *midasv1alpha1.BareMet
 	return hsc
 }
 
-func (r *ReconcileBareMetalAsset) newBareMetalHost(instance *midasv1alpha1.BareMetalAsset) *metal3v1alpha1.BareMetalHost {
+func (r *ReconcileBareMetalAsset) newBareMetalHost(instance *inventoryv1alpha1.BareMetalAsset) *metal3v1alpha1.BareMetalHost {
 	bmh := &metal3v1alpha1.BareMetalHost{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       BareMetalHostKind,
@@ -576,7 +544,7 @@ func (r *ReconcileBareMetalAsset) newBareMetalHost(instance *midasv1alpha1.BareM
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      instance.Name,
-			Namespace: midasv1alpha1.ManagedClusterResourceNamespace,
+			Namespace: inventoryv1alpha1.ManagedClusterResourceNamespace,
 			Labels: map[string]string{
 				ClusterDeploymentNameLabel:      instance.Spec.ClusterDeployment.Name,
 				ClusterDeploymentNamespaceLabel: instance.Spec.ClusterDeployment.Namespace,
@@ -595,7 +563,7 @@ func (r *ReconcileBareMetalAsset) newBareMetalHost(instance *midasv1alpha1.BareM
 	return bmh
 }
 
-func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *midasv1alpha1.BareMetalAsset) error {
+func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *inventoryv1alpha1.BareMetalAsset) error {
 	found := &hivev1.SyncSetInstanceList{}
 
 	err := r.client.List(context.TODO(), found, client.MatchingLabels{hiveconstants.SyncSetNameLabel: instance.Name})
@@ -610,7 +578,7 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *midasv1alph
 		err = fmt.Errorf("no SyncSetInstances with label name %v and label value %v found",
 			hiveconstants.SyncSetNameLabel, instance.Name)
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    midasv1alpha1.ConditionAssetSyncCompleted,
+			Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  "SyncSetInstanceNotFound",
 			Message: err.Error(),
@@ -622,7 +590,7 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *midasv1alph
 			err = fmt.Errorf("unexpected number of resources found on SyncSetInstance status. Expected (1) Found (%v)",
 				resourceCount)
 			conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-				Type:    midasv1alpha1.ConditionAssetSyncCompleted,
+				Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status:  corev1.ConditionFalse,
 				Reason:  "UnexpectedResourceCount",
 				Message: err.Error(),
@@ -635,7 +603,7 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *midasv1alph
 				"Expected (Kind: %v APIVersion: %v) Found (Kind: %v APIVersion: %v)",
 				BareMetalHostKind, metal3v1alpha1.SchemeGroupVersion.String(), res.Kind, res.APIVersion)
 			conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-				Type:    midasv1alpha1.ConditionAssetSyncCompleted,
+				Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status:  corev1.ConditionFalse,
 				Reason:  "BareMetalHostResourceNotFound",
 				Message: err.Error(),
@@ -646,14 +614,14 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *midasv1alph
 			switch condition.Type {
 			case hivev1.ApplySuccessSyncCondition:
 				conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-					Type:    midasv1alpha1.ConditionAssetSyncCompleted,
+					Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 					Status:  condition.Status,
 					Reason:  condition.Reason,
 					Message: condition.Message,
 				})
 			case hivev1.ApplyFailureSyncCondition:
 				conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-					Type:    midasv1alpha1.ConditionAssetSyncCompleted,
+					Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 					Status:  corev1.ConditionFalse,
 					Reason:  condition.Reason,
 					Message: condition.Message,
@@ -666,7 +634,7 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *midasv1alph
 		if secretsCount != 1 {
 			err = fmt.Errorf("unexpected number of secrets found on SyncSetInstance. Expected: (1) Actual: (%v)", secretsCount)
 			conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-				Type:    midasv1alpha1.ConditionAssetSyncCompleted,
+				Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status:  corev1.ConditionFalse,
 				Reason:  "UnexpectedSecretCount",
 				Message: err.Error(),
@@ -678,14 +646,14 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *midasv1alph
 			switch condition.Type {
 			case hivev1.ApplySuccessSyncCondition:
 				conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-					Type:    midasv1alpha1.ConditionAssetSyncCompleted,
+					Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 					Status:  condition.Status,
 					Reason:  condition.Reason,
 					Message: condition.Message,
 				})
 			case hivev1.ApplyFailureSyncCondition:
 				conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-					Type:    midasv1alpha1.ConditionAssetSyncCompleted,
+					Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 					Status:  corev1.ConditionFalse,
 					Reason:  condition.Reason,
 					Message: condition.Message,
@@ -696,7 +664,7 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *midasv1alph
 	default:
 		err = fmt.Errorf("found multiple Hive SyncSetInstances with same label")
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    midasv1alpha1.ConditionAssetSyncCompleted,
+			Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  "MultipleSyncSetInstancesFound",
 			Message: err.Error(),
@@ -706,7 +674,7 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *midasv1alph
 	return nil
 }
 
-func (r *ReconcileBareMetalAsset) deleteSyncSet(instance *midasv1alpha1.BareMetalAsset) error {
+func (r *ReconcileBareMetalAsset) deleteSyncSet(instance *inventoryv1alpha1.BareMetalAsset) error {
 	if instance.Spec.ClusterDeployment.Namespace == "" {
 		return nil
 	}
@@ -722,6 +690,66 @@ func (r *ReconcileBareMetalAsset) deleteSyncSet(instance *midasv1alpha1.BareMeta
 			return err
 		}
 	}
+	return nil
+}
+
+func (r *ReconcileBareMetalAsset) cleanupOldHiveSyncSet(instance *inventoryv1alpha1.BareMetalAsset) error {
+	// If clusterDeployment.Namespace is updated to a new namespace or removed from the spec, we need to
+	// ensure that existing syncset, if any, is deleted from the old namespace.
+	// We can get the old syncset from relatedobjects if it exists.
+	hscRef := corev1.ObjectReference{}
+	for _, ro := range instance.Status.RelatedObjects {
+		if ro.Name == instance.Name &&
+			ro.Kind == "SyncSet" &&
+			ro.APIVersion == hivev1.SchemeGroupVersion.String() &&
+			ro.Namespace != instance.Spec.ClusterDeployment.Namespace {
+			hscRef = ro
+			break
+		}
+	}
+	if hscRef == (corev1.ObjectReference{}) {
+		// Nothing to do if no such syncset was found
+		return nil
+	}
+
+	// Delete syncset in old namespace
+	klog.Infof("Cleaning up Hive SyncSet in old namespace (%s/%s)", hscRef.Name, hscRef.Namespace)
+	err := r.client.Delete(context.TODO(), &hivev1.SyncSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: hscRef.Namespace,
+			Name:      hscRef.Name,
+		},
+	})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			klog.Errorf("Failed to delete Hive SyncSet (%s/%s), %v", hscRef.Name, hscRef.Namespace, err)
+			return err
+		}
+	}
+
+	found := &hivev1.SyncSetInstanceList{}
+	err = r.client.List(context.TODO(),
+		found,
+		client.InNamespace(hscRef.Namespace),
+		client.MatchingLabels{hiveconstants.SyncSetNameLabel: hscRef.Name})
+	if err != nil {
+		klog.Errorf("Problem getting Hive SyncSetInstanceList with label %s=%s, %v", hiveconstants.SyncSetNameLabel, hscRef.Name, err)
+		return err
+	}
+
+	if len(found.Items) > 0 {
+		err = fmt.Errorf("found SyncSetInstances in namespace: %v with label %v:%v. Expected: (%v) Actual: (%v)",
+			hscRef.Namespace, hiveconstants.SyncSetNameLabel, hscRef.Name, 0, len(found.Items))
+		return err
+	}
+
+	// Remove SyncSet from related objects
+	err = objectreferencesv1.RemoveObjectReference(&instance.Status.RelatedObjects, hscRef)
+	if err != nil {
+		klog.Errorf("Failed to remove reference from status.RelatedObjects, %v", err)
+		return err
+	}
+
 	return nil
 }
 
