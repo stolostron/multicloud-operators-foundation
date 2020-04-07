@@ -10,6 +10,7 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 func TestValidateWork(t *testing.T) {
@@ -52,5 +53,83 @@ func TestValidateWork(t *testing.T) {
 	err = validateWork(work)
 	if err == nil {
 		t.Errorf("should failed to validate work")
+	}
+}
+
+func TestWorkStrategy(t *testing.T) {
+	ctx := genericapirequest.NewDefaultContext()
+	if !Strategy.NamespaceScoped() {
+		t.Errorf("Work must be namespace scoped")
+	}
+	if Strategy.AllowCreateOnUpdate() {
+		t.Errorf("Work should not allow create on update")
+	}
+	if !Strategy.AllowUnconditionalUpdate() {
+		t.Errorf("Work should not allow unconditional update")
+	}
+	cfg := &mcm.Work{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "work1",
+			Namespace: "work1",
+		},
+		Spec: mcm.WorkSpec{
+			Type:  mcm.ResourceWorkType,
+			Scope: mcm.ResourceFilter{},
+		},
+	}
+
+	Strategy.PrepareForCreate(ctx, cfg)
+
+	newCfg := &mcm.Work{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "work1",
+			Namespace: "work1",
+		},
+		Spec: mcm.WorkSpec{
+			Type:  mcm.ActionWorkType,
+			Scope: mcm.ResourceFilter{},
+		},
+	}
+
+	Strategy.PrepareForUpdate(ctx, newCfg, cfg)
+
+	errs := Strategy.ValidateUpdate(ctx, newCfg, cfg)
+	if len(errs) == 0 {
+		t.Errorf("Validation error")
+	}
+}
+
+func TestWorkStatusStrategy(t *testing.T) {
+	ctx := genericapirequest.NewDefaultContext()
+
+	cfg := &mcm.Work{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "work1",
+			Namespace: "work1",
+		},
+		Spec: mcm.WorkSpec{
+			Type:  mcm.ResourceWorkType,
+			Scope: mcm.ResourceFilter{},
+		},
+	}
+
+	StatusStrategy.PrepareForCreate(ctx, cfg)
+
+	newCfg := &mcm.Work{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "work1",
+			Namespace: "work1",
+		},
+		Spec: mcm.WorkSpec{
+			Type:  mcm.ActionWorkType,
+			Scope: mcm.ResourceFilter{},
+		},
+	}
+
+	StatusStrategy.PrepareForUpdate(ctx, newCfg, cfg)
+
+	errs := StatusStrategy.ValidateUpdate(ctx, newCfg, cfg)
+	if len(errs) != 0 {
+		t.Errorf("Validation error")
 	}
 }

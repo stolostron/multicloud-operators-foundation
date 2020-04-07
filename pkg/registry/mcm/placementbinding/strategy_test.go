@@ -30,6 +30,15 @@ var goodpb = &mcm.PlacementBinding{
 }
 
 func TestValidatePlacementBinding(t *testing.T) {
+	if !DefaultStrategy.NamespaceScoped() {
+		t.Errorf("Placementbinding must be namespace scoped")
+	}
+	if DefaultStrategy.AllowCreateOnUpdate() {
+		t.Errorf("Placementbinding should not allow create on update")
+	}
+	if !DefaultStrategy.AllowUnconditionalUpdate() {
+		t.Errorf("Placementbinding should not allow unconditional update")
+	}
 	err := validatePlacementBinding(goodpb)
 	if err != nil {
 		t.Errorf("should not fail to validate good placementbinding")
