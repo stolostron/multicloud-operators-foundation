@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: worker-0-bmc-secret
+type: Opaque
+data:
+  username: YWRtaW4=
+  password: cGFzc3dvcmQ=
+---
+apiVersion: inventory.open-cluster-management.io/v1alpha1
+kind: BareMetalAsset
+metadata:
+  name: baremetalasset-worker-0
+spec:
+  bmc:
+    address: ipmi://192.168.122.1:6233
+    credentialsName: worker-0-bmc-secret
+  bootMACAddress: "00:1B:44:11:3A:B7"
+  hardwareProfile: "hardwareProfile"
