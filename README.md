@@ -142,7 +142,7 @@ More info please see: [kustomize](https://github.com/kubernetes-sigs/kustomize/b
     Deploy service registry components
 
     ```sh
-    kustomize build deploy/prod/serviceregistry.yaml | kubectl apply  -f -
+    kustomize build deploy/prod/serviceregistry | kubectl apply  -f -
     ```
 
     > Note: If you deploy the service registry in OpenShift, you need to adjust your `scc` policy by running command `oc adm policy add-scc-to-user anyuid system:serviceaccount:multicloud-endpoint:default`
