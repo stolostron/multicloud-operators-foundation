@@ -42,6 +42,7 @@ replace (
 )
 
 require (
+	bou.ke/monkey v1.0.2
 	github.com/buger/jsonparser v0.0.0-20180808090653-f4dd9f5a6b44 // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/emicklei/go-restful v2.11.1+incompatible
@@ -57,6 +58,7 @@ require (
 	github.com/openshift/client-go v0.0.0-20190923180330-3b6373338c9b
 	github.com/openshift/custom-resource-status v0.0.0-20190822192428-e62f2f3b79f3
 	github.com/openshift/hive v0.0.0-20200302220132-867d7fb189bf
+	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect
