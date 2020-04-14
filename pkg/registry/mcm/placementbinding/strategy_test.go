@@ -8,6 +8,8 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
 var goodpb = &mcm.PlacementBinding{
@@ -84,5 +86,43 @@ func TestValidatePlacementBinding(t *testing.T) {
 	err = validatePlacementBinding(badpb)
 	if err == nil {
 		t.Errorf("should failed to validate placementbinding - empty subject apigroup")
+	}
+}
+
+func newPlacementBinding() runtime.Object {
+	return goodpb.DeepCopy()
+}
+func TestPlacementBindingStrategy(t *testing.T) {
+	ctx := genericapirequest.NewDefaultContext()
+
+	cfg := newPlacementBinding()
+
+	DefaultStrategy.PrepareForCreate(ctx, cfg)
+
+	errs := DefaultStrategy.Validate(ctx, cfg)
+	if len(errs) != 0 {
+		t.Errorf("unexpected error validating %v", errs)
+	}
+
+	newCfg := newPlacementBinding()
+
+	DefaultStrategy.PrepareForUpdate(ctx, newCfg, cfg)
+
+	errs = DefaultStrategy.ValidateUpdate(ctx, newCfg, cfg)
+	if len(errs) != 0 {
+		t.Errorf("Validation error")
+	}
+}
+
+func TestGetAttrs(t *testing.T) {
+	cjr1 := newPlacementBinding()
+	MatchPlacementBinding(nil, nil)
+	_, _, err := GetAttrs(cjr1)
+	if err != nil {
+		t.Errorf("error in GetAttrs")
+	}
+	_, _, err = GetAttrs(nil)
+	if err == nil {
+		t.Errorf("error in GetAttrs")
 	}
 }

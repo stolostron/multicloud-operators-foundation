@@ -21,9 +21,20 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
+func newClusterStatue(name string, url string) runtime.Object {
+	return &mcm.ClusterStatus{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: mcm.ClusterStatusSpec{
+			ConsoleURL: url,
+		},
+	}
+}
 func TestClusterStatusStrategy(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
 	if !Strategy.NamespaceScoped() {
@@ -35,14 +46,7 @@ func TestClusterStatusStrategy(t *testing.T) {
 	if !Strategy.AllowUnconditionalUpdate() {
 		t.Errorf("ClusterStatus should not allow unconditional update")
 	}
-	cfg := &mcm.ClusterStatus{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "clusterstatus1",
-		},
-		Spec: mcm.ClusterStatusSpec{
-			ConsoleURL: "https://0.0.0.1",
-		},
-	}
+	cfg := newClusterStatue("clusterstatus1", "https:127.0.0.1")
 
 	Strategy.PrepareForCreate(ctx, cfg)
 
@@ -51,14 +55,7 @@ func TestClusterStatusStrategy(t *testing.T) {
 		t.Errorf("unexpected error validating %v", errs)
 	}
 
-	newCfg := &mcm.ClusterStatus{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "clusterstatus1",
-		},
-		Spec: mcm.ClusterStatusSpec{
-			ConsoleURL: "https://0.0.0.2",
-		},
-	}
+	newCfg := newClusterStatue("clusterstatus1", "https:127.0.0.2")
 
 	Strategy.PrepareForUpdate(ctx, newCfg, cfg)
 
@@ -71,14 +68,7 @@ func TestClusterStatusStrategy(t *testing.T) {
 func TestClusterstatusStatusStrategy(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
 
-	cfg := &mcm.ClusterStatus{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "clusterstatus1",
-		},
-		Spec: mcm.ClusterStatusSpec{
-			ConsoleURL: "https://0.0.0.1",
-		},
-	}
+	cfg := newClusterStatue("clusterstatus2", "https:127.0.0.1")
 
 	StatusStrategy.PrepareForCreate(ctx, cfg)
 
@@ -87,19 +77,25 @@ func TestClusterstatusStatusStrategy(t *testing.T) {
 		t.Errorf("unexpected error validating %v", errs)
 	}
 
-	newCfg := &mcm.ClusterStatus{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "clusterstatus1",
-		},
-		Spec: mcm.ClusterStatusSpec{
-			ConsoleURL: "https://0.0.0.2",
-		},
-	}
+	newCfg := newClusterStatue("clusterstatus2", "https:127.0.0.2")
 
 	StatusStrategy.PrepareForUpdate(ctx, newCfg, cfg)
 
 	errs = StatusStrategy.ValidateUpdate(ctx, newCfg, cfg)
 	if len(errs) != 0 {
 		t.Errorf("Validation error")
+	}
+}
+
+func TestGetAttrs(t *testing.T) {
+	cjr1 := newClusterStatue("clusterstatus1", "https:127.0.0.2")
+	MatchClusterStatus(nil, nil)
+	_, _, err := GetAttrs(cjr1)
+	if err != nil {
+		t.Errorf("error in GetAttrs")
+	}
+	_, _, err = GetAttrs(nil)
+	if err == nil {
+		t.Errorf("error in GetAttrs")
 	}
 }

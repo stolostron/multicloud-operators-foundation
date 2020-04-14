@@ -21,12 +21,20 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
-var replica int32
-var newReplica int32
-
+func newPlacementPolicy(name string, replica int32) runtime.Object {
+	return &mcm.PlacementPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: mcm.PlacementPolicySpec{
+			Replicas: &replica,
+		},
+	}
+}
 func TestPlacementPolicyStrategy(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
 	if !Strategy.NamespaceScoped() {
@@ -38,15 +46,7 @@ func TestPlacementPolicyStrategy(t *testing.T) {
 	if !Strategy.AllowUnconditionalUpdate() {
 		t.Errorf("PlacementPolicy should not allow unconditional update")
 	}
-	replica = 2
-	cfg := &mcm.PlacementPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "PlacementPolicy1",
-		},
-		Spec: mcm.PlacementPolicySpec{
-			Replicas: &replica,
-		},
-	}
+	cfg := newPlacementPolicy("pp1", 2)
 
 	Strategy.PrepareForCreate(ctx, cfg)
 
@@ -54,15 +54,8 @@ func TestPlacementPolicyStrategy(t *testing.T) {
 	if len(errs) != 0 {
 		t.Errorf("unexpected error validating %v", errs)
 	}
-	newReplica = 3
-	newCfg := &mcm.PlacementPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "PlacementPolicy1",
-		},
-		Spec: mcm.PlacementPolicySpec{
-			Replicas: &newReplica,
-		},
-	}
+
+	newCfg := newPlacementPolicy("pp1", 3)
 
 	Strategy.PrepareForUpdate(ctx, newCfg, cfg)
 
@@ -75,15 +68,7 @@ func TestPlacementPolicyStrategy(t *testing.T) {
 func TestPlacementPolicyStatusStrategy(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
 
-	replica = 2
-	cfg := &mcm.PlacementPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "PlacementPolicy1",
-		},
-		Spec: mcm.PlacementPolicySpec{
-			Replicas: &replica,
-		},
-	}
+	cfg := newPlacementPolicy("pp2", 2)
 
 	StatusStrategy.PrepareForCreate(ctx, cfg)
 
@@ -92,20 +77,25 @@ func TestPlacementPolicyStatusStrategy(t *testing.T) {
 		t.Errorf("unexpected error validating %v", errs)
 	}
 
-	newReplica = 3
-	newCfg := &mcm.PlacementPolicy{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "PlacementPolicy1",
-		},
-		Spec: mcm.PlacementPolicySpec{
-			Replicas: &newReplica,
-		},
-	}
+	newCfg := newPlacementPolicy("pp2", 3)
 
 	StatusStrategy.PrepareForUpdate(ctx, newCfg, cfg)
 
 	errs = StatusStrategy.ValidateUpdate(ctx, newCfg, cfg)
 	if len(errs) != 0 {
 		t.Errorf("Validation error")
+	}
+}
+
+func TestGetAttrs(t *testing.T) {
+	cjr1 := newPlacementPolicy("pp1", 3)
+	MatchPlacementPolicy(nil, nil)
+	_, _, err := GetAttrs(cjr1)
+	if err != nil {
+		t.Errorf("error in GetAttrs")
+	}
+	_, _, err = GetAttrs(nil)
+	if err == nil {
+		t.Errorf("error in GetAttrs")
 	}
 }

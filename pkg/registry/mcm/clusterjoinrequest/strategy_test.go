@@ -22,6 +22,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	certificates "k8s.io/api/certificates/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
@@ -31,6 +32,21 @@ var clientCertUsage = []certificates.KeyUsage{
 	certificates.UsageClientAuth,
 }
 
+func newClusterJoinrequest(name string, clustername string, clusternamespace string) runtime.Object {
+	return &mcm.ClusterJoinRequest{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: mcm.ClusterJoinRequestSpec{
+			ClusterName:      clustername,
+			ClusterNamespace: clusternamespace,
+			CSR: certificates.CertificateSigningRequestSpec{
+				Request: []byte(""),
+				Usages:  clientCertUsage,
+			},
+		},
+	}
+}
 func TestClusterJoinRequestStrategy(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
 	if Strategy.NamespaceScoped() {
@@ -42,19 +58,7 @@ func TestClusterJoinRequestStrategy(t *testing.T) {
 	if !Strategy.AllowUnconditionalUpdate() {
 		t.Errorf("ClusterJoinRequest should not allow unconditional update")
 	}
-	cfg := &mcm.ClusterJoinRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "acmjoinName",
-		},
-		Spec: mcm.ClusterJoinRequestSpec{
-			ClusterName:      "clustername1",
-			ClusterNamespace: "clusternamespace1",
-			CSR: certificates.CertificateSigningRequestSpec{
-				Request: []byte(""),
-				Usages:  clientCertUsage,
-			},
-		},
-	}
+	cfg := newClusterJoinrequest("cjr1", "c1", "cn1")
 
 	Strategy.PrepareForCreate(ctx, cfg)
 
@@ -63,19 +67,7 @@ func TestClusterJoinRequestStrategy(t *testing.T) {
 		t.Errorf("unexpected error validating %v", errs)
 	}
 
-	newCfg := &mcm.ClusterJoinRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "acmjoinName",
-		},
-		Spec: mcm.ClusterJoinRequestSpec{
-			ClusterName:      "clustername2",
-			ClusterNamespace: "clusternamespace2",
-			CSR: certificates.CertificateSigningRequestSpec{
-				Request: []byte("update"),
-				Usages:  clientCertUsage,
-			},
-		},
-	}
+	newCfg := newClusterJoinrequest("cjr1", "c2", "cn2")
 
 	Strategy.PrepareForUpdate(ctx, newCfg, cfg)
 
@@ -88,40 +80,29 @@ func TestClusterJoinRequestStrategy(t *testing.T) {
 func TestClusterJoinRequestStatusStrategy(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
 
-	cfg := &mcm.ClusterJoinRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "acmjoinName",
-		},
-		Spec: mcm.ClusterJoinRequestSpec{
-			ClusterName:      "clustername1",
-			ClusterNamespace: "clusternamespace1",
-			CSR: certificates.CertificateSigningRequestSpec{
-				Request: []byte(""),
-				Usages:  clientCertUsage,
-			},
-		},
-	}
+	cfg := newClusterJoinrequest("cjr2", "c1", "cn1")
 
 	StatusStrategy.PrepareForCreate(ctx, cfg)
 
-	newCfg := &mcm.ClusterJoinRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "acmjoinName",
-		},
-		Spec: mcm.ClusterJoinRequestSpec{
-			ClusterName:      "clustername2",
-			ClusterNamespace: "clusternamespace2",
-			CSR: certificates.CertificateSigningRequestSpec{
-				Request: []byte("update"),
-				Usages:  clientCertUsage,
-			},
-		},
-	}
+	newCfg := newClusterJoinrequest("cjr2", "c2", "cn2")
 
 	StatusStrategy.PrepareForUpdate(ctx, newCfg, cfg)
 
 	errs := StatusStrategy.ValidateUpdate(ctx, newCfg, cfg)
 	if len(errs) != 0 {
 		t.Errorf("Validation error")
+	}
+}
+
+func TestGetAttrs(t *testing.T) {
+	cjr1 := newClusterJoinrequest("cjr1", "c2", "cn2")
+	MatchClusterJoinRequest(nil, nil)
+	_, _, err := GetAttrs(cjr1)
+	if err != nil {
+		t.Errorf("error in GetAttrs")
+	}
+	_, _, err = GetAttrs(nil)
+	if err == nil {
+		t.Errorf("error in GetAttrs")
 	}
 }
