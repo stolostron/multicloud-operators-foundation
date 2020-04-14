@@ -21,9 +21,20 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
+func newResourceView(name string, summaryOnly bool) runtime.Object {
+	return &mcm.ResourceView{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: mcm.ResourceViewSpec{
+			SummaryOnly: summaryOnly,
+		},
+	}
+}
 func TestResourceViewStrategy(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
 	if !Strategy.NamespaceScoped() {
@@ -35,14 +46,7 @@ func TestResourceViewStrategy(t *testing.T) {
 	if !Strategy.AllowUnconditionalUpdate() {
 		t.Errorf("ResourceView should not allow unconditional update")
 	}
-	cfg := &mcm.ResourceView{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "ResourceView1",
-		},
-		Spec: mcm.ResourceViewSpec{
-			SummaryOnly: true,
-		},
-	}
+	cfg := newResourceView("rv1", true)
 
 	Strategy.PrepareForCreate(ctx, cfg)
 
@@ -51,14 +55,7 @@ func TestResourceViewStrategy(t *testing.T) {
 		t.Errorf("expected error validating %v", errs)
 	}
 
-	newCfg := &mcm.ResourceView{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "ResourceView1",
-		},
-		Spec: mcm.ResourceViewSpec{
-			SummaryOnly: false,
-		},
-	}
+	newCfg := newResourceView("rv1", false)
 
 	Strategy.PrepareForUpdate(ctx, newCfg, cfg)
 
@@ -71,14 +68,7 @@ func TestResourceViewStrategy(t *testing.T) {
 func TestResourceViewStatusStrategy(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
 
-	cfg := &mcm.ResourceView{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "ResourceView1",
-		},
-		Spec: mcm.ResourceViewSpec{
-			SummaryOnly: false,
-		},
-	}
+	cfg := newResourceView("rv2", true)
 
 	StatusStrategy.PrepareForCreate(ctx, cfg)
 
@@ -87,19 +77,25 @@ func TestResourceViewStatusStrategy(t *testing.T) {
 		t.Errorf("unexpected error validating %v", errs)
 	}
 
-	newCfg := &mcm.ResourceView{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "ResourceView1",
-		},
-		Spec: mcm.ResourceViewSpec{
-			SummaryOnly: true,
-		},
-	}
+	newCfg := newResourceView("rv2", false)
 
 	StatusStrategy.PrepareForUpdate(ctx, newCfg, cfg)
 
 	errs = StatusStrategy.ValidateUpdate(ctx, newCfg, cfg)
 	if len(errs) != 0 {
 		t.Errorf("Validation error")
+	}
+}
+
+func TestGetAttrs(t *testing.T) {
+	rv1 := newResourceView("rv1", false)
+	MatchResourceView(nil, nil)
+	_, _, err := GetAttrs(rv1)
+	if err != nil {
+		t.Errorf("error in GetAttrs")
+	}
+	_, _, err = GetAttrs(nil)
+	if err == nil {
+		t.Errorf("error in GetAttrs")
 	}
 }

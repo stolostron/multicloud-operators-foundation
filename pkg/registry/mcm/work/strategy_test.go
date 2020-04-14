@@ -10,9 +10,22 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
+func newWork(name string, namespace string) runtime.Object {
+	return &mcm.Work{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: mcm.WorkSpec{
+			Type:  mcm.ResourceWorkType,
+			Scope: mcm.ResourceFilter{},
+		},
+	}
+}
 func TestValidateWork(t *testing.T) {
 	work := &mcm.Work{
 		ObjectMeta: metav1.ObjectMeta{
@@ -67,29 +80,11 @@ func TestWorkStrategy(t *testing.T) {
 	if !Strategy.AllowUnconditionalUpdate() {
 		t.Errorf("Work should not allow unconditional update")
 	}
-	cfg := &mcm.Work{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "work1",
-			Namespace: "work1",
-		},
-		Spec: mcm.WorkSpec{
-			Type:  mcm.ResourceWorkType,
-			Scope: mcm.ResourceFilter{},
-		},
-	}
+	cfg := newWork("work1", "work1")
 
 	Strategy.PrepareForCreate(ctx, cfg)
 
-	newCfg := &mcm.Work{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "work1",
-			Namespace: "work1",
-		},
-		Spec: mcm.WorkSpec{
-			Type:  mcm.ActionWorkType,
-			Scope: mcm.ResourceFilter{},
-		},
-	}
+	newCfg := newWork("work1", "work2")
 
 	Strategy.PrepareForUpdate(ctx, newCfg, cfg)
 
@@ -102,34 +97,29 @@ func TestWorkStrategy(t *testing.T) {
 func TestWorkStatusStrategy(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
 
-	cfg := &mcm.Work{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "work1",
-			Namespace: "work1",
-		},
-		Spec: mcm.WorkSpec{
-			Type:  mcm.ResourceWorkType,
-			Scope: mcm.ResourceFilter{},
-		},
-	}
+	cfg := newWork("work2", "work1")
 
 	StatusStrategy.PrepareForCreate(ctx, cfg)
 
-	newCfg := &mcm.Work{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "work1",
-			Namespace: "work1",
-		},
-		Spec: mcm.WorkSpec{
-			Type:  mcm.ActionWorkType,
-			Scope: mcm.ResourceFilter{},
-		},
-	}
+	newCfg := newWork("work2", "work2")
 
 	StatusStrategy.PrepareForUpdate(ctx, newCfg, cfg)
 
 	errs := StatusStrategy.ValidateUpdate(ctx, newCfg, cfg)
 	if len(errs) != 0 {
 		t.Errorf("Validation error")
+	}
+}
+
+func TestGetAttrs(t *testing.T) {
+	rv1 := newWork("work1", "work")
+	MatchWork(nil, nil)
+	_, _, err := GetAttrs(rv1)
+	if err != nil {
+		t.Errorf("error in GetAttrs")
+	}
+	_, _, err = GetAttrs(nil)
+	if err == nil {
+		t.Errorf("error in GetAttrs")
 	}
 }

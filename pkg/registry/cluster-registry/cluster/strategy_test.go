@@ -3,52 +3,65 @@
 // (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
 // US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
 
-package workset
+package cluster
 
 import (
 	"testing"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
+	clusterregistry "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
 
-func newWorkSet(name string, namespace string, workname string) runtime.Object {
-	return &mcm.WorkSet{
+func newCluster(name string, namespace string, serverAddress string) runtime.Object {
+	return &clusterregistry.Cluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+			Labels:    map[string]string{},
 		},
-		Spec: mcm.WorkSetSpec{
-			Template: mcm.WorkTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: workname,
+		Spec: clusterregistry.ClusterSpec{
+			KubernetesAPIEndpoints: clusterregistry.KubernetesAPIEndpoints{
+				ServerEndpoints: []clusterregistry.ServerAddressByClientCIDR{
+					{
+						ServerAddress: serverAddress,
+					},
+				},
+			},
+		},
+		Status: clusterregistry.ClusterStatus{
+			Conditions: []clusterregistry.ClusterCondition{
+				{
+					Type:   clusterregistry.ClusterOK,
+					Status: corev1.ConditionTrue,
 				},
 			},
 		},
 	}
 }
-
-func TestWorkSetStrategy(t *testing.T) {
+func TestClusterStrategy(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
 	if !Strategy.NamespaceScoped() {
-		t.Errorf("WorkSet must be namespace scoped")
+		t.Errorf("Cluster must not be namespace scoped")
 	}
 	if Strategy.AllowCreateOnUpdate() {
-		t.Errorf("WorkSet should not allow create on update")
+		t.Errorf("Cluster should not allow create on update")
 	}
 	if !Strategy.AllowUnconditionalUpdate() {
-		t.Errorf("WorkSet should not allow unconditional update")
+		t.Errorf("Cluster should not allow unconditional update")
 	}
-	cfg := newWorkSet("ws1", "ws1", "w1")
+	cfg := newCluster("cluster1", "clusternamespacec1", "127.0.0.1:8443")
 
 	Strategy.PrepareForCreate(ctx, cfg)
+
 	errs := Strategy.Validate(ctx, cfg)
 	if len(errs) != 0 {
 		t.Errorf("unexpected error validating %v", errs)
 	}
-	newCfg := newWorkSet("ws1", "ws1", "w2")
+
+	newCfg := newCluster("cluster1", "clusternamespacec1", "127.0.0.2:8443")
 
 	Strategy.PrepareForUpdate(ctx, newCfg, cfg)
 
@@ -58,20 +71,21 @@ func TestWorkSetStrategy(t *testing.T) {
 	}
 }
 
-func TestWorkSetStatusStrategy(t *testing.T) {
+func TestClusterStatusStrategy(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
-
-	cfg := newWorkSet("ws2", "ws2", "w1")
+	cfg := newCluster("cluster2", "clusternamespacec2", "127.0.0.1:8443")
 
 	StatusStrategy.PrepareForCreate(ctx, cfg)
 
-	newCfg := newWorkSet("ws2", "ws2", "w2")
-
-	StatusStrategy.PrepareForUpdate(ctx, newCfg, cfg)
 	errs := StatusStrategy.Validate(ctx, cfg)
 	if len(errs) != 0 {
 		t.Errorf("unexpected error validating %v", errs)
 	}
+
+	newCfg := newCluster("cluster2", "clusternamespacec2", "127.0.0.2:8443")
+
+	StatusStrategy.PrepareForUpdate(ctx, newCfg, cfg)
+
 	errs = StatusStrategy.ValidateUpdate(ctx, newCfg, cfg)
 	if len(errs) != 0 {
 		t.Errorf("Validation error")
@@ -79,9 +93,9 @@ func TestWorkSetStatusStrategy(t *testing.T) {
 }
 
 func TestGetAttrs(t *testing.T) {
-	rv1 := newWorkSet("ws1", "ws1", "w2")
-	MatchWorkSet(nil, nil)
-	_, _, err := GetAttrs(rv1)
+	cluster1 := newCluster("cluster1", "clusternamespacec1", "127.0.0.2:8443")
+	MatchCluster(nil, nil)
+	_, _, err := GetAttrs(cluster1)
 	if err != nil {
 		t.Errorf("error in GetAttrs")
 	}

@@ -21,9 +21,20 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
 )
 
+func newLeaderVote(name string, vote int32) runtime.Object {
+	return &mcm.LeaderVote{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: mcm.LeaderVoteSpec{
+			Vote: vote,
+		},
+	}
+}
 func TestLeaderVoteStrategy(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
 	if Strategy.NamespaceScoped() {
@@ -35,14 +46,7 @@ func TestLeaderVoteStrategy(t *testing.T) {
 	if !Strategy.AllowUnconditionalUpdate() {
 		t.Errorf("LeaderVote should not allow unconditional update")
 	}
-	cfg := &mcm.LeaderVote{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "LeaderVote1",
-		},
-		Spec: mcm.LeaderVoteSpec{
-			Vote: 1,
-		},
-	}
+	cfg := newLeaderVote("leadervote1", 1)
 
 	Strategy.PrepareForCreate(ctx, cfg)
 
@@ -51,14 +55,7 @@ func TestLeaderVoteStrategy(t *testing.T) {
 		t.Errorf("unexpected error validating %v", errs)
 	}
 
-	newCfg := &mcm.LeaderVote{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "LeaderVote1",
-		},
-		Spec: mcm.LeaderVoteSpec{
-			Vote: 2,
-		},
-	}
+	newCfg := newLeaderVote("leadervote1", 2)
 
 	Strategy.PrepareForUpdate(ctx, newCfg, cfg)
 
@@ -71,14 +68,7 @@ func TestLeaderVoteStrategy(t *testing.T) {
 func TestLeaderVoteStatusStrategy(t *testing.T) {
 	ctx := genericapirequest.NewDefaultContext()
 
-	cfg := &mcm.LeaderVote{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "LeaderVote1",
-		},
-		Spec: mcm.LeaderVoteSpec{
-			Vote: 1,
-		},
-	}
+	cfg := newLeaderVote("leadervote2", 1)
 
 	StatusStrategy.PrepareForCreate(ctx, cfg)
 
@@ -87,19 +77,25 @@ func TestLeaderVoteStatusStrategy(t *testing.T) {
 		t.Errorf("unexpected error validating %v", errs)
 	}
 
-	newCfg := &mcm.LeaderVote{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "LeaderVote1",
-		},
-		Spec: mcm.LeaderVoteSpec{
-			Vote: 2,
-		},
-	}
+	newCfg := newLeaderVote("leadervote2", 2)
 
 	StatusStrategy.PrepareForUpdate(ctx, newCfg, cfg)
 
 	errs = StatusStrategy.ValidateUpdate(ctx, newCfg, cfg)
 	if len(errs) != 0 {
 		t.Errorf("Validation error")
+	}
+}
+
+func TestGetAttrs(t *testing.T) {
+	cjr1 := newLeaderVote("leadervote1", 2)
+	MatchLeaderVote(nil, nil)
+	_, _, err := GetAttrs(cjr1)
+	if err != nil {
+		t.Errorf("error in GetAttrs")
+	}
+	_, _, err = GetAttrs(nil)
+	if err == nil {
+		t.Errorf("error in GetAttrs")
 	}
 }
