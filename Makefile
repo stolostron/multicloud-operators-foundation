@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 # Image URL to use all building/pushing image targets;
 # Use your own docker registry and image name for dev/test by overridding the IMG and REGISTRY environment variable.
 IMG ?= $(shell cat COMPONENT_NAME 2> /dev/null)
@@ -70,6 +71,14 @@ default::
 
 include common/Makefile.common.mk
 include test/e2e/Makefile.e2e.mk
+
+############################################################
+# copyright check section
+############################################################
+
+copyright-check:
+	./build/copyright-check.sh $(TRAVIS_BRANCH) $(TRAVIS_PULL_REQUEST_BRANCH)
+
 
 ############################################################
 # format section
