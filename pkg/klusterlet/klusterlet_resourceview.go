@@ -41,7 +41,10 @@ func (k *Klusterlet) handleResourceWork(work *v1beta1.Work) error {
 			return decerr
 		}
 		_, decerr = w.Write(data)
-		w.Close()
+		err = w.Close()
+		if err != nil {
+			return err
+		}
 		if decerr != nil {
 			return decerr
 		}

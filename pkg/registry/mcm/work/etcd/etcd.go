@@ -223,7 +223,10 @@ func (r *StatusREST) Update(
 				return nil, false, decerr
 			}
 			_, decerr = w.Write(updatedWork.Status.Result.Raw)
-			w.Close()
+			err = w.Close()
+			if err != nil {
+				return nil, false, err
+			}
 			if decerr != nil {
 				return nil, false, decerr
 			}
