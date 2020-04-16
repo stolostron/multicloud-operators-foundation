@@ -56,10 +56,11 @@ func newCJR(namespace, name string, renewal bool) *v1alpha1.ClusterJoinRequest {
 	return cjr
 }
 
-func newCSR(name string) *csrv1beta1.CertificateSigningRequest {
+func newCSR(namespace, name string) *csrv1beta1.CertificateSigningRequest {
 	return &csrv1beta1.CertificateSigningRequest{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:      name,
+			Namespace: namespace,
 		},
 	}
 }
@@ -84,7 +85,7 @@ func newClusters(clusterMeta []metav1.ObjectMeta) []*clusterv1alpha1.Cluster {
 
 func TestApproveJoinCJR(t *testing.T) {
 	hcmjoin := newCJR("c1", "c1", false)
-	csr := newCSR(hcmjoin.Name)
+	csr := newCSR(hcmjoin.Namespace, hcmjoin.Name)
 	clusters := newClusters(nil)
 
 	controller := newController(hcmjoin, csr)
@@ -102,7 +103,7 @@ func TestApproveJoinCJR(t *testing.T) {
 
 func TestApproveJoinCJRFromOfflineCluster(t *testing.T) {
 	hcmjoin := newCJR("c1", "c1", false)
-	csr := newCSR(hcmjoin.Name)
+	csr := newCSR(hcmjoin.Namespace, hcmjoin.Name)
 	clusters := []*clusterv1alpha1.Cluster{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -127,7 +128,7 @@ func TestApproveJoinCJRFromOfflineCluster(t *testing.T) {
 
 func TestDenyJoinCJRWithDuplicatedNamespace(t *testing.T) {
 	hcmjoin := newCJR("c1", "c1", false)
-	csr := newCSR(hcmjoin.Name)
+	csr := newCSR(hcmjoin.Namespace, hcmjoin.Name)
 	clusters := newClusters([]metav1.ObjectMeta{
 		{
 			Namespace: "c1",
@@ -148,7 +149,7 @@ func TestDenyJoinCJRWithDuplicatedNamespace(t *testing.T) {
 
 func TestDenyJoinCJRWithDuplicatedName(t *testing.T) {
 	hcmjoin := newCJR("c1", "c1", false)
-	csr := newCSR(hcmjoin.Name)
+	csr := newCSR(hcmjoin.Namespace, hcmjoin.Name)
 	clusters := newClusters([]metav1.ObjectMeta{
 		{
 			Namespace: "c2",
@@ -169,7 +170,7 @@ func TestDenyJoinCJRWithDuplicatedName(t *testing.T) {
 
 func TestApproveRenewalCJR(t *testing.T) {
 	hcmjoin := newCJR("c1", "c1", true)
-	csr := newCSR(hcmjoin.Name)
+	csr := newCSR(hcmjoin.Namespace, hcmjoin.Name)
 	clusters := newClusters([]metav1.ObjectMeta{
 		{
 			Namespace: "c1",
@@ -192,7 +193,7 @@ func TestApproveRenewalCJR(t *testing.T) {
 
 func TestDenyRenewalCJRFromUnknownCluster(t *testing.T) {
 	hcmjoin := newCJR("c2", "c2", true)
-	csr := newCSR(hcmjoin.Name)
+	csr := newCSR(hcmjoin.Namespace, hcmjoin.Name)
 	clusters := newClusters([]metav1.ObjectMeta{
 		{
 			Namespace: "c2",
@@ -213,7 +214,7 @@ func TestDenyRenewalCJRFromUnknownCluster(t *testing.T) {
 
 func TestIgnoreRenewalCJRFromOfflineCluster(t *testing.T) {
 	hcmjoin := newCJR("c2", "c2", true)
-	csr := newCSR(hcmjoin.Name)
+	csr := newCSR(hcmjoin.Namespace, hcmjoin.Name)
 	clusters := []*clusterv1alpha1.Cluster{
 		{
 			ObjectMeta: metav1.ObjectMeta{
@@ -236,4 +237,40 @@ func TestIgnoreRenewalCJRFromOfflineCluster(t *testing.T) {
 	if len(csr.Status.Conditions) > 0 {
 		t.Errorf("CSR should not be approved or denied for cluster is pending or offline: \n%+v", csr.Status)
 	}
+}
+
+func TestCreateRoles(t *testing.T) {
+	hcmjoin := newCJR("c2", "c2", true)
+	csr := newCSR(hcmjoin.Namespace, hcmjoin.Name)
+
+	controller := newController(hcmjoin, csr)
+	hcmJoinReq := &hcmv1alpha1.ClusterJoinRequest{
+		Spec: hcmv1alpha1.ClusterJoinRequestSpec{
+			ClusterNamespace: "c2",
+		},
+	}
+	err := controller.createRoles(hcmJoinReq)
+	if err != nil {
+		t.Errorf("fail to create roles")
+	}
+}
+
+func TestHandle(t *testing.T) {
+	hcmjoin := newCJR("c2", "c2", true)
+	csr := newCSR(hcmjoin.Namespace, hcmjoin.Name)
+
+	controller := newController(hcmjoin, csr)
+	controller.hcmJoinHandler("c2/c2")
+	controller.csrHandler("c2/c2")
+}
+
+func TestProcessNextWorkItem(t *testing.T) {
+	hcmjoin := newCJR("c2", "c2", true)
+	csr := newCSR(hcmjoin.Namespace, hcmjoin.Name)
+
+	controller := newController(hcmjoin, csr)
+	controller.enqueue(csr, controller.csrworkqueue)
+	controller.enqueue(hcmjoin, controller.hcmjoinworkqueue)
+	controller.processNextWorkItem(controller.csrworkqueue, controller.csrHandler)
+	controller.processNextWorkItem(controller.hcmjoinworkqueue, controller.hcmJoinHandler)
 }

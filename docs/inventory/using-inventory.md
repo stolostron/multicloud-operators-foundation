@@ -20,7 +20,7 @@ data:
 ```
 
 ```yaml
-apiVersion: midas.io/v1alpha1
+apiVersion: inventory.open-cluster-management.io/v1alpha1
 kind: BareMetalAsset
 metadata:
   name: baremetalasset-worker-0
@@ -57,7 +57,7 @@ Also, note that BMA object metadata has no values populated for the following la
 metadata:
   creationTimestamp: "2020-02-26T19:01:42Z"
   finalizers:
-  - baremetalasset.midas.io
+  - baremetalasset.inventory.open-cluster-management.io
   generation: 2
   labels:
     metal3.io/cluster-deployment-name: ""
@@ -81,12 +81,12 @@ Update the BMA spec with role set to worker, and clusterDeployment name and name
 You will notice that the metadata labels are updated to their appropriate values. With the labels set, a management application can look for BMAs with a partcular role and clusterDeployment and add them to the cluster.
 
 ```yaml
-apiVersion: midas.io/v1alpha1
+apiVersion: inventory.open-cluster-management.io/v1alpha1
 kind: BareMetalAsset
 metadata:
   creationTimestamp: "2020-02-26T19:01:42Z"
   finalizers:
-  - baremetalasset.midas.io
+  - baremetalasset.inventory.open-cluster-management.io
   generation: 4
   labels:
     metal3.io/cluster-deployment-name: cluster0
@@ -95,7 +95,7 @@ metadata:
   name: baremetalasset-worker-0
   namespace: default
   resourceVersion: "23751"
-  selfLink: /apis/midas.io/v1alpha1/namespaces/default/baremetalassets/baremetalasset-worker-0
+  selfLink: /apis/inventory.open-cluster-management.io/v1alpha1/namespaces/default/baremetalassets/baremetalasset-worker-0
   uid: dd83e7c1-2882-4aa8-bb6f-a36cb428896c
 spec:
   bmc:

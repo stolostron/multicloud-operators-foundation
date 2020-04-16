@@ -42,7 +42,7 @@ const (
 	// BareMetalHostKind contains the value of kind BareMetalHost
 	BareMetalHostKind = "BareMetalHost"
 	// BareMetalAssetFinalizer is the finalizer used on BareMetalAsset resource
-	BareMetalAssetFinalizer = "baremetalasset.midas.io"
+	BareMetalAssetFinalizer = "baremetalasset.inventory.open-cluster-management.io"
 )
 
 const (
@@ -258,6 +258,7 @@ func (r *ReconcileBareMetalAsset) Reconcile(request reconcile.Request) (reconcil
 	for _, f := range []func(*inventoryv1alpha1.BareMetalAsset) error{
 		r.checkAssetSecret,
 		r.ensureLabels,
+		r.cleanupOldHiveSyncSet,
 		r.checkClusterDeployment,
 		r.ensureHiveSyncSet,
 		r.checkHiveSyncSetInstance,
@@ -371,40 +372,6 @@ func (r *ReconcileBareMetalAsset) checkClusterDeployment(instance *inventoryv1al
 		conditionsv1.RemoveStatusCondition(&instance.Status.Conditions, inventoryv1alpha1.ConditionAssetSyncStarted)
 		conditionsv1.RemoveStatusCondition(&instance.Status.Conditions, inventoryv1alpha1.ConditionAssetSyncCompleted)
 
-		// Without a clusterName, we do not know what namespace the syncset is in.
-		// Get the syncset from relatedobjects if it exists
-		hscRef := corev1.ObjectReference{}
-		for _, ro := range instance.Status.RelatedObjects {
-			if ro.Name == instance.Name && ro.Kind == "SyncSet" && ro.APIVersion == hivev1.SchemeGroupVersion.String() {
-				hscRef = ro
-				break
-			}
-		}
-		if hscRef == (corev1.ObjectReference{}) {
-			// No syncset found in relatedObjects. Nothing to do.
-			return bmaerrors.NewNoClusterError()
-		}
-
-		// If clusterName is not specified, delete the syncset if it exists
-		klog.Infof("Cleaning up Hive SyncSet (%s/%s)", hscRef.Namespace, hscRef.Name)
-		err := r.client.Delete(context.TODO(), &hivev1.SyncSet{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: hscRef.Namespace,
-				Name:      hscRef.Name,
-			},
-		})
-		if err != nil {
-			if !errors.IsNotFound(err) {
-				klog.Errorf("Failed to delete Hive SyncSet, %s", err)
-				return err
-			}
-		}
-
-		// Remove SyncSet from related objects
-		if err := objectreferencesv1.RemoveObjectReference(&instance.Status.RelatedObjects, hscRef); err != nil {
-			klog.Errorf("Failed to remove reference, %v", err)
-			return err
-		}
 		return bmaerrors.NewNoClusterError()
 	}
 
@@ -461,6 +428,7 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *inventoryv1alpha1.
 				Reason:  "SyncSetCreated",
 				Message: "SyncSet created successfully",
 			})
+			return nil
 		}
 		// other error. fail reconcile
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
@@ -722,6 +690,66 @@ func (r *ReconcileBareMetalAsset) deleteSyncSet(instance *inventoryv1alpha1.Bare
 			return err
 		}
 	}
+	return nil
+}
+
+func (r *ReconcileBareMetalAsset) cleanupOldHiveSyncSet(instance *inventoryv1alpha1.BareMetalAsset) error {
+	// If clusterDeployment.Namespace is updated to a new namespace or removed from the spec, we need to
+	// ensure that existing syncset, if any, is deleted from the old namespace.
+	// We can get the old syncset from relatedobjects if it exists.
+	hscRef := corev1.ObjectReference{}
+	for _, ro := range instance.Status.RelatedObjects {
+		if ro.Name == instance.Name &&
+			ro.Kind == "SyncSet" &&
+			ro.APIVersion == hivev1.SchemeGroupVersion.String() &&
+			ro.Namespace != instance.Spec.ClusterDeployment.Namespace {
+			hscRef = ro
+			break
+		}
+	}
+	if hscRef == (corev1.ObjectReference{}) {
+		// Nothing to do if no such syncset was found
+		return nil
+	}
+
+	// Delete syncset in old namespace
+	klog.Infof("Cleaning up Hive SyncSet in old namespace (%s/%s)", hscRef.Name, hscRef.Namespace)
+	err := r.client.Delete(context.TODO(), &hivev1.SyncSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: hscRef.Namespace,
+			Name:      hscRef.Name,
+		},
+	})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			klog.Errorf("Failed to delete Hive SyncSet (%s/%s), %v", hscRef.Name, hscRef.Namespace, err)
+			return err
+		}
+	}
+
+	found := &hivev1.SyncSetInstanceList{}
+	err = r.client.List(context.TODO(),
+		found,
+		client.InNamespace(hscRef.Namespace),
+		client.MatchingLabels{hiveconstants.SyncSetNameLabel: hscRef.Name})
+	if err != nil {
+		klog.Errorf("Problem getting Hive SyncSetInstanceList with label %s=%s, %v", hiveconstants.SyncSetNameLabel, hscRef.Name, err)
+		return err
+	}
+
+	if len(found.Items) > 0 {
+		err = fmt.Errorf("found SyncSetInstances in namespace: %v with label %v:%v. Expected: (%v) Actual: (%v)",
+			hscRef.Namespace, hiveconstants.SyncSetNameLabel, hscRef.Name, 0, len(found.Items))
+		return err
+	}
+
+	// Remove SyncSet from related objects
+	err = objectreferencesv1.RemoveObjectReference(&instance.Status.RelatedObjects, hscRef)
+	if err != nil {
+		klog.Errorf("Failed to remove reference from status.RelatedObjects, %v", err)
+		return err
+	}
+
 	return nil
 }
 
