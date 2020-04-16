@@ -153,7 +153,10 @@ func MarshalCompressEncodeArray(mongoResourceData []MongoResource) (string, erro
 	if err != nil {
 		return "", err
 	}
-	w.Close()
+	err = w.Close()
+	if err != nil {
+		return "", err
+	}
 
 	encodedData := base64.StdEncoding.EncodeToString(compressed.Bytes())
 	return encodedData, nil
