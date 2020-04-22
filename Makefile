@@ -167,7 +167,7 @@ generate_files: generate_exes $(TYPES_FILES)
 # build section
 ############################################################
 
-build: mcm-apiserver mcm-webhook mcm-controller klusterlet klusterlet-connectionmanager serviceregistry
+build: mcm-apiserver mcm-webhook mcm-controller klusterlet klusterlet-connectionmanager serviceregistry build-registration
 
 mcm-apiserver:
 	@common/scripts/gobuild.sh $(BINDIR)/mcm-apiserver -ldflags '-s -w -X $(SC_PKG)/pkg.VERSION=$(VERSION) $(BUILD_LDFLAGS)' github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-apiserver
@@ -194,6 +194,16 @@ serviceregistry:
 build-images:
 	@$(CONTAINER_ENGINE) build . -f Dockerfile -t ${IMAGE_NAME_AND_VERSION}
 	@$(CONTAINER_ENGINE) tag ${IMAGE_NAME_AND_VERSION} $(REGISTRY)/$(IMG):latest
+
+############################################################
+# registration build section
+############################################################
+
+clone-registration:
+	cd output && test -d registration || git clone https://$(GITHUB_USER):$(GITHUB_TOKEN)@github.com/open-cluster-management/registration.git
+
+build-registration: clone-registration
+	cd output/registration && make build GO_REQUIRED_MIN_VERSION:=
 
 ############################################################
 # clean section
