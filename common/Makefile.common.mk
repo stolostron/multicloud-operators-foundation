@@ -30,7 +30,7 @@ get-cluster-credentials: activate-serviceaccount
 config-docker: get-cluster-credentials
 	@common/scripts/config_docker.sh
 
-FINDFILES=find . \( -path ./.git -o -path ./.github \) -prune -o -type f
+FINDFILES=find . \( -path ./.git -o -path ./.github -o -path ./vendor -o -path ./vbh \) -prune -o -type f
 XARGS = xargs -0 ${XARGS_FLAGS}
 CLEANXARGS = xargs ${XARGS_FLAGS}
 
