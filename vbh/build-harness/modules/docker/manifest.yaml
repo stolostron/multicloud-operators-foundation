@@ -1,0 +1,14 @@
+image: __DOCKER_REGISTRY__/__DOCKER_NAMESPACE__/__DOCKER_IMAGE__:__DOCKER_TAG__
+manifests:
+  - image: __DOCKER_REGISTRY__/__DOCKER_NAMESPACE__/__DOCKER_IMAGE__-amd64:__DOCKER_TAG__
+    platform:
+      architecture: amd64
+      os: linux
+  - image: __DOCKER_REGISTRY__/__DOCKER_NAMESPACE__/__DOCKER_IMAGE__-ppc64le:__DOCKER_TAG__
+    platform:
+      architecture: ppc64le
+      os: linux
+  - image: __DOCKER_REGISTRY__/__DOCKER_NAMESPACE__/__DOCKER_IMAGE__-s390x:__DOCKER_TAG__
+    platform:
+      architecture: s390x
+      os: linux

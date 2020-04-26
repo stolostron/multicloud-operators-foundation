@@ -26,8 +26,8 @@ PWD := $(shell pwd)
 BASE_DIR := $(shell basename $(PWD))
 
 # Keep an existing GOPATH, make a private one if it is undefined
-GOPATH_DEFAULT := $(PWD)/.go
-export GOPATH ?= $(GOPATH_DEFAULT)
+# GOPATH_DEFAULT := $(PWD)/.go
+# export GOPATH ?= $(GOPATH_DEFAULT)
 TESTARGS_DEFAULT := "-v"
 export TESTARGS ?= $(TESTARGS_DEFAULT)
 DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
@@ -54,16 +54,16 @@ endif
 
 .PHONY: fmt lint test coverage build images build-push-images
 
-ifneq ("$(realpath $(DEST))", "$(realpath $(PWD))")
-    $(error Please run 'make' from $(DEST). Current directory is $(PWD))
-endif
-
 # GITHUB_USER containing '@' char must be escaped with '%40'
 GITHUB_USER := $(shell echo $(GITHUB_USER) | sed 's/@/%40/g')
 GITHUB_TOKEN ?=
 
-ifeq ($(CI),true)
-  -include $(shell curl -H 'Authorization: token ${GITHUB_TOKEN}' -H 'Accept: application/vnd.github.v4.raw' -L https://api.github.com/repos/open-cluster-management/build-harness-extensions/contents/templates/Makefile.build-harness-bootstrap -o .build-harness-bootstrap; echo .build-harness-bootstrap)
+USE_VENDORIZED_BUILD_HARNESS ?=
+
+ifndef USE_VENDORIZED_BUILD_HARNESS
+-include $(shell curl -s -H 'Authorization: token ${GITHUB_TOKEN}' -H 'Accept: application/vnd.github.v4.raw' -L https://api.github.com/repos/open-cluster-management/build-harness-extensions/contents/templates/Makefile.build-harness-bootstrap -o .build-harness-bootstrap; echo .build-harness-bootstrap)
+else
+-include vbh/.build-harness-bootstrap
 endif
 
 default::
@@ -71,6 +71,7 @@ default::
 
 include common/Makefile.common.mk
 include test/e2e/Makefile.e2e.mk
+
 
 ############################################################
 # copyright check section
@@ -170,22 +171,22 @@ generate_files: generate_exes $(TYPES_FILES)
 build: mcm-apiserver mcm-webhook mcm-controller klusterlet klusterlet-connectionmanager serviceregistry
 
 mcm-apiserver:
-	@common/scripts/gobuild.sh $(BINDIR)/mcm-apiserver -ldflags '-s -w -X $(SC_PKG)/pkg.VERSION=$(VERSION) $(BUILD_LDFLAGS)' github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-apiserver
+	@common/scripts/gobuild.sh $(BINDIR)/mcm-apiserver -ldflags '-s -w -X $(SC_PKG)/pkg.VERSION=$(VERSION) $(BUILD_LDFLAGS)' ./cmd/mcm-apiserver
 
 mcm-webhook:
-	@common/scripts/gobuild.sh $(BINDIR)/mcm-webhook github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-webhook/
+	@common/scripts/gobuild.sh $(BINDIR)/mcm-webhook ./cmd/mcm-webhook/
 
 mcm-controller:
-	@common/scripts/gobuild.sh $(BINDIR)/mcm-controller github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-controller
+	@common/scripts/gobuild.sh $(BINDIR)/mcm-controller ./cmd/mcm-controller
 
 klusterlet:
-	@common/scripts/gobuild.sh $(BINDIR)/klusterlet -ldflags '-s -w  $(BUILD_LDFLAGS)' github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet
+	@common/scripts/gobuild.sh $(BINDIR)/klusterlet -ldflags '-s -w  $(BUILD_LDFLAGS)' ./cmd/klusterlet
 
 klusterlet-connectionmanager:
-	@common/scripts/gobuild.sh $(BINDIR)/klusterlet-connectionmanager github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet-connectionmanager
+	@common/scripts/gobuild.sh $(BINDIR)/klusterlet-connectionmanager ./cmd/klusterlet-connectionmanager
 
 serviceregistry:
-	@common/scripts/gobuild.sh $(BINDIR)/serviceregistry github.com/open-cluster-management/multicloud-operators-foundation/cmd/serviceregistry
+	@common/scripts/gobuild.sh $(BINDIR)/serviceregistry ./cmd/serviceregistry
 
 ############################################################
 # images section

@@ -1,0 +1,26 @@
+export SHELL = /bin/bash
+export GITHUB_USER ?=
+export GITHUB_TOKEN ?=
+export BUILD_HARNESS_ORG ?= open-cluster-management
+export BUILD_HARNESS_PROJECT ?= vbh/build-harness
+export BUILD_HARNESS_BRANCH ?= master
+export BUILD_HARNESS_PATH ?= $(shell until [ -d "$(BUILD_HARNESS_PROJECT)" ] || [ "`pwd`" == '/' ]; do cd ..; done; pwd)/$(BUILD_HARNESS_PROJECT)
+-include $(BUILD_HARNESS_PATH)/Makefile
+export BUILD_HARNESS_EXTENSIONS_ORG ?= open-cluster-management
+export BUILD_HARNESS_EXTENSIONS_PROJECT ?= vbh/build-harness-extensions
+export BUILD_HARNESS_EXTENSIONS_BRANCH ?= master
+export BUILD_HARNESS_EXTENSIONS_PATH ?= $(shell until [ -d "$(BUILD_HARNESS_EXTENSIONS_PROJECT)" ] || [ "`pwd`" == '/' ]; do cd ..; done; pwd)/$(BUILD_HARNESS_EXTENSIONS_PROJECT)
+-include $(BUILD_HARNESS_EXTENSIONS_PATH)/Makefile
+
+.PHONY : init
+## Init build-harness
+init::
+	@echo $(shell date)
+	@echo "no initialization needed for vendorized build harness"
+
+
+.PHONY : clean
+## Clean build-harness
+clean::
+	@echo "if you want to clean the vendorized build harness, please run"
+	@echo "      rm -rf vbh"
