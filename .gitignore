@@ -8,6 +8,7 @@ generate_files
 .ko.yaml
 build-harness
 build-harness-extensions
+.build-harness-bootstrap
 .build-harness
 # override build harness vendoring
 !vbh/.bbuild-harness-bootstrap
