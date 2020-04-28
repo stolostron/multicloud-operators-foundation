@@ -2,9 +2,14 @@
 output
 apiserver.local.config
 .api_violation.report
-vendor
 generate_exes
 generate_files
 .idea
 .ko.yaml
-.build-harness-bootstrap
+build-harness
+build-harness-extensions
+.build-harness
+# override build harness vendoring
+!vbh/.bbuild-harness-bootstrap
+!vbh/build-harness
+!vbh/build-harness-extensions
