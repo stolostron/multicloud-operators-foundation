@@ -151,7 +151,7 @@ $(BINDIR)/go-to-protobuf:
 	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/go-to-protobuf
 
 $(BINDIR)/protoc-gen-gogo:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/protoc-gen-gogo
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
 
 # Regenerate all files if the gen exes changed or any "types.go" files changed
 generate_files: generate_exes $(TYPES_FILES)
@@ -167,7 +167,7 @@ generate_files: generate_exes $(TYPES_FILES)
 # build section
 ############################################################
 
-build: mcm-apiserver mcm-webhook mcm-controller klusterlet klusterlet-connectionmanager serviceregistry
+build: mcm-apiserver mcm-webhook mcm-controller klusterlet klusterlet-connectionmanager serviceregistry acm-controller
 
 mcm-apiserver:
 	@common/scripts/gobuild.sh $(BINDIR)/mcm-apiserver -ldflags '-s -w -X $(SC_PKG)/pkg.VERSION=$(VERSION) $(BUILD_LDFLAGS)' github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-apiserver
@@ -186,6 +186,9 @@ klusterlet-connectionmanager:
 
 serviceregistry:
 	@common/scripts/gobuild.sh $(BINDIR)/serviceregistry github.com/open-cluster-management/multicloud-operators-foundation/cmd/serviceregistry
+
+acm-controller:
+	@common/scripts/gobuild.sh $(BINDIR)/acm-controller github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller
 
 ############################################################
 # images section
