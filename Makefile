@@ -154,7 +154,7 @@ $(BINDIR)/go-to-protobuf:
 	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/go-to-protobuf
 
 $(BINDIR)/protoc-gen-gogo:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/protoc-gen-gogo
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
 
 # Regenerate all files if the gen exes changed or any "types.go" files changed
 generate_files: generate_exes $(TYPES_FILES)
@@ -165,12 +165,17 @@ generate_files: generate_exes $(TYPES_FILES)
   # generate all pkg/client contents
 	hack/update-client-gen.sh
 
+ generate_proxyserver_files: generate_exes $(TYPES_FILES)
+	# generate apiserver deps
+	hack/proxyserver/update-apiserver-gen.sh
+	# generate protobuf
+	hack/proxyserver/update-protobuf.sh
 
 ############################################################
 # build section
 ############################################################
 
-build: mcm-apiserver mcm-webhook mcm-controller klusterlet klusterlet-connectionmanager serviceregistry acm-agent
+build: acm-proxyserver acm-agent mcm-apiserver mcm-webhook mcm-controller klusterlet klusterlet-connectionmanager serviceregistry
 
 mcm-apiserver:
 	@common/scripts/gobuild.sh $(BINDIR)/mcm-apiserver -ldflags '-s -w -X $(SC_PKG)/pkg.VERSION=$(VERSION) $(BUILD_LDFLAGS)' ./cmd/mcm-apiserver
@@ -192,6 +197,10 @@ serviceregistry:
 
 acm-agent:
 	@common/scripts/gobuild.sh $(BINDIR)/acm-agent ./cmd/acm-agent
+
+acm-proxyserver:
+	@common/scripts/gobuild.sh $(BINDIR)/acm-proxyserver -ldflags '-s -w -X $(SC_PKG)/pkg.VERSION=$(VERSION) $(BUILD_LDFLAGS)' github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver
+
 
 ############################################################
 # images section

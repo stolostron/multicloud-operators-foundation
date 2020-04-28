@@ -39,6 +39,8 @@ images:
   newName: $IMAGE_NAME_AND_VERSION
 - name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-controller
   newName: $IMAGE_NAME_AND_VERSION
+- name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver
+  newName: $IMAGE_NAME_AND_VERSION
 EOF
 
 kubectl apply -k "${HUB_PATH}"
