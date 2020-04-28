@@ -1,0 +1,115 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: clusteractions.action.open-cluster-management.io
+spec:
+  group: action.open-cluster-management.io
+  names:
+    kind: ClusterAction
+    listKind: ClusterActionList
+    plural: clusteractions
+    singular: clusteraction
+  scope: Namespaced
+  subresources:
+    status: {}
+  validation:
+    openAPIV3Schema:
+      description: ClusterAction is the action that will be done on a cluster
+      properties:
+        apiVersion:
+          description: 'APIVersion defines the versioned schema of this representation
+            of an object. Servers should convert recognized schemas to the latest
+            internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+          type: string
+        kind:
+          description: 'Kind is a string value representing the REST resource this
+            object represents. Servers may infer this from the endpoint the client
+            submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+          type: string
+        metadata:
+          description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata'
+          type: object
+        spec:
+          description: Spec defines the desired behavior of the action.
+          properties:
+            actionType:
+              description: ActionType is the type of the action
+              type: string
+            kube:
+              description: KubeWorkSpec is the action payload to process
+              properties:
+                name:
+                  description: Name of the object
+                  type: string
+                namespace:
+                  description: Namespace of the object
+                  type: string
+                resource:
+                  description: Resource of the object
+                  type: string
+                template:
+                  description: ObjectTemplate is the template of the object
+                  type: object
+              type: object
+          type: object
+        status:
+          description: Status describes the desired status of the action
+          properties:
+            conditions:
+              description: Conditions represents the conditions of this resource on
+                spoke cluster
+              items:
+                description: StatusCondition contains condition information for a
+                  work.
+                properties:
+                  lastTransitionTime:
+                    description: LastTransitionTime is the last time the condition
+                      changed from one status to another.
+                    format: date-time
+                    type: string
+                  message:
+                    description: Message is a human-readable message indicating details
+                      about the last status change.
+                    type: string
+                  reason:
+                    description: Reason is a (brief) reason for the condition's last
+                      status change.
+                    type: string
+                  status:
+                    description: Status is the status of the condition. One of True,
+                      False, Unknown.
+                    type: string
+                  type:
+                    description: Type is the type of the spoke work condition.
+                    type: string
+                required:
+                - lastTransitionTime
+                - message
+                - reason
+                - status
+                - type
+                type: object
+              type: array
+            result:
+              description: WorkResult references the related result of the work
+              type: object
+          required:
+          - conditions
+          type: object
+      type: object
+  version: v1
+  versions:
+  - name: v1
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

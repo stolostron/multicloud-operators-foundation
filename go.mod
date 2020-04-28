@@ -46,6 +46,7 @@ require (
 	github.com/buger/jsonparser v0.0.0-20180808090653-f4dd9f5a6b44 // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/emicklei/go-restful v2.11.1+incompatible
+	github.com/go-logr/logr v0.1.0
 	github.com/go-openapi/spec v0.19.4
 	github.com/gogo/protobuf v1.3.1
 	github.com/gorilla/websocket v1.4.1 // indirect
@@ -58,6 +59,7 @@ require (
 	github.com/openshift/client-go v0.0.0-20190923180330-3b6373338c9b
 	github.com/openshift/custom-resource-status v0.0.0-20190822192428-e62f2f3b79f3
 	github.com/openshift/hive v0.0.0-20200302220132-867d7fb189bf
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5
@@ -67,7 +69,7 @@ require (
 	golang.org/x/tools v0.0.0-20200416061724-5744cfde56ed // indirect
 	k8s.io/api v0.17.2
 	k8s.io/apiextensions-apiserver v0.17.2
-	k8s.io/apimachinery v0.17.2
+	k8s.io/apimachinery v0.18.0
 	k8s.io/apiserver v0.0.0
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/cluster-registry v0.0.0-20180711215825-1e7f92e96c20
