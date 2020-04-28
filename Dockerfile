@@ -4,7 +4,7 @@ ENV USER_UID=10001 \
     USER_NAME=mcm-operator
 
 
-COPY output/mcm-apiserver output/mcm-webhook output/mcm-controller output/klusterlet output/klusterlet-connectionmanager output/serviceregistry output/acm-controller /
+COPY output/acm-agent output/mcm-apiserver output/mcm-webhook output/mcm-controller output/klusterlet output/klusterlet-connectionmanager output/serviceregistry output/acm-controller /
 
 COPY build/bin /usr/local/bin
 
