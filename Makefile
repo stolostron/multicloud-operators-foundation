@@ -170,7 +170,7 @@ generate_files: generate_exes $(TYPES_FILES)
 # build section
 ############################################################
 
-build: mcm-apiserver mcm-webhook mcm-controller klusterlet klusterlet-connectionmanager serviceregistry
+build: mcm-apiserver mcm-webhook mcm-controller klusterlet klusterlet-connectionmanager serviceregistry acm-agent
 
 mcm-apiserver:
 	@common/scripts/gobuild.sh $(BINDIR)/mcm-apiserver -ldflags '-s -w -X $(SC_PKG)/pkg.VERSION=$(VERSION) $(BUILD_LDFLAGS)' ./cmd/mcm-apiserver
