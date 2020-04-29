@@ -5,3 +5,4 @@ resources:
 - resources/200-etcd.yaml
 - resources/200-clusterrole.yaml
 - resources/100-namespace.yaml
+- resources/300-proxyserver.yaml

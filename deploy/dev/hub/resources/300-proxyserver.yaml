@@ -1,0 +1,71 @@
+
+kind: Service
+apiVersion: v1
+metadata:
+  name: acm-proxyserver
+  namespace: multicloud-system
+spec:
+  selector:
+    app: acm-proxyserver
+  ports:
+  - name: secure
+    protocol: TCP
+    port: 443
+    targetPort: 6443
+
+---
+
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1beta1.proxy.open-cluster-management.io
+spec:
+  group: proxy.open-cluster-management.io
+  version: v1beta1
+  service:
+    namespace: multicloud-system
+    name: acm-proxyserver
+  insecureSkipTLSVerify: true
+  groupPriorityMinimum: 10000
+  versionPriority: 20
+
+---
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: acm-proxyserver
+  namespace: multicloud-system
+  labels:
+    app: acm-proxyserver
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: acm-proxyserver
+  template:
+    metadata:
+      labels:
+        app: acm-proxyserver
+    spec:
+      containers:
+      - name: acm-proxyserver
+        image: github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver
+        imagePullPolicy: IfNotPresent
+        args:
+          - "/acm-proxyserver"
+          - "--cert-dir=/tmp"
+          - "--secure-port=6443"
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            scheme: HTTPS
+            port: 6443
+          initialDelaySeconds: 2
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            scheme: HTTPS
+            port: 6443
+          initialDelaySeconds: 2
