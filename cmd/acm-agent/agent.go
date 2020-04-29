@@ -12,8 +12,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	actionv1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1"
-	viewv1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1"
+	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
+	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 	actionctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/action"
 	viewctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/view"
 )
@@ -24,8 +24,8 @@ var (
 )
 
 func init() {
-	_ = actionv1.AddToScheme(scheme)
-	_ = viewv1.AddToScheme(scheme)
+	_ = actionv1beta1.AddToScheme(scheme)
+	_ = viewv1beta1.AddToScheme(scheme)
 }
 
 func main() {

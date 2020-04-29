@@ -38,27 +38,27 @@ SC_PKG='github.com/open-cluster-management/multicloud-operators-foundation'
 "${BINDIR}"/defaulter-gen "$@" \
 	 --v 1 --logtostderr \
 	 --go-header-file "${REPO_ROOT}"/hack/proxyserver/custom-boilerplate.go.txt \
-	 --input-dirs "${SC_PKG}/pkg/proxyserver/apis/v1" \
-	 --extra-peer-dirs "${SC_PKG}/pkg/proxyserver/apis/v1" \
+	 --input-dirs "${SC_PKG}/pkg/proxyserver/apis/v1beta1" \
+	 --extra-peer-dirs "${SC_PKG}/pkg/proxyserver/apis/v1beta1" \
 	 --output-file-base "zz_generated.defaults"
 # Generate deep copies
 "${BINDIR}"/deepcopy-gen "$@" \
 	 --v 1 --logtostderr\
 	 --go-header-file "${REPO_ROOT}"/hack/proxyserver/custom-boilerplate.go.txt \
-	 --input-dirs "${SC_PKG}/pkg/proxyserver/apis/v1" \
+	 --input-dirs "${SC_PKG}/pkg/proxyserver/apis/v1beta1" \
 	 --output-file-base zz_generated.deepcopy
 # Generate conversions
 "${BINDIR}"/conversion-gen "$@" \
 	 --v 1 --logtostderr \
 	 --extra-peer-dirs k8s.io/api/core/v1,k8s.io/apimachinery/pkg/apis/meta/v1,k8s.io/apimachinery/pkg/conversion,k8s.io/apimachinery/pkg/runtime \
 	 --go-header-file "${REPO_ROOT}"/hack/proxyserver/custom-boilerplate.go.txt \
-	 --input-dirs "${SC_PKG}/pkg/proxyserver/apis/v1" \
+	 --input-dirs "${SC_PKG}/pkg/proxyserver/apis/v1beta1" \
 	 --output-file-base zz_generated.conversion
 
 # generate openapi for servicecatalog and settings group
 "${BINDIR}"/openapi-gen "$@" \
 	--v 1 --logtostderr \
 	--go-header-file "${REPO_ROOT}"/hack/proxyserver/custom-boilerplate.go.txt \
-	--input-dirs "${SC_PKG}/pkg/proxyserver/apis/v1,k8s.io/apimachinery/pkg/apis/meta/v1" \
+	--input-dirs "${SC_PKG}/pkg/proxyserver/apis/v1beta1,k8s.io/apimachinery/pkg/apis/meta/v1" \
 	--output-package "${SC_PKG}/pkg/proxyserver/apis/openapi" \
   --report-filename ".api_violation.report"

@@ -25,7 +25,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	actionv1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1"
+	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 )
 
 // ActionReconciler reconciles a Action object
@@ -45,6 +45,6 @@ func (r *ActionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *ActionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&actionv1.ClusterAction{}).
+		For(&actionv1beta1.ClusterAction{}).
 		Complete(r)
 }

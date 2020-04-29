@@ -47,4 +47,4 @@ PATH="$PATH:$BINDIR" go-to-protobuf \
   --go-header-file="${REPO_ROOT}"/hack/proxyserver/custom-boilerplate.go.txt \
   --proto-import="${REPO_ROOT}"/third_party/protobuf \
   --proto-import="${REPO_ROOT}"/vendor \
-  --packages="${SC_PKG}/pkg/proxyserver/apis/v1"
+  --packages="${SC_PKG}/pkg/proxyserver/apis/v1beta1"
