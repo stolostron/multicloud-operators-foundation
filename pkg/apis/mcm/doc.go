@@ -8,4 +8,5 @@
 
 // Package hcm is the API.
 // +groupName=mcm.ibm.com
+// +kubebuilder:skip
 package mcm

@@ -25,7 +25,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	viewv1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1"
+	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 )
 
 // SpokeViewReconciler reconciles a SpokeView object
@@ -45,6 +45,6 @@ func (r *SpokeViewReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *SpokeViewReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&viewv1.SpokeView{}).
+		For(&viewv1beta1.SpokeView{}).
 		Complete(r)
 }
