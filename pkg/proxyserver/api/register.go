@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis"
-	v1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1"
+	v1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
 	proxyrest "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
@@ -33,8 +33,8 @@ func init() {
 }
 
 func Install(serviceInfoGetter *getter.ProxyServiceInfoGetter, server *genericapiserver.GenericAPIServer) error {
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(v1.GroupName, Scheme, ParameterCodec, Codecs)
-	apiGroupInfo.VersionedResourcesStorageMap[v1.SchemeGroupVersion.Version] = map[string]rest.Storage{
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(v1beta1.GroupName, Scheme, ParameterCodec, Codecs)
+	apiGroupInfo.VersionedResourcesStorageMap[v1beta1.SchemeGroupVersion.Version] = map[string]rest.Storage{
 		"clusterstatuses":            &clusterStatusStorage{},
 		"clusterstatuses/aggregator": proxyrest.NewProxyRest(serviceInfoGetter),
 	}
@@ -54,7 +54,7 @@ var (
 
 // Storage interface
 func (s *clusterStatusStorage) New() runtime.Object {
-	return &v1.ClusterStatus{}
+	return &v1beta1.ClusterStatus{}
 }
 
 // KindProvider interface
@@ -64,17 +64,17 @@ func (s *clusterStatusStorage) Kind() string {
 
 // Lister interface
 func (s *clusterStatusStorage) NewList() runtime.Object {
-	return &v1.ClusterStatusList{}
+	return &v1beta1.ClusterStatusList{}
 }
 
 // Lister interface
 func (s *clusterStatusStorage) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
-	return &v1.ClusterStatusList{}, nil
+	return &v1beta1.ClusterStatusList{}, nil
 }
 
 // Getter interface
 func (s *clusterStatusStorage) Get(ctx context.Context, name string, opts *metav1.GetOptions) (runtime.Object, error) {
-	return &v1.ClusterStatus{}, nil
+	return &v1beta1.ClusterStatus{}, nil
 }
 
 // Scoper interface

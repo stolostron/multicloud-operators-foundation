@@ -4,14 +4,14 @@
 
 syntax = 'proto2';
 
-package github.com.open_cluster_management.multicloud_operators_foundation.pkg.proxyserver.apis.v1;
+package github.com.open_cluster_management.multicloud_operators_foundation.pkg.proxyserver.apis.v1beta1;
 
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
 
 // Package-wide variables from generator "generated".
-option go_package = "v1";
+option go_package = "v1beta1";
 
 // ClusterStatus about a registered cluster in a federated kubernetes setup.
 message ClusterStatus {

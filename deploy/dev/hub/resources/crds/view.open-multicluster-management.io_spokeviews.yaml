@@ -55,6 +55,10 @@ spec:
                 resource:
                   description: Resource is the resource type of the subject
                   type: string
+                updateIntervalSeconds:
+                  description: UpdateIntervalSeconds is the interval to update view
+                  format: int32
+                  type: integer
                 version:
                   description: Version is the version of the subject
                   type: string
@@ -105,9 +109,9 @@ spec:
           - conditions
           type: object
       type: object
-  version: v1
+  version: v1beta1
   versions:
-  - name: v1
+  - name: v1beta1
     served: true
     storage: true
 status:

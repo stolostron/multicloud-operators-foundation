@@ -21,11 +21,11 @@ func Test_getSubResource(t *testing.T) {
 			subResource: "",
 		},
 		{
-			path:        "/apis/proxy.open-cluster-management.io/v1/clusterstatuses/cluster1/aggregator/sync/",
+			path:        "/apis/proxy.open-cluster-management.io/v1beta1/clusterstatuses/cluster1/aggregator/sync/",
 			subResource: "",
 		},
 		{
-			path:        "/apis/proxy.open-cluster-management.io/v1/namespaces/cluster1/clusterstatuses/cluster1/aggregator/sync/",
+			path:        "/apis/proxy.open-cluster-management.io/v1beta1/namespaces/cluster1/clusterstatuses/cluster1/aggregator/sync/",
 			subResource: "sync",
 		},
 	}
@@ -66,7 +66,7 @@ func Test_ServeHTTP(t *testing.T) {
 		handler.ServeHTTP(w, req)
 	}))
 	defer s.Close()
-	res, err := http.Get(s.URL + "/apis/proxy.open-cluster-management.io/v1/namespaces/cluster1/clusterstatuses/cluster1/aggregator/sync")
+	res, err := http.Get(s.URL + "/apis/proxy.open-cluster-management.io/v1beta1/namespaces/cluster1/clusterstatuses/cluster1/aggregator/sync")
 	if err != nil {
 		t.Errorf("test ServerHTTP failed")
 	}

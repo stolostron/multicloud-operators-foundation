@@ -11,7 +11,7 @@ import (
 
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	v1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1"
+	v1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/proxy"
@@ -33,7 +33,7 @@ var _ = rest.Connecter(&ProxyRest{})
 
 // implement storage interface
 func (r *ProxyRest) New() runtime.Object {
-	return &v1.ClusterStatusProxyOptions{}
+	return &v1beta1.ClusterStatusProxyOptions{}
 }
 
 // ConnectMethods returns the list of HTTP methods that can be proxied
@@ -44,7 +44,7 @@ func (r *ProxyRest) ConnectMethods() []string {
 
 // NewConnectOptions returns versioned resource that represents proxy parameters
 func (r *ProxyRest) NewConnectOptions() (runtime.Object, bool, string) {
-	return &v1.ClusterStatusProxyOptions{}, true, "path"
+	return &v1beta1.ClusterStatusProxyOptions{}, true, "path"
 }
 
 // Connect returns a handler for the pod proxy
@@ -93,7 +93,7 @@ func (h *proxyRestHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if serviceInfo.UseID {
 		proxyPath = path.Join(proxyPath, h.id)
 	}
-	proxyOpts, ok := h.opts.(*v1.ClusterStatusProxyOptions)
+	proxyOpts, ok := h.opts.(*v1beta1.ClusterStatusProxyOptions)
 	if !ok {
 		klog.Errorf("invalid options object: %#v", h.opts)
 		http.Error(w, "failed to get proxy path", http.StatusInternalServerError)
@@ -119,7 +119,7 @@ func (h *proxyRestHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 // getSubResource returns the segment behind aggregator in a URL path.
 func getSubResource(requestPath string) (string, error) {
 	// path:
-	// /apis/proxy.open-cluster-management.io/v1/namespaces/<cluster-namespace>/
+	// /apis/proxy.open-cluster-management.io/v1beta1/namespaces/<cluster-namespace>/
 	// clusterstatuses/<cluster-name>/aggregator/<sub resource>/xxx
 	requestPath = strings.Trim(requestPath, "/")
 	if requestPath == "" {
