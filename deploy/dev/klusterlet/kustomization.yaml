@@ -1,4 +1,5 @@
 resources:
+- resources/300-agent.yaml
 - resources/300-klusterlet.yaml
 - resources/200-connectionmanager.yaml
 - resources/200-clusterrole.yaml

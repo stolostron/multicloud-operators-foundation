@@ -112,3 +112,7 @@ type SpokeViewScope struct {
 	// +optional
 	UpdateIntervalSeconds int32 `json:"updateIntervalSeconds,omitempty"`
 }
+
+func init() {
+	SchemeBuilder.Register(&SpokeView{}, &SpokeViewList{})
+}
