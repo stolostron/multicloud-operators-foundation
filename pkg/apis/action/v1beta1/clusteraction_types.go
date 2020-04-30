@@ -111,3 +111,7 @@ type KubeWorkSpec struct {
 	// ObjectTemplate is the template of the object
 	ObjectTemplate runtime.RawExtension `json:"template,omitempty" protobuf:"bytes,4,opt,name=template"`
 }
+
+func init() {
+	SchemeBuilder.Register(&ClusterAction{}, &ClusterActionList{})
+}

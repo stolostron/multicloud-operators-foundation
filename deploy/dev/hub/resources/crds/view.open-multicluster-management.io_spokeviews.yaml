@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: spokeviews.view.open-multicluster-management.io
+  name: spokeviews.view.open-cluster-management.io
 spec:
-  group: view.open-multicluster-management.io
+  group: view.open-cluster-management.io
   names:
     kind: SpokeView
     listKind: SpokeViewList

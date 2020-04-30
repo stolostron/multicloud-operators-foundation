@@ -1,8 +1,9 @@
 package main
 
 import (
-	"flag"
 	"os"
+
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent/options"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
@@ -16,6 +17,7 @@ import (
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 	actionctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/action"
 	viewctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/view"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
 
 var (
@@ -24,41 +26,42 @@ var (
 )
 
 func init() {
+	_ = clientgoscheme.AddToScheme(scheme)
+
 	_ = actionv1beta1.AddToScheme(scheme)
 	_ = viewv1beta1.AddToScheme(scheme)
+	// +kubebuilder:scaffold:scheme
 }
 
 func main() {
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
-	var metricsAddr string
-	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	o := options.NewAgentOptions()
+	o.AddFlags()
+	startManager(o)
+}
 
-	var spokeKubeconfig string
-	flag.StringVar(&spokeKubeconfig, "spoke-kubeconfig", "", "The kubeconfig to connect to spoke cluster to apply resources")
-
-	var clusterName string
-	flag.StringVar(&clusterName, "cluster-name", "", "The name of the cluster.")
-	flag.Parse()
-
-	config, err := clientcmd.BuildConfigFromFlags("", spokeKubeconfig)
+func startManager(o *options.AgentOptions) {
+	hubConfig, err := clientcmd.BuildConfigFromFlags("", o.HubKubeConfig)
+	if err != nil {
+		setupLog.Error(err, "Unable to get hub kube config.")
+		os.Exit(1)
+	}
+	spokeConfig, err := clientcmd.BuildConfigFromFlags("", o.SpokeKubeConfig)
 	if err != nil {
 		setupLog.Error(err, "Unable to get spoke kube config.")
 		os.Exit(1)
 	}
-	dynamicClient, err := dynamic.NewForConfig(config)
+	spokeDynamicClient, err := dynamic.NewForConfig(spokeConfig)
 	if err != nil {
 		setupLog.Error(err, "Unable to create spoke dynamic client.")
 		os.Exit(1)
 	}
 
-	startManager(metricsAddr, clusterName, dynamicClient)
-}
-
-func startManager(metricsAddr, clusterName string, dynamicClient dynamic.Interface) {
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	mgr, err := ctrl.NewManager(hubConfig, ctrl.Options{
 		Scheme:             scheme,
-		MetricsBindAddress: metricsAddr,
-		Namespace:          clusterName,
+		MetricsBindAddress: o.MetricsAddr,
+		Namespace:          o.ClusterName,
+		LeaderElectionID:   "acm-agent",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -70,13 +73,13 @@ func startManager(metricsAddr, clusterName string, dynamicClient dynamic.Interfa
 		Client:             mgr.GetClient(),
 		Log:                ctrl.Log.WithName("controllers").WithName("ClusterAction"),
 		Scheme:             mgr.GetScheme(),
-		SpokeDynamicClient: dynamicClient,
+		SpokeDynamicClient: spokeDynamicClient,
 	}
 	viewReconciler := &viewctrl.SpokeViewReconciler{
 		Client:             mgr.GetClient(),
 		Log:                ctrl.Log.WithName("controllers").WithName("SpokeView"),
 		Scheme:             mgr.GetScheme(),
-		SpokeDynamicClient: dynamicClient,
+		SpokeDynamicClient: spokeDynamicClient,
 	}
 
 	if err = actionReconciler.SetupWithManager(mgr); err != nil {

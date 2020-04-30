@@ -8,6 +8,9 @@ images:
 - name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/klusterlet
   newName: quay.io/open-cluster-management/multicloud-manager
   newTag: 0.0.1
+- name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent
+  newName: quay.io/open-cluster-management/multicloud-manager
+  newTag: 0.0.1
 
 secretGenerator:
 - name: mcm-image-pull-secret
