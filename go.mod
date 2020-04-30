@@ -60,6 +60,7 @@ require (
 	github.com/openshift/custom-resource-status v0.0.0-20190822192428-e62f2f3b79f3
 	github.com/openshift/hive v0.0.0-20200302220132-867d7fb189bf
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/prometheus/common v0.2.0
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a
 	github.com/spf13/cobra v0.0.5
 	github.com/spf13/pflag v1.0.5

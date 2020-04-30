@@ -17,9 +17,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
+	routev1 "github.com/openshift/client-go/route/clientset/versioned"
+
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 	actionctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/action"
+	clusterinfoctl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterinfo"
 	viewctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/view"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 )
@@ -34,6 +38,7 @@ func init() {
 
 	_ = actionv1beta1.AddToScheme(scheme)
 	_ = viewv1beta1.AddToScheme(scheme)
+	_ = clusterv1beta1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -61,6 +66,16 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 	if err != nil {
 		setupLog.Error(err, "Unable to create spoke dynamic client.")
 		os.Exit(1)
+	}
+	spokeKubeClient, err := kubernetes.NewForConfig(spokeConfig)
+	if err != nil {
+		setupLog.Error(err, "Unable to create spoke kube client.")
+		os.Exit(1)
+	}
+	routeV1Client, err := routev1.NewForConfig(spokeConfig)
+
+	if err != nil {
+		setupLog.Error(err, "New route client config error:")
 	}
 
 	spokeClient, err := kubernetes.NewForConfig(spokeConfig)
@@ -102,6 +117,17 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 		SpokeDynamicClient: spokeDynamicClient,
 		Mapper:             mapper,
 	}
+	clusterInfoReconciler := clusterinfoctl.ClusterInfoReconciler{
+		Client:            mgr.GetClient(),
+		Log:               ctrl.Log.WithName("controllers").WithName("SpokeView"),
+		Scheme:            mgr.GetScheme(),
+		KubeClient:        spokeKubeClient,
+		KlusterletRoute:   o.KlusterletRoute,
+		KlusterletAddress: o.KlusterletAddress,
+		KlusterletIngress: o.KlusterletIngress,
+		KlusterletPort:    int32(o.KlusterletPort),
+		RouteV1Client:     routeV1Client,
+	}
 
 	if err = actionReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "ClusterAction")
@@ -110,6 +136,11 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 
 	if err = spokeViewReconciler.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "SpokeView")
+		os.Exit(1)
+	}
+
+	if err = clusterInfoReconciler.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "ClusterInfo")
 		os.Exit(1)
 	}
 

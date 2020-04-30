@@ -30,7 +30,7 @@ type ClusterAction struct {
 	Status ClusterActionStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // ClusterActionList is a list of all the actions
 type ClusterActionList struct {
@@ -53,7 +53,7 @@ type ClusterActionSpec struct {
 	KubeWork *KubeWorkSpec `json:"kube,omitempty" protobuf:"bytes,2,opt,name=kube"`
 }
 
-// WorkStatus returns the current status of the action
+// ClusterActionStatus returns the current status of the action
 type ClusterActionStatus struct {
 	// Conditions represents the conditions of this resource on spoke cluster
 	// +patchMergeKey=type
