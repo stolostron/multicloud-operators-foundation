@@ -188,7 +188,11 @@ func (r *KubeControl) Delete(gvk *schema.GroupVersionKind, resource, namespace, 
 		}
 	}
 
-	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Delete(name, &metav1.DeleteOptions{})
+	deletePolicy := metav1.DeletePropagationForeground
+	deleteOption := metav1.DeleteOptions{
+		PropagationPolicy: &deletePolicy,
+	}
+	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Delete(name, &deleteOption)
 }
 
 func (r *KubeControl) Patch(

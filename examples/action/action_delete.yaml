@@ -1,0 +1,12 @@
+# This work is used to create nginx deployment to clusters cluster0
+apiVersion: action.open-cluster-management.io/v1beta1
+kind: ClusterAction
+metadata:
+  name: nginx-action-delete
+  namespace: cluster0
+spec:
+  actionType: Delete
+  kube:
+    resource: deployment
+    namespace: default
+    name: nginx-deployment-action

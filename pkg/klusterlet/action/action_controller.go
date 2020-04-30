@@ -1,44 +1,50 @@
-/*
-
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controllers
 
 import (
 	"context"
 
 	"github.com/go-logr/logr"
+	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
+	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 )
 
 // ActionReconciler reconciles a Action object
 type ActionReconciler struct {
 	client.Client
-	Log                logr.Logger
-	Scheme             *runtime.Scheme
-	SpokeDynamicClient dynamic.Interface
+	Log                 logr.Logger
+	Scheme              *runtime.Scheme
+	SpokeDynamicClient  dynamic.Interface
+	KubeControl         *restutils.KubeControl
+	EnableImpersonation bool
 }
 
 func (r *ActionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("action", req.NamespacedName)
+	ctx := context.Background()
+	log := r.Log.WithValues("action", req.NamespacedName)
+	clusterAction := &actionv1beta1.ClusterAction{}
+
+	err := r.Get(ctx, req.NamespacedName, clusterAction)
+	if err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if conditionsv1.IsStatusConditionTrue(clusterAction.Status.Conditions, actionv1beta1.ConditionActionCompleted) {
+		return ctrl.Result{}, nil
+	}
+
+	if err := r.handleClusterAction(clusterAction); err != nil {
+		log.Error(err, "unable to handle ClusterAction")
+	}
+
+	if err := r.Client.Status().Update(ctx, clusterAction); err != nil {
+		log.Error(err, "unable to update status of ClusterAction")
+		return ctrl.Result{}, err
+	}
 
 	return ctrl.Result{}, nil
 }

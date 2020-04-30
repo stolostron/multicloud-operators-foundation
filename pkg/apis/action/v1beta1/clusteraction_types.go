@@ -6,6 +6,7 @@
 package v1beta1
 
 import (
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -46,43 +47,24 @@ type ClusterActionList struct {
 // ClusterActionSpec defines the action to be processed on a cluster
 type ClusterActionSpec struct {
 	// ActionType is the type of the action
-	ActionType ActionType `json:"actionType,omitempty" protobuf:"bytes,4,opt,name=actionType"`
+	ActionType ActionType `json:"actionType,omitempty" protobuf:"bytes,1,opt,name=actionType"`
 
 	// KubeWorkSpec is the action payload to process
-	KubeWork *KubeWorkSpec `json:"kube,omitempty" protobuf:"bytes,6,opt,name=kube"`
-}
-
-// StatusCondition contains condition information for a work.
-type StatusCondition struct {
-	// Type is the type of the spoke work condition.
-	// +required
-	Type string `json:"type"`
-
-	// Status is the status of the condition. One of True, False, Unknown.
-	// +required
-	Status metav1.ConditionStatus `json:"status"`
-
-	// LastTransitionTime is the last time the condition changed from one status to another.
-	// +required
-	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
-
-	// Reason is a (brief) reason for the condition's last status change.
-	// +required
-	Reason string `json:"reason"`
-
-	// Message is a human-readable message indicating details about the last status change.
-	// +required
-	Message string `json:"message"`
+	KubeWork *KubeWorkSpec `json:"kube,omitempty" protobuf:"bytes,2,opt,name=kube"`
 }
 
 // WorkStatus returns the current status of the action
 type ClusterActionStatus struct {
 	// Conditions represents the conditions of this resource on spoke cluster
-	// +required
-	Conditions []StatusCondition `json:"conditions"`
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +optional
+	Conditions []conditionsv1.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 
 	// WorkResult references the related result of the work
-	Result runtime.RawExtension `json:"result,omitempty" protobuf:"bytes,3,opt,name=result"`
+	// +nullable
+	// +optional
+	Result runtime.RawExtension `json:"result,omitempty" protobuf:"bytes,2,opt,name=result"`
 }
 
 // ActionType defines the type of the action
@@ -95,6 +77,19 @@ const (
 	DeleteActionType ActionType = "Delete"
 	// UpdateActionType defines update action
 	UpdateActionType ActionType = "Update"
+)
+
+// These are valid conditions of a cluster.
+const (
+	// ConditionActionCompleted means the work is comleted.
+	ConditionActionCompleted conditionsv1.ConditionType = "Completed"
+)
+
+const (
+	ReasonCreateResourceFailed string = "CreateResourceFailed"
+	ReasonUpdateResourceFailed string = "UpdateResourceFailed"
+	ReasonDeleteResourceFailed string = "DeleteResourceFailed"
+	ReasonActionTypeInvalid    string = "ActionTypeInvalid"
 )
 
 // KubeWorkSpec is the kubernetes work details
@@ -111,6 +106,14 @@ type KubeWorkSpec struct {
 	// ObjectTemplate is the template of the object
 	ObjectTemplate runtime.RawExtension `json:"template,omitempty" protobuf:"bytes,4,opt,name=template"`
 }
+
+const (
+	// UserIdentityAnnotation is identity annotation
+	UserIdentityAnnotation = "acm.io/user-identity"
+
+	// UserGroupAnnotation is user group annotation
+	UserGroupAnnotation = "acm.io/user-group"
+)
 
 func init() {
 	SchemeBuilder.Register(&ClusterAction{}, &ClusterActionList{})
