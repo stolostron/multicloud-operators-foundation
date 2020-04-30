@@ -19,6 +19,8 @@ package controllers
 import (
 	"context"
 
+	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
+
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
@@ -34,6 +36,7 @@ type SpokeViewReconciler struct {
 	Log                logr.Logger
 	Scheme             *runtime.Scheme
 	SpokeDynamicClient dynamic.Interface
+	Mapper             *restutils.Mapper
 }
 
 func (r *SpokeViewReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {

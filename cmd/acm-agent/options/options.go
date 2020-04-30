@@ -10,7 +10,7 @@ type AgentOptions struct {
 	HubKubeConfig        string
 	ClusterName          string
 	EnableLeaderElection bool
-	Port                 string
+	EnableImpersonation  bool
 }
 
 func NewAgentOptions() *AgentOptions {
@@ -20,6 +20,7 @@ func NewAgentOptions() *AgentOptions {
 		HubKubeConfig:        "/var/run/hub/kubeconfig",
 		ClusterName:          "",
 		EnableLeaderElection: false,
+		EnableImpersonation:  false,
 	}
 }
 
@@ -33,5 +34,7 @@ func (o *AgentOptions) AddFlags() {
 	flag.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	flag.BoolVar(&o.EnableImpersonation, "enable-impersonation", o.EnableImpersonation, "Enable impersonation.")
+
 	flag.Parse()
 }

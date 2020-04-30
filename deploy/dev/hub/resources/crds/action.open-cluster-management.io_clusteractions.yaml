@@ -64,42 +64,34 @@ spec:
               description: Conditions represents the conditions of this resource on
                 spoke cluster
               items:
-                description: StatusCondition contains condition information for a
-                  work.
+                description: Condition represents the state of the operator's reconciliation
+                  functionality.
                 properties:
+                  lastHeartbeatTime:
+                    format: date-time
+                    type: string
                   lastTransitionTime:
-                    description: LastTransitionTime is the last time the condition
-                      changed from one status to another.
                     format: date-time
                     type: string
                   message:
-                    description: Message is a human-readable message indicating details
-                      about the last status change.
                     type: string
                   reason:
-                    description: Reason is a (brief) reason for the condition's last
-                      status change.
                     type: string
                   status:
-                    description: Status is the status of the condition. One of True,
-                      False, Unknown.
                     type: string
                   type:
-                    description: Type is the type of the spoke work condition.
+                    description: ConditionType is the state of the operator's reconciliation
+                      functionality.
                     type: string
                 required:
-                - lastTransitionTime
-                - message
-                - reason
                 - status
                 - type
                 type: object
               type: array
             result:
               description: WorkResult references the related result of the work
+              nullable: true
               type: object
-          required:
-          - conditions
           type: object
       type: object
   version: v1beta1
