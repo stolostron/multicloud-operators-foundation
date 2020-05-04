@@ -11,6 +11,11 @@ type AgentOptions struct {
 	ClusterName          string
 	EnableLeaderElection bool
 	EnableImpersonation  bool
+	KlusterletPort       int64
+	KlusterletAddress    string
+	KlusterletIngress    string
+	KlusterletRoute      string
+	KlusterletService    string
 }
 
 func NewAgentOptions() *AgentOptions {
@@ -35,6 +40,15 @@ func (o *AgentOptions) AddFlags() {
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.BoolVar(&o.EnableImpersonation, "enable-impersonation", o.EnableImpersonation, "Enable impersonation.")
-
+	flag.Int64Var(&o.KlusterletPort, "klusterlet-port", o.KlusterletPort, ""+
+		"Port that expose klusterlet service for hub cluster to access")
+	flag.StringVar(&o.KlusterletAddress, "klusterlet-address", o.KlusterletAddress,
+		"Address that expose klusterlet service for hub cluster to access, this must be an IP or resolvable fqdn")
+	flag.StringVar(&o.KlusterletIngress, "klusterlet-ingress", o.KlusterletIngress, ""+
+		"Klusterlet ingress created in managed cluster, in the format of namespace/name")
+	flag.StringVar(&o.KlusterletRoute, "klusterlet-route", o.KlusterletRoute, ""+
+		"Klusterlet route created in managed cluster, in the format of namespace/name")
+	flag.StringVar(&o.KlusterletService, "klusterlet-service", o.KlusterletService, ""+
+		"Klusterlet service created in managed cluster, in the format of namespace/name")
 	flag.Parse()
 }
