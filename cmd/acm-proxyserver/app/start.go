@@ -4,6 +4,8 @@ import (
 	"strings"
 	"time"
 
+	"k8s.io/client-go/dynamic"
+
 	apilabels "k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
@@ -34,14 +36,19 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 		return err
 	}
 
+	dynamicClient, err := dynamic.NewForConfig(clusterCfg)
+	if err != nil {
+		return err
+	}
+
 	configMapLabels, err := apilabels.ConvertSelectorToLabelsMap(strings.TrimSuffix(s.ConfigMapLabels, ","))
 	if err != nil {
 		return err
 	}
 
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
-	getter := getter.NewProxyServiceInfoGetter()
-	ctrl := controller.NewProxyServiceInfoController(kubeClient, configMapLabels, informerFactory, getter, stopCh)
+	proxyGetter := getter.NewProxyServiceInfoGetter()
+	ctrl := controller.NewProxyServiceInfoController(kubeClient, configMapLabels, informerFactory, proxyGetter, stopCh)
 	go ctrl.Run()
 	informerFactory.Start(stopCh)
 
@@ -50,7 +57,12 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 		return err
 	}
 
-	proxyServer, err := NewProxyServer(informerFactory, apiServerConfig, getter)
+	logGetter, err := getter.NewLogConnectionInfoGetter(s.ClientOptions.Config(dynamicClient))
+	if err != nil {
+		return nil
+	}
+
+	proxyServer, err := NewProxyServer(informerFactory, apiServerConfig, proxyGetter, logGetter)
 	if err != nil {
 		return err
 	}

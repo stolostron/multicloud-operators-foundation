@@ -33,7 +33,7 @@ var _ = rest.Connecter(&ProxyRest{})
 
 // implement storage interface
 func (r *ProxyRest) New() runtime.Object {
-	return &v1beta1.ClusterStatusProxyOptions{}
+	return &v1beta1.ClusterStatus{}
 }
 
 // ConnectMethods returns the list of HTTP methods that can be proxied

@@ -18,6 +18,7 @@ type Options struct {
 	SecureServing   *genericapiserveroptions.SecureServingOptionsWithLoopback
 	Authentication  *genericapiserveroptions.DelegatingAuthenticationOptions
 	Authorization   *genericapiserveroptions.DelegatingAuthorizationOptions
+	ClientOptions   *ClientOptions
 }
 
 // NewOptions constructs a new set of default options for proxyserver.
@@ -29,6 +30,7 @@ func NewOptions() *Options {
 		SecureServing:   genericapiserveroptions.NewSecureServingOptions().WithLoopback(),
 		Authentication:  genericapiserveroptions.NewDelegatingAuthenticationOptions(),
 		Authorization:   genericapiserveroptions.NewDelegatingAuthorizationOptions(),
+		ClientOptions:   NewClientOptions(),
 	}
 }
 
@@ -39,6 +41,7 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 	o.SecureServing.AddFlags(fs)
 	o.Authentication.AddFlags(fs)
 	o.Authorization.AddFlags(fs)
+	o.ClientOptions.AddFlags(fs)
 }
 
 func (o *Options) SetDefaults() error {
@@ -50,6 +53,9 @@ func (o *Options) SetDefaults() error {
 		return fmt.Errorf("error creating self-signed certificates: %v", err)
 	}
 
+	if err := o.ClientOptions.MaybeDefaultWithSelfSignedCerts(o.ServerRun.AdvertiseAddress.String()); err != nil {
+		return fmt.Errorf("error creating self-signed certificates: %v", err)
+	}
 	return nil
 }
 

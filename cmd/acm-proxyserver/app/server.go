@@ -14,13 +14,14 @@ type ProxyServer struct {
 func NewProxyServer(
 	informerFactory informers.SharedInformerFactory,
 	apiServerConfig *genericapiserver.Config,
-	getter *getter.ProxyServiceInfoGetter) (*ProxyServer, error) {
+	proxyGetter *getter.ProxyServiceInfoGetter,
+	logGetter getter.ConnectionInfoGetter) (*ProxyServer, error) {
 	apiServer, err := apiServerConfig.Complete(informerFactory).New("proxy-server", genericapiserver.NewEmptyDelegate())
 	if err != nil {
 		return nil, err
 	}
 
-	if err := api.Install(getter, apiServer); err != nil {
+	if err := api.Install(proxyGetter, logGetter, apiServer); err != nil {
 		return nil, err
 	}
 
