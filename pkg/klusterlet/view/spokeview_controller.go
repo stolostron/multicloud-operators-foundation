@@ -1,23 +1,16 @@
-/*
-
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controllers
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"fmt"
+	"time"
+
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 
@@ -39,15 +32,125 @@ type SpokeViewReconciler struct {
 	Mapper             *restutils.Mapper
 }
 
-func (r *SpokeViewReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	_ = context.Background()
-	_ = r.Log.WithValues("spokeview", req.NamespacedName)
+const (
+	DefaultUpdateInterval = 30 * time.Second
+)
 
-	return ctrl.Result{}, nil
+func (r *SpokeViewReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	ctx := context.Background()
+	log := r.Log.WithValues("spokeview", req.NamespacedName)
+	updateInterval := DefaultUpdateInterval
+	spokeView := &viewv1beta1.SpokeView{}
+
+	err := r.Get(ctx, req.NamespacedName, spokeView)
+	if err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if spokeView.Spec.Scope.UpdateIntervalSeconds != 0 {
+		updateInterval = time.Duration(spokeView.Spec.Scope.UpdateIntervalSeconds) * time.Second
+	}
+
+	if condition := conditionsv1.FindStatusCondition(spokeView.Status.Conditions, viewv1beta1.ConditionViewProcessing); condition != nil {
+		sub := time.Since(condition.LastHeartbeatTime.Time)
+		if sub < updateInterval {
+			return ctrl.Result{RequeueAfter: updateInterval - sub}, nil
+		}
+	}
+
+	if err := r.queryResource(spokeView); err != nil {
+		log.Error(err, "failed to query resource")
+	}
+
+	if err := r.Client.Status().Update(ctx, spokeView); err != nil {
+		log.Error(err, "unable to update status of SpokeView")
+		return ctrl.Result{RequeueAfter: updateInterval}, err
+	}
+
+	return ctrl.Result{RequeueAfter: updateInterval}, nil
 }
 
 func (r *SpokeViewReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&viewv1beta1.SpokeView{}).
 		Complete(r)
+}
+
+func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) error {
+	var obj runtime.Object
+	var err error
+	var gvr schema.GroupVersionResource
+	scope := spokeview.Spec.Scope
+
+	if scope.Name == "" {
+		err = fmt.Errorf("invalid resource name")
+		conditionsv1.SetStatusCondition(&spokeview.Status.Conditions, conditionsv1.Condition{
+			Type:    viewv1beta1.ConditionViewProcessing,
+			Status:  corev1.ConditionFalse,
+			Reason:  viewv1beta1.ReasonResourceNameInvalid,
+			Message: fmt.Errorf("failed to get resource with err: %v", err).Error(),
+		})
+		return err
+	}
+
+	if scope.Resource == "" && (scope.Kind == "" || scope.Group == "" || scope.Version == "") {
+		err = fmt.Errorf("invalid resource type")
+		conditionsv1.SetStatusCondition(&spokeview.Status.Conditions, conditionsv1.Condition{
+			Type:    viewv1beta1.ConditionViewProcessing,
+			Status:  corev1.ConditionFalse,
+			Reason:  viewv1beta1.ReasonResourceTypeInvalid,
+			Message: fmt.Errorf("failed to get resource with err: %v", err).Error(),
+		})
+		return err
+	}
+
+	if scope.Resource == "" {
+		gvk := schema.GroupVersionKind{Group: scope.Group, Kind: scope.Kind, Version: scope.Version}
+		mapper, err := r.Mapper.MappingForGVK(gvk)
+		if err != nil {
+			conditionsv1.SetStatusCondition(&spokeview.Status.Conditions, conditionsv1.Condition{
+				Type:    viewv1beta1.ConditionViewProcessing,
+				Status:  corev1.ConditionFalse,
+				Reason:  viewv1beta1.ReasonResourceGVKInvalid,
+				Message: fmt.Errorf("failed to get resource with err: %v", err).Error(),
+			})
+			return err
+		}
+		gvr = mapper.Resource
+	} else {
+		mapping, err := r.Mapper.MappingFor(scope.Resource)
+		if err != nil {
+			conditionsv1.SetStatusCondition(&spokeview.Status.Conditions, conditionsv1.Condition{
+				Type:    viewv1beta1.ConditionViewProcessing,
+				Status:  corev1.ConditionFalse,
+				Reason:  viewv1beta1.ReasonResourceTypeInvalid,
+				Message: fmt.Errorf("failed to get resource with err: %v", err).Error(),
+			})
+			return err
+		}
+		gvr = mapping.Resource
+	}
+
+	obj, err = r.SpokeDynamicClient.Resource(gvr).Namespace(scope.Namespace).Get(scope.Name, metav1.GetOptions{})
+	if err != nil {
+		conditionsv1.SetStatusCondition(&spokeview.Status.Conditions, conditionsv1.Condition{
+			Type:    viewv1beta1.ConditionViewProcessing,
+			Status:  corev1.ConditionFalse,
+			Reason:  viewv1beta1.ReasonGetResourceFailed,
+			Message: fmt.Errorf("failed to get resource with err: %v", err).Error(),
+		})
+		return err
+	}
+
+	conditionsv1.SetStatusCondition(&spokeview.Status.Conditions, conditionsv1.Condition{
+		Type:   viewv1beta1.ConditionViewProcessing,
+		Status: corev1.ConditionTrue,
+	})
+
+	objRaw, _ := json.Marshal(obj)
+	if !bytes.Equal(spokeview.Status.Result.Raw, objRaw) {
+		spokeview.Status.Result = runtime.RawExtension{Raw: objRaw, Object: obj}
+	}
+
+	return nil
 }

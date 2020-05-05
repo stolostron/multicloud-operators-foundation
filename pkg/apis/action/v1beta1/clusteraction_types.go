@@ -81,7 +81,7 @@ const (
 
 // These are valid conditions of a cluster.
 const (
-	// ConditionActionCompleted means the work is comleted.
+	// ConditionActionCompleted means the work is completed.
 	ConditionActionCompleted conditionsv1.ConditionType = "Completed"
 )
 
