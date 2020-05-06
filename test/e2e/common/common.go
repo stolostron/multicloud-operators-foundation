@@ -108,7 +108,7 @@ func GetReadyManagedClusters(dynamicClient dynamic.Interface) ([]*unstructured.U
 		condition := conditions[0].(map[string]interface{})
 		if t, ok := condition["type"]; ok {
 			if t == "OK" {
-				readyClusters = append(readyClusters, &cluster)
+				readyClusters = append(readyClusters, cluster.DeepCopy())
 			}
 		}
 	}
@@ -142,7 +142,7 @@ func ListResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResour
 
 	resources := make([]*unstructured.Unstructured, 0)
 	for _, item := range list.Items {
-		resources = append(resources, &item)
+		resources = append(resources, item.DeepCopy())
 	}
 
 	return resources, nil
