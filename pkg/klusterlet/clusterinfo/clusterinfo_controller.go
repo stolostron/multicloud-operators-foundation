@@ -1,19 +1,3 @@
-/*
-
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-*/
-
 package controllers
 
 import (
@@ -24,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 
 	"github.com/go-logr/logr"
 	equalutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/equals"
@@ -53,16 +39,16 @@ type ClusterInfoReconciler struct {
 	KlusterletRoute   string
 	KlusterletService string
 	KlusterletPort    int32
+	Klusterlet        *agent.Klusterlet
 }
 
 func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("clusterinfo", req.NamespacedName)
 
-	var clusterInfo *clusterv1beta1.ClusterInfo
+	clusterInfo := &clusterv1beta1.ClusterInfo{}
 	err := r.Get(ctx, req.NamespacedName, clusterInfo)
 	if err != nil {
-		log.Error(err, "unable to fetch work")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -103,18 +89,20 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	if shouldUpdateStatus {
-		err = r.Client.Status().Update(ctx, clusterInfo)
+		err = r.Client.Update(ctx, clusterInfo)
 		if err != nil {
 			log.Error(err, "Failed to update status")
 			return ctrl.Result{}, err
 		}
 	}
 
+	r.RefreshAgentServer(clusterInfo)
+
 	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 }
 
 func (r *ClusterInfoReconciler) getMasterAddresses() ([]corev1.EndpointAddress, []corev1.EndpointPort, string) {
-	//for Openshift
+	// for OpenShift
 	masterAddresses, masterPorts, clusterURL, notEmpty, err := r.getMasterAddressesFromConsoleConfig()
 	if err == nil && notEmpty {
 		return masterAddresses, masterPorts, clusterURL
@@ -133,7 +121,7 @@ func (r *ClusterInfoReconciler) getMasterAddresses() ([]corev1.EndpointAddress, 
 	return masterAddresses, masterPorts, clusterURL
 }
 
-//for OpenShift, read endpoint address from console-config in openshift-console
+// for OpenShift, read endpoint address from console-config in openshift-console
 func (r *ClusterInfoReconciler) getMasterAddressesFromConsoleConfig() ([]corev1.EndpointAddress, []corev1.EndpointPort, string, bool, error) {
 	masterAddresses := []corev1.EndpointAddress{}
 	masterPorts := []corev1.EndpointPort{}
@@ -320,6 +308,16 @@ func (r *ClusterInfoReconciler) getVersion() string {
 	}
 
 	return serverVersionString
+}
+
+func (r *ClusterInfoReconciler) RefreshAgentServer(clusterInfo *clusterv1beta1.ClusterInfo) {
+	select {
+	case r.Klusterlet.RunServer <- *clusterInfo:
+		log.Info("Signal klusterlet agent server to start")
+	default:
+	}
+
+	r.Klusterlet.RefreshServerIfNeeded(clusterInfo)
 }
 
 func (r *ClusterInfoReconciler) SetupWithManager(mgr ctrl.Manager) error {

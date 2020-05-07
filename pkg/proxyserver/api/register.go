@@ -32,11 +32,14 @@ func init() {
 	metav1.AddToGroupVersion(Scheme, schema.GroupVersion{Version: "v1"})
 }
 
-func Install(serviceInfoGetter *getter.ProxyServiceInfoGetter, server *genericapiserver.GenericAPIServer) error {
+func Install(proxyServiceInfoGetter *getter.ProxyServiceInfoGetter,
+	logConnectionInfoGetter getter.ConnectionInfoGetter,
+	server *genericapiserver.GenericAPIServer) error {
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(v1beta1.GroupName, Scheme, ParameterCodec, Codecs)
 	apiGroupInfo.VersionedResourcesStorageMap[v1beta1.SchemeGroupVersion.Version] = map[string]rest.Storage{
 		"clusterstatuses":            &clusterStatusStorage{},
-		"clusterstatuses/aggregator": proxyrest.NewProxyRest(serviceInfoGetter),
+		"clusterstatuses/aggregator": proxyrest.NewProxyRest(proxyServiceInfoGetter),
+		"clusterstatuses/log":        proxyrest.NewLogRest(logConnectionInfoGetter),
 	}
 
 	return server.InstallAPIGroup(&apiGroupInfo)
