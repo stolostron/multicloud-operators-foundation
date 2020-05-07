@@ -109,7 +109,7 @@ func GetReadyManagedClusters(dynamicClient dynamic.Interface) ([]*unstructured.U
 		condition := conditions[0].(map[string]interface{})
 		if t, ok := condition["type"]; ok {
 			if t == "OK" {
-				readyClusters = append(readyClusters, &cluster)
+				readyClusters = append(readyClusters, cluster.DeepCopy())
 			}
 		}
 	}

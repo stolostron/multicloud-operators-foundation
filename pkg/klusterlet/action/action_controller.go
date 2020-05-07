@@ -19,8 +19,23 @@ type ActionReconciler struct {
 	Log                 logr.Logger
 	Scheme              *runtime.Scheme
 	SpokeDynamicClient  dynamic.Interface
-	KubeControl         *restutils.KubeControl
+	KubeControl         restutils.KubeControlInterface
 	EnableImpersonation bool
+}
+
+func NewActionReconciler(client client.Client,
+	log logr.Logger, scheme *runtime.Scheme,
+	spokeDynamicClient dynamic.Interface,
+	kubeControl restutils.KubeControlInterface,
+	enableImpersonation bool) *ActionReconciler {
+	return &ActionReconciler{
+		Client:              client,
+		Log:                 log,
+		Scheme:              scheme,
+		SpokeDynamicClient:  spokeDynamicClient,
+		KubeControl:         kubeControl,
+		EnableImpersonation: enableImpersonation,
+	}
 }
 
 func (r *ActionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {

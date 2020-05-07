@@ -4,6 +4,7 @@ package resourceviews_test
 
 import (
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -175,12 +176,15 @@ var _ = Describe("Resourceviews", func() {
 		It("should be executed on managed cluster successfully", func() {
 			if !hasManagedClusters {
 				labelSelector := fmt.Sprintf("mcm.ibm.com/resourceview=%s.%s", obj.GetNamespace(), obj.GetName())
+				time.Sleep(time.Second * 2)
 				works, err := common.ListResource(dynamicClient, workGVR, "", labelSelector)
 				Ω(err).ShouldNot(HaveOccurred())
+
 				_, err = common.UpdateWorkStatus(dynamicClient, works[0], "Completed")
 				Ω(err).ShouldNot(HaveOccurred())
 				_, err = common.UpdateWorkStatus(dynamicClient, works[1], "Completed")
 				Ω(err).ShouldNot(HaveOccurred())
+
 			}
 
 			// check the results in status of resourceview
