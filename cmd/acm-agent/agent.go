@@ -101,15 +101,14 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 	mapper.Run()
 
 	// Add controller into manager
-	actionReconciler := &actionctrl.ActionReconciler{
-		Client:              mgr.GetClient(),
-		Log:                 ctrl.Log.WithName("controllers").WithName("ClusterAction"),
-		Scheme:              mgr.GetScheme(),
-		SpokeDynamicClient:  spokeDynamicClient,
-		KubeControl:         restutils.NewKubeControl(mapper, spokeConfig),
-		EnableImpersonation: o.EnableImpersonation,
-	}
-
+	actionReconciler := actionctrl.NewActionReconciler(
+		mgr.GetClient(),
+		ctrl.Log.WithName("controllers").WithName("ClusterAction"),
+		mgr.GetScheme(),
+		spokeDynamicClient,
+		restutils.NewKubeControl(mapper, spokeConfig),
+		o.EnableImpersonation,
+	)
 	spokeViewReconciler := &viewctrl.SpokeViewReconciler{
 		Client:             mgr.GetClient(),
 		Log:                ctrl.Log.WithName("controllers").WithName("SpokeView"),
