@@ -28,10 +28,7 @@ replace (
 )
 
 // Pinned to operator-sdk-0.14.0
-replace (
-	github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
-	github.com/operator-framework/operator-sdk => github.com/operator-framework/operator-sdk v0.14.0
-)
+replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503-38ab9da00309
 
 // Match with k8s.io/component-base
 replace (
@@ -57,8 +54,7 @@ require (
 	github.com/mongodb/mongo-go-driver v0.0.0-20180808171322-9b26cbb1a61a
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
-	github.com/open-cluster-management/multicloud-operators-channel v1.0.0-2020-05-04-17-43-49
-	github.com/open-cluster-management/multicloud-operators-deployable v0.0.0-20200324042552-efcef6528509
+	github.com/open-cluster-management/api v0.0.0-20200506150956-355c9d6ef16b
 	github.com/openshift/client-go v0.0.0-20190923180330-3b6373338c9b
 	github.com/openshift/custom-resource-status v0.0.0-20190822192428-e62f2f3b79f3
 	github.com/openshift/hive v0.0.0-20200302220132-867d7fb189bf
@@ -73,7 +69,6 @@ require (
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/net v0.0.0-20200226121028-0de0cce0169b
-	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d // indirect
 	golang.org/x/sys v0.0.0-20191210023423-ac6580df4449 // indirect
 	golang.org/x/tools v0.0.0-20200416061724-5744cfde56ed // indirect
 	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
@@ -86,7 +81,6 @@ require (
 	k8s.io/component-base v0.0.0
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
-	k8s.io/kubernetes v1.16.2
 	k8s.io/utils v0.0.0-20200327001022-6496210b90e8
 	sigs.k8s.io/controller-runtime v0.5.0
 )

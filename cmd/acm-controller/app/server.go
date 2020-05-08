@@ -11,12 +11,28 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller/app/options"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/inventory"
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/signals"
 
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
+
+	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 )
+
+var (
+	scheme = runtime.NewScheme()
+)
+
+func init() {
+	_ = clientgoscheme.AddToScheme(scheme)
+
+	_ = clusterv1beta1.AddToScheme(scheme)
+	_ = clusterv1.Install(scheme)
+}
 
 const (
 	componentKlusterlet = "controller"
