@@ -1,0 +1,38 @@
+# Licensed Materials - Property of IBM
+# 5737-E67
+# (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: acm-controller
+  namespace: multicloud-system
+  labels:
+    app: acm-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: acm-controller
+  template:
+    metadata:
+      labels:
+        app: acm-controller
+    spec:
+      serviceAccountName: hub-sa
+      containers:
+      - name: acm-controller
+        image: github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller
+        imagePullPolicy: IfNotPresent
+        args:
+          - "/acm-controller"
+          - "--klusterlet-cafile=/var/run/klusterlet/ca.crt"
+        volumeMounts:
+          - mountPath: /var/run/klusterlet
+            name: klusterlet-certs
+      volumes:
+      - name: klusterlet-certs
+        secret:
+          defaultMode: 420
+          secretName: acm-klusterlet-self-signed-secrets

@@ -56,6 +56,9 @@ spec:
           - "/acm-proxyserver"
           - "--cert-dir=/tmp"
           - "--secure-port=6443"
+          - "--klusterlet-cafile=/var/run/klusterlet/ca.crt"
+          - "--klusterlet-certfile=/var/run/klusterlet/tls.crt"
+          - "--klusterlet-keyfile=/var/run/klusterlet/tls.key"
         livenessProbe:
           httpGet:
             path: /healthz
@@ -69,3 +72,11 @@ spec:
             scheme: HTTPS
             port: 6443
           initialDelaySeconds: 2
+        volumeMounts:
+        - mountPath: /var/run/klusterlet
+          name: klusterlet-certs
+      volumes:
+      - name: klusterlet-certs
+        secret:
+          defaultMode: 420
+          secretName: acm-klusterlet-self-signed-secrets

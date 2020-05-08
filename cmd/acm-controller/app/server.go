@@ -6,21 +6,29 @@
 package app
 
 import (
-	"fmt"
-	"os"
+	"io/ioutil"
+
+	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	clusterregistryv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
+
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterrbac"
+	"k8s.io/client-go/kubernetes"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterinfo"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/inventory"
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/signals"
+	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
 
-	"github.com/spf13/cobra"
+	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
+
+	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var (
@@ -29,57 +37,76 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-
-	_ = clusterv1beta1.AddToScheme(scheme)
+	_ = inventoryv1alpha1.AddToScheme(scheme)
+	_ = hivev1.AddToScheme(scheme)
+	_ = clusterinfov1beta1.AddToScheme(scheme)
+	_ = clusterregistryv1alpha1.AddToScheme(scheme)
 	_ = clusterv1.Install(scheme)
 }
 
-const (
-	componentKlusterlet = "controller"
-)
-
-// NewControllerCommand creates a *cobra.Command object with default parameters
-func NewControllerCommand() *cobra.Command {
-	s := options.NewControllerRunOptions()
-	cmd := &cobra.Command{
-		Use:  componentKlusterlet,
-		Long: ``,
-		Run: func(cmd *cobra.Command, args []string) {
-			stopCh := signals.SetupSignalHandler()
-			if err := Run(s, stopCh); err != nil {
-				fmt.Fprintf(os.Stderr, "%v\n", err)
-				os.Exit(1)
-			}
-		},
-	}
-	s.AddFlags(cmd.Flags())
-	return cmd
-}
-
-// Run runs the specified klusterlet.  It only returns if stopCh is closed
-// or one of the ports cannot be listened on initially.
-func Run(s *options.ControllerRunOptions, stopCh <-chan struct{}) error {
-	err := RunController(s, stopCh)
+func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", o.KubeConfig)
 	if err != nil {
-		klog.Fatalf("Error run controller: %s", err.Error())
+		klog.Errorf("unable to get kube config: %v", err)
+		return err
 	}
+
+	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
+	if err != nil {
+		klog.Errorf("unable to create kube client: %v", err)
+		return err
+	}
+
+	caData, err := GetKlusterletCA(o.CAFile)
+	if err != nil {
+		klog.Errorf("unable to get klusterlet CA file: %v", err)
+		return err
+	}
+
+	kubeConfig.QPS = o.QPS
+	kubeConfig.Burst = o.Burst
+
+	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
+		Scheme:           scheme,
+		LeaderElectionID: "acm-controller",
+		LeaderElection:   o.EnableLeaderElection,
+	})
+	if err != nil {
+		klog.Errorf("unable to start manager: %v", err)
+		return err
+	}
+
+	// Setup reconciler
+	if o.EnableInventory {
+		if err = inventory.SetupWithManager(mgr); err != nil {
+			klog.Errorf("unable to setup inventory reconciler: %v", err)
+			return err
+		}
+	}
+
+	if err = clusterinfo.SetupWithManager(mgr, caData); err != nil {
+		klog.Errorf("unable to setup clusterInfo reconciler: %v", err)
+		return err
+	}
+
+	if err = clusterrbac.SetupWithManager(mgr, kubeClient); err != nil {
+		klog.Errorf("unable to setup clusterInfo reconciler: %v", err)
+		return err
+	}
+
+	// Start manager
+	if err := mgr.Start(stopCh); err != nil {
+		klog.Errorf("Controller-runtime manager exited non-zero, %v", err)
+		return err
+	}
+
 	return nil
 }
 
-// RunController start a hcm controller server
-func RunController(s *options.ControllerRunOptions, stopCh <-chan struct{}) error {
-	hcmCfg, err := clientcmd.BuildConfigFromFlags("", s.APIServerConfigFile)
+func GetKlusterletCA(caFile string) ([]byte, error) {
+	pemBlock, err := ioutil.ReadFile(caFile)
 	if err != nil {
-		klog.Fatalf("Error building config to connect to api: %s", err.Error())
+		return nil, err
 	}
-
-	// Configure qps and maxburst
-	hcmCfg.QPS = s.QPS
-	hcmCfg.Burst = s.Burst
-
-	if s.EnableInventory {
-		go inventory.Run(hcmCfg, stopCh)
-	}
-
-	return nil
+	return pemBlock, nil
 }

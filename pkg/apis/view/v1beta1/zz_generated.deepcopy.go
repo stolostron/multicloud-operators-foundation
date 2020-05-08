@@ -11,7 +11,7 @@
 package v1beta1
 
 import (
-	"github.com/openshift/custom-resource-status/conditions/v1"
+	v1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 

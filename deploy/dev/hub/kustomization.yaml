@@ -6,3 +6,4 @@ resources:
 - resources/200-clusterrole.yaml
 - resources/100-namespace.yaml
 - resources/300-proxyserver.yaml
+- resources/300-acm-controller.yaml
