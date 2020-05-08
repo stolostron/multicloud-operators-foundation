@@ -6,6 +6,7 @@
 package v1beta1
 
 import (
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -24,6 +25,7 @@ type SpokeView struct {
 	// Spec defines the desired configuration of a spokeview
 	// +optional
 	Spec SpokeViewSpec `json:"spec,omitempty"`
+
 	// Status describes current status of a spokeview
 	// +optional
 	Status SpokeViewStatus `json:"status,omitempty"`
@@ -49,37 +51,17 @@ type SpokeViewSpec struct {
 	Scope SpokeViewScope `json:"scope,omitempty"`
 }
 
-// StatusCondition contains condition information for a work.
-type StatusCondition struct {
-	// Type is the type of the spoke work condition.
-	// +required
-	Type string `json:"type"`
-
-	// Status is the status of the condition. One of True, False, Unknown.
-	// +required
-	Status metav1.ConditionStatus `json:"status"`
-
-	// LastTransitionTime is the last time the condition changed from one status to another.
-	// +required
-	LastTransitionTime metav1.Time `json:"lastTransitionTime"`
-
-	// Reason is a (brief) reason for the condition's last status change.
-	// +required
-	Reason string `json:"reason"`
-
-	// Message is a human-readable message indicating details about the last status change.
-	// +required
-	Message string `json:"message"`
-}
-
 // SpokeViewStatus returns the status of the spoke view
 type SpokeViewStatus struct {
-
 	// Conditions represents the conditions of this resource on spoke cluster
-	// +required
-	Conditions []StatusCondition `json:"conditions"`
+	// +patchMergeKey=type
+	// +patchStrategy=merge
+	// +optional
+	Conditions []conditionsv1.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type"`
 
 	// WorkResult references the related result of the work
+	// +nullable
+	// +optional
 	Result runtime.RawExtension `json:"result,omitempty"`
 }
 
@@ -112,6 +94,19 @@ type SpokeViewScope struct {
 	// +optional
 	UpdateIntervalSeconds int32 `json:"updateIntervalSeconds,omitempty"`
 }
+
+// These are valid conditions of a cluster.
+const (
+	// ConditionViewProcessing means the spoke view is processing.
+	ConditionViewProcessing conditionsv1.ConditionType = "Processing"
+)
+
+const (
+	ReasonResourceNameInvalid string = "ResourceNameInvalid"
+	ReasonResourceTypeInvalid string = "ResourceTypeInvalid"
+	ReasonResourceGVKInvalid  string = "ResourceGVKInvalid"
+	ReasonGetResourceFailed   string = "GetResourceFailed"
+)
 
 func init() {
 	SchemeBuilder.Register(&SpokeView{}, &SpokeViewList{})
