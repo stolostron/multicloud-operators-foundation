@@ -12,12 +12,12 @@ import (
 	"time"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/mcm"
+	api "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1beta1 "k8s.io/apimachinery/pkg/apis/meta/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/json"
-	api "k8s.io/kubernetes/pkg/apis/core"
 )
 
 var printOptions = PrintOptions{
