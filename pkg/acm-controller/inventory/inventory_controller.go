@@ -19,7 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/reference"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -51,41 +50,12 @@ const (
 	assetSecretRequeueAfter int = 60
 )
 
-// AddToSchemes may be used to add all resources defined in the project to a Scheme
-var AddToSchemes runtime.SchemeBuilder
-
-func init() {
-	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, inventoryv1alpha1.SchemeBuilder.AddToScheme)
-}
-
-func Run(config *rest.Config, stopch <-chan struct{}) {
-	mgr, err := manager.New(config, manager.Options{})
-	if err != nil {
-		klog.Errorf("Failed to create controller-runtime manager, %v", err)
-		return
-	}
-
-	// Setup Scheme for all resources
-	if err := AddToSchemes.AddToScheme(mgr.GetScheme()); err != nil {
-		klog.Errorf("Failed adding inventory to scheme, %v", err)
-		return
-	}
-
-	if err := hivev1.AddToScheme(mgr.GetScheme()); err != nil {
-		klog.Errorf("Failed adding hivev1 to scheme, %v", err)
-		return
-	}
-
+func SetupWithManager(mgr manager.Manager) error {
 	if err := add(mgr, newReconciler(mgr)); err != nil {
 		klog.Errorf("Failed to create baremetalasset controller, %v", err)
-		return
+		return err
 	}
-
-	// Start the baremetalasset controller
-	if err := mgr.Start(stopch); err != nil {
-		klog.Errorf("Controller-runtime manager exited non-zero, %v", err)
-	}
+	return nil
 }
 
 // newReconciler returns a new reconcile.Reconciler

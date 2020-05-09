@@ -32,7 +32,7 @@ func NewAgentOptions() *AgentOptions {
 		SpokeKubeConfig:      "",
 		HubKubeConfig:        "/var/run/hub/kubeconfig",
 		ClusterName:          "",
-		EnableLeaderElection: false,
+		EnableLeaderElection: true,
 		EnableImpersonation:  false,
 		Address:              "0.0.0.0",
 		Port:                 443,
