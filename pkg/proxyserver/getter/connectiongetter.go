@@ -54,7 +54,7 @@ type ConnectionInfo struct {
 	UseID     bool
 }
 
-var clusterInfoGVR = v1beta1.GroupVersion.WithResource("clusterinfoes")
+var clusterInfoGVR = v1beta1.GroupVersion.WithResource("clusterinfos")
 
 // ConnectionInfoGetter provides ConnectionInfo for the kubelet running on a named node
 type ConnectionInfoGetter interface {
@@ -66,7 +66,7 @@ func NewLogConnectionInfoGetter(clientConfig ClientConfig) (ConnectionInfoGetter
 		func(ctx context.Context, name string, options metav1.GetOptions) (*v1beta1.ClusterInfo, error) {
 			obj, err := clientConfig.DynamicClient.Resource(clusterInfoGVR).Namespace(name).Get(name, options)
 			if err != nil {
-				klog.Errorf("failed to get clusterinfoes %v, error: %v", name, err)
+				klog.Errorf("failed to get clusterinfos %v, error: %v", name, err)
 				return nil, err
 			}
 

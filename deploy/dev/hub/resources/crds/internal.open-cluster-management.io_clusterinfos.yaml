@@ -6,13 +6,13 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: clusterinfoes.internal.open-cluster-management.io
+  name: clusterinfos.internal.open-cluster-management.io
 spec:
   group: internal.open-cluster-management.io
   names:
     kind: ClusterInfo
     listKind: ClusterInfoList
-    plural: clusterinfoes
+    plural: clusterinfos
     singular: clusterinfo
   scope: Namespaced
   validation:

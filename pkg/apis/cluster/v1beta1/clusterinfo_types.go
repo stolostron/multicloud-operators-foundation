@@ -27,6 +27,7 @@ type ClusterInfoSpec struct {
 }
 
 // +kubebuilder:object:root=true
+// +kubebuilder:resource:path=clusterinfos
 
 // ClusterInfo represents the information of spoke cluster that acm hub needs to know
 type ClusterInfo struct {
