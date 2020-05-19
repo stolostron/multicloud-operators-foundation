@@ -94,6 +94,8 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 		os.Exit(1)
 	}
 
+	go app.ServeHealthProbes(stopCh)
+
 	run := func(ctx context.Context) {
 		// run agent server
 		klusterlet, err := app.AgentServerRun(o, spokeClient)
