@@ -4,15 +4,18 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog"
+
+	"k8s.io/apimachinery/pkg/api/equality"
+
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 
 	"github.com/go-logr/logr"
-	equalutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/equals"
 	"github.com/prometheus/common/log"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
+	configv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 )
 
@@ -52,44 +56,45 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Update cluster info here.
-	shouldUpdateStatus := false
-	masterAddresses, _, clusterURL := r.getMasterAddresses()
+	// Update cluster info status here.
+	newStatus := clusterv1beta1.ClusterInfoStatus{
+		Conditions: clusterInfo.Status.Conditions,
+	}
 
-	// Config endpoint
-	if !equalutils.EqualEndpointAddresses(masterAddresses, clusterInfo.Spec.MasterAddresses) {
-		clusterInfo.Spec.MasterAddresses = masterAddresses
-		shouldUpdateStatus = true
-	}
 	// Config console url
-	if clusterInfo.Spec.ConsoleURL != clusterURL {
-		clusterInfo.Spec.ConsoleURL = clusterURL
-		shouldUpdateStatus = true
-	}
+	_, _, clusterURL := r.getMasterAddresses()
+	newStatus.ConsoleURL = clusterURL
+
 	// Config klusterlet endpoint
 	klusterletEndpoint, klusterletPort, err := r.readKlusterletConfig()
-	if err == nil {
-		if !reflect.DeepEqual(klusterletEndpoint, &clusterInfo.Spec.KlusterletEndpoint) {
-			clusterInfo.Spec.KlusterletEndpoint = *klusterletEndpoint
-			shouldUpdateStatus = true
-		}
-		if !reflect.DeepEqual(klusterletPort, &clusterInfo.Spec.KlusterletPort) {
-			clusterInfo.Spec.KlusterletPort = *klusterletPort
-			shouldUpdateStatus = true
-		}
-	} else {
+	if err != nil {
 		log.Error(err, "Failed to get klusterlet server config")
+		return ctrl.Result{}, err
 	}
+	newStatus.KlusterletEndpoint = *klusterletEndpoint
+	newStatus.KlusterletPort = *klusterletPort
 
 	// Get version
-	version := r.getVersion()
-	if version != clusterInfo.Spec.Version {
-		clusterInfo.Spec.Version = version
-		shouldUpdateStatus = true
+	newStatus.Version = r.getVersion()
+
+	// Get distribution info
+	newStatus.DistributionInfo, err = r.getDistributionInfo()
+	if err != nil {
+		log.Error(err, "Failed to get distribution info")
+		return ctrl.Result{}, err
 	}
 
-	if shouldUpdateStatus {
-		err = r.Client.Update(ctx, clusterInfo)
+	// Get nodeList
+	nodeList, err := r.getNodeList()
+	if err != nil {
+		log.Error(err, "Failed to get nodes status")
+		return ctrl.Result{}, err
+	}
+	newStatus.NodeList = nodeList
+
+	if !equality.Semantic.DeepEqual(newStatus, clusterInfo.Status) {
+		clusterInfo.Status = newStatus
+		err = r.Client.Status().Update(ctx, clusterInfo)
 		if err != nil {
 			log.Error(err, "Failed to update status")
 			return ctrl.Result{}, err
@@ -274,10 +279,82 @@ func (r *ClusterInfoReconciler) getVersion() string {
 		serverVersionString = serverVersion.String()
 	}
 
+	return serverVersionString
+}
+
+const (
+	// LabelNodeRolePrefix is a label prefix for node roles
+	// It's copied over to here until it's merged in core: https://github.com/kubernetes/kubernetes/pull/39112
+	LabelNodeRolePrefix = "node-role.kubernetes.io/"
+
+	// NodeLabelRole specifies the role of a node
+	NodeLabelRole = "kubernetes.io/role"
+
+	// copied from k8s.io/api/core/v1/well_known_labels.go
+	LabelZoneFailureDomain  = "failure-domain.beta.kubernetes.io/zone"
+	LabelZoneRegion         = "failure-domain.beta.kubernetes.io/region"
+	LabelInstanceType       = "beta.kubernetes.io/instance-type"
+	LabelInstanceTypeStable = "node.kubernetes.io/instance-type"
+)
+
+func (r *ClusterInfoReconciler) getNodeList() ([]clusterv1beta1.NodeStatus, error) {
+	var nodeList []clusterv1beta1.NodeStatus
+	nodes, err := r.KubeClient.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+	for _, node := range nodes.Items {
+		nodeStatus := clusterv1beta1.NodeStatus{
+			Name:       node.Name,
+			Labels:     map[string]string{},
+			Capacity:   clusterv1beta1.ResourceList{},
+			Conditions: []clusterv1beta1.NodeCondition{},
+		}
+
+		// The roles are determined by looking for:
+		// * a node-role.kubernetes.io/<role>="" label
+		// * a kubernetes.io/role="<role>" label
+		for k, v := range node.Labels {
+			if strings.HasPrefix(k, LabelNodeRolePrefix) || k == NodeLabelRole ||
+				k == LabelZoneFailureDomain || k == LabelZoneRegion ||
+				k == LabelInstanceType || k == LabelInstanceTypeStable {
+				nodeStatus.Labels[k] = v
+			}
+		}
+
+		// append capacity of cpu and memory
+		for k, v := range node.Status.Capacity {
+			switch {
+			case k == corev1.ResourceCPU:
+				nodeStatus.Capacity[clusterv1beta1.ResourceCPU] = v
+			case k == corev1.ResourceMemory:
+				nodeStatus.Capacity[clusterv1beta1.ResourceMemory] = v
+			}
+		}
+
+		// append condition of NodeReady
+		readyCondition := clusterv1beta1.NodeCondition{
+			Type: corev1.NodeReady,
+		}
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == corev1.NodeReady {
+				readyCondition.Status = condition.Status
+				break
+			}
+		}
+		nodeStatus.Conditions = append(nodeStatus.Conditions, readyCondition)
+
+		nodeList = append(nodeList, nodeStatus)
+	}
+	return nodeList, nil
+}
+
+func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.DistributionInfo, error) {
 	var isOpenShift = false
+	distributionInfo := clusterv1beta1.DistributionInfo{}
 	serverGroups, err := r.KubeClient.ServerGroups()
 	if err != nil {
-		return serverVersionString
+		return distributionInfo, err
 	}
 	for _, apiGroup := range serverGroups.Groups {
 		if apiGroup.Name == "project.openshift.io" {
@@ -286,28 +363,19 @@ func (r *ClusterInfoReconciler) getVersion() string {
 		}
 	}
 
-	var isAKS = false
-	_, err = r.KubeClient.CoreV1().ServiceAccounts("kube-system").Get("omsagent", metav1.GetOptions{})
-	if err == nil {
-		isAKS = true
-	}
-
 	if isOpenShift {
-		if strings.Contains(serverVersionString, "+") {
-			serverVersionString += ".rhos"
-		} else {
-			serverVersionString += "+rhos"
+		distributionInfo.Type = clusterv1beta1.DistributionTypeOCP
+		clusterVersion := &configv1.ClusterVersion{}
+		err := r.Client.Get(context.TODO(), types.NamespacedName{Name: "version"}, clusterVersion)
+		if err != nil {
+			klog.Errorf("failed to get OCP cluster version: %v", err)
+			return distributionInfo, client.IgnoreNotFound(err)
 		}
-	}
-	if isAKS {
-		if strings.Contains(serverVersionString, "+") {
-			serverVersionString += ".aks"
-		} else {
-			serverVersionString += "+aks"
-		}
+		distributionInfo.OCP = clusterv1beta1.OCPDistributionInfo{Version: clusterVersion.Status.Desired.Version}
+		return distributionInfo, nil
 	}
 
-	return serverVersionString
+	return distributionInfo, nil
 }
 
 func (r *ClusterInfoReconciler) RefreshAgentServer(clusterInfo *clusterv1beta1.ClusterInfo) {
