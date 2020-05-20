@@ -6,15 +6,17 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: clusterinfoes.internal.open-cluster-management.io
+  name: clusterinfos.internal.open-cluster-management.io
 spec:
   group: internal.open-cluster-management.io
   names:
     kind: ClusterInfo
     listKind: ClusterInfoList
-    plural: clusterinfoes
+    plural: clusterinfos
     singular: clusterinfo
   scope: Namespaced
+  subresources:
+    status: {}
   validation:
     openAPIV3Schema:
       description: ClusterInfo represents the information of spoke cluster that acm
@@ -31,22 +33,73 @@ spec:
             submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
           type: string
         metadata:
-          description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata'
           type: object
         spec:
           description: Spec defines the information of the Cluster.
           properties:
-            consoleURL:
-              description: ConcoleURL shows the url of icp console in managed cluster
-              type: string
             klusterletCA:
               description: KlusterletCA is the ca data for klusterlet to authorize
                 apiserver
               format: byte
               type: string
+            masterEndpoint:
+              description: MasterEndpoint shows the apiserver endpoint of spoke cluster
+              type: string
+          type: object
+        status:
+          description: Status represents the desired status of the Cluster
+          properties:
+            conditions:
+              description: Conditions contains condition information for a spoke cluster
+              items:
+                description: StatusCondition contains condition information for a
+                  spoke cluster.
+                properties:
+                  lastTransitionTime:
+                    description: LastTransitionTime is the last time the condition
+                      changed from one status to another.
+                    format: date-time
+                    type: string
+                  message:
+                    description: Message is a human-readable message indicating details
+                      about the last status change.
+                    type: string
+                  reason:
+                    description: Reason is a (brief) reason for the condition's last
+                      status change.
+                    type: string
+                  status:
+                    description: Status is the status of the condition. One of True,
+                      False, Unknown.
+                    type: string
+                  type:
+                    description: Type is the type of the cluster condition.
+                    type: string
+                type: object
+              type: array
+            consoleURL:
+              description: ConsoleURL shows the url of console in spoke cluster
+              type: string
+            distributionInfo:
+              description: DistributionInfo is the information about distribution
+                of spoke cluster
+              properties:
+                ocp:
+                  description: OCP is the distribution information of OCP spoke cluster,
+                    is matched when the Type is OCP.
+                  properties:
+                    version:
+                      description: Version is the distribution version of OCP
+                      type: string
+                  type: object
+                type:
+                  description: Type is the distribution type of spoke cluster, is
+                    OCP currently
+                  type: string
+              type: object
             klusterletEndpoint:
               description: KlusterletEndpoint shows the endpoint to connect to klusterlet
-                of managed cluster
+                of spoke cluster
               properties:
                 hostname:
                   description: The Hostname of this endpoint
@@ -103,7 +156,7 @@ spec:
               type: object
             klusterletPort:
               description: KlusterletPort shows the port to connect to klusterlet
-                of managed cluster
+                of spoke cluster
               properties:
                 name:
                   description: The name of this port.  This must match the 'name'
@@ -121,67 +174,48 @@ spec:
               required:
               - port
               type: object
-            masterAddresses:
-              description: MasterIP shows the master IP of managed cluster
+            nodeList:
+              description: NodeList shows a list of the status of nodes
               items:
-                description: EndpointAddress is a tuple that describes single IP address.
+                description: NodeStatus presents the name, labels and conditions of
+                  node
                 properties:
-                  hostname:
-                    description: The Hostname of this endpoint
-                    type: string
-                  ip:
-                    description: 'The IP of this endpoint. May not be loopback (127.0.0.0/8),
-                      link-local (169.254.0.0/16), or link-local multicast ((224.0.0.0/24).
-                      IPv6 is also accepted but not fully supported on all platforms.
-                      Also, certain kubernetes components, like kube-proxy, are not
-                      IPv6 ready. TODO: This should allow hostname or IP, See #4447.'
-                    type: string
-                  nodeName:
-                    description: 'Optional: Node hosting this endpoint. This can be
-                      used to determine endpoints local to a node.'
-                    type: string
-                  targetRef:
-                    description: Reference to object providing the endpoint.
-                    properties:
-                      apiVersion:
-                        description: API version of the referent.
-                        type: string
-                      fieldPath:
-                        description: 'If referring to a piece of an object instead
-                          of an entire object, this string should contain a valid
-                          JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                          For example, if the object reference is to a container within
-                          a pod, this would take on a value like: "spec.containers{name}"
-                          (where "name" refers to the name of the container that triggered
-                          the event) or if no container name is specified "spec.containers[2]"
-                          (container with index 2 in this pod). This syntax is chosen
-                          only to have some well-defined way of referencing a part
-                          of an object. TODO: this design is not final and this field
-                          is subject to change in the future.'
-                        type: string
-                      kind:
-                        description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                        type: string
-                      name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
-                        type: string
-                      namespace:
-                        description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
-                        type: string
-                      resourceVersion:
-                        description: 'Specific resourceVersion to which this reference
-                          is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
-                        type: string
-                      uid:
-                        description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
-                        type: string
+                  capacity:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: Capacity represents the total resources of a node.
+                      only includes CPU and memory.
                     type: object
-                required:
-                - ip
+                  conditions:
+                    description: Conditions is an array of current node conditions.
+                      only includes NodeReady.
+                    items:
+                      properties:
+                        status:
+                          description: Status of the condition, one of True, False,
+                            Unknown.
+                          type: string
+                        type:
+                          description: Type of node condition.
+                          type: string
+                      type: object
+                    type: array
+                  labels:
+                    additionalProperties:
+                      type: string
+                    description: Labels of node.
+                    type: object
+                  name:
+                    description: Name of node
+                    type: string
                 type: object
               type: array
             version:
-              description: Version of member cluster
+              description: Version is the kube version of spoke cluster.
               type: string
           type: object
       type: object

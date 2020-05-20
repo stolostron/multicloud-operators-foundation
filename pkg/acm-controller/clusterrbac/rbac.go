@@ -18,7 +18,8 @@ import (
 func buildRoleRules() []rbacv1.PolicyRule {
 	return []rbacv1.PolicyRule{
 		rbacv1helpers.NewRule("create", "get").Groups(proxyserverv1beta1.GroupName).Resources("clusterstatuses/aggregator").RuleOrDie(),
-		rbacv1helpers.NewRule("update", "patch", "get", "list", "watch").Groups(clusterv1beta1.GroupName).Resources("clusterinfoes").RuleOrDie(),
+		rbacv1helpers.NewRule("get", "list", "watch").Groups(clusterv1beta1.GroupName).Resources("clusterinfos").RuleOrDie(),
+		rbacv1helpers.NewRule("update", "patch").Groups(clusterv1beta1.GroupName).Resources("clusterinfos/status").RuleOrDie(),
 		rbacv1helpers.NewRule("get", "list", "watch").Groups(actionv1beta1.GroupName).Resources("clusteractions").RuleOrDie(),
 		rbacv1helpers.NewRule("update", "patch").Groups(actionv1beta1.GroupName).Resources("clusteractions/status").RuleOrDie(),
 		rbacv1helpers.NewRule("get", "list", "watch").Groups(spokeviewv1beta1.GroupName).Resources("spokeviews").RuleOrDie(),

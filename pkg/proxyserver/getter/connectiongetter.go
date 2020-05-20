@@ -54,7 +54,7 @@ type ConnectionInfo struct {
 	UseID     bool
 }
 
-var clusterInfoGVR = v1beta1.GroupVersion.WithResource("clusterinfoes")
+var clusterInfoGVR = v1beta1.GroupVersion.WithResource("clusterinfos")
 
 // ConnectionInfoGetter provides ConnectionInfo for the kubelet running on a named node
 type ConnectionInfoGetter interface {
@@ -66,7 +66,7 @@ func NewLogConnectionInfoGetter(clientConfig ClientConfig) (ConnectionInfoGetter
 		func(ctx context.Context, name string, options metav1.GetOptions) (*v1beta1.ClusterInfo, error) {
 			obj, err := clientConfig.DynamicClient.Resource(clusterInfoGVR).Namespace(name).Get(name, options)
 			if err != nil {
-				klog.Errorf("failed to get clusterinfoes %v, error: %v", name, err)
+				klog.Errorf("failed to get clusterinfos %v, error: %v", name, err)
 				return nil, err
 			}
 
@@ -173,13 +173,13 @@ func (k *ClusterConnectionInfoGetter) GetConnectionInfo(ctx context.Context, clu
 	}
 
 	// Use the kubelet-reported port, if present
-	port := int(cluster.Spec.KlusterletPort.Port)
+	port := int(cluster.Status.KlusterletPort.Port)
 	if port <= 0 {
 		port = k.defaultPort
 	}
 
-	hostname := cluster.Spec.KlusterletEndpoint.Hostname
-	ip := cluster.Spec.KlusterletEndpoint.IP
+	hostname := cluster.Status.KlusterletEndpoint.Hostname
+	ip := cluster.Status.KlusterletEndpoint.IP
 
 	// need a deep copy
 	config := &ClientConfig{
