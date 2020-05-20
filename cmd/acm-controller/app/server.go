@@ -8,6 +8,8 @@ package app
 import (
 	"io/ioutil"
 
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterregistryv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 
@@ -67,12 +69,24 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 	kubeConfig.Burst = o.Burst
 
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
-		Scheme:           scheme,
-		LeaderElectionID: "acm-controller",
-		LeaderElection:   o.EnableLeaderElection,
+		Scheme:                 scheme,
+		LeaderElectionID:       "acm-controller",
+		LeaderElection:         o.EnableLeaderElection,
+		HealthProbeBindAddress: ":8000",
 	})
 	if err != nil {
 		klog.Errorf("unable to start manager: %v", err)
+		return err
+	}
+
+	// add healthz/readyz check handler
+	if err := mgr.AddHealthzCheck("healthz-ping", healthz.Ping); err != nil {
+		klog.Errorf("unable to add healthz check handler: %v", err)
+		return err
+	}
+
+	if err := mgr.AddReadyzCheck("readyz-ping", healthz.Ping); err != nil {
+		klog.Errorf("unable to add readyz check handler: %v", err)
 		return err
 	}
 
