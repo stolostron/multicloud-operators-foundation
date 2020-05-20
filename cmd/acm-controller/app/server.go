@@ -8,6 +8,10 @@ package app
 import (
 	"io/ioutil"
 
+	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
+
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/gc"
+
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
@@ -42,8 +46,12 @@ func init() {
 	_ = inventoryv1alpha1.AddToScheme(scheme)
 	_ = hivev1.AddToScheme(scheme)
 	_ = clusterinfov1beta1.AddToScheme(scheme)
+
+	// TODO: deprecate clusterregistry
 	_ = clusterregistryv1alpha1.AddToScheme(scheme)
+
 	_ = clusterv1.Install(scheme)
+	_ = actionv1beta1.AddToScheme(scheme)
 }
 
 func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
@@ -105,6 +113,11 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 
 	if err = clusterrbac.SetupWithManager(mgr, kubeClient); err != nil {
 		klog.Errorf("unable to setup clusterInfo reconciler: %v", err)
+		return err
+	}
+
+	if err = gc.SetupWithManager(mgr); err != nil {
+		klog.Errorf("unable to setup gc reconciler: %v", err)
 		return err
 	}
 
