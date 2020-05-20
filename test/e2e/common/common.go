@@ -206,8 +206,12 @@ func UpdateResourceStatus(
 	dynamicClient dynamic.Interface,
 	gvr schema.GroupVersionResource,
 	obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	oldObj, err := GetResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())
+	if err != nil {
+		return obj, err
+	}
 	obj = obj.DeepCopy()
-	obj.SetResourceVersion("")
+	obj.SetResourceVersion(oldObj.GetResourceVersion())
 	return dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).UpdateStatus(obj, metav1.UpdateOptions{})
 }
 
@@ -276,7 +280,8 @@ func SetStatusType(obj *unstructured.Unstructured, statusType string) error {
 
 	if len(conditions) == 0 {
 		conditions = append(conditions, map[string]interface{}{
-			"type": statusType,
+			"status": "True",
+			"type":   statusType,
 		})
 		err := unstructured.SetNestedField(obj.Object, conditions, "status", "conditions")
 		if err != nil {
@@ -284,6 +289,7 @@ func SetStatusType(obj *unstructured.Unstructured, statusType string) error {
 		}
 	} else {
 		condition := conditions[0].(map[string]interface{})
+		condition["status"] = "True"
 		condition["type"] = statusType
 	}
 

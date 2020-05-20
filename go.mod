@@ -52,7 +52,7 @@ require (
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a
 	github.com/metal3-io/baremetal-operator v0.0.0-20200228072510-dfd5fea95b0a
 	github.com/mongodb/mongo-go-driver v0.0.0-20180808171322-9b26cbb1a61a
-	github.com/onsi/ginkgo v1.12.0
+	github.com/onsi/ginkgo v1.12.1
 	github.com/onsi/gomega v1.9.0
 	github.com/open-cluster-management/api v0.0.0-20200506150956-355c9d6ef16b
 	github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible

@@ -1,4 +1,5 @@
 resources:
+- resources/crds
 - resources/300-apiserver.yaml
 - resources/300-controller.yaml
 - resources/200-mongo.yaml
