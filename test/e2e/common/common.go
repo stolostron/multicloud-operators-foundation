@@ -4,6 +4,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/template"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -14,6 +15,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
+	"k8s.io/client-go/util/retry"
 
 	"os"
 	"os/user"
@@ -94,6 +96,9 @@ func GetJoinedSpokeClusters(dynamicClient dynamic.Interface) ([]*unstructured.Un
 		conditions, ok, err := unstructured.NestedSlice(cluster.Object, "status", "conditions")
 		if err != nil {
 			return nil, err
+		}
+		if strings.HasPrefix(cluster.GetName(), "test-automation") {
+			continue
 		}
 
 		if !ok || len(conditions) == 0 {
@@ -202,13 +207,17 @@ func UpdateResourceStatus(
 	dynamicClient dynamic.Interface,
 	gvr schema.GroupVersionResource,
 	obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	oldObj, err := GetResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())
-	if err != nil {
-		return obj, err
-	}
-	obj = obj.DeepCopy()
-	obj.SetResourceVersion(oldObj.GetResourceVersion())
-	return dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).UpdateStatus(obj, metav1.UpdateOptions{})
+	var rs *unstructured.Unstructured
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		oldObj, err := GetResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())
+		if err != nil {
+			return err
+		}
+		obj.SetResourceVersion(oldObj.GetResourceVersion())
+		rs, err = dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).UpdateStatus(obj, metav1.UpdateOptions{})
+		return err
+	})
+	return rs, err
 }
 
 func DeleteClusterResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, name string) error {

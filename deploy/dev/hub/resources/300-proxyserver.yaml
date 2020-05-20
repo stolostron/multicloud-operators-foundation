@@ -48,6 +48,7 @@ spec:
       labels:
         app: acm-proxyserver
     spec:
+      serviceAccountName: hub-sa
       containers:
       - name: acm-proxyserver
         image: github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver
