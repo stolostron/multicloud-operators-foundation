@@ -83,7 +83,7 @@ func GetHostFromClientConfig() (string, error) {
 	return clientCfg.Host, nil
 }
 
-func GetReadySpokeClusters(dynamicClient dynamic.Interface) ([]*unstructured.Unstructured, error) {
+func GetJoinedSpokeClusters(dynamicClient dynamic.Interface) ([]*unstructured.Unstructured, error) {
 	clusters, err := dynamicClient.Resource(SpokeClusterGVR).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
@@ -100,10 +100,12 @@ func GetReadySpokeClusters(dynamicClient dynamic.Interface) ([]*unstructured.Uns
 			continue
 		}
 
-		condition := conditions[0].(map[string]interface{})
-		if t, ok := condition["type"]; ok {
-			if t == "SpokeClusterJoined" {
-				readyClusters = append(readyClusters, cluster.DeepCopy())
+		for _, condition := range conditions {
+			if t, ok := condition.(map[string]interface{})["type"]; ok {
+				if t == "SpokeClusterJoined" {
+					readyClusters = append(readyClusters, cluster.DeepCopy())
+					break
+				}
 			}
 		}
 	}

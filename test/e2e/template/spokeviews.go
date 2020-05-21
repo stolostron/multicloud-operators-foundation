@@ -15,7 +15,7 @@ const SpokeViewTemplate = `{
     "scope": {
       "resource": "deployments",
       "name": "acm-proxyserver",
-      "namespace": "multicloud-system"
+      "namespace": "open-cluster-management"
     }
   }
 }`

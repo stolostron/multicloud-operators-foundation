@@ -36,7 +36,7 @@ var _ = BeforeSuite(func() {
 	dynamicClient, err = common.NewDynamicClient()
 	Ω(err).ShouldNot(HaveOccurred())
 
-	realClusters, err = common.GetReadySpokeClusters(dynamicClient)
+	realClusters, err = common.GetJoinedSpokeClusters(dynamicClient)
 	Ω(err).ShouldNot(HaveOccurred())
 	hasSpokeClusters = len(realClusters) > 0
 
@@ -60,9 +60,6 @@ var _ = BeforeSuite(func() {
 
 		return condition["type"], nil
 	}, eventuallyTimeout, eventuallyInterval).Should(Equal("SpokeClusterJoined"))
-
-	_, err = common.GetReadySpokeClusters(dynamicClient)
-	Ω(err).ShouldNot(HaveOccurred())
 })
 
 var _ = AfterSuite(func() {
