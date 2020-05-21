@@ -3,7 +3,6 @@ package common
 import (
 	"crypto/x509/pkix"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/template"
@@ -25,21 +24,16 @@ const (
 	kubeConfigFileEnv = "KUBECONFIG"
 )
 
-var clusterGVR schema.GroupVersionResource = schema.GroupVersionResource{
-	Group:    "clusterregistry.k8s.io",
-	Version:  "v1alpha1",
-	Resource: "clusters",
+var SpokeClusterGVR schema.GroupVersionResource = schema.GroupVersionResource{
+	Group:    "cluster.open-cluster-management.io",
+	Version:  "v1",
+	Resource: "spokeclusters",
 }
 
 var NamespaceGVR = schema.GroupVersionResource{
 	Group:    "",
 	Version:  "v1",
 	Resource: "namespaces",
-}
-var workGVR = schema.GroupVersionResource{
-	Group:    "mcm.ibm.com",
-	Version:  "v1beta1",
-	Resource: "works",
 }
 
 func getKubeConfigFile() (string, error) {
@@ -89,8 +83,8 @@ func GetHostFromClientConfig() (string, error) {
 	return clientCfg.Host, nil
 }
 
-func GetReadyManagedClusters(dynamicClient dynamic.Interface) ([]*unstructured.Unstructured, error) {
-	clusters, err := dynamicClient.Resource(clusterGVR).List(metav1.ListOptions{})
+func GetReadySpokeClusters(dynamicClient dynamic.Interface) ([]*unstructured.Unstructured, error) {
+	clusters, err := dynamicClient.Resource(SpokeClusterGVR).List(metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +102,7 @@ func GetReadyManagedClusters(dynamicClient dynamic.Interface) ([]*unstructured.U
 
 		condition := conditions[0].(map[string]interface{})
 		if t, ok := condition["type"]; ok {
-			if t == "OK" {
+			if t == "SpokeClusterJoined" {
 				readyClusters = append(readyClusters, cluster.DeepCopy())
 			}
 		}
@@ -309,36 +303,8 @@ func GetConditionFromStatus(obj *unstructured.Unstructured) (map[string]interfac
 	condition, _ := conditions[0].(map[string]interface{})
 	return condition, nil
 }
-func UpdateWorkStatus(dynamicClient dynamic.Interface, work *unstructured.Unstructured, status string) (*unstructured.Unstructured, error) {
-	err := unstructured.SetNestedField(work.Object, status, "status", "type")
-	if err != nil {
-		return nil, err
-	}
 
-	curTime := metav1.Now().Format("2006-01-02T15:04:05Z07:00")
-	err = unstructured.SetNestedField(work.Object, curTime, "status", "lastUpdateTime")
-	if err != nil {
-		return nil, err
-	}
-
-	var res map[string]interface{}
-	err = json.Unmarshal([]byte(template.ActionWorkTemplate), &res)
-	if err != nil {
-		return nil, err
-	}
-	err = unstructured.SetNestedMap(work.Object, res, "status", "result")
-	if err != nil {
-		return nil, err
-	}
-	//update work status mannually.
-	work, err = UpdateResourceStatus(dynamicClient, workGVR, work)
-	if err != nil {
-		return nil, err
-	}
-	return work, nil
-}
-
-func CreateCluster(dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
+func CreateSpokeCluster(dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
 	// create a namespace for testing
 	ns, err := LoadResourceFromJSON(template.NamespaceTemplate)
 	if err != nil {
@@ -350,45 +316,45 @@ func CreateCluster(dynamicClient dynamic.Interface) (*unstructured.Unstructured,
 	}
 	clusterNamespace := ns.GetName()
 
-	fakeCluster, err := LoadResourceFromJSON(template.ClusterTemplate)
+	fakeSpokeCluster, err := LoadResourceFromJSON(template.SpokeClusterTemplate)
 	if err != nil {
 		return nil, err
 	}
 
-	// setup fakeCluster
-	err = unstructured.SetNestedField(fakeCluster.Object, clusterNamespace, "metadata", "namespace")
+	// setup fakeSpokeCluster
+	err = unstructured.SetNestedField(fakeSpokeCluster.Object, clusterNamespace, "metadata", "namespace")
 	if err != nil {
 		return nil, err
 	}
-	err = unstructured.SetNestedField(fakeCluster.Object, clusterNamespace, "metadata", "name")
-	if err != nil {
-		return nil, err
-	}
-
-	// create a fakeCluster
-	fakeCluster, err = CreateResource(dynamicClient, clusterGVR, fakeCluster)
+	err = unstructured.SetNestedField(fakeSpokeCluster.Object, clusterNamespace, "metadata", "name")
 	if err != nil {
 		return nil, err
 	}
 
-	exists, err := HasResource(dynamicClient, clusterGVR, fakeCluster.GetNamespace(), fakeCluster.GetName())
+	// create a fakeSpokeCluster
+	fakeSpokeCluster, err = CreateClusterResource(dynamicClient, SpokeClusterGVR, fakeSpokeCluster)
+	if err != nil {
+		return nil, err
+	}
+
+	exists, err := HasResource(dynamicClient, SpokeClusterGVR, fakeSpokeCluster.GetNamespace(), fakeSpokeCluster.GetName())
 	if err != nil {
 		return nil, err
 	}
 	if !exists {
-		return nil, fmt.Errorf("failed to get cluster: %v", err)
+		return nil, fmt.Errorf("failed to get spokecluster: %v", err)
 	}
 
-	// update fakeCluster status with the new client
-	err = SetStatusType(fakeCluster, "OK")
+	// update fakeSpokeCluster status with the new client
+	err = SetStatusType(fakeSpokeCluster, "SpokeClusterJoined")
 	if err != nil {
 		return nil, err
 	}
 
-	fakeCluster, err = UpdateResourceStatus(dynamicClient, clusterGVR, fakeCluster)
+	fakeSpokeCluster, err = UpdateResourceStatus(dynamicClient, SpokeClusterGVR, fakeSpokeCluster)
 	if err != nil {
 		return nil, err
 	}
 
-	return fakeCluster, nil
+	return fakeSpokeCluster, nil
 }

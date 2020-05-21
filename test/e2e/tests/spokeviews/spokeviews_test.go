@@ -23,12 +23,6 @@ var gvr = schema.GroupVersionResource{
 	Resource: "spokeviews",
 }
 
-var clusterGVR = schema.GroupVersionResource{
-	Group:    "clusterregistry.k8s.io",
-	Version:  "v1alpha1",
-	Resource: "clusters",
-}
-
 var (
 	dynamicClient    dynamic.Interface
 	realClusters     []*unstructured.Unstructured
@@ -42,16 +36,16 @@ var _ = BeforeSuite(func() {
 	dynamicClient, err = common.NewDynamicClient()
 	Ω(err).ShouldNot(HaveOccurred())
 
-	realClusters, err = common.GetReadyManagedClusters(dynamicClient)
+	realClusters, err = common.GetReadySpokeClusters(dynamicClient)
 	Ω(err).ShouldNot(HaveOccurred())
 	hasSpokeClusters = len(realClusters) > 0
 
 	// create a fake cluster
-	fakeCluster, err = common.CreateCluster(dynamicClient)
+	fakeCluster, err = common.CreateSpokeCluster(dynamicClient)
 	Ω(err).ShouldNot(HaveOccurred())
 	// check fakeCluster ready
 	Eventually(func() (interface{}, error) {
-		fakeCluster, err := common.GetResource(dynamicClient, clusterGVR, fakeCluster.GetNamespace(), fakeCluster.GetName())
+		fakeCluster, err := common.GetClusterResource(dynamicClient, common.SpokeClusterGVR, fakeCluster.GetName())
 		if err != nil {
 			return "", err
 		}
@@ -65,19 +59,19 @@ var _ = BeforeSuite(func() {
 		}
 
 		return condition["type"], nil
-	}, eventuallyTimeout, eventuallyInterval).Should(Equal("OK"))
+	}, eventuallyTimeout, eventuallyInterval).Should(Equal("SpokeClusterJoined"))
 
-	_, err = common.GetReadyManagedClusters(dynamicClient)
+	_, err = common.GetReadySpokeClusters(dynamicClient)
 	Ω(err).ShouldNot(HaveOccurred())
 })
 
 var _ = AfterSuite(func() {
 	// delete the namespace created for testing
-	err := common.DeleteClusterResource(dynamicClient, common.NamespaceGVR, fakeCluster.GetNamespace())
+	err := common.DeleteClusterResource(dynamicClient, common.NamespaceGVR, fakeCluster.GetName())
 	Ω(err).ShouldNot(HaveOccurred())
 
 	// delete the resource created
-	err = common.DeleteResource(dynamicClient, clusterGVR, fakeCluster.GetNamespace(), fakeCluster.GetName())
+	err = common.DeleteClusterResource(dynamicClient, common.SpokeClusterGVR, fakeCluster.GetName())
 	Ω(err).ShouldNot(HaveOccurred())
 })
 
@@ -88,11 +82,10 @@ var _ = Describe("Testing spokeView", func() {
 	)
 
 	BeforeEach(func() {
-
 		// load object from json template
 		obj, err = common.LoadResourceFromJSON(template.SpokeViewTemplate)
 		Ω(err).ShouldNot(HaveOccurred())
-		err = unstructured.SetNestedField(obj.Object, fakeCluster.GetNamespace(), "metadata", "namespace")
+		err = unstructured.SetNestedField(obj.Object, fakeCluster.GetName(), "metadata", "namespace")
 		Ω(err).ShouldNot(HaveOccurred())
 		// create spokeView to fake cluster
 		obj, err = common.CreateResource(dynamicClient, gvr, obj)
@@ -103,7 +96,7 @@ var _ = Describe("Testing spokeView", func() {
 			obj, err := common.LoadResourceFromJSON(template.SpokeViewTemplate)
 			Ω(err).ShouldNot(HaveOccurred())
 			realCluster = realClusters[0]
-			err = unstructured.SetNestedField(obj.Object, realCluster.GetNamespace(), "metadata", "namespace")
+			err = unstructured.SetNestedField(obj.Object, realCluster.GetName(), "metadata", "namespace")
 			Ω(err).ShouldNot(HaveOccurred())
 			// create spokeView to real cluster
 			obj, err = common.CreateResource(dynamicClient, gvr, obj)
@@ -113,12 +106,12 @@ var _ = Describe("Testing spokeView", func() {
 
 	Describe("Creating a spokeView", func() {
 		It("should be created successfully in cluster", func() {
-			exists, err := common.HasResource(dynamicClient, gvr, fakeCluster.GetNamespace(), obj.GetName())
+			exists, err := common.HasResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(exists).Should(BeTrue())
 
 			if hasSpokeClusters {
-				exists, err := common.HasResource(dynamicClient, gvr, realCluster.GetNamespace(), obj.GetName())
+				exists, err := common.HasResource(dynamicClient, gvr, realCluster.GetName(), obj.GetName())
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(exists).Should(BeTrue())
 			}
@@ -127,7 +120,7 @@ var _ = Describe("Testing spokeView", func() {
 		It("should have a valid condition", func() {
 			// In fake cluster, the status of spokeView should be empty
 			Eventually(func() (interface{}, error) {
-				spokeView, err := common.GetResource(dynamicClient, gvr, fakeCluster.GetNamespace(), obj.GetName())
+				spokeView, err := common.GetResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
 				if err != nil {
 					return "", err
 				}
@@ -147,7 +140,7 @@ var _ = Describe("Testing spokeView", func() {
 			// In real cluster, the status of spokeView should have a valid value
 			if hasSpokeClusters {
 				Eventually(func() (interface{}, error) {
-					spokeView, err := common.GetResource(dynamicClient, gvr, realCluster.GetNamespace(), obj.GetName())
+					spokeView, err := common.GetResource(dynamicClient, gvr, realCluster.GetName(), obj.GetName())
 					if err != nil {
 						return "", err
 					}
@@ -168,7 +161,7 @@ var _ = Describe("Testing spokeView", func() {
 
 		It("should be updated successfully in cluster", func() {
 			Eventually(func() (interface{}, error) {
-				spokeView, err := common.GetResource(dynamicClient, gvr, fakeCluster.GetNamespace(), obj.GetName())
+				spokeView, err := common.GetResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
 				if err != nil {
 					return "", err
 				}
@@ -178,7 +171,7 @@ var _ = Describe("Testing spokeView", func() {
 				Ω(err).ShouldNot(HaveOccurred())
 				spokeView, err = common.UpdateResourceStatus(dynamicClient, gvr, spokeView)
 				Ω(err).ShouldNot(HaveOccurred())
-				spokeView, err = common.GetResource(dynamicClient, gvr, fakeCluster.GetNamespace(), obj.GetName())
+				spokeView, err = common.GetResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
 				if err != nil {
 					return "", err
 				}
@@ -196,11 +189,11 @@ var _ = Describe("Testing spokeView", func() {
 
 		AfterEach(func() {
 			// delete all resource from fake cluster and real cluster
-			err = common.DeleteResource(dynamicClient, gvr, fakeCluster.GetNamespace(), obj.GetName())
+			err = common.DeleteResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
 			Ω(err).ShouldNot(HaveOccurred())
 
 			if hasSpokeClusters {
-				err = common.DeleteResource(dynamicClient, gvr, realCluster.GetNamespace(), obj.GetName())
+				err = common.DeleteResource(dynamicClient, gvr, realCluster.GetName(), obj.GetName())
 				Ω(err).ShouldNot(HaveOccurred())
 			}
 		})
