@@ -1,6 +1,6 @@
 // +build integration
 
-package worksets_test
+package spokeviews_test
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestWorksets(t *testing.T) {
+func TestClusterActions(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Worksets Suite")
+	RunSpecs(t, "SpokeViews Suite")
 }
