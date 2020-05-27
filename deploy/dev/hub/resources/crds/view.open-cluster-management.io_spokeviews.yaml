@@ -74,9 +74,6 @@ spec:
                 description: Condition represents the state of the operator's reconciliation
                   functionality.
                 properties:
-                  lastHeartbeatTime:
-                    format: date-time
-                    type: string
                   lastTransitionTime:
                     format: date-time
                     type: string
