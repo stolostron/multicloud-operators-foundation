@@ -32,12 +32,12 @@ replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503
 
 // Match with k8s.io/component-base
 replace (
+	github.com/onsi/ginkgo => github.com/onsi/ginkgo v1.12.0
+	github.com/onsi/gomega => github.com/onsi/gomega v1.9.0
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v0.9.2
 	github.com/prometheus/client_model => github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910
 	github.com/prometheus/common => github.com/prometheus/common v0.0.0-20181126121408-4724e9255275
 	github.com/prometheus/procfs => github.com/prometheus/procfs v0.0.0-20181204211112-1dc9a6cbc91a
-	github.com/onsi/ginkgo => github.com/onsi/ginkgo v1.12.0
-	github.com/onsi/gomega => github.com/onsi/gomega v1.9.0
 )
 
 require (
@@ -57,7 +57,6 @@ require (
 	github.com/onsi/ginkgo v1.12.2
 	github.com/onsi/gomega v1.10.1
 	github.com/open-cluster-management/api v0.0.0-20200506150956-355c9d6ef16b
-	github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible
 	github.com/openshift/client-go v0.0.0-20190923180330-3b6373338c9b
 	github.com/openshift/custom-resource-status v0.0.0-20190822192428-e62f2f3b79f3
 	github.com/openshift/hive v0.0.0-20200302220132-867d7fb189bf

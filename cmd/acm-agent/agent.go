@@ -127,16 +127,17 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 		}
 
 		clusterInfoReconciler := clusterinfoctl.ClusterInfoReconciler{
-			Client:            mgr.GetClient(),
-			Log:               ctrl.Log.WithName("controllers").WithName("ClusterInfo"),
-			Scheme:            mgr.GetScheme(),
-			KubeClient:        spokeKubeClient,
-			KlusterletRoute:   o.KlusterletRoute,
-			KlusterletAddress: o.KlusterletAddress,
-			KlusterletIngress: o.KlusterletIngress,
-			KlusterletPort:    int32(o.KlusterletPort),
-			RouteV1Client:     routeV1Client,
-			Klusterlet:        klusterlet,
+			Client:             mgr.GetClient(),
+			Log:                ctrl.Log.WithName("controllers").WithName("ClusterInfo"),
+			Scheme:             mgr.GetScheme(),
+			KubeClient:         spokeKubeClient,
+			SpokeDynamicClient: spokeDynamicClient,
+			KlusterletRoute:    o.KlusterletRoute,
+			KlusterletAddress:  o.KlusterletAddress,
+			KlusterletIngress:  o.KlusterletIngress,
+			KlusterletPort:     int32(o.KlusterletPort),
+			RouteV1Client:      routeV1Client,
+			Klusterlet:         klusterlet,
 		}
 
 		if err = actionReconciler.SetupWithManager(mgr); err != nil {
