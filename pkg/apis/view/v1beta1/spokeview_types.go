@@ -6,7 +6,7 @@
 package v1beta1
 
 import (
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -57,7 +57,7 @@ type SpokeViewStatus struct {
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	// +optional
-	Conditions []conditionsv1.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type"`
+	Conditions []conditions.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type"`
 
 	// WorkResult references the related result of the work
 	// +nullable
@@ -98,7 +98,7 @@ type SpokeViewScope struct {
 // These are valid conditions of a cluster.
 const (
 	// ConditionViewProcessing means the spoke view is processing.
-	ConditionViewProcessing conditionsv1.ConditionType = "Processing"
+	ConditionViewProcessing conditions.ConditionType = "Processing"
 )
 
 const (

@@ -11,7 +11,7 @@
 package v1beta1
 
 import (
-	v1 "github.com/openshift/custom-resource-status/conditions/v1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -110,7 +110,7 @@ func (in *SpokeViewStatus) DeepCopyInto(out *SpokeViewStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]v1.Condition, len(*in))
+		*out = make([]conditions.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

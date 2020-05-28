@@ -9,7 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
+
 	corev1 "k8s.io/api/core/v1"
 
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
@@ -40,7 +41,7 @@ func (r *ActionReconciler) handleClusterAction(clusterAction *actionv1beta1.Clus
 	}
 
 	if err != nil {
-		conditionsv1.SetStatusCondition(&clusterAction.Status.Conditions, conditionsv1.Condition{
+		conditions.SetStatusCondition(&clusterAction.Status.Conditions, conditions.Condition{
 			Type:    actionv1beta1.ConditionActionCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  reason,
@@ -50,7 +51,7 @@ func (r *ActionReconciler) handleClusterAction(clusterAction *actionv1beta1.Clus
 		return err
 	}
 
-	conditionsv1.SetStatusCondition(&clusterAction.Status.Conditions, conditionsv1.Condition{
+	conditions.SetStatusCondition(&clusterAction.Status.Conditions, conditions.Condition{
 		Type:   actionv1beta1.ConditionActionCompleted,
 		Status: corev1.ConditionTrue,
 	})
