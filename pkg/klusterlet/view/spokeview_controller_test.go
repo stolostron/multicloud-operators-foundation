@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
+
 	tlog "github.com/go-logr/logr/testing"
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -112,7 +113,7 @@ func newTestReconciler(existingObjs []runtime.Object) *SpokeViewReconciler {
 }
 
 func validateErrorAndStatusConditions(t *testing.T, err, expectedErrorType error,
-	expectedConditions []conditionsv1.Condition, spokeView *viewv1beta1.SpokeView) {
+	expectedConditions []conditions.Condition, spokeView *viewv1beta1.SpokeView) {
 	if expectedErrorType != nil {
 		assert.EqualError(t, err, expectedErrorType.Error())
 	} else {
@@ -120,7 +121,7 @@ func validateErrorAndStatusConditions(t *testing.T, err, expectedErrorType error
 	}
 
 	for _, condition := range expectedConditions {
-		assert.True(t, conditionsv1.IsStatusConditionPresentAndEqual(spokeView.Status.Conditions, condition.Type, condition.Status))
+		assert.True(t, conditions.IsStatusConditionPresentAndEqual(spokeView.Status.Conditions, condition.Type, condition.Status))
 	}
 	if spokeView != nil {
 		assert.Equal(t, len(expectedConditions), len(spokeView.Status.Conditions))
@@ -164,11 +165,10 @@ func TestReconcile(t *testing.T) {
 						},
 					},
 					Status: viewv1beta1.SpokeViewStatus{
-						Conditions: []conditionsv1.Condition{
+						Conditions: []conditions.Condition{
 							{
 								Type:               viewv1beta1.ConditionViewProcessing,
 								Status:             corev1.ConditionTrue,
-								LastHeartbeatTime:  metav1.NewTime(time.Now()),
 								LastTransitionTime: metav1.NewTime(time.Now()),
 							},
 						},
@@ -207,7 +207,7 @@ func TestQueryResource(t *testing.T) {
 		name               string
 		spokeView          *viewv1beta1.SpokeView
 		expectedErrorType  error
-		expectedConditions []conditionsv1.Condition
+		expectedConditions []conditions.Condition
 	}{
 		{
 			name: "queryResourceOK",
@@ -226,7 +226,7 @@ func TestQueryResource(t *testing.T) {
 					},
 				},
 			},
-			expectedConditions: []conditionsv1.Condition{
+			expectedConditions: []conditions.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
 					Status: corev1.ConditionTrue,
@@ -248,7 +248,7 @@ func TestQueryResource(t *testing.T) {
 					},
 				},
 			},
-			expectedConditions: []conditionsv1.Condition{
+			expectedConditions: []conditions.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
 					Status: corev1.ConditionTrue,
@@ -270,7 +270,7 @@ func TestQueryResource(t *testing.T) {
 				},
 			},
 			expectedErrorType: fmt.Errorf("invalid resource name"),
-			expectedConditions: []conditionsv1.Condition{
+			expectedConditions: []conditions.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
 					Status: corev1.ConditionFalse,
@@ -292,7 +292,7 @@ func TestQueryResource(t *testing.T) {
 				},
 			},
 			expectedErrorType: fmt.Errorf("invalid resource type"),
-			expectedConditions: []conditionsv1.Condition{
+			expectedConditions: []conditions.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
 					Status: corev1.ConditionFalse,
@@ -317,7 +317,7 @@ func TestQueryResource(t *testing.T) {
 				},
 			},
 			expectedErrorType: fmt.Errorf("the server doesn't have a resource type \"Deployment\""),
-			expectedConditions: []conditionsv1.Condition{
+			expectedConditions: []conditions.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
 					Status: corev1.ConditionFalse,
@@ -340,7 +340,7 @@ func TestQueryResource(t *testing.T) {
 				},
 			},
 			expectedErrorType: fmt.Errorf("the server doesn't have a resource type \"deploymentts\""),
-			expectedConditions: []conditionsv1.Condition{
+			expectedConditions: []conditions.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
 					Status: corev1.ConditionFalse,
