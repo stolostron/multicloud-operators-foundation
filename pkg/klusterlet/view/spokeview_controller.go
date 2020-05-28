@@ -93,7 +93,7 @@ func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) er
 		return err
 	}
 
-	if scope.Resource == "" && (scope.Kind == "" || scope.Group == "" || scope.Version == "") {
+	if scope.Resource == "" && (scope.Kind == "" || scope.Version == "") {
 		err = fmt.Errorf("invalid resource type")
 		conditionsv1.SetStatusCondition(&spokeview.Status.Conditions, conditionsv1.Condition{
 			Type:    viewv1beta1.ConditionViewProcessing,
