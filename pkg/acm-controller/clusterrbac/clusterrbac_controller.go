@@ -9,7 +9,6 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1beta1"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	rbacv1helpers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/common/rbac"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/client-go/kubernetes"
 
@@ -245,7 +244,7 @@ func (r *Reconciler) createOrUpdateRole(clusterName string) error {
 
 // createOrUpdateRoleBinding create or update a role binding for a given cluster
 func (r *Reconciler) createOrUpdateRoleBinding(clusterName string) error {
-	hcmRoleBinding := rbacv1helpers.NewRoleBinding(
+	hcmRoleBinding := NewRoleBinding(
 		roleName(clusterName), clusterName).Users("hcm:clusters:" + clusterName + ":" + clusterName).BindingOrDie()
 
 	binding, err := r.kubeClient.RbacV1().RoleBindings(clusterName).Get(roleName(clusterName), metav1.GetOptions{})
