@@ -8,7 +8,10 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+
 	"k8s.io/klog"
 
 	"k8s.io/apimachinery/pkg/api/equality"
@@ -26,24 +29,24 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
-	configv1 "github.com/openshift/api/config/v1"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 )
 
 // ClusterInfoReconciler reconciles a ClusterInfo object
 type ClusterInfoReconciler struct {
 	client.Client
-	Log               logr.Logger
-	Scheme            *runtime.Scheme
-	KubeClient        *kubernetes.Clientset
-	RouteV1Client     routev1.Interface
-	MasterAddresses   string
-	KlusterletAddress string
-	KlusterletIngress string
-	KlusterletRoute   string
-	KlusterletService string
-	KlusterletPort    int32
-	Klusterlet        *agent.Klusterlet
+	Log                logr.Logger
+	Scheme             *runtime.Scheme
+	KubeClient         kubernetes.Interface
+	SpokeDynamicClient dynamic.Interface
+	RouteV1Client      routev1.Interface
+	MasterAddresses    string
+	KlusterletAddress  string
+	KlusterletIngress  string
+	KlusterletRoute    string
+	KlusterletService  string
+	KlusterletPort     int32
+	Klusterlet         *agent.Klusterlet
 }
 
 func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
@@ -274,7 +277,7 @@ func (r *ClusterInfoReconciler) setEndpointAddressFromRoute(endpoint *corev1.End
 
 func (r *ClusterInfoReconciler) getVersion() string {
 	serverVersionString := ""
-	serverVersion, err := r.KubeClient.ServerVersion()
+	serverVersion, err := r.KubeClient.Discovery().ServerVersion()
 	if err == nil {
 		serverVersionString = serverVersion.String()
 	}
@@ -349,10 +352,16 @@ func (r *ClusterInfoReconciler) getNodeList() ([]clusterv1beta1.NodeStatus, erro
 	return nodeList, nil
 }
 
+var ocpVersionGVR = schema.GroupVersionResource{
+	Group:    "config.openshift.io",
+	Version:  "v1",
+	Resource: "clusterversions",
+}
+
 func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.DistributionInfo, error) {
 	var isOpenShift = false
 	distributionInfo := clusterv1beta1.DistributionInfo{}
-	serverGroups, err := r.KubeClient.ServerGroups()
+	serverGroups, err := r.KubeClient.Discovery().ServerGroups()
 	if err != nil {
 		return distributionInfo, err
 	}
@@ -365,13 +374,23 @@ func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.Distributi
 
 	if isOpenShift {
 		distributionInfo.Type = clusterv1beta1.DistributionTypeOCP
-		clusterVersion := &configv1.ClusterVersion{}
-		err := r.Client.Get(context.TODO(), types.NamespacedName{Name: "version"}, clusterVersion)
+		obj, err := r.SpokeDynamicClient.Resource(ocpVersionGVR).Get("version", metav1.GetOptions{})
 		if err != nil {
 			klog.Errorf("failed to get OCP cluster version: %v", err)
 			return distributionInfo, client.IgnoreNotFound(err)
 		}
-		distributionInfo.OCP = clusterv1beta1.OCPDistributionInfo{Version: clusterVersion.Status.Desired.Version}
+		historyItems, _, err := unstructured.NestedSlice(obj.Object, "status", "history")
+		if err != nil {
+			klog.Errorf("failed to get OCP cluster version in history of status: %v", err)
+			return distributionInfo, client.IgnoreNotFound(err)
+		}
+		version, _, err := unstructured.NestedString(historyItems[0].(map[string]interface{}), "version")
+		if err != nil {
+			klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
+			return distributionInfo, client.IgnoreNotFound(err)
+		}
+
+		distributionInfo.OCP = clusterv1beta1.OCPDistributionInfo{Version: version}
 		return distributionInfo, nil
 	}
 
