@@ -1,6 +1,6 @@
 // +build integration
 
-package resourceviews_test
+package spokeviews_test
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestResourceviews(t *testing.T) {
+func TestClusterActions(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Resourceviews Suite")
+	RunSpecs(t, "SpokeViews Suite")
 }

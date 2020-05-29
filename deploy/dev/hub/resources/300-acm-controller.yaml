@@ -31,6 +31,18 @@ spec:
         volumeMounts:
           - mountPath: /var/run/klusterlet
             name: klusterlet-certs
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8000
+          failureThreshold: 3
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8000
+          failureThreshold: 3
+          periodSeconds: 10
       volumes:
       - name: klusterlet-certs
         secret:

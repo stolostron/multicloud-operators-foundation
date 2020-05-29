@@ -529,6 +529,7 @@ func (r *ReconcileBareMetalAsset) newBareMetalHost(instance *inventoryv1alpha1.B
 			},
 			HardwareProfile: instance.Spec.HardwareProfile,
 			BootMACAddress:  instance.Spec.BootMACAddress,
+			Online:          true,
 		},
 	}
 	return bmh

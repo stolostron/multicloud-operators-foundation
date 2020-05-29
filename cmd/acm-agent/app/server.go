@@ -1,9 +1,11 @@
 package app
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net"
+	"net/http"
 	"path"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent/app/options"
@@ -12,6 +14,7 @@ import (
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
 func AgentServerRun(o *options.AgentOptions, kubeClient kubernetes.Interface) (*agent.Klusterlet, error) {
@@ -73,4 +76,42 @@ func InitializeTLS(s *options.AgentOptions) (*agent.TLSOptions, error) {
 	}
 
 	return tlsOptions, nil
+}
+
+// ServeHealthProbes starts a server to check healthz and readyz probes
+func ServeHealthProbes(stop <-chan struct{}) {
+	healthzHandler := &healthz.Handler{Checks: map[string]healthz.Checker{
+		"healthz-ping": healthz.Ping,
+	}}
+	readyzHandler := &healthz.Handler{Checks: map[string]healthz.Checker{
+		"readyz-ping": healthz.Ping,
+	}}
+
+	mux := http.NewServeMux()
+	mux.Handle("/readyz", http.StripPrefix("/readyz", readyzHandler))
+	mux.Handle("/healthz", http.StripPrefix("/healthz", healthzHandler))
+
+	server := http.Server{
+		Handler: mux,
+	}
+
+	ln, err := net.Listen("tcp", ":8000")
+	if err != nil {
+		klog.Errorf("error listening on %s: %v", ":8000", err)
+		return
+	}
+
+	klog.Infof("heath probes server is running...")
+	// Run server
+	go func() {
+		if err := server.Serve(ln); err != nil && err != http.ErrServerClosed {
+			klog.Fatal(err)
+		}
+	}()
+
+	// Shutdown the server when stop is closed
+	<-stop
+	if err := server.Shutdown(context.Background()); err != nil {
+		klog.Fatal(err)
+	}
 }

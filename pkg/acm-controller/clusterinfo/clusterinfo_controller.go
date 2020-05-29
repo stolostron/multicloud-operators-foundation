@@ -3,6 +3,9 @@ package clusterinfo
 import (
 	"context"
 	"reflect"
+	"time"
+
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/helpers"
 
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -59,7 +62,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to primary resource cluster
+	// TODO: Deprecate clusterregistryv1alpha1.Cluster
 	err = c.Watch(&source.Kind{Type: &clusterregistryv1alpha1.Cluster{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
@@ -70,14 +73,17 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &clusterinfov1beta1.ClusterInfo{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
 	return nil
 }
 
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	// TODO: Deprecate ReconcileByCluster
+	// TODO: return r.ReconcileBySpokeCluster(req)
+	return r.ReconcileByCluster(req)
+}
+
+// TODO: Deprecate ReconcileByCluster
+func (r *Reconciler) ReconcileByCluster(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	cluster := &clusterregistryv1alpha1.Cluster{}
 
@@ -88,7 +94,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	// Check DeletionTimestamp to determine if object is under deletion
 	if cluster.GetDeletionTimestamp().IsZero() {
-		if !containsString(cluster.GetFinalizers(), clusterFinalizerName) {
+		if !helpers.ContainsString(cluster.GetFinalizers(), clusterFinalizerName) {
 			klog.Info("Finalizer not found for cluster. Adding finalizer")
 			cluster.ObjectMeta.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterFinalizerName)
 			if err := r.client.Update(context.TODO(), cluster); err != nil {
@@ -98,13 +104,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	} else {
 		// The object is being deleted
-		if containsString(cluster.GetFinalizers(), clusterFinalizerName) {
-			err := r.deleteExternalResources(cluster)
+		if helpers.ContainsString(cluster.GetFinalizers(), clusterFinalizerName) {
+			err := r.deleteExternalResources(cluster.Name, cluster.Namespace)
 			if err != nil {
 				return reconcile.Result{}, err
 			}
 			klog.Info("Removing Finalizer")
-			cluster.ObjectMeta.Finalizers = removeString(cluster.ObjectMeta.Finalizers, clusterFinalizerName)
+			cluster.ObjectMeta.Finalizers = helpers.RemoveString(cluster.ObjectMeta.Finalizers, clusterFinalizerName)
 			if err := r.client.Update(context.TODO(), cluster); err != nil {
 				klog.Errorf("Failed to remove finalizer from cluster, %v", err)
 				return reconcile.Result{}, err
@@ -117,20 +123,52 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	err = r.client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, clusterInfo)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			if err := r.client.Create(ctx, r.newClusterInfo(cluster)); err != nil {
+			if err := r.client.Create(ctx, r.newClusterInfoByCluster(cluster)); err != nil {
 				return ctrl.Result{}, err
 			}
-			return ctrl.Result{}, nil
+			return ctrl.Result{Requeue: true}, nil
 		}
 		return ctrl.Result{}, err
 	}
 
-	if reflect.DeepEqual(r.caData, clusterInfo.Spec.KlusterletCA) {
+	if !reflect.DeepEqual(r.caData, clusterInfo.Spec.KlusterletCA) ||
+		clusterInfo.Spec.MasterEndpoint != cluster.Spec.KubernetesAPIEndpoints.ServerEndpoints[0].ServerAddress {
+		clusterInfo.Spec.KlusterletCA = r.caData
+		clusterInfo.Spec.MasterEndpoint = cluster.Spec.KubernetesAPIEndpoints.ServerEndpoints[0].ServerAddress
+		err = r.client.Update(ctx, clusterInfo)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 		return ctrl.Result{}, nil
 	}
 
-	clusterInfo.Spec.KlusterletCA = r.caData
-	err = r.client.Update(ctx, clusterInfo)
+	condition := cluster.Status.Conditions[len(cluster.Status.Conditions)-1]
+	if condition.Type == clusterregistryv1alpha1.ClusterOK {
+		clusterInfo.Status.Conditions = []clusterv1.StatusCondition{
+			{
+				Type:    clusterv1.SpokeClusterConditionJoined,
+				Status:  metav1.ConditionTrue,
+				Reason:  "ClusterReady",
+				Message: "cluster is posting ready status",
+				LastTransitionTime: metav1.Time{
+					Time: time.Now(),
+				},
+			},
+		}
+	} else {
+		clusterInfo.Status.Conditions = []clusterv1.StatusCondition{
+			{
+				Type:    clusterv1.SpokeClusterConditionJoined,
+				Status:  metav1.ConditionFalse,
+				Reason:  "ClusterOffline",
+				Message: "cluster is offline",
+				LastTransitionTime: metav1.Time{
+					Time: time.Now(),
+				},
+			},
+		}
+	}
+	err = r.client.Status().Update(ctx, clusterInfo)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -138,11 +176,80 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) deleteExternalResources(cluster *clusterregistryv1alpha1.Cluster) error {
+func (r *Reconciler) ReconcileBySpokeCluster(req ctrl.Request) (ctrl.Result, error) {
+	ctx := context.Background()
+	cluster := &clusterv1.SpokeCluster{}
+
+	err := r.client.Get(ctx, req.NamespacedName, cluster)
+	if err != nil {
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	// Check DeletionTimestamp to determine if object is under deletion
+	if cluster.GetDeletionTimestamp().IsZero() {
+		if !helpers.ContainsString(cluster.GetFinalizers(), clusterFinalizerName) {
+			klog.Info("Finalizer not found for cluster. Adding finalizer")
+			cluster.ObjectMeta.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterFinalizerName)
+			if err := r.client.Update(context.TODO(), cluster); err != nil {
+				klog.Errorf("Failed to add finalizer to cluster, %v", err)
+				return reconcile.Result{}, err
+			}
+		}
+	} else {
+		// The object is being deleted
+		if helpers.ContainsString(cluster.GetFinalizers(), clusterFinalizerName) {
+			err := r.deleteExternalResources(cluster.Name, cluster.Name)
+			if err != nil {
+				return reconcile.Result{}, err
+			}
+			klog.Info("Removing Finalizer")
+			cluster.ObjectMeta.Finalizers = helpers.RemoveString(cluster.ObjectMeta.Finalizers, clusterFinalizerName)
+			if err := r.client.Update(context.TODO(), cluster); err != nil {
+				klog.Errorf("Failed to remove finalizer from cluster, %v", err)
+				return reconcile.Result{}, err
+			}
+		}
+		return reconcile.Result{}, nil
+	}
+
+	clusterInfo := &clusterinfov1beta1.ClusterInfo{}
+	err = r.client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Name}, clusterInfo)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			if err := r.client.Create(ctx, r.newClusterInfoBySpokeCluster(cluster)); err != nil {
+				return ctrl.Result{}, err
+			}
+			return ctrl.Result{Requeue: true}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	if !reflect.DeepEqual(r.caData, clusterInfo.Spec.KlusterletCA) ||
+		clusterInfo.Spec.MasterEndpoint != cluster.Spec.SpokeClientConfig.URL {
+		clusterInfo.Spec.KlusterletCA = r.caData
+		clusterInfo.Spec.MasterEndpoint = cluster.Spec.SpokeClientConfig.URL
+		err = r.client.Update(ctx, clusterInfo)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	if reflect.DeepEqual(cluster.Status.Conditions, clusterInfo.Status.Conditions) {
+		clusterInfo.Status.Conditions = cluster.Status.Conditions
+		err = r.client.Status().Update(ctx, clusterInfo)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *Reconciler) deleteExternalResources(name, namespace string) error {
 	err := r.client.Delete(context.Background(), &clusterinfov1beta1.ClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      cluster.Name,
-			Namespace: cluster.Namespace,
+			Name:      name,
+			Namespace: namespace,
 		},
 	})
 	if err != nil {
@@ -152,7 +259,8 @@ func (r *Reconciler) deleteExternalResources(cluster *clusterregistryv1alpha1.Cl
 	return nil
 }
 
-func (r *Reconciler) newClusterInfo(cluster *clusterregistryv1alpha1.Cluster) *clusterinfov1beta1.ClusterInfo {
+// TODO: Deprecate newClusterInfoByCluster
+func (r *Reconciler) newClusterInfoByCluster(cluster *clusterregistryv1alpha1.Cluster) *clusterinfov1beta1.ClusterInfo {
 	return &clusterinfov1beta1.ClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Name,
@@ -160,27 +268,22 @@ func (r *Reconciler) newClusterInfo(cluster *clusterregistryv1alpha1.Cluster) *c
 			Labels:    cluster.Labels,
 		},
 		Spec: clusterinfov1beta1.ClusterInfoSpec{
-			KlusterletCA: r.caData,
+			MasterEndpoint: cluster.Spec.KubernetesAPIEndpoints.ServerEndpoints[0].ServerAddress,
+			KlusterletCA:   r.caData,
 		},
 	}
 }
 
-// Helper functions to check and remove string from a slice of strings.
-func containsString(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
+func (r *Reconciler) newClusterInfoBySpokeCluster(cluster *clusterv1.SpokeCluster) *clusterinfov1beta1.ClusterInfo {
+	return &clusterinfov1beta1.ClusterInfo{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      cluster.Name,
+			Namespace: cluster.Name,
+			Labels:    cluster.Labels,
+		},
+		Spec: clusterinfov1beta1.ClusterInfoSpec{
+			MasterEndpoint: cluster.Spec.SpokeClientConfig.URL,
+			KlusterletCA:   r.caData,
+		},
 	}
-	return false
-}
-
-func removeString(slice []string, s string) (result []string) {
-	for _, item := range slice {
-		if item == s {
-			continue
-		}
-		result = append(result, item)
-	}
-	return
 }
