@@ -58,7 +58,7 @@ type PlacementBindingList struct {
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 	// List of Cluster objects.
-	Items []PlacementBinding `json:"items,omitempty" protobuf:"bytes,2,rep,name=items"`
+	Items []PlacementBinding `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
 // +genclient
