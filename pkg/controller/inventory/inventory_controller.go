@@ -496,6 +496,10 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *inventoryv1alpha1.
 
 		found.Labels = labels
 		found.Spec = hsc.Spec
+		// Allow updates to the Resources section of the SyncSet until it is removed
+		if len(found.Spec.SyncSetCommonSpec.Resources) != 0 {
+			found.Spec.SyncSetCommonSpec.Resources = hsc.Spec.SyncSetCommonSpec.Resources
+		}
 
 		err := r.client.Update(context.TODO(), found)
 		if err != nil {
@@ -643,19 +647,44 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *inventoryv1
 			Message: err.Error(),
 		})
 		return false
-	}
-
-	r.checkHiveSyncSetInstanceSecrets(instance, found.Items[0].Status)
-	return r.checkHiveSyncSetInstanceResources(instance, found.Items[0].Status)
-}
-
-func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *inventoryv1alpha1.BareMetalAsset, syncSetStatus hivev1.SyncSetInstanceStatus) bool {
-	resourceCount := len(syncSetStatus.Resources)
-	if resourceCount == 0 && len(syncSetStatus.Patches) == 1 {
-		for _, condition := range syncSetStatus.Patches[0].Conditions {
+	case 1:
+		resourceCount := len(found.Items[0].Status.Resources)
+		if resourceCount != 1 {
+			err = fmt.Errorf("unexpected number of resources found on SyncSetInstance status. Expected (1) Found (%v)",
+				resourceCount)
+			conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+				Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
+				Status:  corev1.ConditionFalse,
+				Reason:  "UnexpectedResourceCount",
+				Message: err.Error(),
+			})
+			return false
+		}
+		res := found.Items[0].Status.Resources[0]
+		if res.APIVersion != metal3v1alpha1.SchemeGroupVersion.String() || res.Kind != BareMetalHostKind {
+			err = fmt.Errorf("unexpected resource found in SyncSetInstance status. "+
+				"Expected (Kind: %v APIVersion: %v) Found (Kind: %v APIVersion: %v)",
+				BareMetalHostKind, metal3v1alpha1.SchemeGroupVersion.String(), res.Kind, res.APIVersion)
+			conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+				Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
+				Status:  corev1.ConditionFalse,
+				Reason:  "BareMetalHostResourceNotFound",
+				Message: err.Error(),
+			})
+			return false
+		}
+		for _, condition := range res.Conditions {
 			switch condition.Type {
 			case hivev1.ApplySuccessSyncCondition:
-				return false
+				conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+					Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
+					Status:  condition.Status,
+					Reason:  condition.Reason,
+					Message: condition.Message,
+				})
+				if condition.Status == corev1.ConditionTrue {
+					return true
+				}
 			case hivev1.ApplyFailureSyncCondition:
 				if condition.Status == corev1.ConditionTrue {
 					// Must delete (and recreate) the SyncSet if the BareMetalHost
@@ -720,36 +749,28 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *in
 	}
 	return false
 }
-
-func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceSecrets(instance *inventoryv1alpha1.BareMetalAsset, syncSetStatus hivev1.SyncSetInstanceStatus) bool {
-	if len(syncSetStatus.Secrets) != 1 {
-		err := fmt.Errorf("unexpected number of secrets found on SyncSetInstance.")
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  "UnexpectedSecretCount",
-			Message: err.Error(),
-		})
-		return false
-	}
-	secret := syncSetStatus.Secrets[0]
-	for _, condition := range secret.Conditions {
-		switch condition.Type {
-		case hivev1.ApplySuccessSyncCondition:
-			// Only update success if not marked failed
-			if condition.Status == corev1.ConditionTrue {
-				if !conditionsv1.IsStatusConditionPresentAndEqual(instance.Status.Conditions, inventoryv1alpha1.ConditionAssetSyncCompleted, corev1.ConditionFalse) {
-					conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-						Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
-						Status:  condition.Status,
-						Reason:  condition.Reason,
-						Message: condition.Message,
-					})
-				}
-				return true
-			}
-		case hivev1.ApplyFailureSyncCondition:
-			if condition.Status == corev1.ConditionTrue {
+		secretsCount := len(found.Items[0].Status.Secrets)
+		if secretsCount != 1 {
+			err = fmt.Errorf("unexpected number of secrets found on SyncSetInstance. Expected: (1) Actual: (%v)", secretsCount)
+			conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+				Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
+				Status:  corev1.ConditionFalse,
+				Reason:  "UnexpectedSecretCount",
+				Message: err.Error(),
+			})
+			return false
+		}
+		secret := found.Items[0].Status.Secrets[0]
+		for _, condition := range secret.Conditions {
+			switch condition.Type {
+			case hivev1.ApplySuccessSyncCondition:
+				conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+					Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
+					Status:  condition.Status,
+					Reason:  condition.Reason,
+					Message: condition.Message,
+				})
+			case hivev1.ApplyFailureSyncCondition:
 				conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
 					Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 					Status:  corev1.ConditionFalse,
@@ -759,6 +780,15 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceSecrets(instance *inve
 				return false
 			}
 		}
+	default:
+		err = fmt.Errorf("found multiple Hive SyncSetInstances with same label")
+		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  "MultipleSyncSetInstancesFound",
+			Message: err.Error(),
+		})
+		return false
 	}
 	return false
 }
