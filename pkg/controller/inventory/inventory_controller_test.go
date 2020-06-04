@@ -499,8 +499,12 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
-			assert.Equal(t, test.returnValue, rbma.checkHiveSyncSetInstance(test.bma))
-			validateErrorAndStatusConditions(t, nil, nil, test.expectedConditions, test.bma)
+			errb := rbma.checkHiveSyncSetInstance(test.bma)
+			var err error
+			if errb {
+				err = fmt.Errorf("checkHiveSyncSetInstance exited with a value of %t", errb)
+			}
+			validateErrorAndStatusConditions(t, err, test.expectedErrorType, test.expectedConditions, test.bma)
 		})
 	}
 }
