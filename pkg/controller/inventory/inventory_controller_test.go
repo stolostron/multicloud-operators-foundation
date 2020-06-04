@@ -98,6 +98,21 @@ func TestReconcile(t *testing.T) {
 			},
 		},
 		{
+			name: "SyncSetInstancesNotFound",
+			existingObjs: []runtime.Object{
+				newBMAWithClusterDeployment(),
+				newSecret(),
+				newClusterDeployment(),
+			},
+			expectedErrorType: fmt.Errorf("no SyncSetInstances with label name %v and label value %v found", hiveconstants.SyncSetNameLabel, testName),
+			req: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      testName,
+					Namespace: testNamespace,
+				},
+			},
+		},
+		{
 			name: "BareMetalAssetWithDeletionTimestampAndFinalizer",
 			existingObjs: []runtime.Object{
 				func() *inventoryv1alpha1.BareMetalAsset {
