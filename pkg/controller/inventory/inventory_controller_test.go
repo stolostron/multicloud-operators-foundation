@@ -506,7 +506,11 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
-			err := rbma.checkHiveSyncSetInstance(test.bma)
+			errb := rbma.checkHiveSyncSetInstance(test.bma)
+			var err error
+			if errb {
+				err = fmt.Errorf("checkHiveSyncSetInstance exited with a value of %t", errb)
+			}
 			validateErrorAndStatusConditions(t, err, test.expectedErrorType, test.expectedConditions, test.bma)
 		})
 	}
@@ -532,7 +536,7 @@ func TestDeleteSyncSet(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
-			err := rbma.deleteSyncSet(test.bma)
+			_, err := rbma.deleteSyncSet(test.bma)
 			validateErrorAndStatusConditions(t, err, nil, nil, test.bma)
 		})
 	}

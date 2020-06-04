@@ -521,7 +521,7 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *inventoryv1alpha1.
 }
 
 func (r *ReconcileBareMetalAsset) newHiveSyncSet(instance *inventoryv1alpha1.BareMetalAsset, assetSyncCompleted bool) *hivev1.SyncSet {
-	bmhJson, err := newBareMetalHost(instance, assetSyncCompleted)
+	bmhJSON, err := newBareMetalHost(instance, assetSyncCompleted)
 	if err != nil {
 		klog.Errorf("Error marshaling baremetalhost, %v", err)
 		return nil
@@ -545,7 +545,7 @@ func (r *ReconcileBareMetalAsset) newHiveSyncSet(instance *inventoryv1alpha1.Bar
 			SyncSetCommonSpec: hivev1.SyncSetCommonSpec{
 				Resources: []runtime.RawExtension{
 					{
-						Raw: bmhJson,
+						Raw: bmhJSON,
 					},
 				},
 				Patches:           []hivev1.SyncObjectPatch{},
@@ -583,7 +583,7 @@ func (r *ReconcileBareMetalAsset) newHiveSyncSet(instance *inventoryv1alpha1.Bar
 				Kind:       BareMetalHostKind,
 				Name:       instance.Name,
 				Namespace:  inventoryv1alpha1.ManagedClusterResourceNamespace,
-				Patch:      string(bmhJson),
+				Patch:      string(bmhJSON),
 				PatchType:  "merge",
 			},
 		}
@@ -604,7 +604,7 @@ func newBareMetalHost(instance *inventoryv1alpha1.BareMetalAsset, assetSyncCompl
 		bmhSpec["online"] = true
 	}
 
-	bmhJson, err := json.Marshal(map[string]interface{}{
+	bmhJSON, err := json.Marshal(map[string]interface{}{
 		"kind":       BareMetalHostKind,
 		"apiVersion": metal3v1alpha1.SchemeGroupVersion.String(),
 		"metadata": map[string]interface{}{
@@ -622,7 +622,7 @@ func newBareMetalHost(instance *inventoryv1alpha1.BareMetalAsset, assetSyncCompl
 		return []byte{}, err
 	}
 
-	return bmhJson, nil
+	return bmhJSON, nil
 }
 
 func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *inventoryv1alpha1.BareMetalAsset) bool {
