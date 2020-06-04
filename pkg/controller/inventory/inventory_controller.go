@@ -653,23 +653,18 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *inventoryv1
 func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *inventoryv1alpha1.BareMetalAsset,
 	syncSetStatus hivev1.SyncSetInstanceStatus) bool {
 	resourceCount := len(syncSetStatus.Resources)
-	if resourceCount == 0 && len(syncSetStatus.Patches) == 1 {
+	if resourceCount == 0 && (len(syncSetStatus.Patches) == 1) {
 		for _, condition := range syncSetStatus.Patches[0].Conditions {
-			switch condition.Type {
-			case hivev1.ApplySuccessSyncCondition:
-				return condition.Status == corev1.ConditionTrue
-			case hivev1.ApplyFailureSyncCondition:
-				if condition.Status == corev1.ConditionTrue {
-					// Must delete (and recreate) the SyncSet if the BareMetalHost
-					// is not found.
-					if strings.Contains(condition.Message, "not found") {
-						err := r.client.Delete(context.TODO(), r.newHiveSyncSet(instance, false))
-						if err != nil {
-							klog.Errorf("Failed to delete syncSet %v", instance.Name)
-						}
+			if condition.Type == hivev1.ApplyFailureSyncCondition && condition.Status == corev1.ConditionTrue {
+				// Must delete (and recreate) the SyncSet if the BareMetalHost
+				// is not found.
+				if strings.Contains(condition.Message, "not found") {
+					err := r.client.Delete(context.TODO(), r.newHiveSyncSet(instance, false))
+					if err != nil {
+						klog.Errorf("Failed to delete syncSet %v", instance.Name)
 					}
-					return false
 				}
+				return false
 			}
 		}
 	}
