@@ -552,6 +552,7 @@ github.com/openshift/api v3.9.1-0.20190924102528-32369d4db2ad+incompatible/go.mo
 github.com/openshift/build-machinery-go v0.0.0-20200424080330-082bf86082cc/go.mod h1:1CkcsT3aVebzRBzVTSbiKSkJMsC/CASqxesfqEMfJEc=
 github.com/openshift/client-go v0.0.0-20190923180330-3b6373338c9b h1:E++qQ7W1/EdvuMo+YGVbMPn4HihEp7YT5Rghh0VmA9A=
 github.com/openshift/client-go v0.0.0-20190923180330-3b6373338c9b/go.mod h1:6rzn+JTr7+WYS2E1TExP4gByoABxMznR6y2SnUIkmxk=
+github.com/openshift/cluster-network-operator v0.0.0-20200604125221-418c356864f2 h1:f8j568iCou6hSPJPQHnm+kANMPw4sy4VqiEeV6FIC2g=
 github.com/openshift/custom-resource-status v0.0.0-20190822192428-e62f2f3b79f3 h1:XuAys09+XqT5/FjdR23G/UtbBLII89dFe9XIi73EKIQ=
 github.com/openshift/custom-resource-status v0.0.0-20190822192428-e62f2f3b79f3/go.mod h1:GDjWl0tX6FNIj82vIxeudWeSx2Ff6nDZ8uJn0ohUFvo=
 github.com/openshift/hive v0.0.0-20200205183908-5d26c05f298a/go.mod h1:t12kMAMjO4O1dRGOb+uMy3BGNR4zaJSg8KgaOfW/QtI=
