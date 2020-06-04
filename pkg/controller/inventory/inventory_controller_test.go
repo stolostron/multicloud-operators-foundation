@@ -104,7 +104,7 @@ func TestReconcile(t *testing.T) {
 				newSecret(),
 				newClusterDeployment(),
 			},
-			expectedErrorType: fmt.Errorf("no SyncSetInstances with label name hive.openshift.io/syncset-name and label value %s found", testName),
+			expectedErrorType: fmt.Errorf("no SyncSetInstances with label name %v and label value %v found", hiveconstants.SyncSetNameLabel, testName),
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      testName,
