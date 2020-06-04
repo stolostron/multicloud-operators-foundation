@@ -55,6 +55,7 @@ require (
 	github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega v1.9.0
 	github.com/open-cluster-management/api v0.0.0-20200506150956-355c9d6ef16b
+	github.com/open-cluster-management/multicluster-inventory v0.0.0-20200310015755-061c80cd38b0 // indirect
 	github.com/openshift/client-go v0.0.0-20190923180330-3b6373338c9b
 	github.com/openshift/custom-resource-status v0.0.0-20190822192428-e62f2f3b79f3
 	github.com/openshift/hive v0.0.0-20200302220132-867d7fb189bf
