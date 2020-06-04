@@ -7,7 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -51,8 +52,8 @@ func (r *SpokeViewReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		updateInterval = time.Duration(spokeView.Spec.Scope.UpdateIntervalSeconds) * time.Second
 	}
 
-	if condition := conditionsv1.FindStatusCondition(spokeView.Status.Conditions, viewv1beta1.ConditionViewProcessing); condition != nil {
-		sub := time.Since(condition.LastHeartbeatTime.Time)
+	if condition := conditions.FindStatusCondition(spokeView.Status.Conditions, viewv1beta1.ConditionViewProcessing); condition != nil {
+		sub := time.Since(condition.LastTransitionTime.Time)
 		if sub < updateInterval {
 			return ctrl.Result{RequeueAfter: updateInterval - sub}, nil
 		}
@@ -84,7 +85,7 @@ func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) er
 
 	if scope.Name == "" {
 		err = fmt.Errorf("invalid resource name")
-		conditionsv1.SetStatusCondition(&spokeview.Status.Conditions, conditionsv1.Condition{
+		conditions.SetStatusCondition(&spokeview.Status.Conditions, conditions.Condition{
 			Type:    viewv1beta1.ConditionViewProcessing,
 			Status:  corev1.ConditionFalse,
 			Reason:  viewv1beta1.ReasonResourceNameInvalid,
@@ -93,9 +94,9 @@ func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) er
 		return err
 	}
 
-	if scope.Resource == "" && (scope.Kind == "" || scope.Group == "" || scope.Version == "") {
+	if scope.Resource == "" && (scope.Kind == "" || scope.Version == "") {
 		err = fmt.Errorf("invalid resource type")
-		conditionsv1.SetStatusCondition(&spokeview.Status.Conditions, conditionsv1.Condition{
+		conditions.SetStatusCondition(&spokeview.Status.Conditions, conditions.Condition{
 			Type:    viewv1beta1.ConditionViewProcessing,
 			Status:  corev1.ConditionFalse,
 			Reason:  viewv1beta1.ReasonResourceTypeInvalid,
@@ -108,7 +109,7 @@ func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) er
 		gvk := schema.GroupVersionKind{Group: scope.Group, Kind: scope.Kind, Version: scope.Version}
 		mapper, err := r.Mapper.MappingForGVK(gvk)
 		if err != nil {
-			conditionsv1.SetStatusCondition(&spokeview.Status.Conditions, conditionsv1.Condition{
+			conditions.SetStatusCondition(&spokeview.Status.Conditions, conditions.Condition{
 				Type:    viewv1beta1.ConditionViewProcessing,
 				Status:  corev1.ConditionFalse,
 				Reason:  viewv1beta1.ReasonResourceGVKInvalid,
@@ -120,7 +121,7 @@ func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) er
 	} else {
 		mapping, err := r.Mapper.MappingFor(scope.Resource)
 		if err != nil {
-			conditionsv1.SetStatusCondition(&spokeview.Status.Conditions, conditionsv1.Condition{
+			conditions.SetStatusCondition(&spokeview.Status.Conditions, conditions.Condition{
 				Type:    viewv1beta1.ConditionViewProcessing,
 				Status:  corev1.ConditionFalse,
 				Reason:  viewv1beta1.ReasonResourceTypeInvalid,
@@ -133,7 +134,7 @@ func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) er
 
 	obj, err = r.SpokeDynamicClient.Resource(gvr).Namespace(scope.Namespace).Get(scope.Name, metav1.GetOptions{})
 	if err != nil {
-		conditionsv1.SetStatusCondition(&spokeview.Status.Conditions, conditionsv1.Condition{
+		conditions.SetStatusCondition(&spokeview.Status.Conditions, conditions.Condition{
 			Type:    viewv1beta1.ConditionViewProcessing,
 			Status:  corev1.ConditionFalse,
 			Reason:  viewv1beta1.ReasonGetResourceFailed,
@@ -142,7 +143,7 @@ func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) er
 		return err
 	}
 
-	conditionsv1.SetStatusCondition(&spokeview.Status.Conditions, conditionsv1.Condition{
+	conditions.SetStatusCondition(&spokeview.Status.Conditions, conditions.Condition{
 		Type:   viewv1beta1.ConditionViewProcessing,
 		Status: corev1.ConditionTrue,
 	})

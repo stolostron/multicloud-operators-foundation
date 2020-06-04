@@ -388,7 +388,7 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 			existingObjs: []runtime.Object{
 				newSyncSetInstanceResouceApplySuccess(),
 			},
-			returnValue: true,
+			returnValue: false,
 			expectedConditions: []conditionsv1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status: corev1.ConditionFalse,

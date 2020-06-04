@@ -47,6 +47,18 @@ spec:
           volumeMounts:
             - name: hub-config
               mountPath: /var/run/hub
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8000
+            failureThreshold: 3
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8000
+            failureThreshold: 3
+            periodSeconds: 10
       volumes:
         - name: hub-config
           secret:

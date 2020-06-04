@@ -5,8 +5,8 @@ import (
 
 	"github.com/go-logr/logr"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -48,7 +48,7 @@ func (r *ActionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if conditionsv1.IsStatusConditionTrue(clusterAction.Status.Conditions, actionv1beta1.ConditionActionCompleted) {
+	if conditions.IsStatusConditionTrue(clusterAction.Status.Conditions, actionv1beta1.ConditionActionCompleted) {
 		return ctrl.Result{}, nil
 	}
 

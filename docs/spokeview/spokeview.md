@@ -27,7 +27,7 @@ status:
   - lastHeartbeatTime: "2020-05-09T10:05:17Z"
     lastTransitionTime: "2020-05-09T10:05:17Z"
     status: "True"
-    type: Completed
+    type: Processing
     reason: ...
     message: ...
   result:
@@ -40,5 +40,5 @@ In the `spec` section:
 
 In `status` section:
 
-- `conditions` includes only one condition type `Completed`. The status is `True` when it is successful to retrieve resource. Otherwise, the status is `False` if it is fail to retrieve the resource, and the reason is the failure details.
+- `conditions` includes only one condition type `Processing`. The status is `True` when it is successful to retrieve resource. Otherwise, the status is `False` if it is fail to retrieve the resource, and the reason is the failure details.
 - `result` shows the result retrieved from the spoke cluster.

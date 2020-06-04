@@ -649,7 +649,8 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *inventoryv1
 	return r.checkHiveSyncSetInstanceResources(instance, found.Items[0].Status)
 }
 
-func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *inventoryv1alpha1.BareMetalAsset, syncSetStatus hivev1.SyncSetInstanceStatus) bool {
+func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *inventoryv1alpha1.BareMetalAsset,
+	syncSetStatus hivev1.SyncSetInstanceStatus) bool {
 	resourceCount := len(syncSetStatus.Resources)
 	if resourceCount == 0 && len(syncSetStatus.Patches) == 1 {
 		for _, condition := range syncSetStatus.Patches[0].Conditions {
@@ -661,7 +662,10 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *in
 					// Must delete (and recreate) the SyncSet if the BareMetalHost
 					// is not found.
 					if strings.Contains(condition.Message, "not found") {
-						r.client.Delete(context.TODO(), r.newHiveSyncSet(instance, false))
+						err := r.client.Delete(context.TODO(), r.newHiveSyncSet(instance, false))
+						if err != nil {
+							klog.Errorf("Failed to delete syncSet %v", instance.Name)
+						}
 					}
 					return false
 				}
@@ -696,7 +700,8 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *in
 		switch condition.Type {
 		case hivev1.ApplySuccessSyncCondition:
 			if condition.Status == corev1.ConditionTrue {
-				if !conditionsv1.IsStatusConditionPresentAndEqual(instance.Status.Conditions, inventoryv1alpha1.ConditionAssetSyncCompleted, corev1.ConditionFalse) {
+				if !conditionsv1.IsStatusConditionPresentAndEqual(instance.Status.Conditions,
+					inventoryv1alpha1.ConditionAssetSyncCompleted, corev1.ConditionFalse) {
 					conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
 						Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 						Status:  condition.Status,
@@ -721,7 +726,8 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *in
 	return false
 }
 
-func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceSecrets(instance *inventoryv1alpha1.BareMetalAsset, syncSetStatus hivev1.SyncSetInstanceStatus) bool {
+func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceSecrets(instance *inventoryv1alpha1.BareMetalAsset,
+	syncSetStatus hivev1.SyncSetInstanceStatus) bool {
 	if len(syncSetStatus.Secrets) != 1 {
 		err := fmt.Errorf("unexpected number of secrets found on SyncSetInstance.")
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
@@ -738,7 +744,8 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceSecrets(instance *inve
 		case hivev1.ApplySuccessSyncCondition:
 			// Only update success if not marked failed
 			if condition.Status == corev1.ConditionTrue {
-				if !conditionsv1.IsStatusConditionPresentAndEqual(instance.Status.Conditions, inventoryv1alpha1.ConditionAssetSyncCompleted, corev1.ConditionFalse) {
+				if !conditionsv1.IsStatusConditionPresentAndEqual(instance.Status.Conditions,
+					inventoryv1alpha1.ConditionAssetSyncCompleted, corev1.ConditionFalse) {
 					conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
 						Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 						Status:  condition.Status,
