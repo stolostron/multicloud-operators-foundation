@@ -21,19 +21,19 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-func (r *ActionReconciler) handleClusterAction(clusterAction *actionv1beta1.ClusterAction) error {
+func (r *ActionReconciler) handleAction(action *actionv1beta1.ManagedClusterAction) error {
 	var err error
 	var res runtime.RawExtension
 	var reason string
-	switch clusterAction.Spec.ActionType {
+	switch action.Spec.ActionType {
 	case actionv1beta1.CreateActionType:
-		res, err = r.handleCreateClusterAction(clusterAction)
+		res, err = r.handleCreateAction(action)
 		reason = actionv1beta1.ReasonCreateResourceFailed
 	case actionv1beta1.DeleteActionType:
-		res, err = r.handleDeleteClusterAction(clusterAction)
+		res, err = r.handleDeleteAction(action)
 		reason = actionv1beta1.ReasonDeleteResourceFailed
 	case actionv1beta1.UpdateActionType:
-		res, err = r.handleUpdateClusterAction(clusterAction)
+		res, err = r.handleUpdateAction(action)
 		reason = actionv1beta1.ReasonUpdateResourceFailed
 	default:
 		err = fmt.Errorf("invalid action type")
@@ -41,58 +41,58 @@ func (r *ActionReconciler) handleClusterAction(clusterAction *actionv1beta1.Clus
 	}
 
 	if err != nil {
-		conditions.SetStatusCondition(&clusterAction.Status.Conditions, conditions.Condition{
+		conditions.SetStatusCondition(&action.Status.Conditions, conditions.Condition{
 			Type:    actionv1beta1.ConditionActionCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  reason,
-			Message: fmt.Errorf("failed to handle %v action with err: %v", clusterAction.Spec.ActionType, err).Error(),
+			Message: fmt.Errorf("failed to handle %v action with err: %v", action.Spec.ActionType, err).Error(),
 		})
 
 		return err
 	}
 
-	conditions.SetStatusCondition(&clusterAction.Status.Conditions, conditions.Condition{
+	conditions.SetStatusCondition(&action.Status.Conditions, conditions.Condition{
 		Type:   actionv1beta1.ConditionActionCompleted,
 		Status: corev1.ConditionTrue,
 	})
 
-	clusterAction.Status.Result = res
+	action.Status.Result = res
 	return nil
 }
 
 // Create kube resource
-func (r *ActionReconciler) handleCreateClusterAction(clusterAction *actionv1beta1.ClusterAction) (runtime.RawExtension, error) {
+func (r *ActionReconciler) handleCreateAction(action *actionv1beta1.ManagedClusterAction) (runtime.RawExtension, error) {
 	var err error
 	if r.EnableImpersonation {
 		r.Log.V(5).Info("enable impersonation")
-		var userID = restutils.ParseUserIdentity(clusterAction.Annotations[actionv1beta1.UserIdentityAnnotation])
-		var userGroups = restutils.ParseUserGroup(clusterAction.Annotations[actionv1beta1.UserGroupAnnotation])
-		_, err = r.KubeControl.Impersonate(userID, userGroups).Create(clusterAction.Spec.KubeWork.Namespace, clusterAction.Spec.KubeWork.ObjectTemplate, nil)
+		var userID = restutils.ParseUserIdentity(action.Annotations[actionv1beta1.UserIdentityAnnotation])
+		var userGroups = restutils.ParseUserGroup(action.Annotations[actionv1beta1.UserGroupAnnotation])
+		_, err = r.KubeControl.Impersonate(userID, userGroups).Create(action.Spec.KubeWork.Namespace, action.Spec.KubeWork.ObjectTemplate, nil)
 		r.KubeControl.UnsetImpersonate()
 	} else {
-		_, err = r.KubeControl.Create(clusterAction.Spec.KubeWork.Namespace, clusterAction.Spec.KubeWork.ObjectTemplate, nil)
+		_, err = r.KubeControl.Create(action.Spec.KubeWork.Namespace, action.Spec.KubeWork.ObjectTemplate, nil)
 	}
-	return clusterAction.Spec.KubeWork.ObjectTemplate, err
+	return action.Spec.KubeWork.ObjectTemplate, err
 }
 
 // Update kube resource
-func (r *ActionReconciler) handleUpdateClusterAction(clusterAction *actionv1beta1.ClusterAction) (runtime.RawExtension, error) {
+func (r *ActionReconciler) handleUpdateAction(action *actionv1beta1.ManagedClusterAction) (runtime.RawExtension, error) {
 	var gvk schema.GroupVersionKind
 	var err error
 
 	patchType := types.MergePatchType
 	obj := &unstructured.Unstructured{}
-	if clusterAction.Spec.KubeWork.ObjectTemplate.Object != nil {
-		gvk = clusterAction.Spec.KubeWork.ObjectTemplate.Object.GetObjectKind().GroupVersionKind()
+	if action.Spec.KubeWork.ObjectTemplate.Object != nil {
+		gvk = action.Spec.KubeWork.ObjectTemplate.Object.GetObjectKind().GroupVersionKind()
 	} else {
-		err = json.Unmarshal(clusterAction.Spec.KubeWork.ObjectTemplate.Raw, obj)
+		err = json.Unmarshal(action.Spec.KubeWork.ObjectTemplate.Raw, obj)
 		if err != nil {
 			return runtime.RawExtension{}, err
 		}
 		gvk = obj.GroupVersionKind()
 	}
 
-	namespace := clusterAction.Spec.KubeWork.Namespace
+	namespace := action.Spec.KubeWork.Namespace
 	if namespace == "" {
 		namespace = obj.GetNamespace()
 	}
@@ -112,21 +112,21 @@ func (r *ActionReconciler) handleUpdateClusterAction(clusterAction *actionv1beta
 		Raw: currentRaw,
 	}
 
-	patch, err := restutils.GeneratePatch(currentObj, clusterAction.Spec.KubeWork.ObjectTemplate, originRaw)
+	patch, err := restutils.GeneratePatch(currentObj, action.Spec.KubeWork.ObjectTemplate, originRaw)
 	if err != nil {
 		return runtime.RawExtension{}, err
 	}
 
 	if string(patch) == "{}" {
 		r.Log.V(5).Info("Nothing to update")
-		return clusterAction.Status.Result, nil
+		return action.Status.Result, nil
 	}
 
 	r.Log.V(5).Info("resource update", "name", name, "namespace", namespace, "updates patch", string(patch))
 	if r.EnableImpersonation {
 		r.Log.V(5).Info("enable impersonation")
-		var userID = restutils.ParseUserIdentity(clusterAction.Annotations[actionv1beta1.UserIdentityAnnotation])
-		var userGroups = restutils.ParseUserGroup(clusterAction.Annotations[actionv1beta1.UserGroupAnnotation])
+		var userID = restutils.ParseUserIdentity(action.Annotations[actionv1beta1.UserIdentityAnnotation])
+		var userGroups = restutils.ParseUserGroup(action.Annotations[actionv1beta1.UserGroupAnnotation])
 		_, err = r.KubeControl.Impersonate(userID, userGroups).Patch(namespace, name, gvk, patchType, patch)
 		r.KubeControl.UnsetImpersonate()
 	} else {
@@ -137,28 +137,28 @@ func (r *ActionReconciler) handleUpdateClusterAction(clusterAction *actionv1beta
 		return runtime.RawExtension{}, err
 	}
 
-	return clusterAction.Spec.KubeWork.ObjectTemplate, err
+	return action.Spec.KubeWork.ObjectTemplate, err
 }
 
 // Delete kube resource
-func (r *ActionReconciler) handleDeleteClusterAction(clusterAction *actionv1beta1.ClusterAction) (runtime.RawExtension, error) {
+func (r *ActionReconciler) handleDeleteAction(action *actionv1beta1.ManagedClusterAction) (runtime.RawExtension, error) {
 	var err error
 	if r.EnableImpersonation {
 		r.Log.V(5).Info("enable impersonation")
-		var userID = restutils.ParseUserIdentity(clusterAction.Annotations[actionv1beta1.UserIdentityAnnotation])
-		var userGroups = restutils.ParseUserGroup(clusterAction.Annotations[actionv1beta1.UserGroupAnnotation])
+		var userID = restutils.ParseUserIdentity(action.Annotations[actionv1beta1.UserIdentityAnnotation])
+		var userGroups = restutils.ParseUserGroup(action.Annotations[actionv1beta1.UserGroupAnnotation])
 		err = r.KubeControl.Impersonate(userID, userGroups).Delete(nil,
-			clusterAction.Spec.KubeWork.Resource,
-			clusterAction.Spec.KubeWork.Namespace,
-			clusterAction.Spec.KubeWork.Name,
+			action.Spec.KubeWork.Resource,
+			action.Spec.KubeWork.Namespace,
+			action.Spec.KubeWork.Name,
 		)
 		r.KubeControl.UnsetImpersonate()
 	} else {
 		err = r.KubeControl.Delete(
 			nil,
-			clusterAction.Spec.KubeWork.Resource,
-			clusterAction.Spec.KubeWork.Namespace,
-			clusterAction.Spec.KubeWork.Name,
+			action.Spec.KubeWork.Resource,
+			action.Spec.KubeWork.Namespace,
+			action.Spec.KubeWork.Name,
 		)
 	}
 	return runtime.RawExtension{}, err

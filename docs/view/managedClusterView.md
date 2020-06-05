@@ -1,18 +1,18 @@
-# SpokeView CRD
+# ManagedClusterView CRD
 
-This document is to summarise SpokeView CRD. SpokeView is defined to get a specified resource on a certain spoke cluster.
+This document is to summarise ManagedClusterView CRD. ManagedClusterView is defined to get a specified resource on a certain managed cluster.
 
-- SpokeView is a namespace-scoped CRD, and the definition is [here](/deploy/dev/hub/resources/crds/view.open-cluster-management.io_spokeviews.yaml).
-- SpokeView should be applied in the namespace of a certain spoke cluster, and the usage examples is [here](/examples/spokeview).
+- ManagedClusterView is a namespace-scoped CRD, and the definition is [here](/deploy/dev/hub/resources/crds/view.open-cluster-management.io_managedclusterviews.yaml).
+- ManagedClusterView should be applied in the namespace of a certain managed cluster, and the usage examples is [here](/examples/view).
 
 ## CRD Spec
 
 ```yaml
 apiVersion: view.open-cluster-management.io/v1beta1
-kind: SpokeView
+kind: ManagedClusterView
 metadata:
   name: <CR name>
-  namespace: <namespace of spoke cluster>
+  namespace: <namespace of managed cluster>
 spec:
   scope:
     apiGroup: <optional, group of resource>
@@ -24,8 +24,7 @@ spec:
     updateIntervalSeconds: <optional, the interval to update the resource, default is 30>
 status:
   conditions:
-  - lastHeartbeatTime: "2020-05-09T10:05:17Z"
-    lastTransitionTime: "2020-05-09T10:05:17Z"
+  - lastTransitionTime: "2020-05-09T10:05:17Z"
     status: "True"
     type: Processing
     reason: ...
@@ -41,4 +40,4 @@ In the `spec` section:
 In `status` section:
 
 - `conditions` includes only one condition type `Processing`. The status is `True` when it is successful to retrieve resource. Otherwise, the status is `False` if it is fail to retrieve the resource, and the reason is the failure details.
-- `result` shows the result retrieved from the spoke cluster.
+- `result` shows the result retrieved from the managed cluster.

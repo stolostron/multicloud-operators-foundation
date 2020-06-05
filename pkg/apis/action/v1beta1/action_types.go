@@ -1,8 +1,3 @@
-// licensed Materials - Property of IBM
-// 5737-E67
-// (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
-// US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
-
 package v1beta1
 
 import (
@@ -14,8 +9,8 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// ClusterAction is the action that will be done on a cluster
-type ClusterAction struct {
+// ManagedClusterAction is the action that will be done on a cluster
+type ManagedClusterAction struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
@@ -24,28 +19,28 @@ type ClusterAction struct {
 
 	// Spec defines the desired behavior of the action.
 	// +optional
-	Spec ClusterActionSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Spec ActionSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
 	// Status describes the desired status of the action
 	// +optional
-	Status ClusterActionStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+	Status ActionStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
 }
 
 // +kubebuilder:object:root=true
 
-// ClusterActionList is a list of all the actions
-type ClusterActionList struct {
+// ManagedClusterActionList is a list of all the ManagedClusterActions
+type ManagedClusterActionList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
 
-	// List of ClusterAction objects.
-	Items []ClusterAction `json:"items" protobuf:"bytes,2,rep,name=items"`
+	// List of ManagedClusterAction objects.
+	Items []ManagedClusterAction `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
-// ClusterActionSpec defines the action to be processed on a cluster
-type ClusterActionSpec struct {
+// ActionSpec defines the action to be processed on a cluster
+type ActionSpec struct {
 	// ActionType is the type of the action
 	ActionType ActionType `json:"actionType,omitempty" protobuf:"bytes,1,opt,name=actionType"`
 
@@ -53,15 +48,15 @@ type ClusterActionSpec struct {
 	KubeWork *KubeWorkSpec `json:"kube,omitempty" protobuf:"bytes,2,opt,name=kube"`
 }
 
-// ClusterActionStatus returns the current status of the action
-type ClusterActionStatus struct {
-	// Conditions represents the conditions of this resource on spoke cluster
+// ActionStatus returns the current status of the action
+type ActionStatus struct {
+	// Conditions represents the conditions of this resource on managed cluster
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	// +optional
 	Conditions []conditions.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
 
-	// WorkResult references the related result of the work
+	// Result references the related result of the action
 	// +nullable
 	// +optional
 	Result runtime.RawExtension `json:"result,omitempty" protobuf:"bytes,2,opt,name=result"`
@@ -116,5 +111,5 @@ const (
 )
 
 func init() {
-	SchemeBuilder.Register(&ClusterAction{}, &ClusterActionList{})
+	SchemeBuilder.Register(&ManagedClusterAction{}, &ManagedClusterActionList{})
 }

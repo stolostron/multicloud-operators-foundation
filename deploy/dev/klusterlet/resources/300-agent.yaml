@@ -42,8 +42,8 @@ spec:
             - "--hub-kubeconfig=/var/run/hub/kubeconfig"
             - "--cluster-name=cluster0"
             - "--port=4443"
-            - "--klusterlet-address=acm-agent.multicloud-endpoint.svc"
-            - "--klusterlet-port=443"
+            - "--agent-address=acm-agent.multicloud-endpoint.svc"
+            - "--agent-port=443"
           volumeMounts:
             - name: hub-config
               mountPath: /var/run/hub

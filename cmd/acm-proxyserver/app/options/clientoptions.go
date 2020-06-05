@@ -13,7 +13,7 @@ import (
 	"k8s.io/client-go/util/keyutil"
 )
 
-// ClientOptions is the options for klusterlet client
+// ClientOptions is the options for agent client
 type ClientOptions struct {
 	CertFile      string
 	KeyFile       string
@@ -22,14 +22,14 @@ type ClientOptions struct {
 	PairName      string
 }
 
-// NewClientOptions creates a new klusterlet ClientOptions object with default values.
+// NewClientOptions creates a new agent ClientOptions object with default values.
 func NewClientOptions() *ClientOptions {
 	s := &ClientOptions{
 		CertFile:      "",
 		KeyFile:       "",
 		CAFile:        "",
 		CertDirectory: "apiserver.local.config/certificates",
-		PairName:      "klusterlet",
+		PairName:      "agent",
 	}
 
 	return s
@@ -37,14 +37,14 @@ func NewClientOptions() *ClientOptions {
 
 // AddFlags adds flags for ServerRunOptions fields to be specified via FlagSet.
 func (s *ClientOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&s.CertFile, "klusterlet-certfile", s.CertFile, ""+
-		"Klusterlet client cert file")
-	fs.StringVar(&s.KeyFile, "klusterlet-keyfile", s.KeyFile, ""+
-		"Klusterlet client key file")
-	fs.StringVar(&s.CAFile, "klusterlet-cafile", s.CAFile, ""+
-		"Klusterlet ca file")
-	fs.StringVar(&s.CertDirectory, "klusterlet-cert-dir", s.CertDirectory, ""+
-		"Klusterlet cert directory")
+	fs.StringVar(&s.CertFile, "agent-certfile", s.CertFile, ""+
+		"Agent client cert file")
+	fs.StringVar(&s.KeyFile, "agent-keyfile", s.KeyFile, ""+
+		"Agent client key file")
+	fs.StringVar(&s.CAFile, "agent-cafile", s.CAFile, ""+
+		"Agent ca file")
+	fs.StringVar(&s.CertDirectory, "agent-cert-dir", s.CertDirectory, ""+
+		"Agent cert directory")
 }
 
 // MaybeDefaultWithSelfSignedCerts generate self signed cert if they are not set
@@ -106,7 +106,7 @@ func (s *ClientOptions) MaybeDefaultWithSelfSignedCerts(publicAddress string) er
 	return nil
 }
 
-// Config returns klusterlet ClientConfig from options
+// Config returns agent ClientConfig from options
 func (s *ClientOptions) Config(dynamicClient dynamic.Interface) getter.ClientConfig {
 	config := getter.ClientConfig{
 		Port:          443,

@@ -67,9 +67,9 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 		return err
 	}
 
-	caData, err := GetKlusterletCA(o.CAFile)
+	caData, err := GetAgentCA(o.CAFile)
 	if err != nil {
-		klog.Errorf("unable to get klusterlet CA file: %v", err)
+		klog.Errorf("unable to get acm agent server CA file: %v", err)
 		return err
 	}
 
@@ -112,7 +112,7 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 	}
 
 	if err = clusterrbac.SetupWithManager(mgr, kubeClient); err != nil {
-		klog.Errorf("unable to setup clusterInfo reconciler: %v", err)
+		klog.Errorf("unable to setup clusterrbac reconciler: %v", err)
 		return err
 	}
 
@@ -130,7 +130,7 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 	return nil
 }
 
-func GetKlusterletCA(caFile string) ([]byte, error) {
+func GetAgentCA(caFile string) ([]byte, error) {
 	pemBlock, err := ioutil.ReadFile(caFile)
 	if err != nil {
 		return nil, err

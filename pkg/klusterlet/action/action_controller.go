@@ -18,21 +18,21 @@ type ActionReconciler struct {
 	client.Client
 	Log                 logr.Logger
 	Scheme              *runtime.Scheme
-	SpokeDynamicClient  dynamic.Interface
+	DynamicClient       dynamic.Interface
 	KubeControl         restutils.KubeControlInterface
 	EnableImpersonation bool
 }
 
 func NewActionReconciler(client client.Client,
 	log logr.Logger, scheme *runtime.Scheme,
-	spokeDynamicClient dynamic.Interface,
+	dynamicClient dynamic.Interface,
 	kubeControl restutils.KubeControlInterface,
 	enableImpersonation bool) *ActionReconciler {
 	return &ActionReconciler{
 		Client:              client,
 		Log:                 log,
 		Scheme:              scheme,
-		SpokeDynamicClient:  spokeDynamicClient,
+		DynamicClient:       dynamicClient,
 		KubeControl:         kubeControl,
 		EnableImpersonation: enableImpersonation,
 	}
@@ -40,24 +40,24 @@ func NewActionReconciler(client client.Client,
 
 func (r *ActionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.WithValues("action", req.NamespacedName)
-	clusterAction := &actionv1beta1.ClusterAction{}
+	log := r.Log.WithValues("ManagedClusterAction", req.NamespacedName)
+	action := &actionv1beta1.ManagedClusterAction{}
 
-	err := r.Get(ctx, req.NamespacedName, clusterAction)
+	err := r.Get(ctx, req.NamespacedName, action)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if conditions.IsStatusConditionTrue(clusterAction.Status.Conditions, actionv1beta1.ConditionActionCompleted) {
+	if conditions.IsStatusConditionTrue(action.Status.Conditions, actionv1beta1.ConditionActionCompleted) {
 		return ctrl.Result{}, nil
 	}
 
-	if err := r.handleClusterAction(clusterAction); err != nil {
-		log.Error(err, "unable to handle ClusterAction")
+	if err := r.handleAction(action); err != nil {
+		log.Error(err, "unable to handle ManagedClusterAction")
 	}
 
-	if err := r.Client.Status().Update(ctx, clusterAction); err != nil {
-		log.Error(err, "unable to update status of ClusterAction")
+	if err := r.Client.Status().Update(ctx, action); err != nil {
+		log.Error(err, "unable to update status of ManagedClusterAction")
 		return ctrl.Result{}, err
 	}
 
@@ -66,6 +66,6 @@ func (r *ActionReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *ActionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&actionv1beta1.ClusterAction{}).
+		For(&actionv1beta1.ManagedClusterAction{}).
 		Complete(r)
 }

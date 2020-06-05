@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	clusterRBACFinalizerName = "clusterrbac.finalizers.open-cluster-management.io"
+	clusterRBACFinalizerName = "managedclusterrbac.finalizers.open-cluster-management.io"
 	namePrefix               = "acm-"
 )
 
@@ -71,7 +71,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &clusterv1.SpokeCluster{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &clusterv1.ManagedCluster{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// TODO: Deprecate ReconcileByCluster
-	// TODO: return r.ReconcileBySpokeCluster(req)
+	// TODO: return r.ReconcileByManagedCluster(req)
 	return r.ReconcileByCluster(req)
 }
 
@@ -141,9 +141,9 @@ func (r *Reconciler) ReconcileByCluster(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) ReconcileBySpokeCluster(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) ReconcileByManagedCluster(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	cluster := &clusterv1.SpokeCluster{}
+	cluster := &clusterv1.ManagedCluster{}
 
 	err := r.client.Get(ctx, req.NamespacedName, cluster)
 	if err != nil {
@@ -179,7 +179,7 @@ func (r *Reconciler) ReconcileBySpokeCluster(req ctrl.Request) (ctrl.Result, err
 
 	conditionJoined := clusterv1.StatusCondition{}
 	for _, condition := range cluster.Status.Conditions {
-		if condition.Type == clusterv1.SpokeClusterConditionJoined {
+		if condition.Type == clusterv1.ManagedClusterConditionJoined {
 			conditionJoined = condition
 			break
 		}

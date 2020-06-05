@@ -1,8 +1,3 @@
-// licensed Materials - Property of IBM
-// 5737-E67
-// (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
-// US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
-
 package v1beta1
 
 import (
@@ -12,32 +7,33 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// ClusterInfoSpec is information about the current status of a spoke cluster updated by clusterinfo controller periodically.
+// ClusterInfoSpec is information about the current status of a managed cluster updated
+// by ManagedClusterInfo controller periodically.
 type ClusterInfoSpec struct {
-	// KlusterletCA is the ca data for klusterlet to authorize apiserver
+	// LoggingCA is the ca data for logging server to authorize apiserver
 	// +optional
-	KlusterletCA []byte `json:"klusterletCA,omitempty"`
+	LoggingCA []byte `json:"loggingCA,omitempty"`
 
-	// MasterEndpoint shows the apiserver endpoint of spoke cluster
+	// MasterEndpoint shows the apiserver endpoint of managed cluster
 	// +optional
 	MasterEndpoint string `json:"masterEndpoint,omitempty"`
 }
 
-// ClusterInfoStatus is the information about spoke cluster
+// ClusterInfoStatus is the information about managed cluster
 type ClusterInfoStatus struct {
-	// Conditions contains condition information for a spoke cluster
+	// Conditions contains condition information for a managed cluster
 	// +optional
 	Conditions []clusterv1.StatusCondition `json:"conditions,omitempty"`
 
-	// Version is the kube version of spoke cluster.
+	// Version is the kube version of managed cluster.
 	// +optional
 	Version string `json:"version,omitempty"`
 
-	// DistributionInfo is the information about distribution of spoke cluster
+	// DistributionInfo is the information about distribution of managed cluster
 	// +optional
 	DistributionInfo DistributionInfo `json:"distributionInfo,omitempty"`
 
-	// ConsoleURL shows the url of console in spoke cluster
+	// ConsoleURL shows the url of console in managed cluster
 	// +optional
 	ConsoleURL string `json:"consoleURL,omitempty"`
 
@@ -45,13 +41,13 @@ type ClusterInfoStatus struct {
 	// +optional
 	NodeList []NodeStatus `json:"nodeList,omitempty"`
 
-	// KlusterletEndpoint shows the endpoint to connect to klusterlet of spoke cluster
+	// LoggingEndpoint shows the endpoint to connect to logging server of managed cluster
 	// +optional
-	KlusterletEndpoint corev1.EndpointAddress `json:"klusterletEndpoint,omitempty"`
+	LoggingEndpoint corev1.EndpointAddress `json:"loggingEndpoint,omitempty"`
 
-	// KlusterletPort shows the port to connect to klusterlet of spoke cluster
+	// LoggingPort shows the port to connect to logging server of managed cluster
 	// +optional
-	KlusterletPort corev1.EndpointPort `json:"klusterletPort,omitempty"`
+	LoggingPort corev1.EndpointPort `json:"loggingPort,omitempty"`
 }
 
 // NodeStatus presents the name, labels and conditions of node
@@ -94,18 +90,18 @@ type NodeCondition struct {
 	Status corev1.ConditionStatus `json:"status,omitempty"`
 }
 
-// DistributionInfo defines the information about distribution of spoke cluster
+// DistributionInfo defines the information about distribution of managed cluster
 // +union
 type DistributionInfo struct {
-	// Type is the distribution type of spoke cluster, is OCP currently
+	// Type is the distribution type of managed cluster, is OCP currently
 	// +unionDiscriminator
 	Type DistributionType `json:"type,omitempty"`
 
-	// OCP is the distribution information of OCP spoke cluster, is matched when the Type is OCP.
+	// OCP is the distribution information of OCP managed cluster, is matched when the Type is OCP.
 	OCP OCPDistributionInfo `json:"ocp,omitempty"`
 }
 
-// OCPDistributionInfo defines the distribution information of OCP spoke cluster
+// OCPDistributionInfo defines the distribution information of OCP managed cluster
 type OCPDistributionInfo struct {
 	// Version is the distribution version of OCP
 	Version string `json:"version,omitempty"`
@@ -121,10 +117,10 @@ const (
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:path=clusterinfos
+// +kubebuilder:resource:path=managedclusterinfos
 
-// ClusterInfo represents the information of spoke cluster that acm hub needs to know
-type ClusterInfo struct {
+// ManagedClusterInfo represents the information of managed cluster that acm hub needs to know
+type ManagedClusterInfo struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
@@ -139,8 +135,8 @@ type ClusterInfo struct {
 
 // +kubebuilder:object:root=true
 
-// ClusterInfoList is a list of ClusterInfo objects
-type ClusterInfoList struct {
+// ManagedClusterInfoList is a list of ManagedClusterInfo objects
+type ManagedClusterInfoList struct {
 	metav1.TypeMeta `json:",inline"`
 
 	// Standard list metadata.
@@ -148,10 +144,10 @@ type ClusterInfoList struct {
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	// List of ClusterInfo objects.
-	Items []ClusterInfo `json:"items"`
+	// List of ManagedClusterInfo objects.
+	Items []ManagedClusterInfo `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&ClusterInfo{}, &ClusterInfoList{})
+	SchemeBuilder.Register(&ManagedClusterInfo{}, &ManagedClusterInfoList{})
 }
