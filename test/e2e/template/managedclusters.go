@@ -1,15 +1,15 @@
 package template
 
-// SpokeClusterTemplate is json template for namespace
-const SpokeClusterTemplate = `{
+// ManagedClusterTemplate is json template for namespace
+const ManagedClusterTemplate = `{
   "apiVersion": "cluster.open-cluster-management.io/v1",
-  "kind": "SpokeCluster",
+  "kind": "ManagedCluster",
   "metadata": {
     "name": "cluster1"
   },
   "spec": {
     "hubAcceptsClient": true,
-    "spokeClientConfigs": [
+    "managedClusterClientConfigs": [
       {
         "caBundle": "test",
         "url": "https://test.com"

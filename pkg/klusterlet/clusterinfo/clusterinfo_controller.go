@@ -32,28 +32,28 @@ import (
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 )
 
-// ClusterInfoReconciler reconciles a ClusterInfo object
+// ClusterInfoReconciler reconciles a ManagedClusterInfo object
 type ClusterInfoReconciler struct {
 	client.Client
-	Log                logr.Logger
-	Scheme             *runtime.Scheme
-	KubeClient         kubernetes.Interface
-	SpokeDynamicClient dynamic.Interface
-	RouteV1Client      routev1.Interface
-	MasterAddresses    string
-	KlusterletAddress  string
-	KlusterletIngress  string
-	KlusterletRoute    string
-	KlusterletService  string
-	KlusterletPort     int32
-	Klusterlet         *agent.Klusterlet
+	Log                         logr.Logger
+	Scheme                      *runtime.Scheme
+	KubeClient                  kubernetes.Interface
+	ManagedClusterDynamicClient dynamic.Interface
+	RouteV1Client               routev1.Interface
+	MasterAddresses             string
+	AgentAddress                string
+	AgentIngress                string
+	AgentRoute                  string
+	AgentService                string
+	AgentPort                   int32
+	Agent                       *agent.Agent
 }
 
 func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.WithValues("clusterinfo", req.NamespacedName)
+	log := r.Log.WithValues("ManagedClusterInfo", req.NamespacedName)
 
-	clusterInfo := &clusterv1beta1.ClusterInfo{}
+	clusterInfo := &clusterv1beta1.ManagedClusterInfo{}
 	err := r.Get(ctx, req.NamespacedName, clusterInfo)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
@@ -68,14 +68,14 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	_, _, clusterURL := r.getMasterAddresses()
 	newStatus.ConsoleURL = clusterURL
 
-	// Config klusterlet endpoint
-	klusterletEndpoint, klusterletPort, err := r.readKlusterletConfig()
+	// Config Agent endpoint
+	agentEndpoint, agentPort, err := r.readAgentConfig()
 	if err != nil {
-		log.Error(err, "Failed to get klusterlet server config")
+		log.Error(err, "Failed to get agent server config")
 		return ctrl.Result{}, err
 	}
-	newStatus.KlusterletEndpoint = *klusterletEndpoint
-	newStatus.KlusterletPort = *klusterletPort
+	newStatus.LoggingEndpoint = *agentEndpoint
+	newStatus.LoggingPort = *agentPort
 
 	// Get version
 	newStatus.Version = r.getVersion()
@@ -167,35 +167,35 @@ func (r *ClusterInfoReconciler) getMasterAddressesFromConsoleConfig() ([]corev1.
 	return masterAddresses, masterPorts, clusterURL, cfg != nil && cfg.Data != nil, err
 }
 
-func (r *ClusterInfoReconciler) readKlusterletConfig() (*corev1.EndpointAddress, *corev1.EndpointPort, error) {
+func (r *ClusterInfoReconciler) readAgentConfig() (*corev1.EndpointAddress, *corev1.EndpointPort, error) {
 	endpoint := &corev1.EndpointAddress{}
 	port := &corev1.EndpointPort{
 		Name:     "https",
 		Protocol: corev1.ProtocolTCP,
-		Port:     r.KlusterletPort,
+		Port:     r.AgentPort,
 	}
 	// set endpoint by user flag at first, if it is not set, use IP in ingress status
-	ip := net.ParseIP(r.KlusterletAddress)
+	ip := net.ParseIP(r.AgentAddress)
 	if ip != nil {
-		endpoint.IP = r.KlusterletAddress
+		endpoint.IP = r.AgentAddress
 	} else {
-		endpoint.Hostname = r.KlusterletAddress
+		endpoint.Hostname = r.AgentAddress
 	}
 
-	if r.KlusterletIngress != "" {
+	if r.AgentIngress != "" {
 		if err := r.setEndpointAddressFromIngress(endpoint); err != nil {
 			return nil, nil, err
 		}
 	}
 
-	// Only use klusterlet service when neither ingress nor address is set
-	if r.KlusterletService != "" && endpoint.IP == "" && endpoint.Hostname == "" {
+	// Only use Agent service when neither ingress nor address is set
+	if r.AgentService != "" && endpoint.IP == "" && endpoint.Hostname == "" {
 		if err := r.setEndpointAddressFromService(endpoint, port); err != nil {
 			return nil, nil, err
 		}
 	}
 
-	if r.KlusterletRoute != "" && endpoint.IP == "" && endpoint.Hostname == "" {
+	if r.AgentRoute != "" && endpoint.IP == "" && endpoint.Hostname == "" {
 		if err := r.setEndpointAddressFromRoute(endpoint); err != nil {
 			return nil, nil, err
 		}
@@ -206,7 +206,7 @@ func (r *ClusterInfoReconciler) readKlusterletConfig() (*corev1.EndpointAddress,
 
 func (r *ClusterInfoReconciler) setEndpointAddressFromIngress(endpoint *corev1.EndpointAddress) error {
 	log := r.Log.WithName("SetEndpoint")
-	klNamespace, klName, err := cache.SplitMetaNamespaceKey(r.KlusterletIngress)
+	klNamespace, klName, err := cache.SplitMetaNamespaceKey(r.AgentIngress)
 	if err != nil {
 		log.Error(err, "Failed do parse ingress resource:")
 		return err
@@ -228,7 +228,7 @@ func (r *ClusterInfoReconciler) setEndpointAddressFromIngress(endpoint *corev1.E
 }
 
 func (r *ClusterInfoReconciler) setEndpointAddressFromService(endpoint *corev1.EndpointAddress, port *corev1.EndpointPort) error {
-	klNamespace, klName, err := cache.SplitMetaNamespaceKey(r.KlusterletService)
+	klNamespace, klName, err := cache.SplitMetaNamespaceKey(r.AgentService)
 	if err != nil {
 		return err
 	}
@@ -239,15 +239,15 @@ func (r *ClusterInfoReconciler) setEndpointAddressFromService(endpoint *corev1.E
 	}
 
 	if klSvc.Spec.Type != corev1.ServiceTypeLoadBalancer {
-		return fmt.Errorf("klusterlet service should be in type of loadbalancer")
+		return fmt.Errorf("agent service should be in type of loadbalancer")
 	}
 
 	if len(klSvc.Status.LoadBalancer.Ingress) == 0 {
-		return fmt.Errorf("klusterlet load balancer service does not have valid ip address")
+		return fmt.Errorf("agent load balancer service does not have valid ip address")
 	}
 
 	if len(klSvc.Spec.Ports) == 0 {
-		return fmt.Errorf("klusterlet load balancer service does not have valid port")
+		return fmt.Errorf("agent load balancer service does not have valid port")
 	}
 
 	// Only get the first IP and port
@@ -258,7 +258,7 @@ func (r *ClusterInfoReconciler) setEndpointAddressFromService(endpoint *corev1.E
 }
 
 func (r *ClusterInfoReconciler) setEndpointAddressFromRoute(endpoint *corev1.EndpointAddress) error {
-	klNamespace, klName, err := cache.SplitMetaNamespaceKey(r.KlusterletRoute)
+	klNamespace, klName, err := cache.SplitMetaNamespaceKey(r.AgentRoute)
 	if err != nil {
 		log.Error(err, "Route name input error")
 		return err
@@ -374,7 +374,7 @@ func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.Distributi
 
 	if isOpenShift {
 		distributionInfo.Type = clusterv1beta1.DistributionTypeOCP
-		obj, err := r.SpokeDynamicClient.Resource(ocpVersionGVR).Get("version", metav1.GetOptions{})
+		obj, err := r.ManagedClusterDynamicClient.Resource(ocpVersionGVR).Get("version", metav1.GetOptions{})
 		if err != nil {
 			klog.Errorf("failed to get OCP cluster version: %v", err)
 			return distributionInfo, client.IgnoreNotFound(err)
@@ -397,18 +397,18 @@ func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.Distributi
 	return distributionInfo, nil
 }
 
-func (r *ClusterInfoReconciler) RefreshAgentServer(clusterInfo *clusterv1beta1.ClusterInfo) {
+func (r *ClusterInfoReconciler) RefreshAgentServer(clusterInfo *clusterv1beta1.ManagedClusterInfo) {
 	select {
-	case r.Klusterlet.RunServer <- *clusterInfo:
-		log.Info("Signal klusterlet agent server to start")
+	case r.Agent.RunServer <- *clusterInfo:
+		log.Info("Signal agent server to start")
 	default:
 	}
 
-	r.Klusterlet.RefreshServerIfNeeded(clusterInfo)
+	r.Agent.RefreshServerIfNeeded(clusterInfo)
 }
 
 func (r *ClusterInfoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&clusterv1beta1.ClusterInfo{}).
+		For(&clusterv1beta1.ManagedClusterInfo{}).
 		Complete(r)
 }

@@ -28,7 +28,7 @@ import (
 )
 
 const (
-	clusterFinalizerName = "clusterinfo.finalizers.open-cluster-management.io"
+	clusterFinalizerName = "managedclusterinfo.finalizers.open-cluster-management.io"
 )
 
 type Reconciler struct {
@@ -39,7 +39,7 @@ type Reconciler struct {
 
 func SetupWithManager(mgr manager.Manager, caData []byte) error {
 	if err := add(mgr, newReconciler(mgr, caData)); err != nil {
-		klog.Errorf("Failed to create clusterinfo controller, %v", err)
+		klog.Errorf("Failed to create ManagedClusterInfo controller, %v", err)
 		return err
 	}
 	return nil
@@ -68,7 +68,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &clusterv1.SpokeCluster{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &clusterv1.ManagedCluster{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// TODO: Deprecate ReconcileByCluster
-	// TODO: return r.ReconcileBySpokeCluster(req)
+	// TODO: return r.ReconcileByManagedCluster(req)
 	return r.ReconcileByCluster(req)
 }
 
@@ -119,7 +119,7 @@ func (r *Reconciler) ReconcileByCluster(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	clusterInfo := &clusterinfov1beta1.ClusterInfo{}
+	clusterInfo := &clusterinfov1beta1.ManagedClusterInfo{}
 	err = r.client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Namespace}, clusterInfo)
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -131,10 +131,15 @@ func (r *Reconciler) ReconcileByCluster(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	if !reflect.DeepEqual(r.caData, clusterInfo.Spec.KlusterletCA) ||
-		clusterInfo.Spec.MasterEndpoint != cluster.Spec.KubernetesAPIEndpoints.ServerEndpoints[0].ServerAddress {
-		clusterInfo.Spec.KlusterletCA = r.caData
-		clusterInfo.Spec.MasterEndpoint = cluster.Spec.KubernetesAPIEndpoints.ServerEndpoints[0].ServerAddress
+	endpoint := ""
+	if len(cluster.Spec.KubernetesAPIEndpoints.ServerEndpoints) != 0 {
+		endpoint = cluster.Spec.KubernetesAPIEndpoints.ServerEndpoints[0].ServerAddress
+	}
+
+	if !reflect.DeepEqual(r.caData, clusterInfo.Spec.LoggingCA) ||
+		clusterInfo.Spec.MasterEndpoint != endpoint {
+		clusterInfo.Spec.LoggingCA = r.caData
+		clusterInfo.Spec.MasterEndpoint = endpoint
 		err = r.client.Update(ctx, clusterInfo)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -148,7 +153,7 @@ func (r *Reconciler) ReconcileByCluster(req ctrl.Request) (ctrl.Result, error) {
 	if condition.Type == clusterregistryv1alpha1.ClusterOK {
 		clusterInfo.Status.Conditions = []clusterv1.StatusCondition{
 			{
-				Type:    clusterv1.SpokeClusterConditionJoined,
+				Type:    clusterv1.ManagedClusterConditionJoined,
 				Status:  metav1.ConditionTrue,
 				Reason:  "ClusterReady",
 				Message: "cluster is posting ready status",
@@ -160,7 +165,7 @@ func (r *Reconciler) ReconcileByCluster(req ctrl.Request) (ctrl.Result, error) {
 	} else {
 		clusterInfo.Status.Conditions = []clusterv1.StatusCondition{
 			{
-				Type:    clusterv1.SpokeClusterConditionJoined,
+				Type:    clusterv1.ManagedClusterConditionJoined,
 				Status:  metav1.ConditionFalse,
 				Reason:  "ClusterOffline",
 				Message: "cluster is offline",
@@ -178,9 +183,9 @@ func (r *Reconciler) ReconcileByCluster(req ctrl.Request) (ctrl.Result, error) {
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) ReconcileBySpokeCluster(req ctrl.Request) (ctrl.Result, error) {
+func (r *Reconciler) ReconcileByManagedCluster(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	cluster := &clusterv1.SpokeCluster{}
+	cluster := &clusterv1.ManagedCluster{}
 
 	err := r.client.Get(ctx, req.NamespacedName, cluster)
 	if err != nil {
@@ -214,11 +219,11 @@ func (r *Reconciler) ReconcileBySpokeCluster(req ctrl.Request) (ctrl.Result, err
 		return reconcile.Result{}, nil
 	}
 
-	clusterInfo := &clusterinfov1beta1.ClusterInfo{}
+	clusterInfo := &clusterinfov1beta1.ManagedClusterInfo{}
 	err = r.client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Name}, clusterInfo)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			if err := r.client.Create(ctx, r.newClusterInfoBySpokeCluster(cluster)); err != nil {
+			if err := r.client.Create(ctx, r.newClusterInfoByManagedCluster(cluster)); err != nil {
 				return ctrl.Result{}, err
 			}
 			return ctrl.Result{Requeue: true}, nil
@@ -226,10 +231,15 @@ func (r *Reconciler) ReconcileBySpokeCluster(req ctrl.Request) (ctrl.Result, err
 		return ctrl.Result{}, err
 	}
 
-	if !reflect.DeepEqual(r.caData, clusterInfo.Spec.KlusterletCA) ||
-		clusterInfo.Spec.MasterEndpoint != cluster.Spec.SpokeClientConfig.URL {
-		clusterInfo.Spec.KlusterletCA = r.caData
-		clusterInfo.Spec.MasterEndpoint = cluster.Spec.SpokeClientConfig.URL
+	endpoint := ""
+	if len(cluster.Spec.ManagedClusterClientConfigs) != 0 {
+		endpoint = cluster.Spec.ManagedClusterClientConfigs[0].URL
+	}
+
+	if !reflect.DeepEqual(r.caData, clusterInfo.Spec.LoggingCA) ||
+		clusterInfo.Spec.MasterEndpoint != endpoint {
+		clusterInfo.Spec.LoggingCA = r.caData
+		clusterInfo.Spec.MasterEndpoint = endpoint
 		err = r.client.Update(ctx, clusterInfo)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -248,7 +258,7 @@ func (r *Reconciler) ReconcileBySpokeCluster(req ctrl.Request) (ctrl.Result, err
 }
 
 func (r *Reconciler) deleteExternalResources(name, namespace string) error {
-	err := r.client.Delete(context.Background(), &clusterinfov1beta1.ClusterInfo{
+	err := r.client.Delete(context.Background(), &clusterinfov1beta1.ManagedClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -262,30 +272,40 @@ func (r *Reconciler) deleteExternalResources(name, namespace string) error {
 }
 
 // TODO: Deprecate newClusterInfoByCluster
-func (r *Reconciler) newClusterInfoByCluster(cluster *clusterregistryv1alpha1.Cluster) *clusterinfov1beta1.ClusterInfo {
-	return &clusterinfov1beta1.ClusterInfo{
+func (r *Reconciler) newClusterInfoByCluster(cluster *clusterregistryv1alpha1.Cluster) *clusterinfov1beta1.ManagedClusterInfo {
+	endpoint := ""
+	if len(cluster.Spec.KubernetesAPIEndpoints.ServerEndpoints) != 0 {
+		endpoint = cluster.Spec.KubernetesAPIEndpoints.ServerEndpoints[0].ServerAddress
+	}
+
+	return &clusterinfov1beta1.ManagedClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Name,
 			Namespace: cluster.Namespace,
 			Labels:    cluster.Labels,
 		},
 		Spec: clusterinfov1beta1.ClusterInfoSpec{
-			MasterEndpoint: cluster.Spec.KubernetesAPIEndpoints.ServerEndpoints[0].ServerAddress,
-			KlusterletCA:   r.caData,
+			MasterEndpoint: endpoint,
+			LoggingCA:      r.caData,
 		},
 	}
 }
 
-func (r *Reconciler) newClusterInfoBySpokeCluster(cluster *clusterv1.SpokeCluster) *clusterinfov1beta1.ClusterInfo {
-	return &clusterinfov1beta1.ClusterInfo{
+func (r *Reconciler) newClusterInfoByManagedCluster(cluster *clusterv1.ManagedCluster) *clusterinfov1beta1.ManagedClusterInfo {
+	endpoint := ""
+	if len(cluster.Spec.ManagedClusterClientConfigs) != 0 {
+		endpoint = cluster.Spec.ManagedClusterClientConfigs[0].URL
+	}
+
+	return &clusterinfov1beta1.ManagedClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Name,
 			Namespace: cluster.Name,
 			Labels:    cluster.Labels,
 		},
 		Spec: clusterinfov1beta1.ClusterInfoSpec{
-			MasterEndpoint: cluster.Spec.SpokeClientConfig.URL,
-			KlusterletCA:   r.caData,
+			MasterEndpoint: endpoint,
+			LoggingCA:      r.caData,
 		},
 	}
 }

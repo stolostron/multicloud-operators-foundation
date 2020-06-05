@@ -92,11 +92,11 @@ var (
 	}
 )
 
-func newFakeKlusterlet() *Klusterlet {
+func newFakeKlusterlet() *Agent {
 	fakeKubeClient := kubefake.NewSimpleClientset(
 		kubeNode, kubeEndpoints,
 		kubeMonitoringService, kubeMonitoringSecret, klusterletService)
-	return NewKlusterlet("clusterName", fakeKubeClient)
+	return NewAgent("clusterName", fakeKubeClient)
 }
 func TestKlusterlet_ListenAndServe(t *testing.T) {
 	fakeKlusterlet := newFakeKlusterlet()
@@ -126,14 +126,14 @@ func TestKlusterlet_ListenAndServe(t *testing.T) {
 		"1aWTdPaVpOdkVhQk5DdlhaCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K"
 
 	data, _ := base64.StdEncoding.DecodeString(str)
-	clusterinfo := v1beta1.ClusterInfo{
+	clusterinfo := v1beta1.ManagedClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "clusterinfo",
 			Namespace: "kube-system",
 		},
 		Spec: v1beta1.ClusterInfoSpec{
 			MasterEndpoint: "127.0.0.1",
-			KlusterletCA:   data,
+			LoggingCA:      data,
 		},
 	}
 	go func() {

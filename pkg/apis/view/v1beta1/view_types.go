@@ -14,59 +14,59 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// SpokeView is the view of resources on a cluster
-type SpokeView struct {
+// ManagedClusterView is the view of resources on a managed cluster
+type ManagedClusterView struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	// Spec defines the desired configuration of a spokeview
+	// Spec defines the desired configuration of a view
 	// +optional
-	Spec SpokeViewSpec `json:"spec,omitempty"`
+	Spec ViewSpec `json:"spec,omitempty"`
 
-	// Status describes current status of a spokeview
+	// Status describes current status of a view
 	// +optional
-	Status SpokeViewStatus `json:"status,omitempty"`
+	Status ViewStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// SpokeViewList is a list of all the spokeview
-type SpokeViewList struct {
+// ManagedClusterViewList is a list of all the ManagedClusterView
+type ManagedClusterViewList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds
 	// +optional
 	metav1.ListMeta `json:"metadata,omitempty"`
 
-	// List of Cluster objects.
-	Items []SpokeView `json:"items"`
+	// List of ManagedClusterView objects.
+	Items []ManagedClusterView `json:"items"`
 }
 
-// SpokeViewSpec defines the desired configuration of a view
-type SpokeViewSpec struct {
+// ViewSpec defines the desired configuration of a view
+type ViewSpec struct {
 	// Scope is the scope of the view on a cluster
-	Scope SpokeViewScope `json:"scope,omitempty"`
+	Scope ViewScope `json:"scope,omitempty"`
 }
 
-// SpokeViewStatus returns the status of the spoke view
-type SpokeViewStatus struct {
-	// Conditions represents the conditions of this resource on spoke cluster
+// ViewStatus returns the status of the view
+type ViewStatus struct {
+	// Conditions represents the conditions of this resource on managed cluster
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	// +optional
 	Conditions []conditions.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type"`
 
-	// WorkResult references the related result of the work
+	// Result references the related result of the view
 	// +nullable
 	// +optional
 	Result runtime.RawExtension `json:"result,omitempty"`
 }
 
-// SpokeViewScope represents the scope of resources to be viewed
-type SpokeViewScope struct {
+// ViewScope represents the scope of resources to be viewed
+type ViewScope struct {
 	// Group is the api group of the resources
 	Group string `json:"apiGroup,omitempty"`
 
@@ -97,7 +97,7 @@ type SpokeViewScope struct {
 
 // These are valid conditions of a cluster.
 const (
-	// ConditionViewProcessing means the spoke view is processing.
+	// ConditionViewProcessing means the view is processing.
 	ConditionViewProcessing conditions.ConditionType = "Processing"
 )
 
@@ -109,5 +109,5 @@ const (
 )
 
 func init() {
-	SchemeBuilder.Register(&SpokeView{}, &SpokeViewList{})
+	SchemeBuilder.Register(&ManagedClusterView{}, &ManagedClusterViewList{})
 }

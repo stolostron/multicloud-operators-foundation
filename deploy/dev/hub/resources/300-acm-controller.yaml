@@ -27,10 +27,10 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
           - "/acm-controller"
-          - "--klusterlet-cafile=/var/run/klusterlet/ca.crt"
+          - "--agent-cafile=/var/run/agent/ca.crt"
         volumeMounts:
-          - mountPath: /var/run/klusterlet
-            name: klusterlet-certs
+          - mountPath: /var/run/agent
+            name: agent-certs
         livenessProbe:
           httpGet:
             path: /healthz
@@ -44,7 +44,7 @@ spec:
           failureThreshold: 3
           periodSeconds: 10
       volumes:
-      - name: klusterlet-certs
+      - name: agent-certs
         secret:
           defaultMode: 420
-          secretName: acm-klusterlet-self-signed-secrets
+          secretName: acm-agent-self-signed-secrets

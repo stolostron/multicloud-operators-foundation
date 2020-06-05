@@ -8,7 +8,7 @@ package clusterrbac
 import (
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
-	spokeviewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
+	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 	proxyserverv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 )
@@ -17,12 +17,12 @@ import (
 func buildRoleRules() []rbacv1.PolicyRule {
 	return []rbacv1.PolicyRule{
 		NewRule("create", "get").Groups(proxyserverv1beta1.GroupName).Resources("clusterstatuses/aggregator").RuleOrDie(),
-		NewRule("get", "list", "watch").Groups(clusterv1beta1.GroupName).Resources("clusterinfos").RuleOrDie(),
-		NewRule("update", "patch").Groups(clusterv1beta1.GroupName).Resources("clusterinfos/status").RuleOrDie(),
-		NewRule("get", "list", "watch").Groups(actionv1beta1.GroupName).Resources("clusteractions").RuleOrDie(),
-		NewRule("update", "patch").Groups(actionv1beta1.GroupName).Resources("clusteractions/status").RuleOrDie(),
-		NewRule("get", "list", "watch").Groups(spokeviewv1beta1.GroupName).Resources("spokeviews").RuleOrDie(),
-		NewRule("update", "patch").Groups(spokeviewv1beta1.GroupName).Resources("spokeviews/status").RuleOrDie(),
+		NewRule("get", "list", "watch").Groups(clusterv1beta1.GroupName).Resources("managedclusterinfos").RuleOrDie(),
+		NewRule("update", "patch").Groups(clusterv1beta1.GroupName).Resources("managedclusterinfos/status").RuleOrDie(),
+		NewRule("get", "list", "watch").Groups(actionv1beta1.GroupName).Resources("managedclusteractions").RuleOrDie(),
+		NewRule("update", "patch").Groups(actionv1beta1.GroupName).Resources("managedclusteractions/status").RuleOrDie(),
+		NewRule("get", "list", "watch").Groups(viewv1beta1.GroupName).Resources("managedclusterviews").RuleOrDie(),
+		NewRule("update", "patch").Groups(viewv1beta1.GroupName).Resources("managedclusterviews/status").RuleOrDie(),
 
 		// for deployables
 		NewRule("get", "list", "watch").Groups("apps.open-cluster-management.io").Resources("deployables").RuleOrDie(),

@@ -6,20 +6,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: clusteractions.action.open-cluster-management.io
+  name: managedclusterviews.view.open-cluster-management.io
 spec:
-  group: action.open-cluster-management.io
+  group: view.open-cluster-management.io
   names:
-    kind: ClusterAction
-    listKind: ClusterActionList
-    plural: clusteractions
-    singular: clusteraction
+    kind: ManagedClusterView
+    listKind: ManagedClusterViewList
+    plural: managedclusterviews
+    singular: managedclusterview
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: ClusterAction is the action that will be done on a cluster
+      description: ManagedClusterView is the view of resources on a managed cluster
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -35,34 +35,41 @@ spec:
           description: 'Standard object''s metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata'
           type: object
         spec:
-          description: Spec defines the desired behavior of the action.
+          description: Spec defines the desired configuration of a view
           properties:
-            actionType:
-              description: ActionType is the type of the action
-              type: string
-            kube:
-              description: KubeWorkSpec is the action payload to process
+            scope:
+              description: Scope is the scope of the view on a cluster
               properties:
+                apiGroup:
+                  description: Group is the api group of the resources
+                  type: string
+                kind:
+                  description: Kind is the kind of the subject
+                  type: string
                 name:
-                  description: Name of the object
+                  description: Name is the name of the subject
                   type: string
                 namespace:
-                  description: Namespace of the object
+                  description: Name is the name of the subject
                   type: string
                 resource:
-                  description: Resource of the object
+                  description: Resource is the resource type of the subject
                   type: string
-                template:
-                  description: ObjectTemplate is the template of the object
-                  type: object
+                updateIntervalSeconds:
+                  description: UpdateIntervalSeconds is the interval to update view
+                  format: int32
+                  type: integer
+                version:
+                  description: Version is the version of the subject
+                  type: string
               type: object
           type: object
         status:
-          description: Status describes the desired status of the action
+          description: Status describes current status of a view
           properties:
             conditions:
               description: Conditions represents the conditions of this resource on
-                spoke cluster
+                managed cluster
               items:
                 description: Condition represents the state of the operator's reconciliation
                   functionality.
@@ -86,7 +93,7 @@ spec:
                 type: object
               type: array
             result:
-              description: WorkResult references the related result of the work
+              description: Result references the related result of the view
               nullable: true
               type: object
           type: object

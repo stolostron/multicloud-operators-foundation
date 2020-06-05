@@ -23,7 +23,7 @@ type ControllerRunOptions struct {
 func NewControllerRunOptions() *ControllerRunOptions {
 	return &ControllerRunOptions{
 		KubeConfig:           "",
-		CAFile:               "/var/run/klusterlet/ca.crt",
+		CAFile:               "/var/run/agent/ca.crt",
 		EnableInventory:      false,
 		EnableLeaderElection: true,
 		QPS:                  100.0,
@@ -35,8 +35,8 @@ func NewControllerRunOptions() *ControllerRunOptions {
 func (o *ControllerRunOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.KubeConfig, "kubeconfig", "",
 		"The kubeconfig to connect to cluster to watch/apply resources.")
-	fs.StringVar(&o.CAFile, "klusterlet-cafile", o.CAFile, ""+
-		"Klusterlet ca file.")
+	fs.StringVar(&o.CAFile, "agent-cafile", o.CAFile, ""+
+		"Agent CA file.")
 	fs.BoolVar(&o.EnableInventory, "enable-inventory", o.EnableInventory,
 		"enable multi-cluster inventory")
 	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,

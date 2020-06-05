@@ -40,7 +40,7 @@ func TestMain(m *testing.M) {
 	}
 
 	if err := viewv1beta1.AddToScheme(scheme); err != nil {
-		klog.Errorf("Failed adding spokeView to scheme, %v", err)
+		klog.Errorf("Failed adding managedClusterView to scheme, %v", err)
 		os.Exit(1)
 	}
 
@@ -49,8 +49,8 @@ func TestMain(m *testing.M) {
 }
 
 const (
-	spokeViewName    = "foo"
-	clusterNamespace = "bar"
+	managedClusterViewName = "foo"
+	clusterNamespace       = "bar"
 )
 
 func newUnstructured() *unstructured.Unstructured {
@@ -66,7 +66,7 @@ func newUnstructured() *unstructured.Unstructured {
 	}
 }
 
-func newTestReconciler(existingObjs []runtime.Object) *SpokeViewReconciler {
+func newTestReconciler(existingObjs []runtime.Object) *ViewReconciler {
 	resources := []*restmapper.APIGroupResources{
 		{
 			Group: metav1.APIGroup{
@@ -101,19 +101,19 @@ func newTestReconciler(existingObjs []runtime.Object) *SpokeViewReconciler {
 		},
 	}
 
-	spokeViewReconciler := &SpokeViewReconciler{
-		Client:             fake.NewFakeClientWithScheme(scheme, existingObjs...),
-		Log:                tlog.NullLogger{},
-		Scheme:             scheme,
-		SpokeDynamicClient: dynamicfake.NewSimpleDynamicClient(scheme, newUnstructured()),
-		Mapper:             restutils.NewFakeMapper(resources),
+	viewReconciler := &ViewReconciler{
+		Client:                      fake.NewFakeClientWithScheme(scheme, existingObjs...),
+		Log:                         tlog.NullLogger{},
+		Scheme:                      scheme,
+		ManagedClusterDynamicClient: dynamicfake.NewSimpleDynamicClient(scheme, newUnstructured()),
+		Mapper:                      restutils.NewFakeMapper(resources),
 	}
 
-	return spokeViewReconciler
+	return viewReconciler
 }
 
 func validateErrorAndStatusConditions(t *testing.T, err, expectedErrorType error,
-	expectedConditions []conditions.Condition, spokeView *viewv1beta1.SpokeView) {
+	expectedConditions []conditions.Condition, view *viewv1beta1.ManagedClusterView) {
 	if expectedErrorType != nil {
 		assert.EqualError(t, err, expectedErrorType.Error())
 	} else {
@@ -121,10 +121,10 @@ func validateErrorAndStatusConditions(t *testing.T, err, expectedErrorType error
 	}
 
 	for _, condition := range expectedConditions {
-		assert.True(t, conditions.IsStatusConditionPresentAndEqual(spokeView.Status.Conditions, condition.Type, condition.Status))
+		assert.True(t, conditions.IsStatusConditionPresentAndEqual(view.Status.Conditions, condition.Type, condition.Status))
 	}
-	if spokeView != nil {
-		assert.Equal(t, len(expectedConditions), len(spokeView.Status.Conditions))
+	if view != nil {
+		assert.Equal(t, len(expectedConditions), len(view.Status.Conditions))
 	}
 }
 
@@ -137,25 +137,25 @@ func TestReconcile(t *testing.T) {
 		requeue           bool
 	}{
 		{
-			name:         "SpokeViewNotFound",
+			name:         "managedClusterViewNotFound",
 			existingObjs: []runtime.Object{},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      spokeViewName,
+					Name:      managedClusterViewName,
 					Namespace: clusterNamespace,
 				},
 			},
 		},
 		{
-			name: "SpokeViewWaitOK",
+			name: "managedClusterViewWaitOK",
 			existingObjs: []runtime.Object{
-				&viewv1beta1.SpokeView{
+				&viewv1beta1.ManagedClusterView{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      spokeViewName,
+						Name:      managedClusterViewName,
 						Namespace: clusterNamespace,
 					},
-					Spec: viewv1beta1.SpokeViewSpec{
-						Scope: viewv1beta1.SpokeViewScope{
+					Spec: viewv1beta1.ViewSpec{
+						Scope: viewv1beta1.ViewScope{
 							Group:                 "",
 							Version:               "v1",
 							Kind:                  "Deployment",
@@ -164,7 +164,7 @@ func TestReconcile(t *testing.T) {
 							UpdateIntervalSeconds: 10,
 						},
 					},
-					Status: viewv1beta1.SpokeViewStatus{
+					Status: viewv1beta1.ViewStatus{
 						Conditions: []conditions.Condition{
 							{
 								Type:               viewv1beta1.ConditionViewProcessing,
@@ -178,7 +178,7 @@ func TestReconcile(t *testing.T) {
 			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      spokeViewName,
+					Name:      managedClusterViewName,
 					Namespace: clusterNamespace,
 				},
 			},
@@ -205,19 +205,19 @@ func TestReconcile(t *testing.T) {
 func TestQueryResource(t *testing.T) {
 	tests := []struct {
 		name               string
-		spokeView          *viewv1beta1.SpokeView
+		managedClusterView *viewv1beta1.ManagedClusterView
 		expectedErrorType  error
 		expectedConditions []conditions.Condition
 	}{
 		{
 			name: "queryResourceOK",
-			spokeView: &viewv1beta1.SpokeView{
+			managedClusterView: &viewv1beta1.ManagedClusterView{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      spokeViewName,
+					Name:      managedClusterViewName,
 					Namespace: clusterNamespace,
 				},
-				Spec: viewv1beta1.SpokeViewSpec{
-					Scope: viewv1beta1.SpokeViewScope{
+				Spec: viewv1beta1.ViewSpec{
+					Scope: viewv1beta1.ViewScope{
 						Group:     "apps",
 						Version:   "v1",
 						Kind:      "Deployment",
@@ -235,13 +235,13 @@ func TestQueryResource(t *testing.T) {
 		},
 		{
 			name: "queryResourceOK2",
-			spokeView: &viewv1beta1.SpokeView{
+			managedClusterView: &viewv1beta1.ManagedClusterView{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      spokeViewName,
+					Name:      managedClusterViewName,
 					Namespace: clusterNamespace,
 				},
-				Spec: viewv1beta1.SpokeViewSpec{
-					Scope: viewv1beta1.SpokeViewScope{
+				Spec: viewv1beta1.ViewSpec{
+					Scope: viewv1beta1.ViewScope{
 						Resource:  "deployment",
 						Name:      "deployment_test",
 						Namespace: "default",
@@ -257,13 +257,13 @@ func TestQueryResource(t *testing.T) {
 		},
 		{
 			name: "queryResourceFailedNoName",
-			spokeView: &viewv1beta1.SpokeView{
+			managedClusterView: &viewv1beta1.ManagedClusterView{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      spokeViewName,
+					Name:      managedClusterViewName,
 					Namespace: clusterNamespace,
 				},
-				Spec: viewv1beta1.SpokeViewSpec{
-					Scope: viewv1beta1.SpokeViewScope{
+				Spec: viewv1beta1.ViewSpec{
+					Scope: viewv1beta1.ViewScope{
 						Resource:  "deployments",
 						Namespace: "default",
 					},
@@ -279,13 +279,13 @@ func TestQueryResource(t *testing.T) {
 		},
 		{
 			name: "queryResourceFailedNoResource",
-			spokeView: &viewv1beta1.SpokeView{
+			managedClusterView: &viewv1beta1.ManagedClusterView{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      spokeViewName,
+					Name:      managedClusterViewName,
 					Namespace: clusterNamespace,
 				},
-				Spec: viewv1beta1.SpokeViewSpec{
-					Scope: viewv1beta1.SpokeViewScope{
+				Spec: viewv1beta1.ViewSpec{
+					Scope: viewv1beta1.ViewScope{
 						Name:      "deployment_test",
 						Namespace: "default",
 					},
@@ -301,13 +301,13 @@ func TestQueryResource(t *testing.T) {
 		},
 		{
 			name: "queryResourceFailedMapper",
-			spokeView: &viewv1beta1.SpokeView{
+			managedClusterView: &viewv1beta1.ManagedClusterView{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      spokeViewName,
+					Name:      managedClusterViewName,
 					Namespace: clusterNamespace,
 				},
-				Spec: viewv1beta1.SpokeViewSpec{
-					Scope: viewv1beta1.SpokeViewScope{
+				Spec: viewv1beta1.ViewSpec{
+					Scope: viewv1beta1.ViewScope{
 						Group:     "core",
 						Version:   "v1",
 						Kind:      "Deployment",
@@ -326,13 +326,13 @@ func TestQueryResource(t *testing.T) {
 		},
 		{
 			name: "queryResourceFailedMapper2",
-			spokeView: &viewv1beta1.SpokeView{
+			managedClusterView: &viewv1beta1.ManagedClusterView{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      spokeViewName,
+					Name:      managedClusterViewName,
 					Namespace: clusterNamespace,
 				},
-				Spec: viewv1beta1.SpokeViewSpec{
-					Scope: viewv1beta1.SpokeViewScope{
+				Spec: viewv1beta1.ViewSpec{
+					Scope: viewv1beta1.ViewScope{
 						Resource:  "deploymentts",
 						Name:      "deployment_test",
 						Namespace: "default",
@@ -352,8 +352,8 @@ func TestQueryResource(t *testing.T) {
 	svrc := newTestReconciler([]runtime.Object{})
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			err := svrc.queryResource(test.spokeView)
-			validateErrorAndStatusConditions(t, err, test.expectedErrorType, test.expectedConditions, test.spokeView)
+			err := svrc.queryResource(test.managedClusterView)
+			validateErrorAndStatusConditions(t, err, test.expectedErrorType, test.expectedConditions, test.managedClusterView)
 		})
 	}
 }
