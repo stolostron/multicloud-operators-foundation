@@ -43,22 +43,22 @@ func TestMain(m *testing.M) {
 }
 
 const (
-	spokeClusterName = "foo"
+	managedClusterName = "foo"
 )
 
 func newRoleObjs() []runtime.Object {
 	return []runtime.Object{
 		&rbacv1.Role{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      namePrefix + spokeClusterName,
-				Namespace: spokeClusterName,
+				Name:      namePrefix + managedClusterName,
+				Namespace: managedClusterName,
 			},
 			Rules: nil,
 		},
 		&rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      namePrefix + spokeClusterName,
-				Namespace: spokeClusterName,
+				Name:      namePrefix + managedClusterName,
+				Namespace: managedClusterName,
 			},
 			Subjects: nil,
 			RoleRef:  rbacv1.RoleRef{},
@@ -91,26 +91,26 @@ func TestReconcile(t *testing.T) {
 		req               reconcile.Request
 	}{
 		{
-			name:         "SpokeClusterNotFound",
+			name:         "ManagedClusterNotFound",
 			existingObjs: []runtime.Object{},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: spokeClusterName,
+					Name: managedClusterName,
 				},
 			},
 		},
 		{
-			name: "SpokeClusterConditionFalse",
+			name: "ManagedClusterConditionFalse",
 			existingObjs: []runtime.Object{
-				&clusterv1.SpokeCluster{
+				&clusterv1.ManagedCluster{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: spokeClusterName,
+						Name: managedClusterName,
 					},
-					Spec: clusterv1.SpokeClusterSpec{},
-					Status: clusterv1.SpokeClusterStatus{
+					Spec: clusterv1.ManagedClusterSpec{},
+					Status: clusterv1.ManagedClusterStatus{
 						Conditions: []clusterv1.StatusCondition{
 							{
-								Type:   clusterv1.SpokeClusterConditionJoined,
+								Type:   clusterv1.ManagedClusterConditionJoined,
 								Status: v1beta1.ConditionFalse,
 							},
 						},
@@ -119,22 +119,22 @@ func TestReconcile(t *testing.T) {
 			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: spokeClusterName,
+					Name: managedClusterName,
 				},
 			},
 		},
 		{
-			name: "SpokeClusterNoFinalizer",
+			name: "ManagedClusterNoFinalizer",
 			existingObjs: []runtime.Object{
-				&clusterv1.SpokeCluster{
+				&clusterv1.ManagedCluster{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: spokeClusterName,
+						Name: managedClusterName,
 					},
-					Spec: clusterv1.SpokeClusterSpec{},
-					Status: clusterv1.SpokeClusterStatus{
+					Spec: clusterv1.ManagedClusterSpec{},
+					Status: clusterv1.ManagedClusterStatus{
 						Conditions: []clusterv1.StatusCondition{
 							{
-								Type:   clusterv1.SpokeClusterConditionJoined,
+								Type:   clusterv1.ManagedClusterConditionJoined,
 								Status: v1beta1.ConditionTrue,
 							},
 						},
@@ -144,16 +144,16 @@ func TestReconcile(t *testing.T) {
 			existingRoleOjbs: newRoleObjs(),
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: spokeClusterName,
+					Name: managedClusterName,
 				},
 			},
 		},
 		{
-			name: "SpokeClusterHasFinalizer",
+			name: "ManagedClusterHasFinalizer",
 			existingObjs: []runtime.Object{
-				&clusterv1.SpokeCluster{
+				&clusterv1.ManagedCluster{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: spokeClusterName,
+						Name: managedClusterName,
 						DeletionTimestamp: &metav1.Time{
 							Time: time.Now(),
 						},
@@ -161,11 +161,11 @@ func TestReconcile(t *testing.T) {
 							clusterRBACFinalizerName,
 						},
 					},
-					Spec: clusterv1.SpokeClusterSpec{},
-					Status: clusterv1.SpokeClusterStatus{
+					Spec: clusterv1.ManagedClusterSpec{},
+					Status: clusterv1.ManagedClusterStatus{
 						Conditions: []clusterv1.StatusCondition{
 							{
-								Type:   clusterv1.SpokeClusterConditionJoined,
+								Type:   clusterv1.ManagedClusterConditionJoined,
 								Status: v1beta1.ConditionFalse,
 							},
 						},
@@ -174,7 +174,7 @@ func TestReconcile(t *testing.T) {
 			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: spokeClusterName,
+					Name: managedClusterName,
 				},
 			},
 		},
@@ -183,7 +183,7 @@ func TestReconcile(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			svrc := newTestReconciler(test.existingObjs, test.existingRoleOjbs)
-			res, err := svrc.ReconcileBySpokeCluster(test.req)
+			res, err := svrc.ReconcileByManagedCluster(test.req)
 			validateError(t, err, test.expectedErrorType)
 			assert.Equal(t, res.Requeue, false)
 		})

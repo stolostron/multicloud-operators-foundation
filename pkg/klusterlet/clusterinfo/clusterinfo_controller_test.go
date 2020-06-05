@@ -96,13 +96,13 @@ var (
 			"tls.key": []byte("aaa"),
 		},
 	}
-	klusterletIngress = &extensionv1beta1.Ingress{
+	agentIngress = &extensionv1beta1.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Ingress",
 			APIVersion: "extension/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              "acm-ingress-testcluster-klusterlet",
+			Name:              "acm-ingress-testcluster-agent",
 			Namespace:         "kube-system",
 			CreationTimestamp: metav1.Now(),
 		},
@@ -124,9 +124,9 @@ var (
 		},
 	}
 
-	klusterletService = &corev1.Service{
+	agentService = &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "klusterlet",
+			Name:      "agent",
 			Namespace: "kube-system",
 		},
 		Spec: corev1.ServiceSpec{
@@ -171,7 +171,7 @@ func TestMain(m *testing.M) {
 func TestClusterRbacReconcile(t *testing.T) {
 	// Create new cluster
 	now := metav1.Now()
-	clusterInfo := &clusterv1beta1.ClusterInfo{
+	clusterInfo := &clusterv1beta1.ManagedClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:              clusterInfoName,
 			Namespace:         clusterInfoNamespace,
@@ -180,7 +180,7 @@ func TestClusterRbacReconcile(t *testing.T) {
 	}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(clusterv1beta1.GroupVersion, &clusterv1beta1.ClusterInfo{})
+	s.AddKnownTypes(clusterv1beta1.GroupVersion, &clusterv1beta1.ManagedClusterInfo{})
 	clusterv1beta1.AddToScheme(s)
 
 	c := fake.NewFakeClientWithScheme(s, clusterInfo)
@@ -188,7 +188,7 @@ func TestClusterRbacReconcile(t *testing.T) {
 	fr := NewClusterInfoReconciler()
 
 	fr.Client = c
-	fr.Klusterlet = agent.NewKlusterlet("c1", fr.KubeClient)
+	fr.Agent = agent.NewAgent("c1", fr.KubeClient)
 
 	_, err := fr.Reconcile(clusterc1Request)
 	if err != nil {
@@ -197,16 +197,16 @@ func TestClusterRbacReconcile(t *testing.T) {
 }
 func NewClusterInfoReconciler() *ClusterInfoReconciler {
 	fakeKubeClient := kubefake.NewSimpleClientset(
-		kubeNode, kubeEndpoints, ocpConsole, klusterletIngress, kubeMonitoringSecret, klusterletService)
+		kubeNode, kubeEndpoints, ocpConsole, agentIngress, kubeMonitoringSecret, agentService)
 	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
 	return &ClusterInfoReconciler{
-		Log:               tlog.NullLogger{},
-		KubeClient:        fakeKubeClient,
-		RouteV1Client:     fakeRouteV1Client,
-		KlusterletAddress: "127.0.0.1:8000",
-		KlusterletIngress: "kube-system/acm-ingress-testcluster-klusterlet",
-		KlusterletRoute:   "KlusterletRoute",
-		KlusterletService: "kube-system/klusterlet",
+		Log:           tlog.NullLogger{},
+		KubeClient:    fakeKubeClient,
+		RouteV1Client: fakeRouteV1Client,
+		AgentAddress:  "127.0.0.1:8000",
+		AgentIngress:  "kube-system/acm-ingress-testcluster-agent",
+		AgentRoute:    "AgentRoute",
+		AgentService:  "kube-system/agent",
 	}
 }
 
@@ -222,14 +222,14 @@ func TestClusterInfoReconciler_getMasterAddresses(t *testing.T) {
 		t.Errorf("Failed to get clusterinfo. endpointaddr:%v, endpointport:%v, clusterurl:%v", endpointaddr, endpointport, clusterurl)
 	}
 
-	coreEndpointAddr, coreEndpointPort, err := cir.readKlusterletConfig()
+	coreEndpointAddr, coreEndpointPort, err := cir.readAgentConfig()
 	if err != nil {
-		t.Errorf("Failed to read klusterlet config. coreEndpoindAddr:%v, coreEndpointPort:%v, err:%v", coreEndpointAddr, coreEndpointPort, err)
+		t.Errorf("Failed to read agent config. coreEndpoindAddr:%v, coreEndpointPort:%v, err:%v", coreEndpointAddr, coreEndpointPort, err)
 	}
 
 	err = cir.setEndpointAddressFromService(coreEndpointAddr, coreEndpointPort)
 	if err != nil {
-		t.Errorf("Failed to read klusterlet config. coreEndpoindAddr:%v, coreEndpointPort:%v, err:%v", coreEndpointAddr, coreEndpointPort, err)
+		t.Errorf("Failed to read agent config. coreEndpoindAddr:%v, coreEndpointPort:%v, err:%v", coreEndpointAddr, coreEndpointPort, err)
 	}
 	err = cir.setEndpointAddressFromRoute(coreEndpointAddr)
 	if err == nil {

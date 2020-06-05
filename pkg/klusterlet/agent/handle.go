@@ -141,7 +141,7 @@ func (h *Handle) InstallDefaultHandlers() {
 	h.restfulCont.Add(ws)
 }
 
-// getContainerLogs handles containerLogs request against the klusterlet
+// getContainerLogs handles containerLogs request against the agent
 func (h *Handle) getContainerLogs(request *restful.Request, response *restful.Response) {
 	podNamespace := request.PathParameter("podNamespace")
 	podID := request.PathParameter("podID")

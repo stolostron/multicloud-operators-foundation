@@ -1,8 +1,8 @@
 package template
 
-const ClusterActionCreateTemplate = `{
+const ManagedClusterActionCreateTemplate = `{
   "apiVersion": "action.open-cluster-management.io/v1beta1",
-  "kind": "ClusterAction",
+  "kind": "ManagedClusterAction",
   "metadata": {
     "name": "nginx-action-create",
     "namespace": "cluster1"
@@ -51,9 +51,9 @@ const ClusterActionCreateTemplate = `{
   }
 }`
 
-const ClusterActionDeleteTemplate = `{
+const ManagedClusterActionDeleteTemplate = `{
   "apiVersion": "action.open-cluster-management.io/v1beta1",
-  "kind": "ClusterAction",
+  "kind": "ManagedClusterAction",
   "metadata": {
     "name": "nginx-action-delete",
     "namespace": "cluster1"
@@ -68,9 +68,9 @@ const ClusterActionDeleteTemplate = `{
   }
 }`
 
-const ClusterActionUpdateTemplate = `{
+const ManagedClusterActionUpdateTemplate = `{
   "apiVersion": "action.open-cluster-management.io/v1beta1",
-  "kind": "ClusterAction",
+  "kind": "ManagedClusterAction",
   "metadata": {
     "name": "nginx-action-update",
     "namespace": "cluster1"

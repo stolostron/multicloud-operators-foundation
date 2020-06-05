@@ -54,7 +54,7 @@ type ConnectionInfo struct {
 	UseID     bool
 }
 
-var clusterInfoGVR = v1beta1.GroupVersion.WithResource("clusterinfos")
+var clusterInfoGVR = v1beta1.GroupVersion.WithResource("managedclusterinfos")
 
 // ConnectionInfoGetter provides ConnectionInfo for the kubelet running on a named node
 type ConnectionInfoGetter interface {
@@ -63,14 +63,14 @@ type ConnectionInfoGetter interface {
 
 func NewLogConnectionInfoGetter(clientConfig ClientConfig) (ConnectionInfoGetter, error) {
 	clusterGetter := ClusterGetterFunc(
-		func(ctx context.Context, name string, options metav1.GetOptions) (*v1beta1.ClusterInfo, error) {
+		func(ctx context.Context, name string, options metav1.GetOptions) (*v1beta1.ManagedClusterInfo, error) {
 			obj, err := clientConfig.DynamicClient.Resource(clusterInfoGVR).Namespace(name).Get(name, options)
 			if err != nil {
-				klog.Errorf("failed to get clusterinfos %v, error: %v", name, err)
+				klog.Errorf("failed to get managedclusterinfos %v, error: %v", name, err)
 				return nil, err
 			}
 
-			clusterInfo := &v1beta1.ClusterInfo{}
+			clusterInfo := &v1beta1.ManagedClusterInfo{}
 			err = runtime.DefaultUnstructuredConverter.FromUnstructured(obj.UnstructuredContent(), clusterInfo)
 			if err != nil {
 				klog.Errorf("failed to convert %v, error: %v", obj, err)
@@ -127,14 +127,14 @@ func (c *ClientConfig) transportConfig() *transport.Config {
 
 // ClusterGetter defines an interface for looking up a cluster by name
 type ClusterGetter interface {
-	Get(ctx context.Context, name string, options metav1.GetOptions) (*v1beta1.ClusterInfo, error)
+	Get(ctx context.Context, name string, options metav1.GetOptions) (*v1beta1.ManagedClusterInfo, error)
 }
 
 // ClusterGetterFunc allows implementing NodeGetter with a function
-type ClusterGetterFunc func(ctx context.Context, name string, options metav1.GetOptions) (*v1beta1.ClusterInfo, error)
+type ClusterGetterFunc func(ctx context.Context, name string, options metav1.GetOptions) (*v1beta1.ManagedClusterInfo, error)
 
 // Get defines a cluster getter function
-func (f ClusterGetterFunc) Get(ctx context.Context, name string, options metav1.GetOptions) (*v1beta1.ClusterInfo, error) {
+func (f ClusterGetterFunc) Get(ctx context.Context, name string, options metav1.GetOptions) (*v1beta1.ManagedClusterInfo, error) {
 	return f(ctx, name, options)
 }
 
@@ -173,13 +173,13 @@ func (k *ClusterConnectionInfoGetter) GetConnectionInfo(ctx context.Context, clu
 	}
 
 	// Use the kubelet-reported port, if present
-	port := int(cluster.Status.KlusterletPort.Port)
+	port := int(cluster.Status.LoggingPort.Port)
 	if port <= 0 {
 		port = k.defaultPort
 	}
 
-	hostname := cluster.Status.KlusterletEndpoint.Hostname
-	ip := cluster.Status.KlusterletEndpoint.IP
+	hostname := cluster.Status.LoggingEndpoint.Hostname
+	ip := cluster.Status.LoggingEndpoint.IP
 
 	// need a deep copy
 	config := &ClientConfig{

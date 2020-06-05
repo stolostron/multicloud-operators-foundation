@@ -14,25 +14,25 @@ import (
 	"k8s.io/klog"
 )
 
-// Klusterlet is the main struct for klusterlet server
-type Klusterlet struct {
+// Agent is the main struct for agent server
+type Agent struct {
 	clusterName string
 	kubeClient  kubernetes.Interface
 	server      *Server
-	RunServer   chan v1beta1.ClusterInfo
+	RunServer   chan v1beta1.ManagedClusterInfo
 }
 
-// NewKlusterlet create a new klusterlet
-func NewKlusterlet(clusterName string, kubeClient kubernetes.Interface) *Klusterlet {
-	return &Klusterlet{
+// NewAgent create a new Agent
+func NewAgent(clusterName string, kubeClient kubernetes.Interface) *Agent {
+	return &Agent{
 		clusterName: clusterName,
 		kubeClient:  kubeClient,
-		RunServer:   make(chan v1beta1.ClusterInfo),
+		RunServer:   make(chan v1beta1.ManagedClusterInfo),
 	}
 }
 
-// ListenAndServe start klusterlet server
-func (k *Klusterlet) ListenAndServe(
+// ListenAndServe start Agent server
+func (k *Agent) ListenAndServe(
 	address net.IP,
 	port uint,
 	tlsOptions *TLSOptions,
@@ -64,7 +64,7 @@ func (k *Klusterlet) ListenAndServe(
 	}
 }
 
-func (k *Klusterlet) RefreshServerIfNeeded(clusterInfo *v1beta1.ClusterInfo) {
+func (k *Agent) RefreshServerIfNeeded(clusterInfo *v1beta1.ManagedClusterInfo) {
 	// do not refresh is server is not started
 	if k.server == nil {
 		return
@@ -87,16 +87,16 @@ func (k *Klusterlet) RefreshServerIfNeeded(clusterInfo *v1beta1.ClusterInfo) {
 	go k.server.refresh(caData, pool)
 }
 
-func (k *Klusterlet) waitCAFromClusterStatus(clusterInfo v1beta1.ClusterInfo, oldCA []byte) (*x509.CertPool, []byte, error) {
-	if len(clusterInfo.Spec.KlusterletCA) == 0 {
+func (k *Agent) waitCAFromClusterStatus(clusterInfo v1beta1.ManagedClusterInfo, oldCA []byte) (*x509.CertPool, []byte, error) {
+	if len(clusterInfo.Spec.LoggingCA) == 0 {
 		return nil, nil, fmt.Errorf("kluster ca is empty")
 	}
 
-	if reflect.DeepEqual(clusterInfo.Spec.KlusterletCA, oldCA) {
+	if reflect.DeepEqual(clusterInfo.Spec.LoggingCA, oldCA) {
 		return nil, nil, nil
 	}
 
-	data := clusterInfo.Spec.KlusterletCA
+	data := clusterInfo.Spec.LoggingCA
 	certs, err := certutil.ParseCertsPEM(data)
 	if err != nil {
 		return nil, nil, err
@@ -106,5 +106,5 @@ func (k *Klusterlet) waitCAFromClusterStatus(clusterInfo v1beta1.ClusterInfo, ol
 		pool.AddCert(cert)
 	}
 
-	return pool, clusterInfo.Spec.KlusterletCA, nil
+	return pool, clusterInfo.Spec.LoggingCA, nil
 }

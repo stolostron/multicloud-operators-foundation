@@ -33,7 +33,7 @@ func TestMain(m *testing.M) {
 	}
 
 	if err := actionv1beta1.AddToScheme(scheme); err != nil {
-		klog.Errorf("Failed adding clusteraction to scheme, %v", err)
+		klog.Errorf("Failed adding ManagedClusterAction to scheme, %v", err)
 		os.Exit(1)
 	}
 
@@ -42,8 +42,8 @@ func TestMain(m *testing.M) {
 }
 
 const (
-	clusterActionName = "foo"
-	clusterNamespace  = "bar"
+	actionName       = "foo"
+	clusterNamespace = "bar"
 )
 
 func validateError(t *testing.T, err, expectedErrorType error) {
@@ -70,25 +70,25 @@ func TestReconcile(t *testing.T) {
 		requeue           bool
 	}{
 		{
-			name:         "ClusterActionNotFound",
+			name:         "ManagedClusterActionNotFound",
 			existingObjs: []runtime.Object{},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      clusterActionName,
+					Name:      actionName,
 					Namespace: clusterNamespace,
 				},
 			},
 		},
 		{
-			name: "ClusterActionWaitOk",
+			name: "ManagedClusterActionWaitOk",
 			existingObjs: []runtime.Object{
-				&actionv1beta1.ClusterAction{
+				&actionv1beta1.ManagedClusterAction{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      clusterActionName,
+						Name:      actionName,
 						Namespace: clusterNamespace,
 					},
-					Spec: actionv1beta1.ClusterActionSpec{},
-					Status: actionv1beta1.ClusterActionStatus{
+					Spec: actionv1beta1.ActionSpec{},
+					Status: actionv1beta1.ActionStatus{
 						Conditions: []conditions.Condition{
 							{
 								Type:               actionv1beta1.ConditionActionCompleted,
@@ -101,44 +101,44 @@ func TestReconcile(t *testing.T) {
 			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      clusterActionName,
+					Name:      actionName,
 					Namespace: clusterNamespace,
 				},
 			},
 			requeue: true,
 		},
 		{
-			name: "ClusterActionNoCondition",
+			name: "ManagedClusterActionNoCondition",
 			existingObjs: []runtime.Object{
-				&actionv1beta1.ClusterAction{
+				&actionv1beta1.ManagedClusterAction{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      clusterActionName,
+						Name:      actionName,
 						Namespace: clusterNamespace,
 					},
-					Spec: actionv1beta1.ClusterActionSpec{},
-					Status: actionv1beta1.ClusterActionStatus{
+					Spec: actionv1beta1.ActionSpec{},
+					Status: actionv1beta1.ActionStatus{
 						Conditions: []conditions.Condition{},
 					},
 				},
 			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      clusterActionName,
+					Name:      actionName,
 					Namespace: clusterNamespace,
 				},
 			},
 			requeue: true,
 		},
 		{
-			name: "ClusterActionDeleteOk",
+			name: "ManagedClusterActionDeleteOk",
 			existingObjs: []runtime.Object{
-				&actionv1beta1.ClusterAction{
+				&actionv1beta1.ManagedClusterAction{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      clusterActionName,
+						Name:      actionName,
 						Namespace: clusterNamespace,
 					},
-					Spec: actionv1beta1.ClusterActionSpec{},
-					Status: actionv1beta1.ClusterActionStatus{
+					Spec: actionv1beta1.ActionSpec{},
+					Status: actionv1beta1.ActionStatus{
 						Conditions: []conditions.Condition{
 							{
 								Type:               actionv1beta1.ConditionActionCompleted,
@@ -151,7 +151,7 @@ func TestReconcile(t *testing.T) {
 			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name:      clusterActionName,
+					Name:      actionName,
 					Namespace: clusterNamespace,
 				},
 			},

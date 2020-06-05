@@ -55,49 +55,49 @@ func NewKubeWorkSpec() *actionv1beta1.KubeWorkSpec {
 		},
 	}
 }
-func NewClusterAction(name, namespace string, actiontype actionv1beta1.ActionType, kubework *actionv1beta1.KubeWorkSpec) *actionv1beta1.ClusterAction {
-	return &actionv1beta1.ClusterAction{
+func NewAction(name, namespace string, actiontype actionv1beta1.ActionType, kubework *actionv1beta1.KubeWorkSpec) *actionv1beta1.ManagedClusterAction {
+	return &actionv1beta1.ManagedClusterAction{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
 		},
-		Spec: actionv1beta1.ClusterActionSpec{
+		Spec: actionv1beta1.ActionSpec{
 			ActionType: actiontype,
 			KubeWork:   kubework,
 		},
 	}
 }
-func TestActionReconciler_handleClusterAction(t *testing.T) {
+func TestActionReconciler_handleAction(t *testing.T) {
 	fakekubecontrol := restutils.NewFakeKubeControl()
-	log := ctrl.Log.WithName("controllers").WithName("ClusterAction")
+	log := ctrl.Log.WithName("controllers").WithName("ManagedClusterAction")
 	ar := NewActionReconciler(nil, log, &runtime.Scheme{}, nil, fakekubecontrol, false)
 	kubework := NewKubeWorkSpec()
-	nca1 := NewClusterAction("ca1", "can1", actionv1beta1.CreateActionType, kubework)
-	err := ar.handleClusterAction(nca1)
+	nca1 := NewAction("ca1", "can1", actionv1beta1.CreateActionType, kubework)
+	err := ar.handleAction(nca1)
 	if err != nil {
 		t.Errorf("Create kube work error. %v", err)
 	}
-	nca2 := NewClusterAction("ca1", "can1", actionv1beta1.UpdateActionType, kubework)
-	err = ar.handleClusterAction(nca2)
+	nca2 := NewAction("ca1", "can1", actionv1beta1.UpdateActionType, kubework)
+	err = ar.handleAction(nca2)
 	if err == nil {
 		t.Error("Update kube work should have error.")
 	}
-	nca3 := NewClusterAction("ca1", "can1", actionv1beta1.DeleteActionType, kubework)
-	err = ar.handleClusterAction(nca3)
+	nca3 := NewAction("ca1", "can1", actionv1beta1.DeleteActionType, kubework)
+	err = ar.handleAction(nca3)
 	if err != nil {
 		t.Errorf("Create kube work error. %v", err)
 	}
 
 	arf := NewActionReconciler(nil, log, &runtime.Scheme{}, nil, fakekubecontrol, true)
-	err = arf.handleClusterAction(nca1)
+	err = arf.handleAction(nca1)
 	if err != nil {
 		t.Errorf("Create kube work error. %v", err)
 	}
-	err = arf.handleClusterAction(nca2)
+	err = arf.handleAction(nca2)
 	if err == nil {
 		t.Error("Update kube work should have error.")
 	}
-	err = arf.handleClusterAction(nca3)
+	err = arf.handleAction(nca3)
 	if err != nil {
 		t.Errorf("Create kube work error. %v", err)
 	}

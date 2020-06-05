@@ -17,8 +17,8 @@ import (
 var c client.Client
 
 const (
-	clusterActionName      = "name"
-	clusterActionNamespace = "namespace"
+	actionName      = "name"
+	actionNamespace = "namespace"
 )
 
 func TestControllerReconcile(t *testing.T) {
@@ -32,7 +32,7 @@ func TestControllerReconcile(t *testing.T) {
 	c = mgr.GetClient()
 
 	kubework := NewKubeWorkSpec()
-	clusteraction := NewClusterAction(clusterActionName, clusterActionNamespace, actionv1beta1.DeleteActionType, kubework)
+	action := NewAction(actionName, actionNamespace, actionv1beta1.DeleteActionType, kubework)
 	ar := NewActionReconciler(c, tlog.NullLogger{}, mgr.GetScheme(), nil, rest.NewFakeKubeControl(), false)
 
 	ar.SetupWithManager(mgr)
@@ -48,11 +48,11 @@ func TestControllerReconcile(t *testing.T) {
 	}()
 
 	// Create the object and expect the Reconcile
-	err = c.Create(context.TODO(), clusteraction)
+	err = c.Create(context.TODO(), action)
 
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 
-	defer c.Delete(context.TODO(), clusteraction)
+	defer c.Delete(context.TODO(), action)
 
 	time.Sleep(time.Second * 1)
 }

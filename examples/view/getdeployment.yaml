@@ -1,6 +1,6 @@
 # This resourceview is to get node with lable role=master from all clusters
 apiVersion: view.open-cluster-management.io/v1beta1
-kind: SpokeView
+kind: ManagedClusterView
 metadata:
   labels:
     name: getdeployment

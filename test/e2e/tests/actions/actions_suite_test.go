@@ -1,6 +1,6 @@
 // +build integration
 
-package clusteractions_test
+package actions_test
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestClusterActions(t *testing.T) {
+func TestManagedClusterActions(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "ClusterActions Suite")
+	RunSpecs(t, "ManagedClusterActions Suite")
 }

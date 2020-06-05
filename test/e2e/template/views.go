@@ -1,9 +1,9 @@
 package template
 
-// SpokeViewTemplate is json template for namespace
-const SpokeViewTemplate = `{
+// ManagedClusterViewTemplate is json template for namespace
+const ManagedClusterViewTemplate = `{
   "apiVersion": "view.open-cluster-management.io/v1beta1",
-  "kind": "SpokeView",
+  "kind": "ManagedClusterView",
   "metadata": {
     "labels": {
       "name": "getdeployment"

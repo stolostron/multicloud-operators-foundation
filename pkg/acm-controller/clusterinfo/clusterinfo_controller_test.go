@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 }
 
 const (
-	spokeClusterName = "foo"
+	ManagedClusterName = "foo"
 )
 
 func validateError(t *testing.T, err, expectedErrorType error) {
@@ -73,20 +73,20 @@ func TestReconcile(t *testing.T) {
 		requeue           bool
 	}{
 		{
-			name:         "SpokeClusterNotFound",
+			name:         "ManagedClusterNotFound",
 			existingObjs: []runtime.Object{},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: spokeClusterName,
+					Name: ManagedClusterName,
 				},
 			},
 		},
 		{
-			name: "SpokeClusterHasFinalizerWithoutClusterInfo",
+			name: "ManagedClusterHasFinalizerWithoutClusterInfo",
 			existingObjs: []runtime.Object{
-				&clusterv1.SpokeCluster{
+				&clusterv1.ManagedCluster{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: spokeClusterName,
+						Name: ManagedClusterName,
 						DeletionTimestamp: &metav1.Time{
 							Time: time.Now(),
 						},
@@ -94,51 +94,67 @@ func TestReconcile(t *testing.T) {
 							clusterFinalizerName,
 						},
 					},
-					Spec: clusterv1.SpokeClusterSpec{},
+					Spec: clusterv1.ManagedClusterSpec{},
 				},
 			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: spokeClusterName,
+					Name: ManagedClusterName,
 				},
 			},
 		},
 		{
-			name: "SpokeClusterNoFinalizerWithoutClusterInfo",
+			name: "ManagedClusterNoFinalizerWithoutClusterInfo",
 			existingObjs: []runtime.Object{
-				&clusterv1.SpokeCluster{
+				&clusterv1.ManagedCluster{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: spokeClusterName,
+						Name: ManagedClusterName,
 					},
-					Spec: clusterv1.SpokeClusterSpec{},
+					Spec: clusterv1.ManagedClusterSpec{
+						ManagedClusterClientConfigs: []clusterv1.ClientConfig{
+							{
+								URL: "",
+							},
+						},
+						HubAcceptsClient:     false,
+						LeaseDurationSeconds: 0,
+					},
 				},
 			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: spokeClusterName,
+					Name: ManagedClusterName,
 				},
 			},
 			requeue: true,
 		},
 		{
-			name: "SpokeClusterNoFinalizerWithClusterInfo",
+			name: "ManagedClusterNoFinalizerWithClusterInfo",
 			existingObjs: []runtime.Object{
-				&clusterv1.SpokeCluster{
+				&clusterv1.ManagedCluster{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: spokeClusterName,
+						Name: ManagedClusterName,
 					},
-					Spec: clusterv1.SpokeClusterSpec{},
+					Spec: clusterv1.ManagedClusterSpec{
+						ManagedClusterClientConfigs: []clusterv1.ClientConfig{
+							{
+								URL: "",
+							},
+						},
+						HubAcceptsClient:     false,
+						LeaseDurationSeconds: 0,
+					},
 				},
-				&clusterv1beta1.ClusterInfo{
+				&clusterv1beta1.ManagedClusterInfo{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      spokeClusterName,
-						Namespace: spokeClusterName,
+						Name:      ManagedClusterName,
+						Namespace: ManagedClusterName,
 					},
 				},
 			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: spokeClusterName,
+					Name: ManagedClusterName,
 				},
 			},
 		},
@@ -147,7 +163,7 @@ func TestReconcile(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			svrc := newTestReconciler(test.existingObjs)
-			res, err := svrc.ReconcileBySpokeCluster(test.req)
+			res, err := svrc.ReconcileByManagedCluster(test.req)
 			validateError(t, err, test.expectedErrorType)
 			if test.requeue {
 				assert.Equal(t, res.Requeue, true)

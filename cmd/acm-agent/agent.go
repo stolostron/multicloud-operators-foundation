@@ -58,29 +58,29 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 		setupLog.Error(err, "Unable to get hub kube config.")
 		os.Exit(1)
 	}
-	spokeConfig, err := clientcmd.BuildConfigFromFlags("", o.SpokeKubeConfig)
+	managedClusterConfig, err := clientcmd.BuildConfigFromFlags("", o.KubeConfig)
 	if err != nil {
-		setupLog.Error(err, "Unable to get spoke kube config.")
+		setupLog.Error(err, "Unable to get managed cluster kube config.")
 		os.Exit(1)
 	}
-	spokeDynamicClient, err := dynamic.NewForConfig(spokeConfig)
+	managedClusterDynamicClient, err := dynamic.NewForConfig(managedClusterConfig)
 	if err != nil {
-		setupLog.Error(err, "Unable to create spoke dynamic client.")
+		setupLog.Error(err, "Unable to create managed cluster dynamic client.")
 		os.Exit(1)
 	}
-	spokeKubeClient, err := kubernetes.NewForConfig(spokeConfig)
+	managedClusterKubeClient, err := kubernetes.NewForConfig(managedClusterConfig)
 	if err != nil {
-		setupLog.Error(err, "Unable to create spoke kube client.")
+		setupLog.Error(err, "Unable to create managed cluster kube client.")
 		os.Exit(1)
 	}
-	routeV1Client, err := routev1.NewForConfig(spokeConfig)
+	routeV1Client, err := routev1.NewForConfig(managedClusterConfig)
 	if err != nil {
 		setupLog.Error(err, "New route client config error:")
 	}
 
-	spokeClient, err := kubernetes.NewForConfig(spokeConfig)
+	managedClusterClient, err := kubernetes.NewForConfig(managedClusterConfig)
 	if err != nil {
-		setupLog.Error(err, "Unable to create spoke clientset.")
+		setupLog.Error(err, "Unable to create managed cluster clientset.")
 		os.Exit(1)
 	}
 
@@ -98,60 +98,60 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 
 	run := func(ctx context.Context) {
 		// run agent server
-		klusterlet, err := app.AgentServerRun(o, spokeClient)
+		agent, err := app.AgentServerRun(o, managedClusterClient)
 		if err != nil {
 			setupLog.Error(err, "unable to run agent server")
 			os.Exit(1)
 		}
 
 		// run mapper
-		discoveryClient := cacheddiscovery.NewMemCacheClient(spokeClient.Discovery())
+		discoveryClient := cacheddiscovery.NewMemCacheClient(managedClusterClient.Discovery())
 		mapper := restutils.NewMapper(discoveryClient, stopCh)
 		mapper.Run()
 
 		// Add controller into manager
 		actionReconciler := actionctrl.NewActionReconciler(
 			mgr.GetClient(),
-			ctrl.Log.WithName("controllers").WithName("ClusterAction"),
+			ctrl.Log.WithName("controllers").WithName("ManagedClusterAction"),
 			mgr.GetScheme(),
-			spokeDynamicClient,
-			restutils.NewKubeControl(mapper, spokeConfig),
+			managedClusterDynamicClient,
+			restutils.NewKubeControl(mapper, managedClusterConfig),
 			o.EnableImpersonation,
 		)
-		spokeViewReconciler := &viewctrl.SpokeViewReconciler{
-			Client:             mgr.GetClient(),
-			Log:                ctrl.Log.WithName("controllers").WithName("SpokeView"),
-			Scheme:             mgr.GetScheme(),
-			SpokeDynamicClient: spokeDynamicClient,
-			Mapper:             mapper,
+		viewReconciler := &viewctrl.ViewReconciler{
+			Client:                      mgr.GetClient(),
+			Log:                         ctrl.Log.WithName("controllers").WithName("ManagedClusterView"),
+			Scheme:                      mgr.GetScheme(),
+			ManagedClusterDynamicClient: managedClusterDynamicClient,
+			Mapper:                      mapper,
 		}
 
 		clusterInfoReconciler := clusterinfoctl.ClusterInfoReconciler{
-			Client:             mgr.GetClient(),
-			Log:                ctrl.Log.WithName("controllers").WithName("ClusterInfo"),
-			Scheme:             mgr.GetScheme(),
-			KubeClient:         spokeKubeClient,
-			SpokeDynamicClient: spokeDynamicClient,
-			KlusterletRoute:    o.KlusterletRoute,
-			KlusterletAddress:  o.KlusterletAddress,
-			KlusterletIngress:  o.KlusterletIngress,
-			KlusterletPort:     int32(o.KlusterletPort),
-			RouteV1Client:      routeV1Client,
-			Klusterlet:         klusterlet,
+			Client:                      mgr.GetClient(),
+			Log:                         ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
+			Scheme:                      mgr.GetScheme(),
+			KubeClient:                  managedClusterKubeClient,
+			ManagedClusterDynamicClient: managedClusterDynamicClient,
+			AgentRoute:                  o.AgentRoute,
+			AgentAddress:                o.AgentAddress,
+			AgentIngress:                o.AgentIngress,
+			AgentPort:                   int32(o.AgentPort),
+			RouteV1Client:               routeV1Client,
+			Agent:                       agent,
 		}
 
 		if err = actionReconciler.SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ClusterAction")
+			setupLog.Error(err, "unable to create controller", "controller", "ManagedClusterAction")
 			os.Exit(1)
 		}
 
-		if err = spokeViewReconciler.SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "SpokeView")
+		if err = viewReconciler.SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ManagedClusterView")
 			os.Exit(1)
 		}
 
 		if err = clusterInfoReconciler.SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ClusterInfo")
+			setupLog.Error(err, "unable to create controller", "controller", "ManagedClusterInfo")
 			os.Exit(1)
 		}
 
@@ -167,7 +167,7 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 		panic("unreachable")
 	}
 
-	lec, err := app.NewLeaderElection(scheme, spokeClient, run)
+	lec, err := app.NewLeaderElection(scheme, managedClusterClient, run)
 	if err != nil {
 		setupLog.Error(err, "cannot create leader election")
 		os.Exit(1)
