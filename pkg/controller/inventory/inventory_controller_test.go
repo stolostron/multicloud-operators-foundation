@@ -388,10 +388,10 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 			existingObjs: []runtime.Object{
 				newSyncSetInstanceResouceApplySuccess(),
 			},
-			returnValue: false,
+			returnValue: true,
 			expectedConditions: []conditionsv1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: corev1.ConditionFalse,
+				Status: corev1.ConditionTrue,
 			}},
 			bma: newBMA(),
 		},
@@ -526,8 +526,6 @@ func TestDeleteSyncSet(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
 			_, err := rbma.deleteSyncSet(test.bma)
-			// Debug to see what is going on
-			klog.Errorf("Looking for a problem err: %v Conditions: %v", err, test.bma.Status.Conditions)
 			validateErrorAndStatusConditions(t, err, nil, nil, test.bma)
 		})
 	}
