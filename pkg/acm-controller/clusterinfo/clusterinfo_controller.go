@@ -141,7 +141,9 @@ func (r *Reconciler) ReconcileByCluster(req ctrl.Request) (ctrl.Result, error) {
 		}
 		return ctrl.Result{}, nil
 	}
-
+	if len(cluster.Status.Conditions) == 0 {
+		return ctrl.Result{}, nil
+	}
 	condition := cluster.Status.Conditions[len(cluster.Status.Conditions)-1]
 	if condition.Type == clusterregistryv1alpha1.ClusterOK {
 		clusterInfo.Status.Conditions = []clusterv1.StatusCondition{
