@@ -32,6 +32,7 @@ replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503
 
 // Match with k8s.io/component-base
 replace (
+	github.com/golang/protobuf => github.com/golang/protobuf v1.3.2
 	github.com/onsi/ginkgo => github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega => github.com/onsi/gomega v1.9.0
 	github.com/prometheus/client_golang => github.com/prometheus/client_golang v0.9.2
@@ -56,7 +57,7 @@ require (
 	github.com/mongodb/mongo-go-driver v0.0.0-20180808171322-9b26cbb1a61a
 	github.com/onsi/ginkgo v1.12.2
 	github.com/onsi/gomega v1.10.1
-	github.com/open-cluster-management/api v0.0.0-20200506150956-355c9d6ef16b
+	github.com/open-cluster-management/api v0.0.0-20200602195039-a516cac2e038
 	github.com/openshift/client-go v0.0.0-20190923180330-3b6373338c9b
 	github.com/openshift/custom-resource-status v0.0.0-20190822192428-e62f2f3b79f3
 	github.com/openshift/hive v0.0.0-20200302220132-867d7fb189bf
@@ -67,15 +68,14 @@ require (
 	github.com/spf13/cobra v0.0.6-0.20191202130430-b04b5bfc50cb
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
-	go.etcd.io/bbolt v1.3.3 // indirect
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/net v0.0.0-20200520004742-59133d7f0dd7
 	golang.org/x/tools v0.0.0-20200416061724-5744cfde56ed // indirect
 	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
-	k8s.io/api v0.18.0
+	k8s.io/api v0.18.3
 	k8s.io/apiextensions-apiserver v0.17.2
-	k8s.io/apimachinery v0.18.0
+	k8s.io/apimachinery v0.18.3
 	k8s.io/apiserver v0.0.0
 	k8s.io/client-go v13.0.0+incompatible
 	k8s.io/cluster-registry v0.0.6

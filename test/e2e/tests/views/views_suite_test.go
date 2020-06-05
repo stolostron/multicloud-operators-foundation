@@ -1,6 +1,6 @@
 // +build integration
 
-package spokeviews_test
+package views_test
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestClusterActions(t *testing.T) {
+func TestManagedClusterViews(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "SpokeViews Suite")
+	RunSpecs(t, "ManagedClusterView Suite")
 }

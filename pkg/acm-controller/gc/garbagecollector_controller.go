@@ -55,7 +55,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource cluster
-	err = c.Watch(&source.Kind{Type: &actionv1beta1.ClusterAction{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &actionv1beta1.ManagedClusterAction{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	action := &actionv1beta1.ClusterAction{}
+	action := &actionv1beta1.ManagedClusterAction{}
 
 	err := r.client.Get(ctx, req.NamespacedName, action)
 	if err != nil {

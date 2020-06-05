@@ -73,7 +73,7 @@ func (s *Server) refresh(caData []byte, pool *x509.CertPool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	klog.Infof("Refreshing klusterlet server...")
+	klog.Infof("Refreshing Agent server...")
 	s.CAData = caData
 	s.tlsOptions.Config.ClientCAs = pool
 }

@@ -17,16 +17,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
-func AgentServerRun(o *options.AgentOptions, kubeClient kubernetes.Interface) (*agent.Klusterlet, error) {
+func AgentServerRun(o *options.AgentOptions, kubeClient kubernetes.Interface) (*agent.Agent, error) {
 	tlsOptions, err := InitializeTLS(o)
 	if err != nil {
 		klog.Errorf("failed to initialize TLS: %v", err)
 		return nil, err
 	}
 
-	klusterlet := agent.NewKlusterlet(o.ClusterName, kubeClient)
-	go klusterlet.ListenAndServe(net.ParseIP(o.Address), uint(o.Port), tlsOptions, nil, o.InSecure)
-	return klusterlet, nil
+	agent := agent.NewAgent(o.ClusterName, kubeClient)
+	go agent.ListenAndServe(net.ParseIP(o.Address), uint(o.Port), tlsOptions, nil, o.InSecure)
+	return agent, nil
 }
 
 // InitializeTLS checks for a configured TLSCertFile and TLSPrivateKeyFile: if unspecified a new self-signed
@@ -41,7 +41,7 @@ func InitializeTLS(s *options.AgentOptions) (*agent.TLSOptions, error) {
 			return nil, err
 		}
 		if !canReadCertAndKey {
-			cert, key, err := certutil.GenerateSelfSignedCertKey(s.KlusterletAddress, nil, nil)
+			cert, key, err := certutil.GenerateSelfSignedCertKey(s.AgentAddress, nil, nil)
 			if err != nil {
 				return nil, fmt.Errorf("unable to generate self signed cert: %v", err)
 			}

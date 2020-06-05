@@ -24,68 +24,68 @@ import (
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 )
 
-// SpokeViewReconciler reconciles a SpokeView object
-type SpokeViewReconciler struct {
+// ViewReconciler reconciles a ManagedClusterView object
+type ViewReconciler struct {
 	client.Client
-	Log                logr.Logger
-	Scheme             *runtime.Scheme
-	SpokeDynamicClient dynamic.Interface
-	Mapper             *restutils.Mapper
+	Log                         logr.Logger
+	Scheme                      *runtime.Scheme
+	ManagedClusterDynamicClient dynamic.Interface
+	Mapper                      *restutils.Mapper
 }
 
 const (
 	DefaultUpdateInterval = 30 * time.Second
 )
 
-func (r *SpokeViewReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *ViewReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	log := r.Log.WithValues("spokeview", req.NamespacedName)
+	log := r.Log.WithValues("ManagedClusterView", req.NamespacedName)
 	updateInterval := DefaultUpdateInterval
-	spokeView := &viewv1beta1.SpokeView{}
+	managedClusterView := &viewv1beta1.ManagedClusterView{}
 
-	err := r.Get(ctx, req.NamespacedName, spokeView)
+	err := r.Get(ctx, req.NamespacedName, managedClusterView)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if spokeView.Spec.Scope.UpdateIntervalSeconds != 0 {
-		updateInterval = time.Duration(spokeView.Spec.Scope.UpdateIntervalSeconds) * time.Second
+	if managedClusterView.Spec.Scope.UpdateIntervalSeconds != 0 {
+		updateInterval = time.Duration(managedClusterView.Spec.Scope.UpdateIntervalSeconds) * time.Second
 	}
 
-	if condition := conditions.FindStatusCondition(spokeView.Status.Conditions, viewv1beta1.ConditionViewProcessing); condition != nil {
+	if condition := conditions.FindStatusCondition(managedClusterView.Status.Conditions, viewv1beta1.ConditionViewProcessing); condition != nil {
 		sub := time.Since(condition.LastTransitionTime.Time)
 		if sub < updateInterval {
 			return ctrl.Result{RequeueAfter: updateInterval - sub}, nil
 		}
 	}
 
-	if err := r.queryResource(spokeView); err != nil {
+	if err := r.queryResource(managedClusterView); err != nil {
 		log.Error(err, "failed to query resource")
 	}
 
-	if err := r.Client.Status().Update(ctx, spokeView); err != nil {
-		log.Error(err, "unable to update status of SpokeView")
+	if err := r.Client.Status().Update(ctx, managedClusterView); err != nil {
+		log.Error(err, "unable to update status of ManagedClusterView")
 		return ctrl.Result{RequeueAfter: updateInterval}, err
 	}
 
 	return ctrl.Result{RequeueAfter: updateInterval}, nil
 }
 
-func (r *SpokeViewReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ViewReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&viewv1beta1.SpokeView{}).
+		For(&viewv1beta1.ManagedClusterView{}).
 		Complete(r)
 }
 
-func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) error {
+func (r *ViewReconciler) queryResource(managedClusterView *viewv1beta1.ManagedClusterView) error {
 	var obj runtime.Object
 	var err error
 	var gvr schema.GroupVersionResource
-	scope := spokeview.Spec.Scope
+	scope := managedClusterView.Spec.Scope
 
 	if scope.Name == "" {
 		err = fmt.Errorf("invalid resource name")
-		conditions.SetStatusCondition(&spokeview.Status.Conditions, conditions.Condition{
+		conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
 			Type:    viewv1beta1.ConditionViewProcessing,
 			Status:  corev1.ConditionFalse,
 			Reason:  viewv1beta1.ReasonResourceNameInvalid,
@@ -96,7 +96,7 @@ func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) er
 
 	if scope.Resource == "" && (scope.Kind == "" || scope.Version == "") {
 		err = fmt.Errorf("invalid resource type")
-		conditions.SetStatusCondition(&spokeview.Status.Conditions, conditions.Condition{
+		conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
 			Type:    viewv1beta1.ConditionViewProcessing,
 			Status:  corev1.ConditionFalse,
 			Reason:  viewv1beta1.ReasonResourceTypeInvalid,
@@ -109,7 +109,7 @@ func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) er
 		gvk := schema.GroupVersionKind{Group: scope.Group, Kind: scope.Kind, Version: scope.Version}
 		mapper, err := r.Mapper.MappingForGVK(gvk)
 		if err != nil {
-			conditions.SetStatusCondition(&spokeview.Status.Conditions, conditions.Condition{
+			conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
 				Type:    viewv1beta1.ConditionViewProcessing,
 				Status:  corev1.ConditionFalse,
 				Reason:  viewv1beta1.ReasonResourceGVKInvalid,
@@ -121,7 +121,7 @@ func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) er
 	} else {
 		mapping, err := r.Mapper.MappingFor(scope.Resource)
 		if err != nil {
-			conditions.SetStatusCondition(&spokeview.Status.Conditions, conditions.Condition{
+			conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
 				Type:    viewv1beta1.ConditionViewProcessing,
 				Status:  corev1.ConditionFalse,
 				Reason:  viewv1beta1.ReasonResourceTypeInvalid,
@@ -132,9 +132,9 @@ func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) er
 		gvr = mapping.Resource
 	}
 
-	obj, err = r.SpokeDynamicClient.Resource(gvr).Namespace(scope.Namespace).Get(scope.Name, metav1.GetOptions{})
+	obj, err = r.ManagedClusterDynamicClient.Resource(gvr).Namespace(scope.Namespace).Get(scope.Name, metav1.GetOptions{})
 	if err != nil {
-		conditions.SetStatusCondition(&spokeview.Status.Conditions, conditions.Condition{
+		conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
 			Type:    viewv1beta1.ConditionViewProcessing,
 			Status:  corev1.ConditionFalse,
 			Reason:  viewv1beta1.ReasonGetResourceFailed,
@@ -143,14 +143,14 @@ func (r *SpokeViewReconciler) queryResource(spokeview *viewv1beta1.SpokeView) er
 		return err
 	}
 
-	conditions.SetStatusCondition(&spokeview.Status.Conditions, conditions.Condition{
+	conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
 		Type:   viewv1beta1.ConditionViewProcessing,
 		Status: corev1.ConditionTrue,
 	})
 
 	objRaw, _ := json.Marshal(obj)
-	if !bytes.Equal(spokeview.Status.Result.Raw, objRaw) {
-		spokeview.Status.Result = runtime.RawExtension{Raw: objRaw, Object: obj}
+	if !bytes.Equal(managedClusterView.Status.Result.Raw, objRaw) {
+		managedClusterView.Status.Result = runtime.RawExtension{Raw: objRaw, Object: obj}
 	}
 
 	return nil

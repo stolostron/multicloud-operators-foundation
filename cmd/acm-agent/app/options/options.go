@@ -7,20 +7,20 @@ import (
 
 type AgentOptions struct {
 	MetricsAddr          string
-	SpokeKubeConfig      string
+	KubeConfig           string
 	HubKubeConfig        string
 	ClusterName          string
-	KlusterletAddress    string
-	KlusterletIngress    string
-	KlusterletRoute      string
-	KlusterletService    string
+	AgentAddress         string
+	AgentIngress         string
+	AgentRoute           string
+	AgentService         string
 	Address              string
 	CertDir              string
 	TLSCertFile          string
 	TLSPrivateKeyFile    string
 	ClientCAFile         string
 	Port                 int
-	KlusterletPort       int
+	AgentPort            int
 	EnableLeaderElection bool
 	EnableImpersonation  bool
 	InSecure             bool
@@ -29,7 +29,7 @@ type AgentOptions struct {
 func NewAgentOptions() *AgentOptions {
 	return &AgentOptions{
 		MetricsAddr:          ":8080",
-		SpokeKubeConfig:      "",
+		KubeConfig:           "",
 		HubKubeConfig:        "/var/run/hub/kubeconfig",
 		ClusterName:          "",
 		EnableLeaderElection: true,
@@ -46,25 +46,25 @@ func NewAgentOptions() *AgentOptions {
 
 func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.MetricsAddr, "metrics-addr", o.MetricsAddr, "The address the metric endpoint binds to.")
-	fs.StringVar(&o.SpokeKubeConfig, "spoke-kubeconfig", o.SpokeKubeConfig,
-		"The kubeconfig to connect to spoke cluster to apply resources.")
+	fs.StringVar(&o.KubeConfig, "kubeconfig", o.KubeConfig,
+		"The kubeconfig file of the managed cluster")
 	fs.StringVar(&o.HubKubeConfig, "hub-kubeconfig", o.HubKubeConfig,
-		"The kubeconfig to connect to hub cluster to watch resources.")
-	fs.StringVar(&o.ClusterName, "cluster-name", o.ClusterName, "The name of the cluster.")
+		"The kubeconfig file of the hub cluster")
+	fs.StringVar(&o.ClusterName, "cluster-name", o.ClusterName, "The name of the managed cluster.")
 	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	fs.BoolVar(&o.EnableImpersonation, "enable-impersonation", o.EnableImpersonation, "Enable impersonation.")
-	fs.IntVar(&o.KlusterletPort, "klusterlet-port", o.KlusterletPort, ""+
-		"Port that expose klusterlet service for hub cluster to access")
-	fs.StringVar(&o.KlusterletAddress, "klusterlet-address", o.KlusterletAddress,
-		"Address that expose klusterlet service for hub cluster to access, this must be an IP or resolvable fqdn")
-	fs.StringVar(&o.KlusterletIngress, "klusterlet-ingress", o.KlusterletIngress, ""+
-		"Klusterlet ingress created in managed cluster, in the format of namespace/name")
-	fs.StringVar(&o.KlusterletRoute, "klusterlet-route", o.KlusterletRoute, ""+
-		"Klusterlet route created in managed cluster, in the format of namespace/name")
-	fs.StringVar(&o.KlusterletService, "klusterlet-service", o.KlusterletService, ""+
-		"Klusterlet service created in managed cluster, in the format of namespace/name")
+	fs.IntVar(&o.AgentPort, "agent-port", o.AgentPort, ""+
+		"Port that is agent service port for hub cluster to access")
+	fs.StringVar(&o.AgentAddress, "agent-address", o.AgentAddress,
+		"Address that is agent service address for hub cluster to access, this must be an IP or resolvable fqdn")
+	fs.StringVar(&o.AgentIngress, "agent-ingress", o.AgentIngress, ""+
+		"Ingress that is agent service ingress, in the format of namespace/name")
+	fs.StringVar(&o.AgentRoute, "agent-route", o.AgentRoute, ""+
+		"Route that is agent service route, in the format of namespace/name")
+	fs.StringVar(&o.AgentService, "agent-service", o.AgentService, ""+
+		"Service that is agent service, in the format of namespace/name")
 	fs.StringVar(&o.Address, "address", o.Address, ""+
 		"The IP address for the Kubelet to serve on (set to `0.0.0.0` for all IPv4 interfaces and `::` for all IPv6 interfaces)")
 	fs.IntVar(&o.Port, "port", o.Port, "The port for the agent to serve on.")

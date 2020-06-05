@@ -1,10 +1,11 @@
 // +build integration
 
-package spokeviews_test
+package views_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/common"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/template"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -20,15 +21,15 @@ const (
 var gvr = schema.GroupVersionResource{
 	Group:    "view.open-cluster-management.io",
 	Version:  "v1beta1",
-	Resource: "spokeviews",
+	Resource: "managedclusterviews",
 }
 
 var (
-	dynamicClient    dynamic.Interface
-	realClusters     []*unstructured.Unstructured
-	realCluster      *unstructured.Unstructured
-	fakeCluster      *unstructured.Unstructured
-	hasSpokeClusters bool
+	dynamicClient      dynamic.Interface
+	realClusters       []*unstructured.Unstructured
+	realCluster        *unstructured.Unstructured
+	fakeCluster        *unstructured.Unstructured
+	hasManagedClusters bool
 )
 
 var _ = BeforeSuite(func() {
@@ -36,16 +37,16 @@ var _ = BeforeSuite(func() {
 	dynamicClient, err = common.NewDynamicClient()
 	Ω(err).ShouldNot(HaveOccurred())
 
-	realClusters, err = common.GetJoinedSpokeClusters(dynamicClient)
+	realClusters, err = common.GetJoinedManagedClusters(dynamicClient)
 	Ω(err).ShouldNot(HaveOccurred())
-	hasSpokeClusters = len(realClusters) > 0
+	hasManagedClusters = len(realClusters) > 0
 
 	// create a fake cluster
-	fakeCluster, err = common.CreateSpokeCluster(dynamicClient)
+	fakeCluster, err = common.CreateManagedCluster(dynamicClient)
 	Ω(err).ShouldNot(HaveOccurred())
 	// check fakeCluster ready
 	Eventually(func() (interface{}, error) {
-		fakeCluster, err := common.GetClusterResource(dynamicClient, common.SpokeClusterGVR, fakeCluster.GetName())
+		fakeCluster, err := common.GetClusterResource(dynamicClient, common.ManagedClusterGVR, fakeCluster.GetName())
 		if err != nil {
 			return "", err
 		}
@@ -59,7 +60,7 @@ var _ = BeforeSuite(func() {
 		}
 
 		return condition["type"], nil
-	}, eventuallyTimeout, eventuallyInterval).Should(Equal("SpokeClusterJoined"))
+	}, eventuallyTimeout, eventuallyInterval).Should(Equal(clusterv1.ManagedClusterConditionJoined))
 })
 
 var _ = AfterSuite(func() {
@@ -68,11 +69,11 @@ var _ = AfterSuite(func() {
 	Ω(err).ShouldNot(HaveOccurred())
 
 	// delete the resource created
-	err = common.DeleteClusterResource(dynamicClient, common.SpokeClusterGVR, fakeCluster.GetName())
+	err = common.DeleteClusterResource(dynamicClient, common.ManagedClusterGVR, fakeCluster.GetName())
 	Ω(err).ShouldNot(HaveOccurred())
 })
 
-var _ = Describe("Testing spokeView", func() {
+var _ = Describe("Testing managedClusterView", func() {
 	var (
 		obj *unstructured.Unstructured
 		err error
@@ -80,34 +81,34 @@ var _ = Describe("Testing spokeView", func() {
 
 	BeforeEach(func() {
 		// load object from json template
-		obj, err = common.LoadResourceFromJSON(template.SpokeViewTemplate)
+		obj, err = common.LoadResourceFromJSON(template.ManagedClusterViewTemplate)
 		Ω(err).ShouldNot(HaveOccurred())
 		err = unstructured.SetNestedField(obj.Object, fakeCluster.GetName(), "metadata", "namespace")
 		Ω(err).ShouldNot(HaveOccurred())
-		// create spokeView to fake cluster
+		// create managedClusterView to fake cluster
 		obj, err = common.CreateResource(dynamicClient, gvr, obj)
 		Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", gvr.Resource)
-		// create spokeView to real cluster
-		if hasSpokeClusters {
+		// create managedClusterView to real cluster
+		if hasManagedClusters {
 			// load object from json template
-			obj, err := common.LoadResourceFromJSON(template.SpokeViewTemplate)
+			obj, err := common.LoadResourceFromJSON(template.ManagedClusterViewTemplate)
 			Ω(err).ShouldNot(HaveOccurred())
 			realCluster = realClusters[0]
 			err = unstructured.SetNestedField(obj.Object, realCluster.GetName(), "metadata", "namespace")
 			Ω(err).ShouldNot(HaveOccurred())
-			// create spokeView to real cluster
+			// create managedClusterView to real cluster
 			obj, err = common.CreateResource(dynamicClient, gvr, obj)
 			Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", gvr.Resource)
 		}
 	})
 
-	Describe("Creating a spokeView", func() {
+	Describe("Creating a managedClusterView", func() {
 		It("should be created successfully in cluster", func() {
 			exists, err := common.HasResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
 			Ω(err).ShouldNot(HaveOccurred())
 			Ω(exists).Should(BeTrue())
 
-			if hasSpokeClusters {
+			if hasManagedClusters {
 				exists, err := common.HasResource(dynamicClient, gvr, realCluster.GetName(), obj.GetName())
 				Ω(err).ShouldNot(HaveOccurred())
 				Ω(exists).Should(BeTrue())
@@ -115,14 +116,14 @@ var _ = Describe("Testing spokeView", func() {
 		})
 
 		It("should have a valid condition", func() {
-			// In fake cluster, the status of spokeView should be empty
+			// In fake cluster, the status of managedClusterView should be empty
 			Eventually(func() (interface{}, error) {
-				spokeView, err := common.GetResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
+				managedClusterView, err := common.GetResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
 				if err != nil {
 					return "", err
 				}
-				// check the spokeView status
-				condition, err := common.GetConditionFromStatus(spokeView)
+				// check the managedClusterView status
+				condition, err := common.GetConditionFromStatus(managedClusterView)
 				if err != nil {
 					return "", err
 				}
@@ -134,15 +135,15 @@ var _ = Describe("Testing spokeView", func() {
 				return condition["type"], nil
 			}, eventuallyTimeout, eventuallyInterval).Should(Equal(""))
 
-			// In real cluster, the status of spokeView should have a valid value
-			if hasSpokeClusters {
+			// In real cluster, the status of managedClusterView should have a valid value
+			if hasManagedClusters {
 				Eventually(func() (interface{}, error) {
-					spokeView, err := common.GetResource(dynamicClient, gvr, realCluster.GetName(), obj.GetName())
+					managedClusterView, err := common.GetResource(dynamicClient, gvr, realCluster.GetName(), obj.GetName())
 					if err != nil {
 						return "", err
 					}
-					// check the spokeView status
-					condition, err := common.GetConditionFromStatus(spokeView)
+					// check the managedClusterView status
+					condition, err := common.GetConditionFromStatus(managedClusterView)
 					if err != nil {
 						return "", err
 					}
@@ -158,21 +159,21 @@ var _ = Describe("Testing spokeView", func() {
 
 		It("should be updated successfully in cluster", func() {
 			Eventually(func() (interface{}, error) {
-				spokeView, err := common.GetResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
+				managedClusterView, err := common.GetResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
 				if err != nil {
 					return "", err
 				}
-				err = common.SetStatusType(spokeView, "Processing")
+				err = common.SetStatusType(managedClusterView, "Processing")
 				Ω(err).ShouldNot(HaveOccurred())
-				err = unstructured.SetNestedField(spokeView.Object, spokeView.GetResourceVersion(), "metadata", "resourceVersion")
+				err = unstructured.SetNestedField(managedClusterView.Object, managedClusterView.GetResourceVersion(), "metadata", "resourceVersion")
 				Ω(err).ShouldNot(HaveOccurred())
-				spokeView, err = common.UpdateResourceStatus(dynamicClient, gvr, spokeView)
+				managedClusterView, err = common.UpdateResourceStatus(dynamicClient, gvr, managedClusterView)
 				Ω(err).ShouldNot(HaveOccurred())
-				spokeView, err = common.GetResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
+				managedClusterView, err = common.GetResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
 				if err != nil {
 					return "", err
 				}
-				condition, err := common.GetConditionFromStatus(spokeView)
+				condition, err := common.GetConditionFromStatus(managedClusterView)
 				if err != nil {
 					return "", err
 				}
@@ -189,7 +190,7 @@ var _ = Describe("Testing spokeView", func() {
 			err = common.DeleteResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
 			Ω(err).ShouldNot(HaveOccurred())
 
-			if hasSpokeClusters {
+			if hasManagedClusters {
 				err = common.DeleteResource(dynamicClient, gvr, realCluster.GetName(), obj.GetName())
 				Ω(err).ShouldNot(HaveOccurred())
 			}

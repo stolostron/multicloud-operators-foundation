@@ -7,6 +7,6 @@ kind: Secret
 metadata:
   labels:
     app: acm
-  name: acm-klusterlet-self-signed-secrets
+  name: acm-agent-self-signed-secrets
   namespace: multicloud-system
 type: Opaque

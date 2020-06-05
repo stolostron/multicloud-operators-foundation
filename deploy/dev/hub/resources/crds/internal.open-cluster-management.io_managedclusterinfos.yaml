@@ -6,21 +6,21 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.2.5
   creationTimestamp: null
-  name: clusterinfos.internal.open-cluster-management.io
+  name: managedclusterinfos.internal.open-cluster-management.io
 spec:
   group: internal.open-cluster-management.io
   names:
-    kind: ClusterInfo
-    listKind: ClusterInfoList
-    plural: clusterinfos
-    singular: clusterinfo
+    kind: ManagedClusterInfo
+    listKind: ManagedClusterInfoList
+    plural: managedclusterinfos
+    singular: managedclusterinfo
   scope: Namespaced
   subresources:
     status: {}
   validation:
     openAPIV3Schema:
-      description: ClusterInfo represents the information of spoke cluster that acm
-        hub needs to know
+      description: ManagedClusterInfo represents the information of managed cluster
+        that acm hub needs to know
       properties:
         apiVersion:
           description: 'APIVersion defines the versioned schema of this representation
@@ -37,23 +37,25 @@ spec:
         spec:
           description: Spec defines the information of the Cluster.
           properties:
-            klusterletCA:
-              description: KlusterletCA is the ca data for klusterlet to authorize
+            loggingCA:
+              description: LoggingCA is the ca data for logging server to authorize
                 apiserver
               format: byte
               type: string
             masterEndpoint:
-              description: MasterEndpoint shows the apiserver endpoint of spoke cluster
+              description: MasterEndpoint shows the apiserver endpoint of managed
+                cluster
               type: string
           type: object
         status:
           description: Status represents the desired status of the Cluster
           properties:
             conditions:
-              description: Conditions contains condition information for a spoke cluster
+              description: Conditions contains condition information for a managed
+                cluster
               items:
                 description: StatusCondition contains condition information for a
-                  spoke cluster.
+                  managed cluster.
                 properties:
                   lastTransitionTime:
                     description: LastTransitionTime is the last time the condition
@@ -78,28 +80,28 @@ spec:
                 type: object
               type: array
             consoleURL:
-              description: ConsoleURL shows the url of console in spoke cluster
+              description: ConsoleURL shows the url of console in managed cluster
               type: string
             distributionInfo:
               description: DistributionInfo is the information about distribution
-                of spoke cluster
+                of managed cluster
               properties:
                 ocp:
-                  description: OCP is the distribution information of OCP spoke cluster,
-                    is matched when the Type is OCP.
+                  description: OCP is the distribution information of OCP managed
+                    cluster, is matched when the Type is OCP.
                   properties:
                     version:
                       description: Version is the distribution version of OCP
                       type: string
                   type: object
                 type:
-                  description: Type is the distribution type of spoke cluster, is
+                  description: Type is the distribution type of managed cluster, is
                     OCP currently
                   type: string
               type: object
-            klusterletEndpoint:
-              description: KlusterletEndpoint shows the endpoint to connect to klusterlet
-                of spoke cluster
+            loggingEndpoint:
+              description: LoggingEndpoint shows the endpoint to connect to logging
+                server of managed cluster
               properties:
                 hostname:
                   description: The Hostname of this endpoint
@@ -154,9 +156,9 @@ spec:
               required:
               - ip
               type: object
-            klusterletPort:
-              description: KlusterletPort shows the port to connect to klusterlet
-                of spoke cluster
+            loggingPort:
+              description: LoggingPort shows the port to connect to logging server
+                of managed cluster
               properties:
                 name:
                   description: The name of this port.  This must match the 'name'
@@ -215,7 +217,7 @@ spec:
                 type: object
               type: array
             version:
-              description: Version is the kube version of spoke cluster.
+              description: Version is the kube version of managed cluster.
               type: string
           type: object
       type: object
