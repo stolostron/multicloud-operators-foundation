@@ -391,7 +391,7 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 			returnValue: true,
 			expectedConditions: []conditionsv1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: corev1.ConditionTrue,
+				Status: corev1.ConditionFalse,
 			}},
 			bma: newBMA(),
 		},
