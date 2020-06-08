@@ -1,4 +1,5 @@
 // Copyright (c) 2020 Red Hat, Inc.
+// This file was added to fix backlog/issues/2101
 package inventory
 
 import (
