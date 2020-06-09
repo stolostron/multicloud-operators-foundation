@@ -34,6 +34,73 @@ metadata:
   namespace: multicloud-system
 
 ---
+  kind: ClusterRole
+  apiVersion: rbac.authorization.k8s.io/v1
+  metadata:
+    name: acm-foundation
+  rules:
+    - apiGroups: ["mcm.ibm.com"]
+      resources: ["clusterjoinrequests", "clusterjoinrequests/status", "clusterjoinrequests/finalizers"]
+      verbs: ["get", "list", "watch", "create", "update", "delete"]
+    - apiGroups: ["mcm.ibm.com"]
+      resources: ["resourceviews", "resourceviews/status", "works", "works/status", "works/result", "worksets", "worksets/status"]
+      verbs: ["create", "get", "list", "watch", "update", "delete", "deletecollection", "patch"]
+    - apiGroups: ["mcm.ibm.com"]
+      resources: ["clusterstatuses", "clusterstatuses/aggregator", "clusterstatuses/metering-receiver", "clusterstatuses/topology"]
+      verbs: ["get", "list", "watch", "create", "update"]
+    - apiGroups: ["clusterregistry.k8s.io"]
+      resources: ["clusters", "clusters/status", "clusters/finalizers"]
+      verbs: ["get", "list", "watch", "create", "update", "patch"]
+    - apiGroups: [""]
+      resources: ["configmaps", "namespaces", "events", "endpoints", "secrets"]
+      verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection", "patch"]
+    - apiGroups: ["rbac.authorization.k8s.io"]
+      resources: ["roles", "rolebindings"]
+      verbs: ["get", "list", "watch", "create", "update", "delete"]
+    - apiGroups: ["authorization.k8s.io"]
+      resources: ["subjectaccessreviews"]
+      verbs: ["get", "create"]
+    - apiGroups: ["certificates.k8s.io"]
+      resources: ["certificatesigningrequests", "certificatesigningrequests/approval"]
+      verbs: ["get", "list", "watch", "create", "update"]
+    - apiGroups: ["certificates.k8s.io"]
+      resources: ["signers"]
+      verbs: ["approve"]
+    - apiGroups: ["apps.open-cluster-management.io"]
+      resources: ["deployables", "deployables/status"]
+      verbs: ["get", "list", "watch", "update", "patch"]
+    - apiGroups: ["compliance.mcm.ibm.com"]
+      resources: ["compliances"]
+      verbs: ["get", "list", "watch", "update", "patch"]
+    - apiGroups: ["policy.mcm.ibm.com"]
+      resources: ["policies"]
+      verbs: ["get", "list", "watch", "update", "patch"]
+    - apiGroups: ["cluster.open-cluster-management.io"]
+      resources: ["managedclusters"]
+      verbs: ["get", "list", "watch", "update"]
+    - apiGroups: ["action.open-cluster-management.io"]
+      resources: ["managedclusteractions", "managedclusteractions/status"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["internal.open-cluster-management.io"]
+      resources: ["managedclusterinfos", "managedclusterinfos/status"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["view.open-cluster-management.io"]
+      resources: ["managedclusterviews", "managedclusterviews/status"]
+      verbs: ["get", "list", "watch", "create", "update", "patch"]
+    - apiGroups: ["proxy.open-cluster-management.io"]
+      resources: ["clusterstatuses/aggregator"]
+      verbs: ["get", "create"]
+    - apiGroups: ["hive.openshift.io"]
+      resources: ["clusterdeployments", "machinepools", "syncsets", "clusterdeployments"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["hive.openshift.io"]
+      resources: [ "syncsets"]
+      verbs: ["create", "update", "delete"]
+    - apiGroups: ["inventory.open-cluster-management.io"]
+      resources: ["baremetalassets", "baremetalassets/status"]
+      verbs: ["get", "list", "watch", "update", "delete"]
+
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
@@ -43,7 +110,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cluster-admin
+  name: acm-foundation
 subjects:
   - kind: ServiceAccount
     name: hub-sa
