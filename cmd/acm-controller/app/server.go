@@ -7,20 +7,19 @@ import (
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller/app/options"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/autodetect"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterinfo"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterrbac"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/gc"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/inventory"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controller/autodetect"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controller/clusterinfo"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controller/clusterrbac"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controller/gc"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controller/inventory"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
-	clusterregistryv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -35,10 +34,6 @@ func init() {
 	_ = inventoryv1alpha1.AddToScheme(scheme)
 	_ = hivev1.AddToScheme(scheme)
 	_ = clusterinfov1beta1.AddToScheme(scheme)
-
-	// TODO: deprecate clusterregistry
-	_ = clusterregistryv1alpha1.AddToScheme(scheme)
-
 	_ = clusterv1.Install(scheme)
 	_ = actionv1beta1.AddToScheme(scheme)
 }

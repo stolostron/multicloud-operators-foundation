@@ -76,3 +76,17 @@ func StringToMap(str string) map[string]string {
 	}
 	return returnMap
 }
+
+// ConvertLabels returns label
+func ConvertLabels(labelSelector *metav1.LabelSelector) (labels.Selector, error) {
+	if labelSelector != nil {
+		selector, err := metav1.LabelSelectorAsSelector(labelSelector)
+		if err != nil {
+			return labels.Nothing(), err
+		}
+
+		return selector, nil
+	}
+
+	return labels.Everything(), nil
+}
