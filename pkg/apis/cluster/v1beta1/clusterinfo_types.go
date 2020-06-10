@@ -2,6 +2,7 @@ package v1beta1
 
 import (
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	openshiftconfigv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -104,7 +105,10 @@ type DistributionInfo struct {
 // OCPDistributionInfo defines the distribution information of OCP managed cluster
 type OCPDistributionInfo struct {
 	// Version is the distribution version of OCP
-	Version string `json:"version,omitempty"`
+	Version          string                     `json:"version,omitempty"`
+	AvailableUpdates []openshiftconfigv1.Update `json:"availableUpdates,omitempty"`
+	DesiredVersion   string                     `json:"desiredVersion,omitempty"`
+	UpgradeFailed    bool                       `json:"upgradeFailed,omitempty"`
 }
 
 // DistributionType is type of distribution
