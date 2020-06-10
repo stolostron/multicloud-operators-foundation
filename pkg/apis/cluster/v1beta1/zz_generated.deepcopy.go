@@ -12,7 +12,6 @@ package v1beta1
 
 import (
 	"github.com/open-cluster-management/api/cluster/v1"
-	configv1 "github.com/openshift/api/config/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -197,7 +196,7 @@ func (in *OCPDistributionInfo) DeepCopyInto(out *OCPDistributionInfo) {
 	*out = *in
 	if in.AvailableUpdates != nil {
 		in, out := &in.AvailableUpdates, &out.AvailableUpdates
-		*out = make([]configv1.Update, len(*in))
+		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
 }
