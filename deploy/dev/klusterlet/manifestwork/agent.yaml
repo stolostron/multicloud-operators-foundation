@@ -1,0 +1,112 @@
+apiVersion: work.open-cluster-management.io/v1
+kind: ManifestWork
+metadata:
+  name: deploy-acm-agent
+  namespace: cluster1
+spec:
+  workload:
+    manifests:
+    - kind: ServiceAccount
+      apiVersion: v1
+      metadata:
+        name: acm-agent-sa
+        namespace: open-cluster-management-agent
+    - kind: ClusterRole
+      apiVersion: rbac.authorization.k8s.io/v1
+      metadata:
+        name: acm-agent
+      rules:
+      - apiGroups: [""]
+        resources: ["configmaps", "events", "endpoints","services"]
+        verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection", "patch"]
+      - apiGroups: [""]
+        resources: ["nodes"]
+        verbs: ["get", "list", "watch"]
+      - apiGroups: ["extensions"]
+        resources: ["ingresses"]
+        verbs: ["get"]
+      - apiGroups: ["route.openshift.io"]
+        resources: ["routes"]
+        verbs: ["get"]
+      - apiGroups: ["route.openshift.io"]
+        resources: ["routes"]
+        verbs: ["get"]
+      - apiGroups: ["config.openshift.io"]
+        resources: ["clusterversions"]
+        verbs: ["get"]
+    - kind: ClusterRoleBinding
+      apiVersion: rbac.authorization.k8s.io/v1
+      metadata:
+        name: acm-agent
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: acm-agent
+      subjects:
+        - kind: ServiceAccount
+          name: acm-agent-sa
+          namespace: open-cluster-management-agent
+    - kind: Service
+      apiVersion: v1
+      metadata:
+        name: acm-agent
+        namespace: open-cluster-management-agent
+        labels:
+          app: acm-agent
+      spec:
+        type: ClusterIP
+        ports:
+        - name: app
+          port: 443
+          protocol: TCP
+          targetPort: 4443
+        selector:
+          app: acm-agent
+    - kind: Deployment
+      apiVersion: apps/v1
+      metadata:
+        name: acm-agent
+        namespace: open-cluster-management-agent
+        labels:
+          app: acm-agent
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: acm-agent
+        template:
+          metadata:
+            labels:
+              app: acm-agent
+          spec:
+            serviceAccountName: acm-agent-sa
+            volumes:
+            - name: hub-config
+              secret:
+                secretName: hub-kubeconfig-secret
+            containers:
+            - name: acm-agent
+              image: quay.io/open-cluster-management/multicloud-manager
+              imagePullPolicy: IfNotPresent
+              args:
+                - "/acm-agent"
+                - "--hub-kubeconfig=/var/run/hub/kubeconfig"
+                - "--cluster-name=cluster1"
+                - "--port=4443"
+                - "--agent-address=acm-agent.open-cluster-management-agent.svc"
+                - "--agent-port=443"
+              volumeMounts:
+                - name: hub-config
+                  mountPath: /var/run/hub
+              livenessProbe:
+                httpGet:
+                  path: /healthz
+                  port: 8000
+                failureThreshold: 3
+                periodSeconds: 10
+              readinessProbe:
+                httpGet:
+                  path: /readyz
+                  port: 8000
+                failureThreshold: 3
+                periodSeconds: 10

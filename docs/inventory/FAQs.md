@@ -16,11 +16,8 @@ Once a user decides to create a cluster, they will use the ACM UI to select asse
 
 ## Where does the inventory-controller live?
 
-The inventory controller is packaged as part of mcm-controller operator. It can be enabled using the `--enable-inventory` flag.
+The inventory controller is packaged as part of acm-controller operator. It can be enabled using the `--enable-inventory` flag.
 
 ```bash
-./mcm-controller --enable-inventory --leader-elect=true
+./acm-controller --enable-inventory
 ```
-
-
-

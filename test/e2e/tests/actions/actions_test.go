@@ -3,9 +3,10 @@
 package actions_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/common"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/template"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -15,24 +16,19 @@ import (
 
 const (
 	eventuallyTimeout  = 60
-	eventuallyInterval = 1
+	eventuallyInterval = 2
 )
 
-var gvr = schema.GroupVersionResource{
+var actionGVR = schema.GroupVersionResource{
 	Group:    "action.open-cluster-management.io",
 	Version:  "v1beta1",
 	Resource: "managedclusteractions",
 }
 
 var (
-	dynamicClient             dynamic.Interface
-	realClusters              []*unstructured.Unstructured
-	fakeManagedClusterActions []*unstructured.Unstructured
-	realManagedClusterActions []*unstructured.Unstructured
-	realCluster               *unstructured.Unstructured
-	fakeCluster               *unstructured.Unstructured
-	actionTemplates           []string
-	hasManagedClusters        bool
+	dynamicClient dynamic.Interface
+	realCluster   *unstructured.Unstructured
+	fakeCluster   *unstructured.Unstructured
 )
 
 var _ = BeforeSuite(func() {
@@ -40,187 +36,122 @@ var _ = BeforeSuite(func() {
 	dynamicClient, err = common.NewDynamicClient()
 	Ω(err).ShouldNot(HaveOccurred())
 
-	realClusters, err = common.GetJoinedManagedClusters(dynamicClient)
+	realClusters, err := common.GetJoinedManagedClusters(dynamicClient)
 	Ω(err).ShouldNot(HaveOccurred())
-	hasManagedClusters = len(realClusters) > 0
+	Ω(len(realClusters)).ShouldNot(Equal(0))
+
+	realCluster = realClusters[0]
 
 	// create a fake cluster
 	fakeCluster, err = common.CreateManagedCluster(dynamicClient)
 	Ω(err).ShouldNot(HaveOccurred())
-	// check fakeCluster ready
-	Eventually(func() (interface{}, error) {
-		fakeCluster, err := common.GetClusterResource(dynamicClient, common.ManagedClusterGVR, fakeCluster.GetName())
-		if err != nil {
-			return "", err
-		}
 
-		condition, err := common.GetConditionFromStatus(fakeCluster)
-		if err != nil {
-			return "", err
-		}
-		if condition == nil {
-			return "", nil
-		}
-
-		return condition["type"], nil
-	}, eventuallyTimeout, eventuallyInterval).Should(Equal(clusterv1.ManagedClusterConditionJoined))
 })
 
 var _ = AfterSuite(func() {
-	// delete the namespace created for testing
-	err := common.DeleteClusterResource(dynamicClient, common.NamespaceGVR, fakeCluster.GetName())
+	obj, err := common.LoadResourceFromJSON(template.ManagedClusterActionCreateTemplate)
 	Ω(err).ShouldNot(HaveOccurred())
-
-	// delete the resource created
-	err = common.DeleteClusterResource(dynamicClient, common.ManagedClusterGVR, fakeCluster.GetName())
+	err = common.DeleteResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
+	Ω(err).ShouldNot(HaveOccurred())
+	obj, err = common.LoadResourceFromJSON(template.ManagedClusterActionDeleteTemplate)
+	Ω(err).ShouldNot(HaveOccurred())
+	_, err = common.CreateResource(dynamicClient, actionGVR, obj)
+	Ω(err).ShouldNot(HaveOccurred())
+	time.Sleep(time.Second)
+	common.DeleteResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
 	Ω(err).ShouldNot(HaveOccurred())
 })
 
-var _ = Describe("Testing ManagedClusterAction", func() {
+var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 	var (
 		obj *unstructured.Unstructured
 		err error
 	)
 
-	BeforeEach(func() {
-
-		actionTemplates = []string{
-			template.ManagedClusterActionCreateTemplate,
-			template.ManagedClusterActionDeleteTemplate,
-			template.ManagedClusterActionUpdateTemplate,
-		}
-
-		for _, actionTemplate := range actionTemplates {
+	Context("Creating a ManagedClusterAction", func() {
+		It("Should create successfully", func() {
 			// load object from json template
-			obj, err = common.LoadResourceFromJSON(actionTemplate)
+			obj, err = common.LoadResourceFromJSON(template.ManagedClusterActionCreateTemplate)
 			Ω(err).ShouldNot(HaveOccurred())
-			err = unstructured.SetNestedField(obj.Object, fakeCluster.GetName(), "metadata", "namespace")
+
+			err = unstructured.SetNestedField(obj.Object, realCluster.GetName(), "metadata", "namespace")
 			Ω(err).ShouldNot(HaveOccurred())
-			// create ManagedClusterAction to fake cluster
-			obj, err = common.CreateResource(dynamicClient, gvr, obj)
-			Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", gvr.Resource)
-			// record obj for delete obj
-			fakeManagedClusterActions = append(fakeManagedClusterActions, obj)
 			// create ManagedClusterAction to real cluster
-			if hasManagedClusters {
-				// load object from json template
-				obj, err := common.LoadResourceFromJSON(actionTemplate)
-				Ω(err).ShouldNot(HaveOccurred())
-				realCluster = realClusters[0]
-				err = unstructured.SetNestedField(obj.Object, realCluster.GetName(), "metadata", "namespace")
-				Ω(err).ShouldNot(HaveOccurred())
-				// create ManagedClusterAction to real cluster
-				obj, err = common.CreateResource(dynamicClient, gvr, obj)
-				Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", gvr.Resource)
-				// record obj for delete obj
-				realManagedClusterActions = append(realManagedClusterActions, obj)
-			}
-		}
-	})
+			obj, err = common.CreateResource(dynamicClient, actionGVR, obj)
+			Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", actionGVR.Resource)
+		})
 
-	Describe("Creating a ManagedClusterAction", func() {
-		It("should be created successfully in cluster", func() {
-			for _, obj := range fakeManagedClusterActions {
-				exists, err := common.HasResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
-				Ω(err).ShouldNot(HaveOccurred())
-				Ω(exists).Should(BeTrue())
-			}
-
-			if hasManagedClusters {
-				for _, obj := range realManagedClusterActions {
-					exists, err := common.HasResource(dynamicClient, gvr, realCluster.GetName(), obj.GetName())
-					Ω(err).ShouldNot(HaveOccurred())
-					Ω(exists).Should(BeTrue())
-				}
-			}
+		It("should get successfully", func() {
+			exists, err := common.HasResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(exists).Should(BeTrue())
 		})
 
 		It("should have a valid condition", func() {
-			for _, obj := range fakeManagedClusterActions {
-				// In fake cluster, the status of ManagedClusterAction should be empty
-				Eventually(func() (interface{}, error) {
-					ManagedClusterAction, err := common.GetResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
-					if err != nil {
-						return "", err
-					}
-					// check the ManagedClusterAction status
-					condition, err := common.GetConditionFromStatus(ManagedClusterAction)
-					if err != nil {
-						return "", err
-					}
-
-					if condition == nil {
-						return "", nil
-					}
-
-					return condition["type"], nil
-				}, eventuallyTimeout, eventuallyInterval).Should(Equal(""))
-			}
-			// In real cluster, the status of ManagedClusterAction should have a valid value
-			if hasManagedClusters {
-				for _, obj := range realManagedClusterActions {
-					Eventually(func() (interface{}, error) {
-						ManagedClusterAction, err := common.GetResource(dynamicClient, gvr, realCluster.GetName(), obj.GetName())
-						if err != nil {
-							return "", err
-						}
-						// check the ManagedClusterAction status
-						condition, err := common.GetConditionFromStatus(ManagedClusterAction)
-						if err != nil {
-							return "", err
-						}
-
-						if condition == nil {
-							return "", nil
-						}
-
-						return condition["type"], nil
-					}, eventuallyTimeout, eventuallyInterval).Should(Equal("Completed"))
+			Eventually(func() (interface{}, error) {
+				managedClusterAction, err := common.GetResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
+				if err != nil {
+					return "", err
 				}
-			}
+				// check the ManagedClusterAction status
+				condition, err := common.GetConditionFromStatus(managedClusterAction)
+				if err != nil {
+					return "", err
+				}
+
+				if condition == nil {
+					return "", nil
+				}
+
+				return condition["type"], nil
+			}, eventuallyTimeout, eventuallyInterval).Should(Equal("Completed"))
+		})
+	})
+})
+
+var _ = Describe("Testing ManagedClusterAction when agent is lost", func() {
+	var (
+		obj *unstructured.Unstructured
+		err error
+	)
+
+	Context("Creating a ManagedClusterAction", func() {
+		It("Should create successfully", func() {
+			// load object from json template
+			obj, err = common.LoadResourceFromJSON(template.ManagedClusterActionCreateTemplate)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = unstructured.SetNestedField(obj.Object, fakeCluster.GetName(), "metadata", "namespace")
+			Ω(err).ShouldNot(HaveOccurred())
+			// create ManagedClusterAction to real cluster
+			obj, err = common.CreateResource(dynamicClient, actionGVR, obj)
+			Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", actionGVR.Resource)
 		})
 
-		It("should be updated successfully in cluster", func() {
-			for _, obj := range fakeManagedClusterActions {
-				Eventually(func() (interface{}, error) {
-					managedClusterAction, err := common.GetResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
-					if err != nil {
-						return "", err
-					}
-					err = common.SetStatusType(managedClusterAction, "Completed")
-					Ω(err).ShouldNot(HaveOccurred())
-					managedClusterAction, err = common.UpdateResourceStatus(dynamicClient, gvr, managedClusterAction)
-					Ω(err).ShouldNot(HaveOccurred())
-					managedClusterAction, err = common.GetResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
-					if err != nil {
-						return "", err
-					}
-					condition, err := common.GetConditionFromStatus(managedClusterAction)
-					if err != nil {
-						return "", err
-					}
-					if condition == nil {
-						return "", nil
-					}
-
-					return condition["type"], nil
-				}, eventuallyTimeout, eventuallyInterval).Should(Equal("Completed"))
-			}
+		It("should get successfully", func() {
+			exists, err := common.HasResource(dynamicClient, actionGVR, fakeCluster.GetName(), obj.GetName())
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(exists).Should(BeTrue())
 		})
 
-		AfterEach(func() {
-			// delete all resource from fake cluster and real cluster
-			for _, obj := range fakeManagedClusterActions {
-				err = common.DeleteResource(dynamicClient, gvr, fakeCluster.GetName(), obj.GetName())
-				Ω(err).ShouldNot(HaveOccurred())
-			}
-
-			if hasManagedClusters {
-				for _, obj := range realManagedClusterActions {
-					err = common.DeleteResource(dynamicClient, gvr, realCluster.GetName(), obj.GetName())
-					Ω(err).ShouldNot(HaveOccurred())
+		It("should not have a valid condition", func() {
+			Eventually(func() (bool, error) {
+				ManagedClusterAction, err := common.GetResource(dynamicClient, actionGVR, fakeCluster.GetName(), obj.GetName())
+				if err != nil {
+					return false, err
 				}
-			}
+				// check the ManagedClusterAction status
+				condition, err := common.GetConditionFromStatus(ManagedClusterAction)
+				if err != nil {
+					return false, err
+				}
+
+				if condition == nil {
+					return true, nil
+				}
+
+				return false, nil
+			}, eventuallyTimeout, eventuallyInterval).Should(Equal(true))
 		})
 	})
 })

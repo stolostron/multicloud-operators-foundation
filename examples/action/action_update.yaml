@@ -3,7 +3,7 @@ apiVersion: action.open-cluster-management.io/v1beta1
 kind: ManagedClusterAction
 metadata:
   name: nginx-action-update
-  namespace: cluster0
+  namespace: cluster1
 spec:
   actionType: Update
   kube:
