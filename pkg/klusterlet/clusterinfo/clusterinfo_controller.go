@@ -81,7 +81,7 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	newStatus.Version = r.getVersion()
 
 	// Get distribution info
-	newStatus.DistributionInfo, err = r.getDistributioInfo()
+	newStatus.DistributionInfo, err = r.getDistributionInfo()
 	if err != nil {
 		log.Error(err, "Failed to get distribution info")
 		return ctrl.Result{}, err
@@ -358,7 +358,7 @@ var ocpVersionGVR = schema.GroupVersionResource{
 	Resource: "clusterversions",
 }
 
-func (r *ClusterInfoReconciler) getDistributioInfo() (clusterv1beta1.DistributionInfo, error) {
+func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.DistributionInfo, error) {
 	var isOpenShift = false
 	distributionInfo := clusterv1beta1.DistributionInfo{}
 	serverGroups, err := r.KubeClient.Discovery().ServerGroups()
