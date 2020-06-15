@@ -81,7 +81,7 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	newStatus.Version = r.getVersion()
 
 	// Get distribution info
-	newStatus.DistributionInfo, err = r.getDistributionInfo()
+	newStatus.DistributionInfo, err = r.getDistributioInfo()
 	if err != nil {
 		log.Error(err, "Failed to get distribution info")
 		return ctrl.Result{}, err
@@ -358,7 +358,7 @@ var ocpVersionGVR = schema.GroupVersionResource{
 	Resource: "clusterversions",
 }
 
-func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.DistributionInfo, error) {
+func (r *ClusterInfoReconciler) getDistributioInfo() (clusterv1beta1.DistributionInfo, error) {
 	var isOpenShift = false
 	distributionInfo := clusterv1beta1.DistributionInfo{}
 	serverGroups, err := r.KubeClient.Discovery().ServerGroups()
@@ -371,76 +371,90 @@ func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.Distributi
 			break
 		}
 	}
-
-	if isOpenShift {
-		distributionInfo.Type = clusterv1beta1.DistributionTypeOCP
-		obj, err := r.ManagedClusterDynamicClient.Resource(ocpVersionGVR).Get("version", metav1.GetOptions{})
-		if err != nil {
-			klog.Errorf("failed to get OCP cluster version: %v", err)
-			return distributionInfo, client.IgnoreNotFound(err)
-		}
-		historyItems, _, err := unstructured.NestedSlice(obj.Object, "status", "history")
-		if err != nil {
-			klog.Errorf("failed to get OCP cluster version in history of status: %v", err)
-			return distributionInfo, client.IgnoreNotFound(err)
-		}
-		version, _, err := unstructured.NestedString(historyItems[0].(map[string]interface{}), "version")
-		if err != nil {
-			klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
-			return distributionInfo, client.IgnoreNotFound(err)
-		}
-		desiredVersion, _, err := unstructured.NestedString(obj.Object, "status", "desired", "version")
-		if err != nil {
-			klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
-			return distributionInfo, client.IgnoreNotFound(err)
-		}
-		availableUpdates, _, err := unstructured.NestedSlice(obj.Object, "status", "availableUpdates")
-		if err != nil {
-			klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
-			return distributionInfo, client.IgnoreNotFound(err)
-		}
-		var availableVersions []string
-		for _, update := range availableUpdates {
-			availableVersion, _, err := unstructured.NestedString(update.(map[string]interface{}), "version")
-			if err != nil {
-				klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
-				return distributionInfo, client.IgnoreNotFound(err)
-			}
-			availableVersions = append(availableVersions, availableVersion)
-		}
-		conditions, _, err := unstructured.NestedSlice(obj.Object, "status", "conditions")
-		if err != nil {
-			klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
-			return distributionInfo, client.IgnoreNotFound(err)
-		}
-		upgradeFailed := false
-		if conditions != nil {
-			conditiontype, _, err := unstructured.NestedString(conditions[0].(map[string]interface{}), "type")
-			if err != nil {
-				klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
-				return distributionInfo, client.IgnoreNotFound(err)
-			}
-			if conditiontype == "Failing" {
-				conditionstatus, _, err := unstructured.NestedString(conditions[0].(map[string]interface{}), "status")
-				if err != nil {
-					klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
-					return distributionInfo, client.IgnoreNotFound(err)
-				}
-				if conditionstatus == "True" {
-					upgradeFailed = true
-				}
-			}
-		}
-		distributionInfo.OCP = clusterv1beta1.OCPDistributionInfo{
-			Version: version,
-			//status.desired.version
-			DesiredVersion: desiredVersion,
-			//true when the first status.conditions element with type === Failing has status === True
-			UpgradeFailed: upgradeFailed,
-			//the value of the version property from each element in status.availableUpdates
-			AvailableUpdates: availableVersions,
-		}
+	if !isOpenShift {
 		return distributionInfo, nil
+	}
+
+	distributionInfo.Type = clusterv1beta1.DistributionTypeOCP
+	obj, err := r.ManagedClusterDynamicClient.Resource(ocpVersionGVR).Get("version", metav1.GetOptions{})
+	if err != nil {
+		klog.Errorf("failed to get OCP cluster version: %v", err)
+		return distributionInfo, client.IgnoreNotFound(err)
+	}
+	historyItems, _, err := unstructured.NestedSlice(obj.Object, "status", "history")
+	if err != nil {
+		klog.Errorf("failed to get OCP cluster version in history of status: %v", err)
+		return distributionInfo, client.IgnoreNotFound(err)
+	}
+	var version string
+	for _, historyItem := range historyItems {
+		state, _, err := unstructured.NestedString(historyItem.(map[string]interface{}), "state")
+		if err != nil {
+			klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
+			return distributionInfo, client.IgnoreNotFound(err)
+		}
+		if state == "Completed" {
+			version, _, err = unstructured.NestedString(historyItem.(map[string]interface{}), "version")
+			if err != nil {
+				klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
+				return distributionInfo, client.IgnoreNotFound(err)
+			}
+			break
+		}
+	}
+
+	desiredVersion, _, err := unstructured.NestedString(obj.Object, "status", "desired", "version")
+	if err != nil {
+		klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
+		return distributionInfo, client.IgnoreNotFound(err)
+	}
+	availableUpdates, _, err := unstructured.NestedSlice(obj.Object, "status", "availableUpdates")
+	if err != nil {
+		klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
+		return distributionInfo, client.IgnoreNotFound(err)
+	}
+	var availableVersions []string
+	for _, update := range availableUpdates {
+		availableVersion, _, err := unstructured.NestedString(update.(map[string]interface{}), "version")
+		if err != nil {
+			klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
+			return distributionInfo, client.IgnoreNotFound(err)
+		}
+		availableVersions = append(availableVersions, availableVersion)
+	}
+	conditions, _, err := unstructured.NestedSlice(obj.Object, "status", "conditions")
+	if err != nil {
+		klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
+		return distributionInfo, client.IgnoreNotFound(err)
+	}
+	upgradeFailed := false
+
+	for _, condition := range conditions {
+		conditiontype, _, err := unstructured.NestedString(condition.(map[string]interface{}), "type")
+		if err != nil {
+			klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
+			return distributionInfo, client.IgnoreNotFound(err)
+		}
+		if conditiontype == "Failing" {
+			conditionstatus, _, err := unstructured.NestedString(condition.(map[string]interface{}), "status")
+			if err != nil {
+				klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
+				return distributionInfo, client.IgnoreNotFound(err)
+			}
+			if conditionstatus == "True" {
+				upgradeFailed = true
+			}
+			break
+		}
+	}
+	distributionInfo.OCP = clusterv1beta1.OCPDistributionInfo{
+		Version: version,
+		//status.desired.version
+		DesiredVersion: desiredVersion,
+		//true when the first status.conditions element with type === Failing has status === True
+		UpgradeFailed: upgradeFailed,
+		//the value of the version property from each element in status.availableUpdates
+		AvailableUpdates: availableVersions,
 	}
 	return distributionInfo, nil
 }

@@ -243,7 +243,7 @@ func TestClusterInfoReconciler_getMasterAddresses(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to get nodelist, err: %v", err)
 	}
-	_, err = cir.getDistributionInfo()
+	_, err = cir.getDistributioInfo()
 	if err != nil {
 		t.Errorf("Failed to get distributeinfo, err: %v", err)
 	}
