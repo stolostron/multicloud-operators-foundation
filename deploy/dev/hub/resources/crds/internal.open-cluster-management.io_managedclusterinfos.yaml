@@ -90,6 +90,18 @@ spec:
                   description: OCP is the distribution information of OCP managed
                     cluster, is matched when the Type is OCP.
                   properties:
+                    availableUpdates:
+                      description: Available update versions
+                      items:
+                        type: string
+                      type: array
+                    desiredVersion:
+                      description: Desiredversion is the version that the cluster
+                        desired.
+                      type: string
+                    upgradeFailed:
+                      description: Cluster upgrade failed
+                      type: boolean
                     version:
                       description: Version is the distribution version of OCP
                       type: string

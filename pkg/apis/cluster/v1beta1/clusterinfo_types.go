@@ -105,6 +105,12 @@ type DistributionInfo struct {
 type OCPDistributionInfo struct {
 	// Version is the distribution version of OCP
 	Version string `json:"version,omitempty"`
+	// availableUpdates contains the list of update versions that are appropriate for the manage cluster.
+	AvailableUpdates []string `json:"availableUpdates,omitempty"`
+	// Desiredversion represents the desired version of the ocp cluster
+	DesiredVersion string `json:"desiredVersion,omitempty"`
+	// UpgradeFailed indicate whether upgrade of the manage cluster is failed
+	UpgradeFailed bool `json:"upgradeFailed,omitempty"`
 }
 
 // DistributionType is type of distribution
