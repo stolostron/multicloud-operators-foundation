@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: acm-agent
-  namespace: multicloud-endpoint
+  namespace: open-cluster-management-agent
   labels:
     app: acm-agent
 spec:
@@ -20,7 +20,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: acm-agent
-  namespace: multicloud-endpoint
+  namespace: open-cluster-management-agent
   labels:
     app: acm-agent
 spec:
@@ -33,16 +33,16 @@ spec:
       labels:
         app: acm-agent
     spec:
-      serviceAccountName: klusterlet-sa
+      serviceAccountName: acm-agent-sa
       containers:
         - name: acm-agent
-          image: github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent
+          image: ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent
           args:
             - "/acm-agent"
             - "--hub-kubeconfig=/var/run/hub/kubeconfig"
-            - "--cluster-name=cluster0"
+            - "--cluster-name=cluster1"
             - "--port=4443"
-            - "--agent-address=acm-agent.multicloud-endpoint.svc"
+            - "--agent-address=acm-agent.open-cluster-management-agent.svc"
             - "--agent-port=443"
           volumeMounts:
             - name: hub-config
@@ -62,4 +62,4 @@ spec:
       volumes:
         - name: hub-config
           secret:
-            secretName: mcm-connmgr-hub-kubeconfig
+            secretName: hub-kubeconfig-secret

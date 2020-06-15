@@ -2,22 +2,16 @@ resources:
 - ../../dev/hub/
 
 images:
-- name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-apiserver
+- name: ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver
   newName: quay.io/open-cluster-management/multicloud-manager
   newTag: 0.0.1
-- name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-controller
-  newName: quay.io/open-cluster-management/multicloud-manager
-  newTag: 0.0.1
-- name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver
-  newName: quay.io/open-cluster-management/multicloud-manager
-  newTag: 0.0.1
-- name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller
+- name: ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller
   newName: quay.io/open-cluster-management/multicloud-manager
   newTag: 0.0.1
 
 secretGenerator:
-- name: mcm-image-pull-secret
-  namespace: multicloud-system
+- name: acm-image-pull-secret
+  namespace: open-cluster-management
   literals:
   - .dockerconfigjson=<AUTH INFO>
   type: "kubernetes.io/dockerconfigjson"

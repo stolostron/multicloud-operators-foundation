@@ -1,37 +1,9 @@
-kind: ClusterRole
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: klusterlet-bootstrap
-  labels:
-    app: mcm-apiserver
-rules:
-- apiGroups: ["mcm.ibm.com"]
-  resources: ["clusterjoinrequests"]
-  verbs: ["get", "list", "watch", "create"]
-
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: mcm-klusterlet-bootstrap
-  labels:
-    app: mcm-apiserver
-subjects:
-  - kind: Group
-    name: system:authenticated
-    apiGroup: rbac.authorization.k8s.io
-roleRef:
-  kind: ClusterRole
-  name: klusterlet-bootstrap
-  apiGroup: rbac.authorization.k8s.io
-
-
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: hub-sa
-  namespace: multicloud-system
+  name: acm-foundation-sa
+  namespace: open-cluster-management
 
 ---
   kind: ClusterRole
@@ -39,18 +11,6 @@ metadata:
   metadata:
     name: acm-foundation
   rules:
-    - apiGroups: ["mcm.ibm.com"]
-      resources: ["clusterjoinrequests", "clusterjoinrequests/status", "clusterjoinrequests/finalizers"]
-      verbs: ["get", "list", "watch", "create", "update", "delete"]
-    - apiGroups: ["mcm.ibm.com"]
-      resources: ["resourceviews", "resourceviews/status", "works", "works/status", "works/result", "worksets", "worksets/status"]
-      verbs: ["create", "get", "list", "watch", "update", "delete", "deletecollection", "patch"]
-    - apiGroups: ["mcm.ibm.com"]
-      resources: ["clusterstatuses", "clusterstatuses/aggregator", "clusterstatuses/metering-receiver", "clusterstatuses/topology"]
-      verbs: ["get", "list", "watch", "create", "update"]
-    - apiGroups: ["clusterregistry.k8s.io"]
-      resources: ["clusters", "clusters/status", "clusters/finalizers"]
-      verbs: ["get", "list", "watch", "create", "update", "patch"]
     - apiGroups: [""]
       resources: ["configmaps", "namespaces", "events", "endpoints", "secrets"]
       verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection", "patch"]
@@ -68,12 +28,6 @@ metadata:
       verbs: ["approve"]
     - apiGroups: ["apps.open-cluster-management.io"]
       resources: ["deployables", "deployables/status"]
-      verbs: ["get", "list", "watch", "update", "patch"]
-    - apiGroups: ["compliance.mcm.ibm.com"]
-      resources: ["compliances"]
-      verbs: ["get", "list", "watch", "update", "patch"]
-    - apiGroups: ["policy.mcm.ibm.com"]
-      resources: ["policies"]
       verbs: ["get", "list", "watch", "update", "patch"]
     - apiGroups: ["cluster.open-cluster-management.io"]
       resources: ["managedclusters"]
@@ -104,15 +58,12 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: mcm-rbac
-  labels:
-    app: mcm-apiserver
+  name: acm-foundation
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: acm-foundation
 subjects:
   - kind: ServiceAccount
-    name: hub-sa
-    namespace: multicloud-system
-
+    name: acm-foundation-sa
+    namespace: open-cluster-management

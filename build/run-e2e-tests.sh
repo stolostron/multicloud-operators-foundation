@@ -20,45 +20,116 @@ GO111MODULE="on" go get sigs.k8s.io/kind@v0.7.0
 
 # Create a cluster
 CLUSTER_NAME="multicloud-hub"
+
+export KIND_CLUSTER=${CLUSTER_NAME}
 kind create cluster --name ${CLUSTER_NAME}
 
-if ! kubectl cluster-info
-then
-    echo "Failed to create kind cluster"
-    exit 1
+if ! kubectl cluster-info; then
+  echo "Failed to create kind cluster"
+  exit 1
+fi
+
+IMAGE=$(docker images | grep -c "${IMAGE_NAME_AND_VERSION}")
+if [ "${IMAGE}" -ne 1 ]; then
+  docker pull "${IMAGE_NAME_AND_VERSION}"
 fi
 
 kind load docker-image --name="${CLUSTER_NAME}" "${IMAGE_NAME_AND_VERSION}"
 
-# Deploy hub cluster
+BUILD_PATH=${GOPATH}/src/github.com/open-cluster-management/multicloud-operators-foundation/build
+
+# Deploy ManagedCluster
+bash "${BUILD_PATH}"/install-managedcluster.sh
+rst="$?"
+if [ "$rst" -ne 0 ]; then
+  echo "Failed to install managed cluster!!!"
+  exit 1
+fi
+
+# Deploy acm hub foundation
 HUB_PATH=${GOPATH}/src/github.com/open-cluster-management/multicloud-operators-foundation/deploy/dev/hub
 
 cat <<EOF >>"${HUB_PATH}"/kustomization.yaml
 images:
-- name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-apiserver
+- name: ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver
   newName: $IMAGE_NAME_AND_VERSION
-- name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/mcm-controller
-  newName: $IMAGE_NAME_AND_VERSION
-- name: github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver
+- name: ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller
   newName: $IMAGE_NAME_AND_VERSION
 EOF
 
 kubectl apply -k "${HUB_PATH}"
 
-# Wait for the hub cluster ready
+MANAGED_CLUSTER=$(kubectl get managedclusters | grep cluster | awk '{print $1}')
+
+# Wait for acm foundation hub ready
 for i in {1..7}; do
-    if ! kubectl get clusters --all-namespaces
-    then
-        if [ $i -eq 7 ]; then
-            echo "Failed to run e2e test, the hub cluster is not ready within 3 minutes"
-            kubectl -n multicloud-system get pods
-            exit 1
-        fi
-        sleep 30
-    else
-        break
-    fi
+  echo "############$i  Checking acm-controller"
+  RUNNING_POD=$(kubectl -n open-cluster-management get pods | grep acm-controller | grep -c "Running")
+  if [ "${RUNNING_POD}" -eq 1 ]; then
+    break
+  fi
+
+  if [ $i -eq 7 ]; then
+    echo "!!!!!!!!!!  the acm-controller is not ready within 3 minutes"
+    kubectl get pods --all-namespaces
+    exit 1
+  fi
+  sleep 30
 done
 
+for i in {1..7}; do
+  echo "############$i  Checking ManagedClusterInfo"
+  INFO=$(kubectl get managedclusterinfos -n "${MANAGED_CLUSTER}" "${MANAGED_CLUSTER}" -o yaml | grep -c "type: ManagedClusterJoined" | tr -d '[:space:]')
+  if [ "${INFO}" -eq 1 ]; then
+    break
+  fi
+
+  if [ $i -eq 7 ]; then
+    echo "Failed to run e2e test, the acm foundation hub is not ready within 3 minutes"
+    ACM_POD=$(kubectl -n open-cluster-management get pods | grep acm-controller | awk '{print $1}')
+    kubectl logs -n open-cluster-management "$ACM_POD"
+    exit 1
+  fi
+  sleep 30
+done
+
+# Deploy acm foundation agent
+WORK_PATH=${GOPATH}/src/github.com/open-cluster-management/multicloud-operators-foundation/deploy/dev/klusterlet/manifestwork
+sed -e "s@quay.io/open-cluster-management/multicloud-manager@'$IMAGE_NAME_AND_VERSION'@g" "$WORK_PATH"/agent.yaml | kubectl apply -f -
+
+# Wait for acm foundation agent ready
+for i in {1..7}; do
+  echo "############$i  Checking acm-agent"
+  RUNNING_POD=$(kubectl -n open-cluster-management-agent get pods | grep acm-agent | grep -c "Running")
+  if [ "${RUNNING_POD}" -eq 1 ]; then
+    break
+  fi
+
+  if [ $i -eq 7 ]; then
+    echo "!!!!!!!!!!  the acm-agent is not ready within 3 minutes"
+    kubectl get pods --all-namespaces
+    kubectl get manifestwork -n "${MANAGED_CLUSTER}" -o yaml
+    exit 1
+  fi
+  sleep 30
+done
+
+for i in {1..7}; do
+  echo "############$i  Checking ManagedClusterInfo"
+  INFO=$(kubectl get managedclusterinfos -n "${MANAGED_CLUSTER}" "${MANAGED_CLUSTER}" -o yaml | grep -c "version:")
+  if [ "${INFO}" -eq 1 ]; then
+    break
+  fi
+
+  if [ $i -eq 7 ]; then
+    echo "Failed to run e2e test, the acm foundation agent is not ready within 3 minutes"
+    ACM_POD=$(kubectl -n open-cluster-management-agent get pods | grep acm-agent | awk '{print $1}')
+    kubectl logs -n open-cluster-management-agent "$ACM_POD"
+    exit 1
+  fi
+  sleep 30
+done
+
+echo "ACM Foundation is deployed successfully!!!"
 # Run e2e test
-make e2e-test
+make GO_REQUIRED_MIN_VERSION:= e2e-test

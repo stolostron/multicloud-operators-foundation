@@ -7,7 +7,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: acm-controller
-  namespace: multicloud-system
+  namespace: open-cluster-management
   labels:
     app: acm-controller
 spec:
@@ -20,10 +20,10 @@ spec:
       labels:
         app: acm-controller
     spec:
-      serviceAccountName: hub-sa
+      serviceAccountName: acm-foundation-sa
       containers:
       - name: acm-controller
-        image: github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller
+        image: ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller
         imagePullPolicy: IfNotPresent
         args:
           - "/acm-controller"

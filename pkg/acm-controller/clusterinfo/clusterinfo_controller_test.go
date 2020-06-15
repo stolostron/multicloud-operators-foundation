@@ -163,7 +163,7 @@ func TestReconcile(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			svrc := newTestReconciler(test.existingObjs)
-			res, err := svrc.ReconcileByManagedCluster(test.req)
+			res, err := svrc.Reconcile(test.req)
 			validateError(t, err, test.expectedErrorType)
 			if test.requeue {
 				assert.Equal(t, res.Requeue, true)

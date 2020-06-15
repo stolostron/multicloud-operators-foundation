@@ -5,11 +5,12 @@ import (
 	"testing"
 	"time"
 
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
+
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/stretchr/testify/assert"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
@@ -33,6 +34,10 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
+	if err := clusterv1beta1.AddToScheme(scheme); err != nil {
+		klog.Errorf("Failed adding cluster info to scheme, %v", err)
+		os.Exit(1)
+	}
 	if err := clusterv1.Install(scheme); err != nil {
 		klog.Errorf("Failed adding cluster to scheme, %v", err)
 		os.Exit(1)
@@ -43,22 +48,22 @@ func TestMain(m *testing.M) {
 }
 
 const (
-	managedClusterName = "foo"
+	managedClusterInfoName = "foo"
 )
 
 func newRoleObjs() []runtime.Object {
 	return []runtime.Object{
 		&rbacv1.Role{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      namePrefix + managedClusterName,
-				Namespace: managedClusterName,
+				Name:      roleName(managedClusterInfoName),
+				Namespace: managedClusterInfoName,
 			},
 			Rules: nil,
 		},
 		&rbacv1.RoleBinding{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      namePrefix + managedClusterName,
-				Namespace: managedClusterName,
+				Name:      roleName(managedClusterInfoName),
+				Namespace: managedClusterInfoName,
 			},
 			Subjects: nil,
 			RoleRef:  rbacv1.RoleRef{},
@@ -91,69 +96,38 @@ func TestReconcile(t *testing.T) {
 		req               reconcile.Request
 	}{
 		{
-			name:         "ManagedClusterNotFound",
+			name:         "ManagedClusterInfoNotFound",
 			existingObjs: []runtime.Object{},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: managedClusterName,
+					Name: managedClusterInfoName,
 				},
 			},
 		},
-		{
-			name: "ManagedClusterConditionFalse",
-			existingObjs: []runtime.Object{
-				&clusterv1.ManagedCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: managedClusterName,
-					},
-					Spec: clusterv1.ManagedClusterSpec{},
-					Status: clusterv1.ManagedClusterStatus{
-						Conditions: []clusterv1.StatusCondition{
-							{
-								Type:   clusterv1.ManagedClusterConditionJoined,
-								Status: v1beta1.ConditionFalse,
-							},
-						},
-					},
-				},
-			},
-			req: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name: managedClusterName,
-				},
-			},
-		},
+
 		{
 			name: "ManagedClusterNoFinalizer",
 			existingObjs: []runtime.Object{
-				&clusterv1.ManagedCluster{
+				&clusterv1beta1.ManagedClusterInfo{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: managedClusterName,
+						Name: managedClusterInfoName,
 					},
-					Spec: clusterv1.ManagedClusterSpec{},
-					Status: clusterv1.ManagedClusterStatus{
-						Conditions: []clusterv1.StatusCondition{
-							{
-								Type:   clusterv1.ManagedClusterConditionJoined,
-								Status: v1beta1.ConditionTrue,
-							},
-						},
-					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
 				},
 			},
 			existingRoleOjbs: newRoleObjs(),
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: managedClusterName,
+					Name: managedClusterInfoName,
 				},
 			},
 		},
 		{
 			name: "ManagedClusterHasFinalizer",
 			existingObjs: []runtime.Object{
-				&clusterv1.ManagedCluster{
+				&clusterv1beta1.ManagedClusterInfo{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: managedClusterName,
+						Name: managedClusterInfoName,
 						DeletionTimestamp: &metav1.Time{
 							Time: time.Now(),
 						},
@@ -161,20 +135,12 @@ func TestReconcile(t *testing.T) {
 							clusterRBACFinalizerName,
 						},
 					},
-					Spec: clusterv1.ManagedClusterSpec{},
-					Status: clusterv1.ManagedClusterStatus{
-						Conditions: []clusterv1.StatusCondition{
-							{
-								Type:   clusterv1.ManagedClusterConditionJoined,
-								Status: v1beta1.ConditionFalse,
-							},
-						},
-					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
 				},
 			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: managedClusterName,
+					Name: managedClusterInfoName,
 				},
 			},
 		},
@@ -183,7 +149,7 @@ func TestReconcile(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			svrc := newTestReconciler(test.existingObjs, test.existingRoleOjbs)
-			res, err := svrc.ReconcileByManagedCluster(test.req)
+			res, err := svrc.Reconcile(test.req)
 			validateError(t, err, test.expectedErrorType)
 			assert.Equal(t, res.Requeue, false)
 		})

@@ -1,3 +1,0 @@
-resources:
-- resources/200-serviceregistry.yaml
-- resources/100-coredns.yaml
