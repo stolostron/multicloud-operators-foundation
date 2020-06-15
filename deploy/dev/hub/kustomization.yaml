@@ -1,15 +1,9 @@
 resources:
 - resources/crds/action.open-cluster-management.io_managedclusteractions.yaml
-- resources/crds/clusters.open-cluster-management.io_managedclusters.yaml
 - resources/crds/internal.open-cluster-management.io_managedclusterinfos.yaml
 - resources/crds/inventory.open-cluster-management.io_baremetalassets.yaml
 - resources/crds/view.open-cluster-management.io_managedclusterviews.yaml
-- resources/100-namespace.yaml
-- resources/200-clusterrole.yaml
-- resources/200-mongo.yaml
-- resources/200-etcd.yaml
-- resources/200-agent-ca.yaml
-- resources/300-apiserver.yaml
-- resources/300-controller.yaml
-- resources/300-proxyserver.yaml
-- resources/300-acm-controller.yaml
+- resources/100-clusterrole.yaml
+- resources/100-agent-ca.yaml
+- resources/200-proxyserver.yaml
+- resources/200-controller.yaml

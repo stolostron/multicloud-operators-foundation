@@ -24,12 +24,7 @@ func buildRoleRules() []rbacv1.PolicyRule {
 		NewRule("get", "list", "watch").Groups(viewv1beta1.GroupName).Resources("managedclusterviews").RuleOrDie(),
 		NewRule("update", "patch").Groups(viewv1beta1.GroupName).Resources("managedclusterviews/status").RuleOrDie(),
 
-		// for deployables
-		NewRule("get", "list", "watch").Groups("apps.open-cluster-management.io").Resources("deployables").RuleOrDie(),
-		NewRule("patch", "update").Groups("apps.open-cluster-management.io").Resources("deployables/status").RuleOrDie(),
-
 		NewRule("create", "update", "patch").Groups("").Resources("events").RuleOrDie(),
-		NewRule("create", "update", "delete").Groups("").Resources("secrets").RuleOrDie(),
-		NewRule("create", "get", "list", "watch").Groups("").Resources("secrets").RuleOrDie(),
+		NewRule("get", "list", "watch", "create", "update", "delete").Groups("").Resources("secrets").RuleOrDie(),
 	}
 }

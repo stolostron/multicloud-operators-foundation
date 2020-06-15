@@ -4,9 +4,12 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"fmt"
+	"os"
+	"os/user"
+	"path"
+	"strings"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/template"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,10 +19,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
-
-	"os"
-	"os/user"
-	"path"
+	"k8s.io/client-go/util/retry"
 )
 
 const (
@@ -99,6 +99,10 @@ func GetJoinedManagedClusters(dynamicClient dynamic.Interface) ([]*unstructured.
 		}
 
 		if !ok || len(conditions) == 0 {
+			continue
+		}
+
+		if strings.HasPrefix(cluster.GetName(), "test-automation") {
 			continue
 		}
 
@@ -204,13 +208,18 @@ func UpdateResourceStatus(
 	dynamicClient dynamic.Interface,
 	gvr schema.GroupVersionResource,
 	obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	oldObj, err := GetResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())
-	if err != nil {
-		return obj, err
-	}
-	obj = obj.DeepCopy()
-	obj.SetResourceVersion(oldObj.GetResourceVersion())
-	return dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).UpdateStatus(obj, metav1.UpdateOptions{})
+	var rs *unstructured.Unstructured
+
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		oldObj, err := GetResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())
+		if err != nil {
+			return err
+		}
+		obj.SetResourceVersion(oldObj.GetResourceVersion())
+		rs, err = dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).UpdateStatus(obj, metav1.UpdateOptions{})
+		return err
+	})
+	return rs, err
 }
 
 func DeleteClusterResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, name string) error {
@@ -308,6 +317,24 @@ func GetConditionFromStatus(obj *unstructured.Unstructured) (map[string]interfac
 	return condition, nil
 }
 
+func GetConditionTypeFromStatus(obj *unstructured.Unstructured, typeName string) bool {
+	conditions, _, err := unstructured.NestedSlice(obj.Object, "status", "conditions")
+	if err != nil {
+		return false
+	}
+
+	if conditions == nil {
+		return false
+	}
+	for _, condition := range conditions {
+		conditionValue, _ := condition.(map[string]interface{})
+		if conditionValue["type"] == typeName {
+			return true
+		}
+	}
+	return false
+}
+
 func CreateManagedCluster(dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
 	// create a namespace for testing
 	ns, err := LoadResourceFromJSON(template.NamespaceTemplate)
@@ -326,10 +353,6 @@ func CreateManagedCluster(dynamicClient dynamic.Interface) (*unstructured.Unstru
 	}
 
 	// setup fakeManagedCluster
-	err = unstructured.SetNestedField(fakeManagedCluster.Object, clusterNamespace, "metadata", "namespace")
-	if err != nil {
-		return nil, err
-	}
 	err = unstructured.SetNestedField(fakeManagedCluster.Object, clusterNamespace, "metadata", "name")
 	if err != nil {
 		return nil, err

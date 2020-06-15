@@ -4,9 +4,9 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/helpers"
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/helpers"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -14,7 +14,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterregistryv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -31,7 +30,7 @@ import (
 
 const (
 	clusterRBACFinalizerName = "managedclusterrbac.finalizers.open-cluster-management.io"
-	namePrefix               = "acm-"
+	subjectPrefix            = "system:open-cluster-management:"
 )
 
 type Reconciler struct {
@@ -65,136 +64,66 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// TODO: Deprecate clusterregistryv1alpha1.Cluster
-	err = c.Watch(&source.Kind{Type: &clusterregistryv1alpha1.Cluster{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
 	err = c.Watch(&source.Kind{Type: &clusterv1.ManagedCluster{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
+
+	err = c.Watch(&source.Kind{Type: &clusterv1beta1.ManagedClusterInfo{}}, &handler.EnqueueRequestForObject{})
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	// TODO: Deprecate ReconcileByCluster
-	// TODO: return r.ReconcileByManagedCluster(req)
-	return r.ReconcileByCluster(req)
-}
-
-// TODO: Deprecate ReconcileByCluster
-func (r *Reconciler) ReconcileByCluster(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	cluster := &clusterregistryv1alpha1.Cluster{}
+	clusterInfo := &clusterv1beta1.ManagedClusterInfo{}
 
-	err := r.client.Get(ctx, req.NamespacedName, cluster)
+	err := r.client.Get(ctx, req.NamespacedName, clusterInfo)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// Check DeletionTimestamp to determine if object is under deletion
-	if cluster.GetDeletionTimestamp().IsZero() {
-		if !helpers.ContainsString(cluster.GetFinalizers(), clusterRBACFinalizerName) {
-			klog.Info("Finalizer not found for cluster. Adding finalizer")
-			cluster.ObjectMeta.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterRBACFinalizerName)
-			if err := r.client.Update(context.TODO(), cluster); err != nil {
-				klog.Errorf("Failed to add finalizer to cluster, %v", err)
-				return reconcile.Result{}, err
-			}
-		}
-	} else {
+	if !clusterInfo.GetDeletionTimestamp().IsZero() {
 		// The object is being deleted
-		if helpers.ContainsString(cluster.GetFinalizers(), clusterRBACFinalizerName) {
-			err := r.deleteExternalResources(roleName(cluster.Name))
+		if helpers.ContainsString(clusterInfo.GetFinalizers(), clusterRBACFinalizerName) {
+			klog.Infof("deleting rbac for ManagedCluster agent %v", clusterInfo.Name)
+			err := r.deleteExternalResources(roleName(clusterInfo.Name))
 			if err != nil {
+				klog.Warningf("will reconcile since failed to delete role and rolebinding %v, %v", roleName(clusterInfo.Name), err)
 				return reconcile.Result{}, err
 			}
-			klog.Info("Removing Finalizer from cluster")
-			cluster.ObjectMeta.Finalizers = helpers.RemoveString(cluster.ObjectMeta.Finalizers, clusterRBACFinalizerName)
-			if err := r.client.Update(context.TODO(), cluster); err != nil {
-				klog.Errorf("Failed to remove finalizer from cluster, %v", err)
+			klog.Infof("removing rbac Finalizer in ManagedClusterInfo %v", clusterInfo.Name)
+			clusterInfo.ObjectMeta.Finalizers = helpers.RemoveString(clusterInfo.ObjectMeta.Finalizers, clusterRBACFinalizerName)
+			if err := r.client.Update(context.TODO(), clusterInfo); err != nil {
+				klog.Warningf("will reconcile since failed to remove Finalizer from ManagedClusterInfo %v, %v", clusterInfo.Name, err)
 				return reconcile.Result{}, err
 			}
 		}
 		return reconcile.Result{}, nil
 	}
-	if len(cluster.Status.Conditions) == 0 {
-		return reconcile.Result{}, nil
-	}
-	condition := cluster.Status.Conditions[len(cluster.Status.Conditions)-1]
-	if condition.Type != clusterregistryv1alpha1.ClusterOK {
-		return reconcile.Result{}, nil
+
+	if clusterInfo.GetDeletionTimestamp().IsZero() {
+		if !helpers.ContainsString(clusterInfo.GetFinalizers(), clusterRBACFinalizerName) {
+			klog.Infof("adding rbac Finalizer to ManagedClusterInfo %v", clusterInfo.Name)
+			clusterInfo.ObjectMeta.Finalizers = append(clusterInfo.ObjectMeta.Finalizers, clusterRBACFinalizerName)
+			if err := r.client.Update(context.TODO(), clusterInfo); err != nil {
+				klog.Warningf("will reconcile since failed to add finalizer to ManagedClusterInfo %v, %v", clusterInfo.Name, err)
+				return reconcile.Result{}, err
+			}
+		}
 	}
 
-	if err = r.createOrUpdateRole(cluster.Name); err != nil {
-		klog.Errorf("Failed to update cluster role: %v", err)
+	if err = r.createOrUpdateRole(clusterInfo.Name); err != nil {
+		klog.Warningf("will reconcile since failed to create/update role %v, %v", roleName(clusterInfo.Name), err)
 		return ctrl.Result{}, err
 	}
 
-	if err = r.createOrUpdateRoleBinding(cluster.Name); err != nil {
-		klog.Errorf("Failed to update cluster rolebinding: %v", err)
-		return ctrl.Result{}, err
-	}
-
-	return ctrl.Result{}, nil
-}
-
-func (r *Reconciler) ReconcileByManagedCluster(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
-	cluster := &clusterv1.ManagedCluster{}
-
-	err := r.client.Get(ctx, req.NamespacedName, cluster)
-	if err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-
-	// Check DeletionTimestamp to determine if object is under deletion
-	if cluster.GetDeletionTimestamp().IsZero() {
-		if !helpers.ContainsString(cluster.GetFinalizers(), clusterRBACFinalizerName) {
-			klog.Info("Finalizer not found for cluster. Adding finalizer")
-			cluster.ObjectMeta.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterRBACFinalizerName)
-			if err := r.client.Update(context.TODO(), cluster); err != nil {
-				klog.Errorf("Failed to add finalizer to cluster, %v", err)
-				return reconcile.Result{}, err
-			}
-		}
-	} else {
-		// The object is being deleted
-		if helpers.ContainsString(cluster.GetFinalizers(), clusterRBACFinalizerName) {
-			err := r.deleteExternalResources(roleName(cluster.Name))
-			if err != nil {
-				return reconcile.Result{}, err
-			}
-			klog.Info("Removing Finalizer from cluster")
-			cluster.ObjectMeta.Finalizers = helpers.RemoveString(cluster.ObjectMeta.Finalizers, clusterRBACFinalizerName)
-			if err := r.client.Update(context.TODO(), cluster); err != nil {
-				klog.Errorf("Failed to remove finalizer from cluster, %v", err)
-				return reconcile.Result{}, err
-			}
-		}
-		return reconcile.Result{}, nil
-	}
-
-	conditionJoined := clusterv1.StatusCondition{}
-	for _, condition := range cluster.Status.Conditions {
-		if condition.Type == clusterv1.ManagedClusterConditionJoined {
-			conditionJoined = condition
-			break
-		}
-	}
-	if conditionJoined.Status != v1beta1.ConditionTrue {
-		return reconcile.Result{}, nil
-	}
-
-	if err = r.createOrUpdateRole(cluster.Name); err != nil {
-		klog.Errorf("Failed to update cluster role: %v", err)
-		return ctrl.Result{}, err
-	}
-
-	if err = r.createOrUpdateRoleBinding(cluster.Name); err != nil {
-		klog.Errorf("Failed to update cluster rolebinding: %v", err)
+	if err = r.createOrUpdateRoleBinding(clusterInfo.Name); err != nil {
+		klog.Warningf("will reconcile since failed to create/update rolebinding %v, %v", roleName(clusterInfo.Name), err)
 		return ctrl.Result{}, err
 	}
 
@@ -221,14 +150,14 @@ func (r *Reconciler) createOrUpdateRole(clusterName string) error {
 	rules := buildRoleRules()
 	if err != nil {
 		if errors.IsNotFound(err) {
-			hcmRole := &rbacv1.Role{
+			acmRole := &rbacv1.Role{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      roleName(clusterName),
 					Namespace: clusterName,
 				},
 				Rules: rules,
 			}
-			_, err = r.kubeClient.RbacV1().Roles(clusterName).Create(hcmRole)
+			_, err = r.kubeClient.RbacV1().Roles(clusterName).Create(acmRole)
 		}
 		return err
 	}
@@ -244,25 +173,25 @@ func (r *Reconciler) createOrUpdateRole(clusterName string) error {
 
 // createOrUpdateRoleBinding create or update a role binding for a given cluster
 func (r *Reconciler) createOrUpdateRoleBinding(clusterName string) error {
-	hcmRoleBinding := NewRoleBinding(
-		roleName(clusterName), clusterName).Users("hcm:clusters:" + clusterName + ":" + clusterName).BindingOrDie()
+	acmRoleBinding := NewRoleBinding(
+		roleName(clusterName), clusterName).Groups(subjectPrefix + clusterName).BindingOrDie()
 
 	binding, err := r.kubeClient.RbacV1().RoleBindings(clusterName).Get(roleName(clusterName), metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = r.kubeClient.RbacV1().RoleBindings(clusterName).Create(&hcmRoleBinding)
+			_, err = r.kubeClient.RbacV1().RoleBindings(clusterName).Create(&acmRoleBinding)
 		}
 		return err
 	}
 
 	needUpdate := false
-	if !reflect.DeepEqual(hcmRoleBinding.RoleRef, binding.RoleRef) {
+	if !reflect.DeepEqual(acmRoleBinding.RoleRef, binding.RoleRef) {
 		needUpdate = true
-		binding.RoleRef = hcmRoleBinding.RoleRef
+		binding.RoleRef = acmRoleBinding.RoleRef
 	}
-	if reflect.DeepEqual(hcmRoleBinding.Subjects, binding.Subjects) {
+	if !reflect.DeepEqual(acmRoleBinding.Subjects, binding.Subjects) {
 		needUpdate = true
-		binding.Subjects = hcmRoleBinding.Subjects
+		binding.Subjects = acmRoleBinding.Subjects
 	}
 	if needUpdate {
 		_, err = r.kubeClient.RbacV1().RoleBindings(clusterName).Update(binding)
@@ -273,5 +202,5 @@ func (r *Reconciler) createOrUpdateRoleBinding(clusterName string) error {
 }
 
 func roleName(clusterName string) string {
-	return namePrefix + clusterName
+	return clusterName + ":managed-cluster-foundation"
 }

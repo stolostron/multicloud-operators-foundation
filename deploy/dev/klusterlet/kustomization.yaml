@@ -1,6 +1,3 @@
 resources:
-- resources/100-namespace.yaml
-- resources/200-clusterrole.yaml
-- resources/200-connectionmanager.yaml
-- resources/300-agent.yaml
-- resources/300-klusterlet.yaml
+- resources/100-clusterrole.yaml
+- resources/200-agent.yaml
