@@ -133,3 +133,45 @@ done
 echo "ACM Foundation is deployed successfully!!!"
 # Run e2e test
 make GO_REQUIRED_MIN_VERSION:= e2e-test
+
+rst="$?"
+if [ "$rst" -ne 0 ]; then
+  echo "Failed to run e2e-test !!!"
+  exit 1
+fi
+
+# Test logging
+kubectl proxy &
+sleep 10
+curl http://127.0.0.1:8001/apis/proxy.open-cluster-management.io/v1beta1/namespaces/cluster1/clusterstatuses/cluster1/log/kube-system/etcd-multicloud-hub-control-plane/etcd
+
+rst="$?"
+if [ "$rst" -ne 0 ]; then
+  echo "Failed to get log !!!"
+  exit 1
+fi
+
+# Test delete cluster
+kubectl delete managedclusters "${MANAGED_CLUSTER}"
+
+rst="$?"
+if [ "$rst" -ne 0 ]; then
+  echo "Failed to delete cluster !!!"
+  exit 1
+fi
+
+for i in {1..7}; do
+  echo "############$i  Checking ManagedClusterInfo"
+  INFO=$(kubectl get managedclusterinfos -n "${MANAGED_CLUSTER}" "${MANAGED_CLUSTER}" -o yaml | grep -c "version:")
+  if [ "${INFO}" -eq 0 ]; then
+    break
+  fi
+
+  if [ $i -eq 7 ]; then
+    echo "Failed to run e2e test, the acm foundation agent is not ready within 3 minutes"
+    ACM_POD=$(kubectl -n open-cluster-management-agent get pods | grep acm-agent | awk '{print $1}')
+    kubectl logs -n open-cluster-management-agent "$ACM_POD"
+    exit 1
+  fi
+  sleep 30
+done
