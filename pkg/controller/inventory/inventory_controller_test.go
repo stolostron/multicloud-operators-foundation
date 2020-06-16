@@ -98,21 +98,6 @@ func TestReconcile(t *testing.T) {
 			},
 		},
 		{
-			name: "SyncSetInstancesNotFound",
-			existingObjs: []runtime.Object{
-				newBMAWithClusterDeployment(),
-				newSecret(),
-				newClusterDeployment(),
-			},
-			expectedErrorType: fmt.Errorf("no SyncSetInstances with label name hive.openshift.io/syncset-name and label value %s found", testName),
-			req: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      testName,
-					Namespace: testNamespace,
-				},
-			},
-		},
-		{
 			name: "BareMetalAssetWithDeletionTimestampAndFinalizer",
 			existingObjs: []runtime.Object{
 				func() *inventoryv1alpha1.BareMetalAsset {
@@ -266,10 +251,16 @@ func TestEnsureHiveSyncSet(t *testing.T) {
 		{
 			name:         "SyncSetCreate",
 			existingObjs: []runtime.Object{},
-			expectedConditions: []conditionsv1.Condition{{
-				Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
-				Status: corev1.ConditionTrue,
-			}},
+			expectedConditions: []conditionsv1.Condition{
+				{
+					Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
+					Status: corev1.ConditionTrue,
+				},
+				{
+					Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
+					Status: corev1.ConditionFalse,
+				},
+			},
 			bma: newBMAWithClusterDeployment(),
 		},
 		{
@@ -288,10 +279,16 @@ func TestEnsureHiveSyncSet(t *testing.T) {
 					},
 				}
 			}()},
-			expectedConditions: []conditionsv1.Condition{{
-				Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
-				Status: corev1.ConditionTrue,
-			}},
+			expectedConditions: []conditionsv1.Condition{
+				{
+					Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
+					Status: corev1.ConditionTrue,
+				},
+				{
+					Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
+					Status: corev1.ConditionFalse,
+				},
+			},
 			bma: newBMAWithClusterDeployment(),
 		},
 	}
@@ -322,15 +319,14 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 	tests := []struct {
 		name               string
 		existingObjs       []runtime.Object
-		expectedErrorType  error
+		returnValue        bool
 		expectedConditions []conditionsv1.Condition
 		bma                *inventoryv1alpha1.BareMetalAsset
 	}{
 		{
 			name:         "SyncSetInstanceNotFound",
 			existingObjs: []runtime.Object{newBMA()},
-			expectedErrorType: fmt.Errorf("no SyncSetInstances with label name %v and label value %v found",
-				hiveconstants.SyncSetNameLabel, testName),
+			returnValue:  false,
 			expectedConditions: []conditionsv1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status: corev1.ConditionFalse,
@@ -338,9 +334,9 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 			bma: newBMA(),
 		},
 		{
-			name:              "UnexpectedResourceCount",
-			existingObjs:      []runtime.Object{newBMA(), newSyncSetInstance()},
-			expectedErrorType: fmt.Errorf("unexpected number of resources found on SyncSetInstance status. Expected (1) Found (0)"),
+			name:         "UnexpectedResourceCount",
+			existingObjs: []runtime.Object{newBMA(), newSyncSetInstance()},
+			returnValue:  false,
 			expectedConditions: []conditionsv1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status: corev1.ConditionFalse,
@@ -360,9 +356,7 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 					return ssi
 				}(), newBMA(),
 			},
-			expectedErrorType: fmt.Errorf("unexpected resource found in SyncSetInstance status. "+
-				"Expected (Kind: %v APIVersion: %v) Found (Kind: %v APIVersion: %v)",
-				BareMetalHostKind, metal3v1alpha1.SchemeGroupVersion.String(), "AnInvalidKind", ""),
+			returnValue: false,
 			expectedConditions: []conditionsv1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status: corev1.ConditionFalse,
@@ -382,9 +376,7 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 					return ssi
 				}(), newBMA(),
 			},
-			expectedErrorType: fmt.Errorf("unexpected resource found in SyncSetInstance status. "+
-				"Expected (Kind: %v APIVersion: %v) Found (Kind: %v APIVersion: %v)",
-				BareMetalHostKind, metal3v1alpha1.SchemeGroupVersion.String(), "", "InvalidAPIVersion"),
+			returnValue: false,
 			expectedConditions: []conditionsv1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status: corev1.ConditionFalse,
@@ -396,7 +388,7 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 			existingObjs: []runtime.Object{
 				newSyncSetInstanceResouceApplySuccess(),
 			},
-			expectedErrorType: fmt.Errorf("unexpected number of secrets found on SyncSetInstance. Expected: (1) Actual: (0)"),
+			returnValue: true,
 			expectedConditions: []conditionsv1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status: corev1.ConditionFalse,
@@ -416,7 +408,7 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 							{
 								Message: "Apply failed",
 								Reason:  "ApplyFailed",
-								Status:  corev1.ConditionFalse,
+								Status:  corev1.ConditionTrue,
 								Type:    hivev1.ApplyFailureSyncCondition,
 							},
 						},
@@ -424,7 +416,7 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 					return ssi
 				}(),
 			},
-			expectedErrorType: fmt.Errorf("get SyncSetInstance resource %s failed with message Apply failed", testName),
+			returnValue: false,
 			expectedConditions: []conditionsv1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status: corev1.ConditionFalse,
@@ -450,6 +442,7 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 				}
 				return ssi
 			}()},
+			returnValue: true,
 			expectedConditions: []conditionsv1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status: corev1.ConditionTrue,
@@ -468,7 +461,7 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 								{
 									Message: "Apply failed",
 									Reason:  "ApplyFailed",
-									Status:  corev1.ConditionFalse,
+									Status:  corev1.ConditionTrue,
 									Type:    hivev1.ApplyFailureSyncCondition,
 								},
 							},
@@ -477,7 +470,7 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 					return ssi
 				}(),
 			},
-			expectedErrorType: fmt.Errorf("get SyncSetInstance resource %s failed with message Apply failed", testName),
+			returnValue: true,
 			expectedConditions: []conditionsv1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status: corev1.ConditionFalse,
@@ -494,7 +487,7 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 					return ssi
 				}(),
 			},
-			expectedErrorType: fmt.Errorf("found multiple Hive SyncSetInstances with same label"),
+			returnValue: false,
 			expectedConditions: []conditionsv1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status: corev1.ConditionFalse,
@@ -506,8 +499,8 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
-			err := rbma.checkHiveSyncSetInstance(test.bma)
-			validateErrorAndStatusConditions(t, err, test.expectedErrorType, test.expectedConditions, test.bma)
+			assert.Equal(t, test.returnValue, rbma.checkHiveSyncSetInstance(test.bma))
+			validateErrorAndStatusConditions(t, nil, nil, test.expectedConditions, test.bma)
 		})
 	}
 }
@@ -520,19 +513,19 @@ func TestDeleteSyncSet(t *testing.T) {
 	}{
 		{
 			name:         "ClusterDeploymentWithEmptyNamespace",
-			existingObjs: []runtime.Object{},
+			existingObjs: []runtime.Object{newBMA()},
 			bma:          newBMA(),
 		},
 		{
 			name:         "ClusterDeploymentWithNamespace",
-			existingObjs: []runtime.Object{},
+			existingObjs: []runtime.Object{newBMA()},
 			bma:          newBMAWithClusterDeployment(),
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
-			err := rbma.deleteSyncSet(test.bma)
+			_, err := rbma.deleteSyncSet(test.bma)
 			validateErrorAndStatusConditions(t, err, nil, nil, test.bma)
 		})
 	}
