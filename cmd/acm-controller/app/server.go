@@ -108,9 +108,11 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 		return err
 	}
 
-	if err = clusterrbac.SetupWithManager(mgr, kubeClient); err != nil {
-		klog.Errorf("unable to setup clusterrbac reconciler: %v", err)
-		return err
+	if o.EnableRBAC {
+		if err = clusterrbac.SetupWithManager(mgr, kubeClient); err != nil {
+			klog.Errorf("unable to setup clusterrbac reconciler: %v", err)
+			return err
+		}
 	}
 
 	if err = gc.SetupWithManager(mgr); err != nil {
