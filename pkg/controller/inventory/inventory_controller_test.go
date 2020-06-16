@@ -470,7 +470,7 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 					return ssi
 				}(),
 			},
-			returnValue: false,
+			returnValue: true,
 			expectedConditions: []conditionsv1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status: corev1.ConditionFalse,

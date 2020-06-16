@@ -645,9 +645,8 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *inventoryv1
 		return false
 	}
 
-	// Ensure both the BMH resource and associated secret have been synced
-	return r.checkHiveSyncSetInstanceResources(instance, found.Items[0].Status) &&
-		r.checkHiveSyncSetInstanceSecrets(instance, found.Items[0].Status)
+	r.checkHiveSyncSetInstanceSecrets(instance, found.Items[0].Status)
+	return r.checkHiveSyncSetInstanceResources(instance, found.Items[0].Status)
 }
 
 func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *inventoryv1alpha1.BareMetalAsset,
@@ -696,12 +695,15 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *in
 		switch condition.Type {
 		case hivev1.ApplySuccessSyncCondition:
 			if condition.Status == corev1.ConditionTrue {
-				conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-					Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
-					Status:  condition.Status,
-					Reason:  condition.Reason,
-					Message: condition.Message,
-				})
+				if !conditionsv1.IsStatusConditionPresentAndEqual(instance.Status.Conditions,
+					inventoryv1alpha1.ConditionAssetSyncCompleted, corev1.ConditionFalse) {
+					conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+						Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
+						Status:  condition.Status,
+						Reason:  condition.Reason,
+						Message: condition.Message,
+					})
+				}
 				return true
 			}
 		case hivev1.ApplyFailureSyncCondition:
@@ -719,7 +721,8 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *in
 	return false
 }
 
-func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceSecrets(instance *inventoryv1alpha1.BareMetalAsset, syncSetStatus hivev1.SyncSetInstanceStatus) bool {
+func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceSecrets(instance *inventoryv1alpha1.BareMetalAsset,
+	syncSetStatus hivev1.SyncSetInstanceStatus) bool {
 	if len(syncSetStatus.Secrets) != 1 {
 		err := fmt.Errorf("unexpected number of secrets found on SyncSetInstance")
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
@@ -734,13 +737,17 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceSecrets(instance *inve
 	for _, condition := range secret.Conditions {
 		switch condition.Type {
 		case hivev1.ApplySuccessSyncCondition:
+			// Only update success if not marked failed
 			if condition.Status == corev1.ConditionTrue {
-				conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-					Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
-					Status:  condition.Status,
-					Reason:  condition.Reason,
-					Message: condition.Message,
-				})
+				if !conditionsv1.IsStatusConditionPresentAndEqual(instance.Status.Conditions,
+					inventoryv1alpha1.ConditionAssetSyncCompleted, corev1.ConditionFalse) {
+					conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+						Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
+						Status:  condition.Status,
+						Reason:  condition.Reason,
+						Message: condition.Message,
+					})
+				}
 				return true
 			}
 		case hivev1.ApplyFailureSyncCondition:
