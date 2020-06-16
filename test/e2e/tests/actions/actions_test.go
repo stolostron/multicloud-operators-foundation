@@ -103,8 +103,8 @@ var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 					return "", nil
 				}
 
-				return condition["type"], nil
-			}, eventuallyTimeout, eventuallyInterval).Should(Equal("Completed"))
+				return condition["status"], nil
+			}, eventuallyTimeout, eventuallyInterval).Should(Equal("True"))
 		})
 	})
 })
