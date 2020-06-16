@@ -1,7 +1,4 @@
-// licensed Materials - Property of IBM
-// 5737-E67
-// (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
-// US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+// Copyright (c) 2020 Red Hat, Inc.
 
 package options
 
@@ -15,6 +12,7 @@ type ControllerRunOptions struct {
 	CAFile               string
 	EnableInventory      bool
 	EnableLeaderElection bool
+	EnableRBAC           bool
 	QPS                  float32
 	Burst                int
 }
@@ -26,6 +24,7 @@ func NewControllerRunOptions() *ControllerRunOptions {
 		CAFile:               "/var/run/agent/ca.crt",
 		EnableInventory:      false,
 		EnableLeaderElection: true,
+		EnableRBAC:           true,
 		QPS:                  100.0,
 		Burst:                200,
 	}
@@ -42,6 +41,8 @@ func (o *ControllerRunOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	fs.BoolVar(&o.EnableRBAC, "enable-rbac", o.EnableRBAC,
+		"Enable RBAC controller.")
 	fs.Float32Var(&o.QPS, "max-qps", o.QPS,
 		"Maximum QPS to the hub server from this controller.")
 	fs.IntVar(&o.Burst, "max-burst", o.Burst,

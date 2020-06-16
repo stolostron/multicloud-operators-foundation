@@ -3,7 +3,7 @@ kind: Service
 apiVersion: v1
 metadata:
   name: acm-proxyserver
-  namespace: multicloud-system
+  namespace: open-cluster-management
 spec:
   selector:
     app: acm-proxyserver
@@ -23,7 +23,7 @@ spec:
   group: proxy.open-cluster-management.io
   version: v1beta1
   service:
-    namespace: multicloud-system
+    namespace: open-cluster-management
     name: acm-proxyserver
   insecureSkipTLSVerify: true
   groupPriorityMinimum: 10000
@@ -35,7 +35,7 @@ kind: Deployment
 apiVersion: apps/v1
 metadata:
   name: acm-proxyserver
-  namespace: multicloud-system
+  namespace: open-cluster-management
   labels:
     app: acm-proxyserver
 spec:
@@ -48,9 +48,10 @@ spec:
       labels:
         app: acm-proxyserver
     spec:
+      serviceAccountName: acm-foundation-sa
       containers:
       - name: acm-proxyserver
-        image: github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver
+        image: ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver
         imagePullPolicy: IfNotPresent
         args:
           - "/acm-proxyserver"

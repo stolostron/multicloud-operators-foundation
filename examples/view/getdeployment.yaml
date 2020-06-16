@@ -5,9 +5,9 @@ metadata:
   labels:
     name: getdeployment
   name: getdeployment
-  namespace: cluster0
+  namespace: cluster1
 spec:
   scope:
     resource: deployments
     name: acm-proxyserver
-    namespace: multicloud-system
+    namespace: open-cluster-management

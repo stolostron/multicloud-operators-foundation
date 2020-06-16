@@ -202,9 +202,8 @@ acm-controller:
 acm-agent:
 	@common/scripts/gobuild.sh $(BINDIR)/acm-agent ./cmd/acm-agent
 
-
 acm-proxyserver:
-	@common/scripts/gobuild.sh $(BINDIR)/acm-proxyserver -ldflags '-s -w -X $(SC_PKG)/pkg.VERSION=$(VERSION) $(BUILD_LDFLAGS)' github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver
+	@common/scripts/gobuild.sh $(BINDIR)/acm-proxyserver ./cmd/acm-proxyserver
 
 ############################################################
 # images section

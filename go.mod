@@ -32,6 +32,7 @@ replace github.com/docker/docker => github.com/moby/moby v0.7.3-0.20190826074503
 
 // Match with k8s.io/component-base
 replace (
+	github.com/docker/docker-credential-helpers => github.com/docker/docker-credential-helpers v0.6.3
 	github.com/golang/protobuf => github.com/golang/protobuf v1.3.2
 	github.com/onsi/ginkgo => github.com/onsi/ginkgo v1.12.0
 	github.com/onsi/gomega => github.com/onsi/gomega v1.9.0
@@ -55,7 +56,7 @@ require (
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a
 	github.com/metal3-io/baremetal-operator v0.0.0-20200228072510-dfd5fea95b0a
 	github.com/mongodb/mongo-go-driver v0.0.0-20180808171322-9b26cbb1a61a
-	github.com/onsi/ginkgo v1.12.2
+	github.com/onsi/ginkgo v1.12.3
 	github.com/onsi/gomega v1.10.1
 	github.com/open-cluster-management/api v0.0.0-20200602195039-a516cac2e038
 	github.com/openshift/client-go v0.0.0-20190923180330-3b6373338c9b

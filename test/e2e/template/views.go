@@ -9,13 +9,13 @@ const ManagedClusterViewTemplate = `{
       "name": "getdeployment"
     },
     "name": "getdeployment",
-    "namespace": "cluster0"
+    "namespace": "cluster1"
   },
   "spec": {
     "scope": {
       "resource": "deployments",
-      "name": "acm-proxyserver",
-      "namespace": "open-cluster-management"
+      "name": "acm-agent",
+      "namespace": "open-cluster-management-agent"
     }
   }
 }`

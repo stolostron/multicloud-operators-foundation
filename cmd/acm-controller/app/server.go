@@ -1,7 +1,4 @@
-// licensed Materials - Property of IBM
-// 5737-E67
-// (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
-// US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+// Copyright (c) 2020 Red Hat, Inc.
 
 package app
 
@@ -111,9 +108,11 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 		return err
 	}
 
-	if err = clusterrbac.SetupWithManager(mgr, kubeClient); err != nil {
-		klog.Errorf("unable to setup clusterrbac reconciler: %v", err)
-		return err
+	if o.EnableRBAC {
+		if err = clusterrbac.SetupWithManager(mgr, kubeClient); err != nil {
+			klog.Errorf("unable to setup clusterrbac reconciler: %v", err)
+			return err
+		}
 	}
 
 	if err = gc.SetupWithManager(mgr); err != nil {
