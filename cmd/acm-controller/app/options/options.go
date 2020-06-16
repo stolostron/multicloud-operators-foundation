@@ -12,6 +12,7 @@ type ControllerRunOptions struct {
 	CAFile               string
 	EnableInventory      bool
 	EnableLeaderElection bool
+	EnableRBAC           bool
 	QPS                  float32
 	Burst                int
 }
@@ -23,6 +24,7 @@ func NewControllerRunOptions() *ControllerRunOptions {
 		CAFile:               "/var/run/agent/ca.crt",
 		EnableInventory:      false,
 		EnableLeaderElection: true,
+		EnableRBAC:           true,
 		QPS:                  100.0,
 		Burst:                200,
 	}
@@ -39,6 +41,8 @@ func (o *ControllerRunOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	fs.BoolVar(&o.EnableRBAC, "enable-rbac", o.EnableRBAC,
+		"Enable RBAC controller.")
 	fs.Float32Var(&o.QPS, "max-qps", o.QPS,
 		"Maximum QPS to the hub server from this controller.")
 	fs.IntVar(&o.Burst, "max-burst", o.Burst,
