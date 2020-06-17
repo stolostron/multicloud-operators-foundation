@@ -1,11 +1,10 @@
 // +build integration
 
-package clusterinfos_test
+package cluster_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/common"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -21,6 +20,11 @@ var clusterInfoGVR = schema.GroupVersionResource{
 	Group:    "internal.open-cluster-management.io",
 	Version:  "v1beta1",
 	Resource: "managedclusterinfos",
+}
+var clusterGVR = schema.GroupVersionResource{
+	Group:    "cluster.open-cluster-management.io",
+	Version:  "v1",
+	Resource: "managedclusters",
 }
 
 var (
@@ -38,27 +42,18 @@ var _ = BeforeSuite(func() {
 	Ω(len(realClusters)).ShouldNot(Equal(0))
 
 	realCluster = realClusters[0]
+	err = common.DeleteClusterResource(dynamicClient, clusterGVR, realCluster.GetName())
+	Ω(err).ShouldNot(HaveOccurred())
 })
 
 var _ = AfterSuite(func() {})
 
 var _ = Describe("Testing ManagedClusterInfo", func() {
 	Context("Get ManagedClusterInfo", func() {
-		It("should get a ManagedClusterInfo successfully in cluster", func() {
-			exists, err := common.HasResource(dynamicClient, clusterInfoGVR, realCluster.GetName(), realCluster.GetName())
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(exists).Should(BeTrue())
-		})
-
-		It("should have a valid condition", func() {
-			Eventually(func() (interface{}, error) {
-				ManagedClusterInfo, err := common.GetResource(dynamicClient, clusterInfoGVR, realCluster.GetName(), realCluster.GetName())
-				if err != nil {
-					return "", err
-				}
-				// check the ManagedClusterInfo status
-				return common.GetConditionTypeFromStatus(ManagedClusterInfo, clusterv1.ManagedClusterConditionJoined), nil
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+		It("clusterinfo shoudl be deleted automitically.", func() {
+			Eventually(func() (bool, error) {
+				return common.HasResource(dynamicClient, clusterInfoGVR, realCluster.GetName(), realCluster.GetName())
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(BeTrue())
 		})
 	})
 })
