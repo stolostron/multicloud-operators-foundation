@@ -44,7 +44,7 @@ replace (
 
 require (
 	bou.ke/monkey v1.0.2
-	github.com/buger/jsonparser v0.0.0-20180808090653-f4dd9f5a6b44 // indirect
+	github.com/buger/jsonparser v1.0.0 // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/emicklei/go-restful v2.11.1+incompatible
