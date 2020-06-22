@@ -133,3 +133,21 @@ done
 echo "ACM Foundation is deployed successfully!!!"
 # Run e2e test
 make GO_REQUIRED_MIN_VERSION:= e2e-test
+
+rst="$?"
+if [ "$rst" -ne 0 ]; then
+  echo "Failed to run e2e-test !!!"
+  exit 1
+fi
+
+# Test logging
+kubectl proxy &
+sleep 10
+curl http://127.0.0.1:8001/apis/proxy.open-cluster-management.io/v1beta1/namespaces/cluster1/clusterstatuses/cluster1/log/kube-system/etcd-multicloud-hub-control-plane/etcd
+
+rst="$?"
+if [ "$rst" -ne 0 ]; then
+  echo "Failed to get log !!!"
+  exit 1
+fi
+
