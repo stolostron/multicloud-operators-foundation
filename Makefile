@@ -175,7 +175,7 @@ generate_files: generate_exes $(TYPES_FILES)
 # build section
 ############################################################
 
-build: acm-proxyserver mcm-apiserver mcm-webhook mcm-controller klusterlet klusterlet-connectionmanager serviceregistry acm-agent acm-controller
+build: acm-proxyserver mcm-apiserver mcm-webhook mcm-controller klusterlet klusterlet-connectionmanager serviceregistry acm-agent acm-controller acm-webhook
 
 
 mcm-apiserver:
@@ -197,13 +197,16 @@ serviceregistry:
 	@common/scripts/gobuild.sh $(BINDIR)/serviceregistry ./cmd/serviceregistry
 
 acm-controller:
-	@common/scripts/gobuild.sh $(BINDIR)/acm-controller github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller
+	@common/scripts/gobuild.sh $(BINDIR)/acm-controller ./cmd/acm-controller
 
 acm-agent:
 	@common/scripts/gobuild.sh $(BINDIR)/acm-agent ./cmd/acm-agent
 
 acm-proxyserver:
 	@common/scripts/gobuild.sh $(BINDIR)/acm-proxyserver ./cmd/acm-proxyserver
+
+acm-webhook:
+	@common/scripts/gobuild.sh $(BINDIR)/acm-webhook ./cmd/acm-webhook/
 
 ############################################################
 # images section
