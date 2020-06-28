@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.2
+FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 
 ENV USER_UID=10001 \
     USER_NAME=acm-foundation
