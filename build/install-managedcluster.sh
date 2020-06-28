@@ -114,7 +114,7 @@ kubectl patch managedclusters "${MANAGED_CLUSTER}" --type merge --patch '{"spec"
 
 for i in {1..7}; do
   echo "############$i  Checking managedcluster ${MANAGED_CLUSTER} joining"
-  MANAGED_CLUSTER_ACCEPT=$(kubectl get managedclusters "${MANAGED_CLUSTER}" -o yaml | grep -c "type: ManagedClusterJoined" | tr -d '[:space:]')
+  MANAGED_CLUSTER_ACCEPT=$(kubectl get managedclusters "${MANAGED_CLUSTER}" -o yaml | grep -c "type: HubAcceptedManagedCluster" | tr -d '[:space:]')
   if [ "${MANAGED_CLUSTER_ACCEPT}" -eq 1 ]; then
     break
   fi
