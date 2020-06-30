@@ -5,33 +5,25 @@ package app
 import (
 	"io/ioutil"
 
-	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
-
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/gc"
-
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
-
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	clusterregistryv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
-
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterrbac"
-	"k8s.io/client-go/kubernetes"
-
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/autodetect"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterinfo"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterrbac"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/gc"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/inventory"
+	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
-
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
-
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
-
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
+	clusterregistryv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	"k8s.io/klog"
-
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
 var (
@@ -105,6 +97,11 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 
 	if err = clusterinfo.SetupWithManager(mgr, caData); err != nil {
 		klog.Errorf("unable to setup clusterInfo reconciler: %v", err)
+		return err
+	}
+
+	if err = autodetect.SetupWithManager(mgr); err != nil {
+		klog.Errorf("unable to setup auto detect reconciler: %v", err)
 		return err
 	}
 
