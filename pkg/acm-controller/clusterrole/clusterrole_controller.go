@@ -31,7 +31,6 @@ import (
 
 const (
 	clusterRoleFinalizerName = "managedclusterrole.finalizers.open-cluster-management.io"
-	subjectPrefix            = "system:open-cluster-management:"
 	managedClusterKey        = "cluster.open-cluster-management.io/managedCluster"
 )
 
