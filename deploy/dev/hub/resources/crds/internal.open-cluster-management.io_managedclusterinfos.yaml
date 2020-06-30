@@ -50,6 +50,10 @@ spec:
         status:
           description: Status represents the desired status of the Cluster
           properties:
+            cloudVendor:
+              description: CloudVendor describes the cloud provider for the managed
+                cluster.
+              type: string
             conditions:
               description: Conditions contains condition information for a managed
                 cluster
@@ -113,6 +117,10 @@ spec:
                     OCP currently
                   type: string
               type: object
+            kubeVendor:
+              description: KubeVendor describes the kubernetes provider of the managed
+                cluster.
+              type: string
             loggingEndpoint:
               description: LoggingEndpoint shows the endpoint to connect to logging
                 server of managed cluster

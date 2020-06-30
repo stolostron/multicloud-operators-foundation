@@ -29,12 +29,9 @@ make run-e2e-test TEST_SUITE=<test_suite_name>
 
 Below is the list of all available test suites:
 
-* clusters
-* clusterjoinrequests
-* resourceviews
-* works
-* worksets
-* connectionmanager
+* actions
+* clusterinfos
+* views
 
 ### Results
 

@@ -29,6 +29,14 @@ type ClusterInfoStatus struct {
 	// +optional
 	Version string `json:"version,omitempty"`
 
+	// KubeVendor describes the kubernetes provider of the managed cluster.
+	// +optional
+	KubeVendor KubeVendorType `json:"kubeVendor,omitempty"`
+
+	// CloudVendor describes the cloud provider for the managed cluster.
+	// +optional
+	CloudVendor CloudVendorType `json:"cloudVendor,omitempty"`
+
 	// DistributionInfo is the information about distribution of managed cluster
 	// +optional
 	DistributionInfo DistributionInfo `json:"distributionInfo,omitempty"`
@@ -119,6 +127,42 @@ type DistributionType string
 // Supported distribution type
 const (
 	DistributionTypeOCP DistributionType = "OCP"
+)
+
+// KubeVendorType describe the kubernetes provider of the cluster
+type KubeVendorType string
+
+const (
+	// KubeVendorOpenShift OpenShift
+	KubeVendorOpenShift KubeVendorType = "OpenShift"
+	// KubeVendorAKS Azure Kuberentes Service
+	KubeVendorAKS KubeVendorType = "AKS"
+	// KubeVendorEKS Elastic Kubernetes Service
+	KubeVendorEKS KubeVendorType = "EKS"
+	// KubeVendorGKE Google Kubernetes Engine
+	KubeVendorGKE KubeVendorType = "GKE"
+	// KubeVendorICP IBM Cloud Private
+	KubeVendorICP KubeVendorType = "ICP"
+	// KubeVendorIKS IBM Kubernetes Service
+	KubeVendorIKS KubeVendorType = "IKS"
+	// KubeVendorOther other (unable to auto detect)
+	KubeVendorOther KubeVendorType = "Other"
+)
+
+// CloudVendorType describe the cloud provider for the cluster
+type CloudVendorType string
+
+const (
+	// CloudVendorIBM IBM
+	CloudVendorIBM CloudVendorType = "IBM"
+	// CloudVendorAWS Amazon
+	CloudVendorAWS CloudVendorType = "Amazon"
+	// CloudVendorAzure Azure
+	CloudVendorAzure CloudVendorType = "Azure"
+	// CloudVendorGoogle Google
+	CloudVendorGoogle CloudVendorType = "Google"
+	// CloudVendorOther other (unable to auto detect)
+	CloudVendorOther CloudVendorType = "Other"
 )
 
 // +kubebuilder:object:root=true
