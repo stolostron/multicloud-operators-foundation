@@ -87,6 +87,11 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		return ctrl.Result{}, err
 	}
 
+	// Get Vendor
+	kubeVendor, cloudVendor := r.getVendor(newStatus.Version, newStatus.DistributionInfo.Type == clusterv1beta1.DistributionTypeOCP)
+	newStatus.KubeVendor = kubeVendor
+	newStatus.CloudVendor = cloudVendor
+
 	// Get nodeList
 	nodeList, err := r.getNodeList()
 	if err != nil {
@@ -285,6 +290,65 @@ func (r *ClusterInfoReconciler) getVersion() string {
 	return serverVersionString
 }
 
+func (r *ClusterInfoReconciler) getVendor(gitVersion string, isOpenShift bool) (
+	kubeVendor clusterv1beta1.KubeVendorType, cloudVendor clusterv1beta1.CloudVendorType) {
+	gitVersion = strings.ToUpper(gitVersion)
+	switch {
+	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorIKS)):
+		kubeVendor = clusterv1beta1.KubeVendorIKS
+		cloudVendor = clusterv1beta1.CloudVendorIBM
+		return
+	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorEKS)):
+		kubeVendor = clusterv1beta1.KubeVendorEKS
+		cloudVendor = clusterv1beta1.CloudVendorAWS
+		return
+	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorGKE)):
+		kubeVendor = clusterv1beta1.KubeVendorGKE
+		cloudVendor = clusterv1beta1.CloudVendorGoogle
+		return
+	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorICP)):
+		kubeVendor = clusterv1beta1.KubeVendorICP
+	case isOpenShift:
+		kubeVendor = clusterv1beta1.KubeVendorOpenShift
+	default:
+		kubeVendor = clusterv1beta1.KubeVendorOther
+	}
+
+	cloudVendor = r.getCloudVendor()
+	if cloudVendor == clusterv1beta1.CloudVendorAzure {
+		kubeVendor = clusterv1beta1.KubeVendorAKS
+	}
+
+	return
+}
+
+func (r *ClusterInfoReconciler) getCloudVendor() clusterv1beta1.CloudVendorType {
+	nodes, err := r.KubeClient.CoreV1().Nodes().List(metav1.ListOptions{})
+	if err != nil {
+		klog.Errorf("failed to get nodes list %v", err)
+		return clusterv1beta1.CloudVendorOther
+	}
+
+	if len(nodes.Items) == 0 {
+		klog.Errorf("failed to get nodes list, the count of nodes is 0")
+		return clusterv1beta1.CloudVendorOther
+	}
+
+	providerID := nodes.Items[0].Spec.ProviderID
+	switch {
+	case strings.Contains(providerID, "ibm"):
+		return clusterv1beta1.CloudVendorIBM
+	case strings.Contains(providerID, "azure"):
+		return clusterv1beta1.CloudVendorAzure
+	case strings.Contains(providerID, "aws"):
+		return clusterv1beta1.CloudVendorAWS
+	case strings.Contains(providerID, "gce"):
+		return clusterv1beta1.CloudVendorGoogle
+	}
+
+	return clusterv1beta1.CloudVendorOther
+}
+
 const (
 	// LabelNodeRolePrefix is a label prefix for node roles
 	// It's copied over to here until it's merged in core: https://github.com/kubernetes/kubernetes/pull/39112
@@ -449,11 +513,11 @@ func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.Distributi
 	}
 	distributionInfo.OCP = clusterv1beta1.OCPDistributionInfo{
 		Version: version,
-		//status.desired.version
+		// status.desired.version
 		DesiredVersion: desiredVersion,
-		//true when the first status.conditions element with type === Failing has status === True
+		// true when the first status.conditions element with type === Failing has status === True
 		UpgradeFailed: upgradeFailed,
-		//the value of the version property from each element in status.availableUpdates
+		// the value of the version property from each element in status.availableUpdates
 		AvailableUpdates: availableVersions,
 	}
 	return distributionInfo, nil
