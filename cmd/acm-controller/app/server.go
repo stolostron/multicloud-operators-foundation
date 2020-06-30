@@ -15,6 +15,7 @@ import (
 	clusterregistryv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterrbac"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterrole"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller/app/options"
@@ -113,6 +114,11 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 			klog.Errorf("unable to setup clusterrbac reconciler: %v", err)
 			return err
 		}
+	}
+
+	if err = clusterrole.SetupWithManager(mgr, kubeClient); err != nil {
+		klog.Errorf("unable to setup clusterrole reconciler: %v", err)
+		return err
 	}
 
 	if err = gc.SetupWithManager(mgr); err != nil {
