@@ -15,15 +15,30 @@ var managedclusterGroup = "cluster.open-cluster-management.io"
 // buildAdminRoleRules builds the clusteadminroles
 func buildAdminRoleRules(clusterName string) []rbacv1.PolicyRule {
 	return []rbacv1.PolicyRule{
-		clusterrbac.NewRule("create", "get", "list", "watch", "update", "patch", "delete").Groups(managedclusterGroup).Resources("managedclusters").Names(clusterName).RuleOrDie(),
-		clusterrbac.NewRule("create", "get", "list", "watch", "update", "patch", "delete").Groups().Resources("namespaces").Names(clusterName).RuleOrDie(),
+		clusterrbac.NewRule("create", "get", "list", "watch", "update", "patch", "delete").
+			Groups(managedclusterGroup).
+			Resources("managedclusters").
+			Names(clusterName).
+			RuleOrDie(),
+		clusterrbac.NewRule("create", "get", "list", "watch", "update", "patch", "delete").
+			Groups("").
+			Resources("namespaces").
+			Names(clusterName).
+			RuleOrDie(),
 	}
 }
 
 // buildViewRoleRules builds the clusteviewroles
 func buildViewRoleRules(clusterName string) []rbacv1.PolicyRule {
 	return []rbacv1.PolicyRule{
-		clusterrbac.NewRule("get", "list", "watch").Groups(managedclusterGroup).Resources("managedclusters").Names(clusterName).RuleOrDie(),
-		clusterrbac.NewRule("get", "list", "watch").Groups().Resources("namespaces").Names(clusterName).RuleOrDie(),
+		clusterrbac.NewRule("get", "list", "watch").
+			Groups(managedclusterGroup).
+			Resources("managedclusters").
+			Names(clusterName).RuleOrDie(),
+		clusterrbac.NewRule("get", "list", "watch").
+			Groups("").
+			Resources("namespaces").
+			Names(clusterName).
+			RuleOrDie(),
 	}
 }

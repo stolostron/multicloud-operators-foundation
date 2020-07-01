@@ -4,7 +4,6 @@ import (
 	"context"
 	"reflect"
 
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/helpers"
@@ -30,7 +29,7 @@ import (
 )
 
 const (
-	clusterRoleFinalizerName = "managedclusterrole.finalizers.open-cluster-management.io"
+	clusterRoleFinalizerName = "open-cluster-management.io/managedclusterrole"
 	managedClusterKey        = "cluster.open-cluster-management.io/managedCluster"
 )
 
@@ -69,146 +68,131 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-
-	err = c.Watch(&source.Kind{Type: &clusterv1beta1.ManagedClusterInfo{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	clusterInfo := &clusterv1beta1.ManagedClusterInfo{}
+	cluster := &clusterv1.ManagedCluster{}
 
-	err := r.client.Get(ctx, req.NamespacedName, clusterInfo)
+	err := r.client.Get(ctx, req.NamespacedName, cluster)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// Check DeletionTimestamp to determine if object is under deletion
-	if !clusterInfo.GetDeletionTimestamp().IsZero() {
+	if !cluster.GetDeletionTimestamp().IsZero() {
 		// The object is being deleted
-		if helpers.ContainsString(clusterInfo.GetFinalizers(), clusterRoleFinalizerName) {
-			klog.Infof("deleting clusterrole for ManagedCluster agent %v", clusterInfo.Name)
-			err := r.deleteExternalResources(clusterInfo.Name)
+		if helpers.ContainsString(cluster.GetFinalizers(), clusterRoleFinalizerName) {
+			if klog.V(4) {
+				klog.Infof("deleting ManagedClusterRole %v", cluster.Name)
+			}
+			err := r.deleteClusterRole(buildClusterRoleName(cluster.Name, "admin"))
 			if err != nil {
-				klog.Warningf("will reconcile since failed to delete clusterrole, %v", clusterInfo.Name, err)
+				klog.Warningf("will reconcile since failed to delete clusterrole %v : %v", cluster.Name, err)
 				return reconcile.Result{}, err
 			}
-			klog.Infof("removing clusterrole Finalizer in ManagedClusterInfo %v", clusterInfo.Name)
-			clusterInfo.ObjectMeta.Finalizers = helpers.RemoveString(clusterInfo.ObjectMeta.Finalizers, clusterRoleFinalizerName)
-			if err := r.client.Update(context.TODO(), clusterInfo); err != nil {
-				klog.Warningf("will reconcile since failed to remove Finalizer from ManagedClusterInfo %v, %v", clusterInfo.Name, err)
+			err = r.deleteClusterRole(buildClusterRoleName(cluster.Name, "view"))
+			if err != nil {
+				klog.Warningf("will reconcile since failed to delete clusterrole %v : %v", cluster.Name, err)
+				return reconcile.Result{}, err
+			}
+			if klog.V(4) {
+				klog.Infof("removing ManagedClusterInfo Finalizer in ManagedCluster %v", cluster.Name)
+			}
+			cluster.ObjectMeta.Finalizers = helpers.RemoveString(cluster.ObjectMeta.Finalizers, clusterRoleFinalizerName)
+			if err := r.client.Update(context.TODO(), cluster); err != nil {
+				klog.Warningf("will reconcile since failed to remove Finalizer from ManagedCluster %v, %v", cluster.Name, err)
 				return reconcile.Result{}, err
 			}
 		}
 		return reconcile.Result{}, nil
 	}
 
-	if clusterInfo.GetDeletionTimestamp().IsZero() {
-		if !helpers.ContainsString(clusterInfo.GetFinalizers(), clusterRoleFinalizerName) {
-			klog.Infof("adding clusterrole Finalizer to ManagedClusterInfo %v", clusterInfo.Name)
-			clusterInfo.ObjectMeta.Finalizers = append(clusterInfo.ObjectMeta.Finalizers, clusterRoleFinalizerName)
-			if err := r.client.Update(context.TODO(), clusterInfo); err != nil {
-				klog.Warningf("will reconcile since failed to add finalizer to ManagedClusterInfo %v, %v", clusterInfo.Name, err)
-				return reconcile.Result{}, err
-			}
+	if !helpers.ContainsString(cluster.GetFinalizers(), clusterRoleFinalizerName) {
+		if klog.V(4) {
+			klog.Infof("adding ManagedClusterRole Finalizer to ManagedCluster %v", cluster.Name)
 		}
-	}
-	//add cluster label
-	managedCluster := &clusterv1.ManagedCluster{}
-	err = r.client.Get(ctx, req.NamespacedName, managedCluster)
-	if err != nil {
-		return ctrl.Result{}, client.IgnoreNotFound(err)
-	}
-	var managedClusterNameLabel = map[string]string{
-		managedClusterKey: managedCluster.GetName(),
-	}
-	labelSelector := &metav1.LabelSelector{
-		MatchLabels: managedClusterNameLabel,
-	}
-	if !utils.MatchLabelForLabelSelector(managedCluster.GetLabels(), labelSelector) {
-		labels := utils.AddLabel(managedCluster.GetLabels(), managedClusterKey, managedCluster.GetName())
-		managedCluster.SetLabels(labels)
-	}
-	err = r.client.Update(ctx, managedCluster)
-	if err != nil {
-		return ctrl.Result{}, err
+		cluster.ObjectMeta.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterRoleFinalizerName)
+		if err := r.client.Update(context.TODO(), cluster); err != nil {
+			klog.Warningf("will reconcile since failed to add finalizer to ManagedCluster %v, %v", cluster.Name, err)
+			return reconcile.Result{}, err
+		}
 	}
 
 	//add clusterrole
-	if err = r.createOrUpdateClusterRole(clusterInfo.Name); err != nil {
-		klog.Warningf("will reconcile since failed to create/update clusterrole %v, %v", clusterInfo.Name, err)
+	adminRules := buildAdminRoleRules(cluster.Name)
+	err = r.applyClusterRole(buildClusterRoleName(cluster.Name, "admin"), adminRules)
+	if err != nil {
+		klog.Warningf("will reconcile since failed to create/update clusterrole %v, %v", cluster.Name, err)
+		return ctrl.Result{}, err
+	}
+	viewRules := buildViewRoleRules(cluster.Name)
+	err = r.applyClusterRole(buildClusterRoleName(cluster.Name, "view"), viewRules)
+	if err != nil {
+		klog.Warningf("will reconcile since failed to create/update clusterrole %v, %v", cluster.Name, err)
 		return ctrl.Result{}, err
 	}
 
+	//add label to clusternamespace
+	clusterNamespace, err := r.kubeClient.CoreV1().Namespaces().Get(cluster.Name, metav1.GetOptions{})
+	if err != nil {
+		klog.Warningf("will reconcile since failed get clusternamespace %v, %v", cluster.Name, err)
+		return ctrl.Result{}, err
+	}
+
+	var ClusterNameLabel = map[string]string{
+		managedClusterKey: cluster.GetName(),
+	}
+	var modified = false
+	utils.MergeMap(&modified, clusterNamespace.GetLabels(), ClusterNameLabel)
+
+	if modified {
+		_, err = r.kubeClient.CoreV1().Namespaces().Update(clusterNamespace)
+		if err != nil {
+			klog.Warningf("will reconcile since failed update clusternamespace %v, %v", cluster.Name, err)
+			return ctrl.Result{}, err
+		}
+	}
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) deleteExternalResources(clusterName string) error {
-	err := r.kubeClient.RbacV1().ClusterRoles().Delete(clusterAdminRoleName(clusterName), &metav1.DeleteOptions{})
-	if err != nil {
-		return client.IgnoreNotFound(err)
-	}
-	err = r.kubeClient.RbacV1().ClusterRoles().Delete(clusterViewRoleName(clusterName), &metav1.DeleteOptions{})
+//Delete cluster role
+func (r *Reconciler) deleteClusterRole(clusterRoleName string) error {
+	err := r.kubeClient.RbacV1().ClusterRoles().Delete(clusterRoleName, &metav1.DeleteOptions{})
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
 	return nil
 }
 
-// createOrUpdateClusterRole create or update a clusterrole for a give cluster
-func (r *Reconciler) createOrUpdateClusterRole(clusterName string) error {
-	clusterAdminRole, err := r.kubeClient.RbacV1().ClusterRoles().Get(clusterAdminRoleName(clusterName), metav1.GetOptions{})
-	adminRules := buildAdminRoleRules(clusterName)
+//apply cluster role
+func (r *Reconciler) applyClusterRole(clusterRoleName string, rules []rbacv1.PolicyRule) error {
+	clusterRole, err := r.kubeClient.RbacV1().ClusterRoles().Get(clusterRoleName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			acmRole := &rbacv1.ClusterRole{
+			clusterRole = &rbacv1.ClusterRole{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: clusterAdminRoleName(clusterName),
+					Name: clusterRoleName,
 				},
-				Rules: adminRules,
+				Rules: rules,
 			}
-			_, err = r.kubeClient.RbacV1().ClusterRoles().Create(acmRole)
-		}
-		return err
-	}
-
-	if !reflect.DeepEqual(clusterAdminRole.Rules, adminRules) {
-		clusterAdminRole.Rules = adminRules
-		_, err := r.kubeClient.RbacV1().ClusterRoles().Update(clusterAdminRole)
-		return err
-	}
-
-	clusterViewRole, err := r.kubeClient.RbacV1().ClusterRoles().Get(clusterViewRoleName(clusterName), metav1.GetOptions{})
-	viewRules := buildViewRoleRules(clusterName)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			acmRole := &rbacv1.ClusterRole{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: clusterViewRoleName(clusterName),
-				},
-				Rules: viewRules,
+			_, err = r.kubeClient.RbacV1().ClusterRoles().Create(clusterRole)
+			if err != nil {
+				return err
 			}
-			_, err = r.kubeClient.RbacV1().ClusterRoles().Create(acmRole)
+		} else {
+			return err
 		}
-		return err
 	}
-
-	if !reflect.DeepEqual(clusterViewRole.Rules, viewRules) {
-		clusterViewRole.Rules = viewRules
-		_, err := r.kubeClient.RbacV1().ClusterRoles().Update(clusterViewRole)
+	if !reflect.DeepEqual(clusterRole.Rules, rules) {
+		clusterRole.Rules = rules
+		_, err := r.kubeClient.RbacV1().ClusterRoles().Update(clusterRole)
 		return err
 	}
 	return nil
 }
 
-func clusterAdminRoleName(clusterName string) string {
-	return "open-cluster-management:admin:managed-cluster-" + clusterName
-}
-
-func clusterViewRoleName(clusterName string) string {
-	return "open-cluster-management:view:managed-cluster-" + clusterName
+func buildClusterRoleName(clusterName, rule string) string {
+	return "open-cluster-management:" + rule + ":" + clusterName
 }

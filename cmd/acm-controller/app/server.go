@@ -6,11 +6,11 @@ import (
 	"io/ioutil"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterrole"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller/app/options"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/autodetect"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterinfo"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterrbac"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterrole"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/gc"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/inventory"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"

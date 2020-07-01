@@ -76,3 +76,15 @@ func StringToMap(str string) map[string]string {
 	}
 	return returnMap
 }
+
+func MergeMap(modified *bool, existing map[string]string, required map[string]string) {
+	if existing == nil {
+		existing = map[string]string{}
+	}
+	for k, v := range required {
+		if existingV, ok := existing[k]; !ok || v != existingV {
+			*modified = true
+			existing[k] = v
+		}
+	}
+}
