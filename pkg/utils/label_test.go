@@ -58,3 +58,28 @@ func TestMatchLabelForLabelSelector(t *testing.T) {
 		})
 	}
 }
+
+func TestMergeMap(t *testing.T) {
+	modified := false
+	type args struct {
+		modified *bool
+		existing map[string]string
+		required map[string]string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"case1", args{modified: &modified, required: map[string]string{"label1": "va1"}, existing: map[string]string{"label1": "va1", "label2": "va2"}}, false},
+		{"case2", args{modified: &modified, required: map[string]string{"label1": "va1"}, existing: map[string]string{}}, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			MergeMap(tt.args.modified, tt.args.existing, tt.args.required)
+			if tt.want != modified {
+				t.Errorf("failed to merge map")
+			}
+		})
+	}
+}
