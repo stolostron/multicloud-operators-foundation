@@ -10,6 +10,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/autodetect"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterinfo"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterrbac"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterrole"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/gc"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/inventory"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
@@ -110,6 +111,11 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 			klog.Errorf("unable to setup clusterrbac reconciler: %v", err)
 			return err
 		}
+	}
+
+	if err = clusterrole.SetupWithManager(mgr, kubeClient); err != nil {
+		klog.Errorf("unable to setup clusterrole reconciler: %v", err)
+		return err
 	}
 
 	if err = gc.SetupWithManager(mgr); err != nil {
