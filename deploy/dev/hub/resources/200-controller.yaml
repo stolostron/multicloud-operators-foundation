@@ -28,6 +28,7 @@ spec:
         args:
           - "/acm-controller"
           - "--agent-cafile=/var/run/agent/ca.crt"
+          - "--enable-rbac=true"
         volumeMounts:
           - mountPath: /var/run/agent
             name: agent-certs

@@ -71,8 +71,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	cluster := &clusterv1.ManagedCluster{}
-
-	err := r.client.Get(ctx, req.NamespacedName, cluster)
+	err := r.client.Get(ctx, types.NamespacedName{Name: req.Name}, cluster)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
