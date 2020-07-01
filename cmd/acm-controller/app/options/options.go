@@ -24,7 +24,7 @@ func NewControllerRunOptions() *ControllerRunOptions {
 		CAFile:               "/var/run/agent/ca.crt",
 		EnableInventory:      false,
 		EnableLeaderElection: true,
-		EnableRBAC:           true,
+		EnableRBAC:           false,
 		QPS:                  100.0,
 		Burst:                200,
 	}
