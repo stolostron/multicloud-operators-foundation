@@ -80,7 +80,8 @@ func EqualEndpointAddresses(es1, es2 []corev1.EndpointAddress) bool {
 	}
 
 	for idx, e := range es1 {
-		if !EqualEndpointAddress(&e, &es2[idx]) {
+		cure := e
+		if !EqualEndpointAddress(&cure, &es2[idx]) {
 			return false
 		}
 	}

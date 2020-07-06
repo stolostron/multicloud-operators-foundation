@@ -437,7 +437,8 @@ func (h *HumanReadablePrinter) printWorkResults(obj runtime.Object) *metav1beta1
 			Rows:              []metav1beta1.TableRow{},
 		}
 		for _, table := range listTable {
-			formatRow := h.formatTable(returnColumnDefinitions, &table)
+			curTable := table
+			formatRow := h.formatTable(returnColumnDefinitions, &curTable)
 			returnTable.Rows = append(returnTable.Rows, formatRow...)
 		}
 		return returnTable
