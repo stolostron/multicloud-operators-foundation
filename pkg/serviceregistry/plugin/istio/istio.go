@@ -172,7 +172,8 @@ func (p *IstioPlugin) SyncDiscoveredResouces(discoveredEndpoints []*v1.Endpoints
 	})
 	discoveredServiceEntries := p.toDiscoveryServiceEntries(discoveredEndpoints, currentServiceEntries.Items)
 
-	for _, current := range currentServiceEntries.Items {
+	for _, cur := range currentServiceEntries.Items {
+		current := cur
 		discovered, exists := discoveredServiceEntries[current.GetName()]
 		if !exists {
 			//if current service entry does not exist in discovered list, delete it
