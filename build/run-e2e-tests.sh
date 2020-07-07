@@ -19,10 +19,34 @@ export PATH="${KUBECTL_PATH}":"${PATH}"
 GO111MODULE="on" go get sigs.k8s.io/kind@v0.7.0
 
 # Create a cluster
+cat <<EOF >>kind.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+- role: worker
+EOF
+
 CLUSTER_NAME="multicloud-hub"
 
 export KIND_CLUSTER=${CLUSTER_NAME}
-kind create cluster --name ${CLUSTER_NAME}
+kind create cluster --name ${CLUSTER_NAME} --config kind.yaml
+
+# wait cluster is ready
+for i in {1..6}; do
+  echo "############$i  Checking nodes of cluster"
+  READY_NODES=$(kubectl get nodes | grep -c Ready)
+  if [ "${READY_NODES}" -eq 2 ]; then
+    break
+  fi
+
+  if [ $i -eq 6 ]; then
+    echo "!!!!!!!!!!  the nodes are not ready in 60s"
+    kubectl get nodes
+    exit 1
+  fi
+  sleep 10
+done
 
 if ! kubectl cluster-info; then
   echo "Failed to create kind cluster"
@@ -34,7 +58,7 @@ if [ "${IMAGE}" -ne 1 ]; then
   docker pull "${IMAGE_NAME_AND_VERSION}"
 fi
 
-kind load docker-image --name="${CLUSTER_NAME}" "${IMAGE_NAME_AND_VERSION}"
+kind load docker-image --name="${CLUSTER_NAME}" --nodes="${CLUSTER_NAME}-worker" "${IMAGE_NAME_AND_VERSION}"
 
 BUILD_PATH=${GOPATH}/src/github.com/open-cluster-management/multicloud-operators-foundation/build
 
