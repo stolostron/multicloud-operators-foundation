@@ -140,6 +140,7 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 			AgentPort:                   int32(o.AgentPort),
 			RouteV1Client:               routeV1Client,
 			Agent:                       agent,
+			AgentService:                o.AgentService,
 		}
 
 		if err = actionReconciler.SetupWithManager(mgr); err != nil {
