@@ -52,6 +52,12 @@ for i in {1..7}; do
   if [ $i -eq 7 ]; then
     echo "!!!!!!!!!!  the klusterlet-registration-agent is not ready within 3 minutes"
     kubectl get pods --all-namespaces
+    KLU=$(kubectl -n open-cluster-management get pods | grep klusterlet |  awk '{print $1}')
+    for element in $KLU
+    do
+      echo $element+"-----"
+      kubectl logs $element -n open-cluster-management
+    done
     exit 1
   fi
   sleep 30
