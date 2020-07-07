@@ -2,6 +2,7 @@ package autodetect
 
 import (
 	"context"
+	"reflect"
 
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -76,15 +77,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	labels := cluster.ObjectMeta.Labels
-	if len(labels) == 0 {
-		return ctrl.Result{}, nil
-	}
-
-	if labels[LabelCloudVendor] != AutoDetect && labels[LabelKubeVendor] != AutoDetect {
-		return ctrl.Result{}, nil
-	}
-
 	clusterInfo := &clusterinfov1beta1.ManagedClusterInfo{}
 	err = r.client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Name}, clusterInfo)
 	if err != nil {
@@ -95,20 +87,37 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if clusterInfo.Status.CloudVendor == "" || clusterInfo.Status.KubeVendor == "" {
-		klog.Infof("will reconcile since managedclusterinfo is not updated %v", clusterInfo.Name)
+		klog.Infof("will reconcile since ManagedClusterInfo is not updated %v", clusterInfo.Name)
 		return ctrl.Result{}, nil
 	}
 
+	labels := cluster.ObjectMeta.Labels
+	if len(labels) == 0 {
+		return ctrl.Result{}, nil
+	}
+
+	needUpdate := false
 	if labels[LabelCloudVendor] == AutoDetect {
 		labels[LabelCloudVendor] = string(clusterInfo.Status.CloudVendor)
+		needUpdate = true
 	}
 	if labels[LabelKubeVendor] == AutoDetect {
 		labels[LabelKubeVendor] = string(clusterInfo.Status.KubeVendor)
+		needUpdate = true
+	}
+	if needUpdate {
+		if err := r.client.Update(ctx, cluster); err != nil {
+			klog.Warningf("will reconcile since failed to add labels to ManagedCluster %v, %v", cluster.Name, err)
+			return reconcile.Result{}, err
+		}
 	}
 
-	if err := r.client.Update(ctx, cluster); err != nil {
-		klog.Warningf("will reconcile since failed to add labels to ManagedCluster %v, %v", cluster.Name, err)
-		return reconcile.Result{}, err
+	if !reflect.DeepEqual(labels, clusterInfo.ObjectMeta.Labels) {
+		clusterInfo.ObjectMeta.Labels = labels
+		if err := r.client.Update(ctx, clusterInfo); err != nil {
+			klog.Warningf("will reconcile since failed to add labels to ManagedClusterInfo %v, %v", clusterInfo.Name, err)
+			return reconcile.Result{}, err
+		}
 	}
 
 	return ctrl.Result{}, nil
