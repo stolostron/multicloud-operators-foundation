@@ -23,8 +23,9 @@ import (
 )
 
 const (
-	kubeConfigFileEnv  = "KUBECONFIG"
-	SingleManagedOnHub = true
+	kubeConfigFileEnv = "KUBECONFIG"
+	//Managedcluster deployed on hub
+	SingleManagedOnHub = "SINGLE_MANAGED_CLUSTER_ON_HUB"
 )
 
 var ManagedClusterGVR schema.GroupVersionResource = schema.GroupVersionResource{

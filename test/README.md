@@ -6,6 +6,7 @@ The tests contained in this repository will test the core functionality of Multi
 
 * A Kubernetes cluster with Multicloud Management installed
 * Before running testing, kubeconfig file for cluster admin should be in place. Test suites try to load the configuration file from either `$HOME/.kube/config` or the path set by environment variable `KUBECONFIG`.
+* If you want to run e2e locally, when managedcluster do not deployed on hub, please set env `export  SINGLE_MANAGED_CLUSTER_ON_HUB=FALSE`.
 
 ## How to run
 

@@ -3,6 +3,9 @@
 package actions_test
 
 import (
+	"os"
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/common"
@@ -18,6 +21,8 @@ const (
 	actionDeploymentName      = "nginx-deployment-action"
 	actionDeploymentNameSpace = "default"
 )
+
+var singleManagedOnHub = true
 
 var actionGVR = schema.GroupVersionResource{
 	Group:    "action.open-cluster-management.io",
@@ -38,6 +43,10 @@ var (
 
 var _ = BeforeSuite(func() {
 	var err error
+	managedOnHub := os.Getenv(common.SingleManagedOnHub)
+	if strings.ToLower(managedOnHub) == "false" {
+		singleManagedOnHub = false
+	}
 	dynamicClient, err = common.NewDynamicClient()
 	Ω(err).ShouldNot(HaveOccurred())
 
@@ -63,7 +72,103 @@ var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 		obj *unstructured.Unstructured
 		err error
 	)
+	Context("Creating a UpdateManagedClusterAction when resource do not exist", func() {
+		It("Should create update managedclusteraction successfully", func() {
+			// load object from json template
+			obj, err = common.LoadResourceFromJSON(template.ManagedClusterActionUpdateTemplate)
+			Ω(err).ShouldNot(HaveOccurred())
 
+			err = unstructured.SetNestedField(obj.Object, realCluster.GetName(), "metadata", "namespace")
+			Ω(err).ShouldNot(HaveOccurred())
+			// create ManagedClusterAction to real cluster
+			obj, err = common.CreateResource(dynamicClient, actionGVR, obj)
+			Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", actionGVR.Resource)
+		})
+
+		It("should get successfully", func() {
+			exists, err := common.HasResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(exists).Should(BeTrue())
+		})
+
+		It("should have a valid condition", func() {
+			Eventually(func() (interface{}, error) {
+				managedClusterAction, err := common.GetResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
+				if err != nil {
+					return "", err
+				}
+				// check the ManagedClusterAction status
+				condition, err := common.GetConditionFromStatus(managedClusterAction)
+				if err != nil {
+					return "", err
+				}
+
+				if condition == nil {
+					return "", nil
+				}
+
+				return condition["status"], nil
+			}, eventuallyTimeout, eventuallyInterval).Should(Equal("False"))
+		})
+
+		It("should delete successfully", func() {
+			err := common.DeleteResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+	})
+
+	Context("Creating a DeleteManagedClusterAction when resource do not exist", func() {
+		It("Should create update managedclusteraction successfully", func() {
+			// load object from json template
+			obj, err = common.LoadResourceFromJSON(template.ManagedClusterActionDeleteTemplate)
+			Ω(err).ShouldNot(HaveOccurred())
+
+			err = unstructured.SetNestedField(obj.Object, realCluster.GetName(), "metadata", "namespace")
+			Ω(err).ShouldNot(HaveOccurred())
+			// create ManagedClusterAction to real cluster
+			obj, err = common.CreateResource(dynamicClient, actionGVR, obj)
+			Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", actionGVR.Resource)
+		})
+
+		It("should get successfully", func() {
+			exists, err := common.HasResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
+			Ω(err).ShouldNot(HaveOccurred())
+			Ω(exists).Should(BeTrue())
+		})
+
+		It("should have a valid condition", func() {
+			Eventually(func() (interface{}, error) {
+				managedClusterAction, err := common.GetResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
+				if err != nil {
+					return "", err
+				}
+				// check the ManagedClusterAction status
+				condition, err := common.GetConditionFromStatus(managedClusterAction)
+				if err != nil {
+					return "", err
+				}
+
+				if condition == nil {
+					return "", nil
+				}
+
+				return condition["status"], nil
+			}, eventuallyTimeout, eventuallyInterval).Should(Equal("False"))
+		})
+
+		It("deployment should be deleted successfully in managedcluster", func() {
+			if singleManagedOnHub {
+				Eventually(func() (interface{}, error) {
+					return common.HasResource(dynamicClient, depGVR, actionDeploymentNameSpace, actionDeploymentName)
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(BeTrue())
+			}
+		})
+
+		It("should delete successfully", func() {
+			err := common.DeleteResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
+			Ω(err).ShouldNot(HaveOccurred())
+		})
+	})
 	Context("Creating a CreateManagedClusterAction", func() {
 		It("should create successfully", func() {
 			// load object from json template
@@ -102,13 +207,14 @@ var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 				return condition["status"], nil
 			}, eventuallyTimeout, eventuallyInterval).Should(Equal("True"))
 		})
-		if common.SingleManagedOnHub {
-			It("deployment should be created successfully in managedcluster", func() {
+		It("deployment should be created successfully in managedcluster", func() {
+			if singleManagedOnHub {
 				Eventually(func() (interface{}, error) {
 					return common.HasResource(dynamicClient, depGVR, actionDeploymentNameSpace, actionDeploymentName)
 				}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
-			})
-		}
+
+			}
+		})
 
 		It("should delete successfully", func() {
 			err := common.DeleteResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
@@ -199,56 +305,14 @@ var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 				return condition["status"], nil
 			}, eventuallyTimeout, eventuallyInterval).Should(Equal("True"))
 		})
-		if common.SingleManagedOnHub {
-			It("deployment should be deleted successfully in managedcluster", func() {
+
+		It("deployment should be deleted successfully in managedcluster", func() {
+
+			if singleManagedOnHub {
 				Eventually(func() (interface{}, error) {
 					return common.HasResource(dynamicClient, depGVR, actionDeploymentNameSpace, actionDeploymentName)
 				}, eventuallyTimeout, eventuallyInterval).ShouldNot(BeTrue())
-			})
-		}
-
-		It("should delete successfully", func() {
-			err := common.DeleteResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
-			Ω(err).ShouldNot(HaveOccurred())
-		})
-	})
-	Context("Creating a UpdateManagedClusterAction when resource do not exist", func() {
-		It("Should create update managedclusteraction successfully", func() {
-			// load object from json template
-			obj, err = common.LoadResourceFromJSON(template.ManagedClusterActionUpdateTemplate)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			err = unstructured.SetNestedField(obj.Object, realCluster.GetName(), "metadata", "namespace")
-			Ω(err).ShouldNot(HaveOccurred())
-			// create ManagedClusterAction to real cluster
-			obj, err = common.CreateResource(dynamicClient, actionGVR, obj)
-			Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", actionGVR.Resource)
-		})
-
-		It("should get successfully", func() {
-			exists, err := common.HasResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(exists).Should(BeTrue())
-		})
-
-		It("should have a valid condition", func() {
-			Eventually(func() (interface{}, error) {
-				managedClusterAction, err := common.GetResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
-				if err != nil {
-					return "", err
-				}
-				// check the ManagedClusterAction status
-				condition, err := common.GetConditionFromStatus(managedClusterAction)
-				if err != nil {
-					return "", err
-				}
-
-				if condition == nil {
-					return "", nil
-				}
-
-				return condition["status"], nil
-			}, eventuallyTimeout, eventuallyInterval).Should(Equal("False"))
+			}
 		})
 
 		It("should delete successfully", func() {
@@ -257,57 +321,6 @@ var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 		})
 	})
 
-	Context("Creating a DeleteManagedClusterAction when resource do not exist", func() {
-		It("Should create update managedclusteraction successfully", func() {
-			// load object from json template
-			obj, err = common.LoadResourceFromJSON(template.ManagedClusterActionDeleteTemplate)
-			Ω(err).ShouldNot(HaveOccurred())
-
-			err = unstructured.SetNestedField(obj.Object, realCluster.GetName(), "metadata", "namespace")
-			Ω(err).ShouldNot(HaveOccurred())
-			// create ManagedClusterAction to real cluster
-			obj, err = common.CreateResource(dynamicClient, actionGVR, obj)
-			Ω(err).ShouldNot(HaveOccurred(), "Failed to create %s", actionGVR.Resource)
-		})
-
-		It("should get successfully", func() {
-			exists, err := common.HasResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
-			Ω(err).ShouldNot(HaveOccurred())
-			Ω(exists).Should(BeTrue())
-		})
-
-		It("should have a valid condition", func() {
-			Eventually(func() (interface{}, error) {
-				managedClusterAction, err := common.GetResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
-				if err != nil {
-					return "", err
-				}
-				// check the ManagedClusterAction status
-				condition, err := common.GetConditionFromStatus(managedClusterAction)
-				if err != nil {
-					return "", err
-				}
-
-				if condition == nil {
-					return "", nil
-				}
-
-				return condition["status"], nil
-			}, eventuallyTimeout, eventuallyInterval).Should(Equal("False"))
-		})
-		if common.SingleManagedOnHub {
-			It("deployment should be deleted successfully in managedcluster", func() {
-				Eventually(func() (interface{}, error) {
-					return common.HasResource(dynamicClient, depGVR, actionDeploymentNameSpace, actionDeploymentName)
-				}, eventuallyTimeout, eventuallyInterval).ShouldNot(BeTrue())
-			})
-		}
-
-		It("should delete successfully", func() {
-			err := common.DeleteResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
-			Ω(err).ShouldNot(HaveOccurred())
-		})
-	})
 })
 
 var _ = Describe("Testing ManagedClusterAction when agent is lost", func() {
