@@ -15,7 +15,6 @@ import (
 	clusterclientset "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_clientset_generated/clientset"
 	clusterinformers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/cluster_informers_generated/externalversions"
 	informers "github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/informers_generated/externalversions"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/apiserverreloader"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/clusterbootstrap/bootstrap"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/connectionmanager/clusterbootstrap/rbac"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controller/cluster"
@@ -130,9 +129,6 @@ func RunController(s *options.ControllerRunOptions, stopCh <-chan struct{}) erro
 
 	rbacController := rbac.NewClusterRBACController(kubeclientset, clusterInformerFactory, stopCh)
 	go rbacController.Run()
-
-	reloader := apiserverreloader.NewReloader(kubeclientset, stopCh)
-	go reloader.Run()
 
 	// Start default controllers
 	clusterController := cluster.NewController(
