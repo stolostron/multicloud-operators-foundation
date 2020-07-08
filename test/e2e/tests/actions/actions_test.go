@@ -102,12 +102,13 @@ var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 				return condition["status"], nil
 			}, eventuallyTimeout, eventuallyInterval).Should(Equal("True"))
 		})
-
-		It("deployment should be created successfully in managedcluster", func() {
-			Eventually(func() (interface{}, error) {
-				return common.HasResource(dynamicClient, depGVR, actionDeploymentNameSpace, actionDeploymentName)
-			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
-		})
+		if common.SingleManagedOnHub {
+			It("deployment should be created successfully in managedcluster", func() {
+				Eventually(func() (interface{}, error) {
+					return common.HasResource(dynamicClient, depGVR, actionDeploymentNameSpace, actionDeploymentName)
+				}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
+			})
+		}
 
 		It("should delete successfully", func() {
 			err := common.DeleteResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
@@ -198,12 +199,13 @@ var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 				return condition["status"], nil
 			}, eventuallyTimeout, eventuallyInterval).Should(Equal("True"))
 		})
-
-		It("deployment should be deleted successfully in managedcluster", func() {
-			Eventually(func() (interface{}, error) {
-				return common.HasResource(dynamicClient, depGVR, actionDeploymentNameSpace, actionDeploymentName)
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(BeTrue())
-		})
+		if common.SingleManagedOnHub {
+			It("deployment should be deleted successfully in managedcluster", func() {
+				Eventually(func() (interface{}, error) {
+					return common.HasResource(dynamicClient, depGVR, actionDeploymentNameSpace, actionDeploymentName)
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(BeTrue())
+			})
+		}
 
 		It("should delete successfully", func() {
 			err := common.DeleteResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
@@ -293,12 +295,13 @@ var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 				return condition["status"], nil
 			}, eventuallyTimeout, eventuallyInterval).Should(Equal("False"))
 		})
-
-		It("deployment should be deleted successfully in managedcluster", func() {
-			Eventually(func() (interface{}, error) {
-				return common.HasResource(dynamicClient, depGVR, actionDeploymentNameSpace, actionDeploymentName)
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(BeTrue())
-		})
+		if common.SingleManagedOnHub {
+			It("deployment should be deleted successfully in managedcluster", func() {
+				Eventually(func() (interface{}, error) {
+					return common.HasResource(dynamicClient, depGVR, actionDeploymentNameSpace, actionDeploymentName)
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(BeTrue())
+			})
+		}
 
 		It("should delete successfully", func() {
 			err := common.DeleteResource(dynamicClient, actionGVR, realCluster.GetName(), obj.GetName())
