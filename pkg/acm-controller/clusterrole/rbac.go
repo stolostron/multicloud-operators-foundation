@@ -20,11 +20,6 @@ func buildAdminRoleRules(clusterName string) []rbacv1.PolicyRule {
 			Resources("managedclusters").
 			Names(clusterName).
 			RuleOrDie(),
-		clusterrbac.NewRule("create", "get", "list", "watch", "update", "patch", "delete").
-			Groups("").
-			Resources("namespaces").
-			Names(clusterName).
-			RuleOrDie(),
 	}
 }
 
@@ -35,10 +30,5 @@ func buildViewRoleRules(clusterName string) []rbacv1.PolicyRule {
 			Groups(managedclusterGroup).
 			Resources("managedclusters").
 			Names(clusterName).RuleOrDie(),
-		clusterrbac.NewRule("get", "list", "watch").
-			Groups("").
-			Resources("namespaces").
-			Names(clusterName).
-			RuleOrDie(),
 	}
 }
