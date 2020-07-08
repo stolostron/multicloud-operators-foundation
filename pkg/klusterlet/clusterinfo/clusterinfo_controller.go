@@ -72,10 +72,10 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	agentEndpoint, agentPort, err := r.readAgentConfig()
 	if err != nil {
 		log.Error(err, "Failed to get agent server config")
-		return ctrl.Result{}, err
+	} else {
+		newStatus.LoggingEndpoint = *agentEndpoint
+		newStatus.LoggingPort = *agentPort
 	}
-	newStatus.LoggingEndpoint = *agentEndpoint
-	newStatus.LoggingPort = *agentPort
 
 	// Get version
 	newStatus.Version = r.getVersion()
@@ -84,7 +84,6 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	newStatus.DistributionInfo, err = r.getDistributionInfo()
 	if err != nil {
 		log.Error(err, "Failed to get distribution info")
-		return ctrl.Result{}, err
 	}
 
 	// Get Vendor
@@ -96,9 +95,9 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	nodeList, err := r.getNodeList()
 	if err != nil {
 		log.Error(err, "Failed to get nodes status")
-		return ctrl.Result{}, err
+	} else {
+		newStatus.NodeList = nodeList
 	}
-	newStatus.NodeList = nodeList
 
 	if !equality.Semantic.DeepEqual(newStatus, clusterInfo.Status) {
 		clusterInfo.Status = newStatus
