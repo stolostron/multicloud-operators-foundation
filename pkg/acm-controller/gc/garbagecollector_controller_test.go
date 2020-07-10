@@ -2,9 +2,12 @@ package gc
 
 import (
 	"os"
+	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/onsi/gomega"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
 	"github.com/stretchr/testify/assert"
@@ -12,16 +15,39 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	cliScheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const (
+	actionName       = "foo"
+	clusterNamespace = "bar"
+)
+
 var (
+	cfg    *rest.Config
 	scheme = runtime.NewScheme()
+	c      client.Client
 )
 
 func TestMain(m *testing.M) {
+	t := &envtest.Environment{
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "deploy", "dev", "hub", "resources", "crds")},
+	}
+
+	actionv1beta1.AddToScheme(cliScheme.Scheme)
+
+	var err error
+	if cfg, err = t.Start(); err != nil {
+		klog.Errorf("Failed to start, %v", err)
+	}
+
 	// AddToSchemes may be used to add all resources defined in the project to a Scheme
 	var AddToSchemes runtime.SchemeBuilder
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
@@ -41,23 +67,54 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-const (
-	actionName       = "foo"
-	clusterNamespace = "bar"
-)
+// StartTestManager adds recFn
+func StartTestManager(mgr manager.Manager, g *gomega.GomegaWithT) (chan struct{}, *sync.WaitGroup) {
+	stop := make(chan struct{})
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
 
-func validateError(t *testing.T, err, expectedErrorType error) {
-	if expectedErrorType != nil {
-		assert.EqualError(t, err, expectedErrorType.Error())
-	} else {
-		assert.NoError(t, err)
-	}
+	go func() {
+		defer wg.Done()
+		g.Expect(mgr.Start(stop)).NotTo(gomega.HaveOccurred())
+	}()
+
+	return stop, wg
+}
+
+func TestControllerReconcile(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
+
+	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
+	// channel when it is finished.
+	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
+	g.Expect(err).NotTo(gomega.HaveOccurred())
+
+	c = mgr.GetClient()
+
+	SetupWithManager(mgr)
+
+	stopMgr, mgrStopped := StartTestManager(mgr, g)
+
+	defer func() {
+		close(stopMgr)
+		mgrStopped.Wait()
+	}()
+
+	time.Sleep(time.Second * 1)
 }
 
 func newTestReconciler(existingObjs []runtime.Object) *Reconciler {
 	return &Reconciler{
 		client: fake.NewFakeClientWithScheme(scheme, existingObjs...),
 		scheme: scheme,
+	}
+}
+
+func validateError(t *testing.T, err, expectedErrorType error) {
+	if expectedErrorType != nil {
+		assert.EqualError(t, err, expectedErrorType.Error())
+	} else {
+		assert.NoError(t, err)
 	}
 }
 
