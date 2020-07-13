@@ -48,7 +48,7 @@ metadata:
       resources: ["clusterstatuses/aggregator"]
       verbs: ["get", "create"]
     - apiGroups: ["hive.openshift.io"]
-      resources: ["clusterdeployments", "machinepools", "syncsets", "clusterdeployments"]
+      resources: ["clusterdeployments", "machinepools", "syncsets", "syncsetinstances"]
       verbs: ["get", "list", "watch"]
     - apiGroups: ["hive.openshift.io"]
       resources: [ "syncsets"]
