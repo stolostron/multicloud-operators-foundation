@@ -22,7 +22,7 @@ func NewControllerRunOptions() *ControllerRunOptions {
 	return &ControllerRunOptions{
 		KubeConfig:           "",
 		CAFile:               "/var/run/agent/ca.crt",
-		EnableInventory:      false,
+		EnableInventory:      true,
 		EnableLeaderElection: true,
 		EnableRBAC:           false,
 		QPS:                  100.0,
