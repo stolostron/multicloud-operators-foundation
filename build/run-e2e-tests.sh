@@ -74,6 +74,16 @@ fi
 HUB_PATH=${GOPATH}/src/github.com/open-cluster-management/multicloud-operators-foundation/deploy/dev/hub
 
 cat <<EOF >>"${HUB_PATH}"/kustomization.yaml
+resources:
+- crds/action.open-cluster-management.io_managedclusteractions.yaml
+- crds/internal.open-cluster-management.io_managedclusterinfos.yaml
+- crds/inventory.open-cluster-management.io_baremetalassets.yaml
+- crds/view.open-cluster-management.io_managedclusterviews.yaml
+- 100-clusterrole.yaml
+- 100-agent-ca.yaml
+- 200-proxyserver.yaml
+- 200-controller.yaml
+
 images:
 - name: ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver
   newName: $IMAGE_NAME_AND_VERSION
