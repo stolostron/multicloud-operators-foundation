@@ -17,6 +17,6 @@ sudo mv /tmp/kubebuilder_2.2.0_"${_OS}"_"${_ARCH}" /usr/local/kubebuilder
 export PATH=$PATH:/usr/local/kubebuilder/bin
 
 export IMAGE_NAME_AND_VERSION=${1}
-KUBEBUILDER_ASSETS="$(pwd)/kubebuilder_1.0.8_linux_amd64/bin"
+KUBEBUILDER_ASSETS="$(pwd)/kubebuilder_2.2.0_linux_amd64/bin"
 export KUBEBUILDER_ASSETS
 make test
