@@ -6,10 +6,10 @@ import (
 	"testing"
 
 	tlog "github.com/go-logr/logr/testing"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/client/clientset_generated/clientset/scheme"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 	routev1Fake "github.com/openshift/client-go/route/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 
 	extensionv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"

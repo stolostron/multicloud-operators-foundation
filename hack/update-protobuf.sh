@@ -30,7 +30,7 @@ realpath() {
     [[ $1 = /* ]] && echo "$1" || echo "$PWD/${1#./}"
 }
 
-REPO_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")"/..)
+REPO_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")"/../..)
 BINDIR="${REPO_ROOT}"/output
 SC_PKG='github.com/open-cluster-management/multicloud-operators-foundation'
 
@@ -44,7 +44,7 @@ fi
 PATH="$PATH:$BINDIR" go-to-protobuf \
   --output-base="${GOPATH}/src" \
   --apimachinery-packages='-k8s.io/apimachinery/pkg/util/intstr,-k8s.io/apimachinery/pkg/api/resource,-k8s.io/apimachinery/pkg/runtime/schema,-k8s.io/apimachinery/pkg/runtime,-k8s.io/apimachinery/pkg/apis/meta/v1,-k8s.io/apimachinery/pkg/apis/meta/v1beta1,-k8s.io/api/core/v1,-k8s.io/api/rbac/v1,-k8s.io/api/certificates/v1beta1' \
-  --go-header-file="${REPO_ROOT}"/hack/custom-boilerplate.go.txt \
+  --go-header-file="${REPO_ROOT}"/hack/proxyserver/custom-boilerplate.go.txt \
   --proto-import="${REPO_ROOT}"/third_party/protobuf \
   --proto-import="${REPO_ROOT}"/vendor \
-  --packages="${SC_PKG}/pkg/apis/clusterregistry/v1alpha1,${SC_PKG}/pkg/apis/mcm/v1alpha1,${SC_PKG}/pkg/apis/mcm/v1beta1,${SC_PKG}/pkg/apis/mcm"
+  --packages="${SC_PKG}/pkg/proxyserver/apis/v1beta1"
