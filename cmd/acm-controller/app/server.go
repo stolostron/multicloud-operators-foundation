@@ -21,7 +21,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
-	clusterregistryv1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -36,10 +35,6 @@ func init() {
 	_ = inventoryv1alpha1.AddToScheme(scheme)
 	_ = hivev1.AddToScheme(scheme)
 	_ = clusterinfov1beta1.AddToScheme(scheme)
-
-	// TODO: deprecate clusterregistry
-	_ = clusterregistryv1alpha1.AddToScheme(scheme)
-
 	_ = clusterv1.Install(scheme)
 	_ = actionv1beta1.AddToScheme(scheme)
 }

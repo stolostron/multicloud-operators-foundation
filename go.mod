@@ -43,8 +43,6 @@ replace (
 )
 
 require (
-	bou.ke/monkey v1.0.2
-	github.com/buger/jsonparser v1.0.0 // indirect
 	github.com/coreos/bbolt v1.3.3 // indirect
 	github.com/coreos/go-systemd v0.0.0-20191104093116-d3cd4ed1dbcf // indirect
 	github.com/emicklei/go-restful v2.11.1+incompatible
@@ -55,7 +53,6 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.12.1 // indirect
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a
 	github.com/metal3-io/baremetal-operator v0.0.0-20200228072510-dfd5fea95b0a
-	github.com/mongodb/mongo-go-driver v0.0.0-20180808171322-9b26cbb1a61a
 	github.com/onsi/ginkgo v1.13.0
 	github.com/onsi/gomega v1.10.1
 	github.com/open-cluster-management/api v0.0.0-20200602195039-a516cac2e038
@@ -66,7 +63,6 @@ require (
 	github.com/prometheus/common v0.7.0
 	github.com/prometheus/procfs v0.0.5 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190330032615-68dc04aab96a
-	github.com/spf13/cobra v0.0.6-0.20191202130430-b04b5bfc50cb
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.4.0
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect
@@ -83,6 +79,5 @@ require (
 	k8s.io/component-base v0.0.0
 	k8s.io/klog v1.0.0
 	k8s.io/kube-openapi v0.0.0-20191107075043-30be4d16710a
-	k8s.io/utils v0.0.0-20200327001022-6496210b90e8
 	sigs.k8s.io/controller-runtime v0.5.0
 )

@@ -10,7 +10,7 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller/app"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller/app/options"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/signals"
+	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
