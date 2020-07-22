@@ -1,6 +1,7 @@
 package clusterrole
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"sync"
@@ -236,7 +237,7 @@ func TestReconcile(t *testing.T) {
 					Name: ManagedClusterName,
 				},
 			}
-			svrc.kubeClient.CoreV1().Namespaces().Create(clusterNamespace)
+			svrc.kubeClient.CoreV1().Namespaces().Create(context.TODO(), clusterNamespace, metav1.CreateOptions{})
 
 			res, err := svrc.Reconcile(test.req)
 			validateError(t, err, test.expectedErrorType)

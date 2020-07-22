@@ -61,7 +61,7 @@ func (r *LogRest) Connect(ctx context.Context, id string, opts runtime.Object, r
 	}
 
 	location.Path = netutil.JoinPreservingTrailingSlash(location.Path, proxyOpts.Path)
-	klog.Infof("Proxy to %s", location.Path)
+	klog.V(2).Infof("Proxy to %s", location.Path)
 	// Return a proxy handler that uses the desired transport, wrapped with additional proxy handling (to get URL rewriting, X-Forwarded-* headers, etc)
 	return proxy.NewUpgradeAwareHandler(location, transport, true, false, proxy.NewErrorResponder(responder)), nil
 }

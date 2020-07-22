@@ -121,7 +121,7 @@ func (r *ClusterInfoReconciler) getMasterAddresses() ([]corev1.EndpointAddress, 
 	}
 
 	if r.MasterAddresses == "" {
-		kubeEndpoints, serviceErr := r.KubeClient.CoreV1().Endpoints("default").Get("kubernetes", metav1.GetOptions{})
+		kubeEndpoints, serviceErr := r.KubeClient.CoreV1().Endpoints("default").Get(context.TODO(), "kubernetes", metav1.GetOptions{})
 		if serviceErr == nil && len(kubeEndpoints.Subsets) > 0 {
 			masterAddresses = kubeEndpoints.Subsets[0].Addresses
 			masterPorts = kubeEndpoints.Subsets[0].Ports
@@ -139,7 +139,7 @@ func (r *ClusterInfoReconciler) getMasterAddressesFromConsoleConfig() ([]corev1.
 	masterPorts := []corev1.EndpointPort{}
 	clusterURL := ""
 
-	cfg, err := r.KubeClient.CoreV1().ConfigMaps("openshift-console").Get("console-config", metav1.GetOptions{})
+	cfg, err := r.KubeClient.CoreV1().ConfigMaps("openshift-console").Get(context.TODO(), "console-config", metav1.GetOptions{})
 	if err == nil && cfg.Data != nil {
 		consoleConfigString, ok := cfg.Data["console-config.yaml"]
 		if ok {
@@ -215,7 +215,7 @@ func (r *ClusterInfoReconciler) setEndpointAddressFromIngress(endpoint *corev1.E
 		log.Error(err, "Failed do parse ingress resource:")
 		return err
 	}
-	klIngress, err := r.KubeClient.ExtensionsV1beta1().Ingresses(klNamespace).Get(klName, metav1.GetOptions{})
+	klIngress, err := r.KubeClient.ExtensionsV1beta1().Ingresses(klNamespace).Get(context.TODO(), klName, metav1.GetOptions{})
 	if err != nil {
 		log.Error(err, "Failed do get ingress resource: %v")
 		return err
@@ -237,7 +237,7 @@ func (r *ClusterInfoReconciler) setEndpointAddressFromService(endpoint *corev1.E
 		return err
 	}
 
-	klSvc, err := r.KubeClient.CoreV1().Services(klNamespace).Get(klName, metav1.GetOptions{})
+	klSvc, err := r.KubeClient.CoreV1().Services(klNamespace).Get(context.TODO(), klName, metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
@@ -268,7 +268,7 @@ func (r *ClusterInfoReconciler) setEndpointAddressFromRoute(endpoint *corev1.End
 		return err
 	}
 
-	route, err := r.RouteV1Client.RouteV1().Routes(klNamespace).Get(klName, metav1.GetOptions{})
+	route, err := r.RouteV1Client.RouteV1().Routes(klNamespace).Get(context.TODO(), klName, metav1.GetOptions{})
 
 	if err != nil {
 		log.Error(err, "Failed to get the route")
@@ -322,7 +322,7 @@ func (r *ClusterInfoReconciler) getVendor(gitVersion string, isOpenShift bool) (
 }
 
 func (r *ClusterInfoReconciler) getCloudVendor() clusterv1beta1.CloudVendorType {
-	nodes, err := r.KubeClient.CoreV1().Nodes().List(metav1.ListOptions{})
+	nodes, err := r.KubeClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		klog.Errorf("failed to get nodes list %v", err)
 		return clusterv1beta1.CloudVendorOther
@@ -365,7 +365,7 @@ const (
 
 func (r *ClusterInfoReconciler) getNodeList() ([]clusterv1beta1.NodeStatus, error) {
 	var nodeList []clusterv1beta1.NodeStatus
-	nodes, err := r.KubeClient.CoreV1().Nodes().List(metav1.ListOptions{})
+	nodes, err := r.KubeClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -439,7 +439,7 @@ func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.Distributi
 	}
 
 	distributionInfo.Type = clusterv1beta1.DistributionTypeOCP
-	obj, err := r.ManagedClusterDynamicClient.Resource(ocpVersionGVR).Get("version", metav1.GetOptions{})
+	obj, err := r.ManagedClusterDynamicClient.Resource(ocpVersionGVR).Get(context.TODO(), "version", metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("failed to get OCP cluster version: %v", err)
 		return distributionInfo, client.IgnoreNotFound(err)

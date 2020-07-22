@@ -64,7 +64,7 @@ type ConnectionInfoGetter interface {
 func NewLogConnectionInfoGetter(clientConfig ClientConfig) (ConnectionInfoGetter, error) {
 	clusterGetter := ClusterGetterFunc(
 		func(ctx context.Context, name string, options metav1.GetOptions) (*v1beta1.ManagedClusterInfo, error) {
-			obj, err := clientConfig.DynamicClient.Resource(clusterInfoGVR).Namespace(name).Get(name, options)
+			obj, err := clientConfig.DynamicClient.Resource(clusterInfoGVR).Namespace(name).Get(context.TODO(), name, options)
 			if err != nil {
 				klog.Errorf("failed to get managedclusterinfos %v, error: %v", name, err)
 				return nil, err

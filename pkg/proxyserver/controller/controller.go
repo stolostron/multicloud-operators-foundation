@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -210,7 +211,7 @@ func (c *ProxyServiceInfoController) generateServiceInfo(cm *corev1.ConfigMap) (
 		secretNamespace = serviceNamespace
 	}
 
-	secret, err := c.client.CoreV1().Secrets(secretNamespace).Get(secretName, metav1.GetOptions{})
+	secret, err := c.client.CoreV1().Secrets(secretNamespace).Get(context.TODO(), secretName, metav1.GetOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get secret in configmap %s/%s, %v", cm.Namespace, cm.Name, err)
 	}

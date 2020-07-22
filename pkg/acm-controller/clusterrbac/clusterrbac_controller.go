@@ -131,12 +131,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 }
 
 func (r *Reconciler) deleteExternalResources(clusterName string) error {
-	err := r.kubeClient.RbacV1().RoleBindings(clusterName).Delete(roleName(clusterName), &metav1.DeleteOptions{})
+	err := r.kubeClient.RbacV1().RoleBindings(clusterName).Delete(context.TODO(), roleName(clusterName), metav1.DeleteOptions{})
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
 
-	err = r.kubeClient.RbacV1().Roles(clusterName).Delete(roleName(clusterName), &metav1.DeleteOptions{})
+	err = r.kubeClient.RbacV1().Roles(clusterName).Delete(context.TODO(), roleName(clusterName), metav1.DeleteOptions{})
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -146,7 +146,7 @@ func (r *Reconciler) deleteExternalResources(clusterName string) error {
 
 // createOrUpdateRole create or update a role for a give cluster
 func (r *Reconciler) createOrUpdateRole(clusterName string) error {
-	role, err := r.kubeClient.RbacV1().Roles(clusterName).Get(roleName(clusterName), metav1.GetOptions{})
+	role, err := r.kubeClient.RbacV1().Roles(clusterName).Get(context.TODO(), roleName(clusterName), metav1.GetOptions{})
 	rules := buildRoleRules()
 	if err != nil {
 		if errors.IsNotFound(err) {
@@ -157,14 +157,14 @@ func (r *Reconciler) createOrUpdateRole(clusterName string) error {
 				},
 				Rules: rules,
 			}
-			_, err = r.kubeClient.RbacV1().Roles(clusterName).Create(acmRole)
+			_, err = r.kubeClient.RbacV1().Roles(clusterName).Create(context.TODO(), acmRole, metav1.CreateOptions{})
 		}
 		return err
 	}
 
 	if !reflect.DeepEqual(role.Rules, rules) {
 		role.Rules = rules
-		_, err := r.kubeClient.RbacV1().Roles(clusterName).Update(role)
+		_, err := r.kubeClient.RbacV1().Roles(clusterName).Update(context.TODO(), role, metav1.UpdateOptions{})
 		return err
 	}
 
@@ -176,10 +176,10 @@ func (r *Reconciler) createOrUpdateRoleBinding(clusterName string) error {
 	acmRoleBinding := NewRoleBinding(
 		roleName(clusterName), clusterName).Groups(subjectPrefix + clusterName).BindingOrDie()
 
-	binding, err := r.kubeClient.RbacV1().RoleBindings(clusterName).Get(roleName(clusterName), metav1.GetOptions{})
+	binding, err := r.kubeClient.RbacV1().RoleBindings(clusterName).Get(context.TODO(), clusterName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = r.kubeClient.RbacV1().RoleBindings(clusterName).Create(&acmRoleBinding)
+			_, err = r.kubeClient.RbacV1().RoleBindings(clusterName).Create(context.TODO(), &acmRoleBinding, metav1.CreateOptions{})
 		}
 		return err
 	}
@@ -194,7 +194,7 @@ func (r *Reconciler) createOrUpdateRoleBinding(clusterName string) error {
 		binding.Subjects = acmRoleBinding.Subjects
 	}
 	if needUpdate {
-		_, err = r.kubeClient.RbacV1().RoleBindings(clusterName).Update(binding)
+		_, err = r.kubeClient.RbacV1().RoleBindings(clusterName).Update(context.TODO(), binding, metav1.UpdateOptions{})
 		return err
 	}
 

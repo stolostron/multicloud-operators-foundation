@@ -81,6 +81,8 @@ images:
   newName: $IMAGE_NAME_AND_VERSION
 EOF
 
+make create-certs
+
 kubectl apply -k "${HUB_PATH}"
 
 MANAGED_CLUSTER=$(kubectl get managedclusters | grep cluster | awk '{print $1}')

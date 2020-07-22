@@ -7,6 +7,9 @@ resources:
 - resources/crds/hive.openshift.io_clusterdeployments.yaml
 - resources/crds/hive.openshift.io_syncsetinstances.yaml
 - resources/100-clusterrole.yaml
-- resources/100-agent-ca.yaml
+- resources/100-agent-cert.yaml
+- resources/100-apiserver-cert.yaml
+- resources/100-proxyserver-apiservice.yaml
+- resources/100-proxyserver-service.yaml
 - resources/200-proxyserver.yaml
 - resources/200-controller.yaml

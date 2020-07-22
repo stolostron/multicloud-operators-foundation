@@ -9,7 +9,6 @@ import (
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/stretchr/testify/assert"
-	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -50,26 +49,6 @@ func TestMain(m *testing.M) {
 const (
 	managedClusterInfoName = "foo"
 )
-
-func newRoleObjs() []runtime.Object {
-	return []runtime.Object{
-		&rbacv1.Role{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      roleName(managedClusterInfoName),
-				Namespace: managedClusterInfoName,
-			},
-			Rules: nil,
-		},
-		&rbacv1.RoleBinding{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      roleName(managedClusterInfoName),
-				Namespace: managedClusterInfoName,
-			},
-			Subjects: nil,
-			RoleRef:  rbacv1.RoleRef{},
-		},
-	}
-}
 
 func validateError(t *testing.T, err, expectedErrorType error) {
 	if expectedErrorType != nil {
@@ -115,7 +94,7 @@ func TestReconcile(t *testing.T) {
 					Spec: clusterv1beta1.ClusterInfoSpec{},
 				},
 			},
-			existingRoleOjbs: newRoleObjs(),
+			existingRoleOjbs: []runtime.Object{},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name: managedClusterInfoName,

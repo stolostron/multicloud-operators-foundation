@@ -12,6 +12,7 @@
 package rest
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -132,7 +133,7 @@ func (r *KubeControl) Create(
 		obj = deco(obj).(*unstructured.Unstructured)
 	}
 	return r.dynamicClient.Resource(
-		mapping.Resource).Namespace(objNamespace).Create(obj, metav1.CreateOptions{})
+		mapping.Resource).Namespace(objNamespace).Create(context.TODO(), obj, metav1.CreateOptions{})
 }
 
 // Get a resource
@@ -153,7 +154,7 @@ func (r *KubeControl) Get(
 		}
 	}
 
-	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Get(name, metav1.GetOptions{})
+	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 }
 
 // List resources
@@ -192,7 +193,7 @@ func (r *KubeControl) Delete(gvk *schema.GroupVersionKind, resource, namespace, 
 	deleteOption := metav1.DeleteOptions{
 		PropagationPolicy: &deletePolicy,
 	}
-	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Delete(name, &deleteOption)
+	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Delete(context.TODO(), name, deleteOption)
 }
 
 func (r *KubeControl) Patch(
@@ -202,7 +203,7 @@ func (r *KubeControl) Patch(
 		return nil, err
 	}
 
-	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Patch(name, pt, data, metav1.PatchOptions{})
+	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Patch(context.TODO(), name, pt, data, metav1.PatchOptions{})
 }
 
 func (r *KubeControl) Replace(namespace string, overwrite bool, raw runtime.RawExtension) (runtime.Object, error) {
@@ -219,7 +220,7 @@ func (r *KubeControl) Replace(namespace string, overwrite bool, raw runtime.RawE
 	}
 
 	// Start update here
-	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Update(obj, metav1.UpdateOptions{})
+	return r.dynamicClient.Resource(mapping.Resource).Namespace(namespace).Update(context.TODO(), obj, metav1.UpdateOptions{})
 }
 
 func (r *KubeControl) KindFor(resource schema.GroupVersionResource) (schema.GroupVersionKind, error) {

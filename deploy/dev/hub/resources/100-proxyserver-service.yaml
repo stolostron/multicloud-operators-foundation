@@ -1,0 +1,13 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: acm-proxyserver
+  namespace: open-cluster-management
+spec:
+  selector:
+    app: acm-proxyserver
+  ports:
+    - name: secure
+      protocol: TCP
+      port: 443
+      targetPort: 6443

@@ -1,6 +1,7 @@
 package common
 
 import (
+	"context"
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"fmt"
@@ -87,7 +88,7 @@ func GetHostFromClientConfig() (string, error) {
 }
 
 func GetJoinedManagedClusters(dynamicClient dynamic.Interface) ([]*unstructured.Unstructured, error) {
-	clusters, err := dynamicClient.Resource(ManagedClusterGVR).List(metav1.ListOptions{})
+	clusters, err := dynamicClient.Resource(ManagedClusterGVR).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -135,9 +136,9 @@ func ListResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResour
 	var list *unstructured.UnstructuredList
 	var err error
 	if namespace == "" {
-		list, err = dynamicClient.Resource(gvr).List(listOptions)
+		list, err = dynamicClient.Resource(gvr).List(context.TODO(), listOptions)
 	} else {
-		list, err = dynamicClient.Resource(gvr).Namespace(namespace).List(listOptions)
+		list, err = dynamicClient.Resource(gvr).Namespace(namespace).List(context.TODO(), listOptions)
 	}
 
 	if err != nil {
@@ -153,7 +154,7 @@ func ListResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResour
 }
 
 func GetClusterResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, name string) (*unstructured.Unstructured, error) {
-	obj, err := dynamicClient.Resource(gvr).Get(name, metav1.GetOptions{})
+	obj, err := dynamicClient.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +163,7 @@ func GetClusterResource(dynamicClient dynamic.Interface, gvr schema.GroupVersion
 }
 
 func GetResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, namespace, name string) (*unstructured.Unstructured, error) {
-	obj, err := dynamicClient.Resource(gvr).Namespace(namespace).Get(name, metav1.GetOptions{})
+	obj, err := dynamicClient.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -171,7 +172,7 @@ func GetResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResourc
 }
 
 func HasResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, namespace, name string) (bool, error) {
-	_, err := dynamicClient.Resource(gvr).Namespace(namespace).Get(name, metav1.GetOptions{})
+	_, err := dynamicClient.Resource(gvr).Namespace(namespace).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return false, nil
@@ -183,7 +184,7 @@ func HasResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResourc
 }
 
 func HasClusterResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, name string) (bool, error) {
-	_, err := dynamicClient.Resource(gvr).Get(name, metav1.GetOptions{})
+	_, err := dynamicClient.Resource(gvr).Get(context.TODO(), name, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return false, nil
@@ -198,11 +199,11 @@ func CreateClusterResource(
 	dynamicClient dynamic.Interface,
 	gvr schema.GroupVersionResource,
 	obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	return dynamicClient.Resource(gvr).Create(obj, metav1.CreateOptions{})
+	return dynamicClient.Resource(gvr).Create(context.TODO(), obj, metav1.CreateOptions{})
 }
 
 func CreateResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	return dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Create(obj, metav1.CreateOptions{})
+	return dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
 }
 
 func UpdateResourceStatus(
@@ -217,14 +218,14 @@ func UpdateResourceStatus(
 			return err
 		}
 		obj.SetResourceVersion(oldObj.GetResourceVersion())
-		rs, err = dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).UpdateStatus(obj, metav1.UpdateOptions{})
+		rs, err = dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).UpdateStatus(context.TODO(), obj, metav1.UpdateOptions{})
 		return err
 	})
 	return rs, err
 }
 
 func DeleteClusterResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, name string) error {
-	err := dynamicClient.Resource(gvr).Delete(name, &metav1.DeleteOptions{})
+	err := dynamicClient.Resource(gvr).Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil
@@ -235,7 +236,7 @@ func DeleteClusterResource(dynamicClient dynamic.Interface, gvr schema.GroupVers
 }
 
 func DeleteResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, namespace, name string) error {
-	err := dynamicClient.Resource(gvr).Namespace(namespace).Delete(name, &metav1.DeleteOptions{})
+	err := dynamicClient.Resource(gvr).Namespace(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil

@@ -17,36 +17,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	v1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
-
-func TestIsClusterExit(t *testing.T) {
-	ServerAddressByClientCIDR1 := v1alpha1.ServerAddressByClientCIDR{ClientCIDR: "/opt"}
-	ServerAddressByClientCIDR2 := v1alpha1.ServerAddressByClientCIDR{ClientCIDR: "/usr"}
-	clusters1 := &v1alpha1.Cluster{Spec: v1alpha1.ClusterSpec{KubernetesAPIEndpoints: v1alpha1.KubernetesAPIEndpoints{
-		ServerEndpoints: []v1alpha1.ServerAddressByClientCIDR{ServerAddressByClientCIDR1, ServerAddressByClientCIDR2}}}}
-
-	type args struct {
-		ClusterName string
-		clusters    []*v1alpha1.Cluster
-	}
-	tests := []struct {
-		name string
-		args args
-		want bool
-	}{
-		{"case1:", args{ClusterName: "clusterName1"}, false},
-		{"case2:", args{ClusterName: "clusterName1", clusters: []*v1alpha1.Cluster{clusters1}}, false},
-		{"case3:", args{ClusterName: "", clusters: nil}, false},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := IsClusterExit(tt.args.ClusterName, tt.args.clusters); got != tt.want {
-				t.Errorf("IsClusterExit() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 
 func TestFormatQuatityToMi(t *testing.T) {
 	type args struct {
