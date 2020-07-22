@@ -13,4 +13,4 @@ build-harness-extensions
 !vbh/.bbuild-harness-bootstrap
 !vbh/build-harness
 !vbh/build-harness-extensions
-vendor
+
