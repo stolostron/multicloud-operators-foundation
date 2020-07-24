@@ -55,7 +55,7 @@ func WriteKeyCertToFile(certDir string, key, cert []byte) (string, error) {
 	return store.CurrentPath(), nil
 }
 
-//GeneratePemFile generate a pem file that include key and cert
+// GeneratePemFile generate a pem file that include key and cert
 func GeneratePemFile(dir, certFile, keyFile string) (string, error) {
 	cert, err := readAll(certFile)
 	if err != nil {

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
 	"net/http"
@@ -102,7 +103,7 @@ func (h *Handle) InstallAuthFilter() {
 		attrs := h.auth.GetRequestAttributes(authResp.User, req.Request)
 
 		// Authorize
-		decision, _, err := h.auth.Authorize(attrs)
+		decision, _, err := h.auth.Authorize(context.TODO(), attrs)
 		if err != nil {
 			msg := fmt.Sprintf(
 				"Authorization error (user=%s, verb=%s, resource=%s, subresource=%s)",

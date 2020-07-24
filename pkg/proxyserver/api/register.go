@@ -84,3 +84,7 @@ func (s *clusterStatusStorage) Get(ctx context.Context, name string, opts *metav
 func (s *clusterStatusStorage) NamespaceScoped() bool {
 	return true
 }
+
+func (s *clusterStatusStorage) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
+	return nil, nil
+}

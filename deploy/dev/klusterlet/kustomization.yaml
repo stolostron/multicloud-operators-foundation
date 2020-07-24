@@ -1,3 +1,4 @@
 resources:
 - resources/100-clusterrole.yaml
+- resources/100-service.yaml
 - resources/200-agent.yaml

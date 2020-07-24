@@ -18,7 +18,7 @@ var c client.Client
 
 const (
 	actionName      = "name"
-	actionNamespace = "namespace"
+	actionNamespace = "default"
 )
 
 func TestControllerReconcile(t *testing.T) {

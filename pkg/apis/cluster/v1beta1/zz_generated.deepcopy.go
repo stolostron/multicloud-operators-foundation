@@ -11,7 +11,7 @@
 package v1beta1
 
 import (
-	"github.com/open-cluster-management/api/cluster/v1"
+	v1 "github.com/open-cluster-management/api/cluster/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 

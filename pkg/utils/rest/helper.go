@@ -12,6 +12,7 @@
 package rest
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -93,7 +94,7 @@ func (m *Helper) List(namespace string, options *metav1.ListOptions) (runtime.Ob
 		tableParam := fmt.Sprintf("application/json;as=Table;v=%s;g=%s, application/json", version, group)
 		req.SetHeader("Accept", tableParam)
 	}
-	return req.Do().Get()
+	return req.Do(context.TODO()).Get()
 }
 
 type dynamicCodec struct{}
@@ -118,6 +119,9 @@ func (dynamicCodec) Decode(
 
 func (dynamicCodec) Encode(obj runtime.Object, w io.Writer) error {
 	return unstructured.UnstructuredJSONScheme.Encode(obj, w)
+}
+func (dynamicCodec) Identifier() runtime.Identifier {
+	return ""
 }
 
 func ParseUserIdentity(idEncoded string) (id string) {

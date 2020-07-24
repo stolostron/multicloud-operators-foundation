@@ -16,7 +16,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	v1alpha1 "k8s.io/cluster-registry/pkg/apis/clusterregistry/v1alpha1"
 )
 
 func FormatQuatityToMi(q resource.Quantity) resource.Quantity {
@@ -37,18 +36,6 @@ func FormatQuatityToGi(q resource.Quantity) resource.Quantity {
 		return q
 	}
 	return rq
-}
-
-func IsClusterExit(clusterName string, clusters []*v1alpha1.Cluster) bool {
-	if len(clusters) == 0 || clusterName == "" {
-		return false
-	}
-	for _, cl := range clusters {
-		if cl.Name == clusterName {
-			return true
-		}
-	}
-	return false
 }
 
 // PodRequestsAndLimits returns a dictionary of all defined resources summed up for all

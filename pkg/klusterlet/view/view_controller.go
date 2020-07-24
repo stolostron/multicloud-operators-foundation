@@ -132,7 +132,7 @@ func (r *ViewReconciler) queryResource(managedClusterView *viewv1beta1.ManagedCl
 		gvr = mapping.Resource
 	}
 
-	obj, err = r.ManagedClusterDynamicClient.Resource(gvr).Namespace(scope.Namespace).Get(scope.Name, metav1.GetOptions{})
+	obj, err = r.ManagedClusterDynamicClient.Resource(gvr).Namespace(scope.Namespace).Get(context.TODO(), scope.Name, metav1.GetOptions{})
 	if err != nil {
 		conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
 			Type:    viewv1beta1.ConditionViewProcessing,

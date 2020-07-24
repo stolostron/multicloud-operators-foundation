@@ -1,6 +1,7 @@
 package denynamespace
 
 import (
+	"context"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -41,7 +42,7 @@ func ShouldDenyDeleteNamespace(ns string, dynamicClient dynamic.Interface) (bool
 	}
 
 	// check if the managedcluster exists
-	_, err := dynamicClient.Resource(managedClustersGVR).Get(ns, metav1.GetOptions{})
+	_, err := dynamicClient.Resource(managedClustersGVR).Get(context.TODO(), ns, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return false, msg
@@ -52,7 +53,7 @@ func ShouldDenyDeleteNamespace(ns string, dynamicClient dynamic.Interface) (bool
 	}
 
 	// check if the manifestworks exist
-	works, err := dynamicClient.Resource(manifestWorksGVR).Namespace(ns).List(metav1.ListOptions{})
+	works, err := dynamicClient.Resource(manifestWorksGVR).Namespace(ns).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		klog.Errorf("failed to list manifestworks in ns %v. err: %v", ns, err)
 	} else if len(works.Items) != 0 {
@@ -61,7 +62,7 @@ func ShouldDenyDeleteNamespace(ns string, dynamicClient dynamic.Interface) (bool
 	}
 
 	// check if the clusterdeployments exist
-	cd, err := dynamicClient.Resource(clusterDeploymentsGVR).Namespace(ns).List(metav1.ListOptions{})
+	cd, err := dynamicClient.Resource(clusterDeploymentsGVR).Namespace(ns).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		klog.Errorf("failed to list clusterdeployments in ns %v. err: %v", ns, err)
 	} else if len(cd.Items) != 0 {

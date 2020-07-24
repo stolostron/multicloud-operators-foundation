@@ -135,7 +135,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	//add label to clusternamespace
-	clusterNamespace, err := r.kubeClient.CoreV1().Namespaces().Get(cluster.Name, metav1.GetOptions{})
+	clusterNamespace, err := r.kubeClient.CoreV1().Namespaces().Get(context.TODO(), cluster.Name, metav1.GetOptions{})
 	if err != nil {
 		klog.Warningf("will reconcile since failed get clusternamespace %v, %v", cluster.Name, err)
 		return ctrl.Result{}, err
@@ -148,7 +148,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	utils.MergeMap(&modified, clusterNamespace.GetLabels(), ClusterNameLabel)
 
 	if modified {
-		_, err = r.kubeClient.CoreV1().Namespaces().Update(clusterNamespace)
+		_, err = r.kubeClient.CoreV1().Namespaces().Update(context.TODO(), clusterNamespace, metav1.UpdateOptions{})
 		if err != nil {
 			klog.Warningf("will reconcile since failed update clusternamespace %v, %v", cluster.Name, err)
 			return ctrl.Result{}, err
@@ -159,7 +159,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 //Delete cluster role
 func (r *Reconciler) deleteClusterRole(clusterRoleName string) error {
-	err := r.kubeClient.RbacV1().ClusterRoles().Delete(clusterRoleName, &metav1.DeleteOptions{})
+	err := r.kubeClient.RbacV1().ClusterRoles().Delete(context.TODO(), clusterRoleName, metav1.DeleteOptions{})
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -168,7 +168,7 @@ func (r *Reconciler) deleteClusterRole(clusterRoleName string) error {
 
 //apply cluster role
 func (r *Reconciler) applyClusterRole(clusterRoleName string, rules []rbacv1.PolicyRule) error {
-	clusterRole, err := r.kubeClient.RbacV1().ClusterRoles().Get(clusterRoleName, metav1.GetOptions{})
+	clusterRole, err := r.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), clusterRoleName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			clusterRole = &rbacv1.ClusterRole{
@@ -177,7 +177,7 @@ func (r *Reconciler) applyClusterRole(clusterRoleName string, rules []rbacv1.Pol
 				},
 				Rules: rules,
 			}
-			_, err = r.kubeClient.RbacV1().ClusterRoles().Create(clusterRole)
+			_, err = r.kubeClient.RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, metav1.CreateOptions{})
 			if err != nil {
 				return err
 			}
@@ -187,7 +187,7 @@ func (r *Reconciler) applyClusterRole(clusterRoleName string, rules []rbacv1.Pol
 	}
 	if !reflect.DeepEqual(clusterRole.Rules, rules) {
 		clusterRole.Rules = rules
-		_, err := r.kubeClient.RbacV1().ClusterRoles().Update(clusterRole)
+		_, err := r.kubeClient.RbacV1().ClusterRoles().Update(context.TODO(), clusterRole, metav1.UpdateOptions{})
 		return err
 	}
 	return nil

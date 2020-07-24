@@ -1,0 +1,14 @@
+apiVersion: apiregistration.k8s.io/v1
+kind: APIService
+metadata:
+  name: v1beta1.proxy.open-cluster-management.io
+spec:
+  group: proxy.open-cluster-management.io
+  version: v1beta1
+  service:
+    namespace: open-cluster-management
+    name: acm-proxyserver
+    port: 443
+  caBundle: $ACM_APISERVER_CA
+  groupPriorityMinimum: 10000
+  versionPriority: 20

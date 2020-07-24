@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	stdlog "log"
 	"os"
 	"testing"
@@ -216,7 +217,7 @@ func TestClusterInfoReconciler_getMasterAddresses(t *testing.T) {
 	if len(endpointaddr) < 1 || len(endpointport) < 1 {
 		t.Errorf("Failed to get clusterinfo. endpointaddr:%v, endpointport:%v, clusterurl:%v", endpointaddr, endpointport, clusterurl)
 	}
-	cir.KubeClient.CoreV1().ConfigMaps("openshift-console").Delete("console-config", &metav1.DeleteOptions{})
+	cir.KubeClient.CoreV1().ConfigMaps("openshift-console").Delete(context.TODO(), "console-config", metav1.DeleteOptions{})
 	endpointaddr, endpointport, clusterurl = cir.getMasterAddresses()
 	if len(endpointaddr) < 1 || len(endpointport) < 1 {
 		t.Errorf("Failed to get clusterinfo. endpointaddr:%v, endpointport:%v, clusterurl:%v", endpointaddr, endpointport, clusterurl)

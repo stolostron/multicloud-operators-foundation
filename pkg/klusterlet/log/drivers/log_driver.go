@@ -6,6 +6,7 @@
 package drivers
 
 import (
+	"context"
 	"io"
 	"net/url"
 	"strconv"
@@ -53,7 +54,7 @@ func (l *LogDriver) GetContainerLog(namespace, podID, containerName string, quer
 	}
 
 	request := l.kubeclient.CoreV1().Pods(namespace).GetLogs(podID, options)
-	readCloser, err := request.Stream()
+	readCloser, err := request.Stream(context.TODO())
 	if err != nil {
 		klog.Errorf("Failed to read logs %v", err)
 		return err

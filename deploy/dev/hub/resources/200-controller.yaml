@@ -48,4 +48,4 @@ spec:
       - name: agent-certs
         secret:
           defaultMode: 420
-          secretName: acm-agent-self-signed-secrets
+          secretName: acm-agent-cert

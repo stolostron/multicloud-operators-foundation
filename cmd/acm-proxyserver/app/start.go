@@ -12,7 +12,6 @@ import (
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver/app/options"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apiserverreloader"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/controller"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
 	"k8s.io/client-go/informers"
@@ -54,9 +53,6 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 	ctrl := controller.NewProxyServiceInfoController(kubeClient, configMapLabels, informerFactory, proxyGetter, stopCh)
 	go ctrl.Run()
 	informerFactory.Start(stopCh)
-
-	reloader := apiserverreloader.NewReloader(kubeClient, stopCh)
-	go reloader.Run()
 
 	apiServerConfig, err := s.APIServerConfig()
 	if err != nil {
