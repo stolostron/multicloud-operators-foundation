@@ -185,6 +185,11 @@ func logStackOnRecover(panicReason interface{}, httpWriter http.ResponseWriter) 
 // when a ServiceError is returned during route selection. Default implementation
 // calls resp.WriteErrorString(err.Code, err.Message)
 func writeServiceError(err ServiceError, req *Request, resp *Response) {
+	for header, values := range err.Header {
+		for _, value := range values {
+			resp.Header().Add(header, value)
+		}
+	}
 	resp.WriteErrorString(err.Code, err.Message)
 }
 
@@ -316,7 +321,7 @@ func (c *Container) HandleWithFilter(pattern string, handler http.Handler) {
 		}
 
 		chain := FilterChain{Filters: c.containerFilters, Target: func(req *Request, resp *Response) {
-			handler.ServeHTTP(httpResponse, httpRequest)
+			handler.ServeHTTP(resp, req.Request)
 		}}
 		chain.ProcessFilter(NewRequest(httpRequest), NewResponse(httpResponse))
 	}

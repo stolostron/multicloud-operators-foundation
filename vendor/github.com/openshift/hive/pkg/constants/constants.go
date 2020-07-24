@@ -11,6 +11,10 @@ const (
 	// VeleroBackupEnvVar is the name of the environment variable used to tell the controller manager to enable velero backup integration.
 	VeleroBackupEnvVar = "HIVE_VELERO_BACKUP"
 
+	// DeprovisionsDisabledEnvVar is the name of the environment variable used to tell the controller manager to skip
+	// processing of any ClusterDeprovisions.
+	DeprovisionsDisabledEnvVar = "DEPROVISIONS_DISABLED"
+
 	// MinBackupPeriodSecondsEnvVar is the name of the environment variable used to tell the controller manager the minimum period of time between backups.
 	MinBackupPeriodSecondsEnvVar = "HIVE_MIN_BACKUP_PERIOD_SECONDS"
 
@@ -26,6 +30,9 @@ const (
 
 	// UninstallJobLabel is the label used for artifacts specific to Hive cluster deprovision.
 	UninstallJobLabel = "hive.openshift.io/uninstall"
+
+	// MachinePoolNameLabel is the label that is used to identify the MachinePool which owns a particular resource.
+	MachinePoolNameLabel = "hive.openshift.io/machine-pool-name"
 
 	// ClusterDeploymentNameLabel is the label that is used to identify a relationship to a given cluster deployment object.
 	ClusterDeploymentNameLabel = "hive.openshift.io/cluster-deployment-name"
@@ -102,6 +109,16 @@ const (
 	// SyncsetPauseAnnotation is a annotation used by clusterDeployment, if it's true, then we will disable syncing to a specific cluster
 	SyncsetPauseAnnotation = "hive.openshift.io/syncset-pause"
 
+	// DisableInstallLogPasswordRedactionAnnotation is an annotation used on ClusterDeployments to disable the installmanager
+	// functionality which refuses to print output if it appears to contain a password or sensitive info. This can be
+	// useful in scenarios where debugging is needed and important info is being redacted. Set to "true".
+	DisableInstallLogPasswordRedactionAnnotation = "hive.openshift.io/disable-install-log-password-redaction"
+
+	// PauseOnInstallFailureAnnotation is an annotation used on ClusterDeployments to trigger a sleep after an install
+	// failure for the specified duration. This will keep the install pod running and allow a user to rsh in for debug
+	// purposes. Examples: "1h", "20m".
+	PauseOnInstallFailureAnnotation = "hive.openshift.io/pause-on-install-failure"
+
 	// ManagedDomainsFileEnvVar if present, points to a simple text
 	// file that includes a valid managed domain per line. Cluster deployments
 	// requesting that their domains be managed must have a base domain
@@ -114,6 +131,9 @@ const (
 
 	// GCPCredentialsName is the name of the GCP credentials file or secret key.
 	GCPCredentialsName = "osServiceAccount.json"
+
+	// AzureCredentialsName is the name of the Azure credentials file or secret key.
+	AzureCredentialsName = "osServicePrincipal.json"
 
 	// SSHPrivKeyPathEnvVar is the environment variable Hive will set for the installmanager pod to point to the
 	// path where we mount in the SSH key to be configured on the cluster hosts.
@@ -149,6 +169,19 @@ const (
 
 	// AWSChinaRegionPrefix is the prefix for regions in AWS China.
 	AWSChinaRegionPrefix = "cn-"
+
+	// SSHPrivateKeySecretKey is the key we use in a Kubernetes Secret containing an SSH private key.
+	SSHPrivateKeySecretKey = "ssh-privatekey"
+
+	// RawKubeconfigSecretKey is the key we use in a Kubernetes Secret containing the raw (unmodified) form of
+	// an admin kubeconfig. (before Hive injects things such as additional CAs)
+	RawKubeconfigSecretKey = "raw-kubeconfig"
+
+	// TLSCrtSecretKey is the key we use in a Kubernetes Secret containing a TLS certificate.
+	TLSCrtSecretKey = "tls.crt"
+
+	// TLSKeySecretKey is the key we use in a Kubernetes Secret containing a TLS certificate key.
+	TLSKeySecretKey = "tls.key"
 )
 
 // GetMergedPullSecretName returns name for merged pull secret name per cluster deployment

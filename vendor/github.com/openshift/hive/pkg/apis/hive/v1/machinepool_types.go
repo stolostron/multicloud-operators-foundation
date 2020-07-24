@@ -6,7 +6,6 @@ import (
 
 	"github.com/openshift/hive/pkg/apis/hive/v1/aws"
 	"github.com/openshift/hive/pkg/apis/hive/v1/azure"
-	"github.com/openshift/hive/pkg/apis/hive/v1/baremetal"
 	"github.com/openshift/hive/pkg/apis/hive/v1/gcp"
 )
 
@@ -64,8 +63,6 @@ type MachinePoolPlatform struct {
 	Azure *azure.MachinePool `json:"azure,omitempty"`
 	// GCP is the configuration used when installing on GCP.
 	GCP *gcp.MachinePool `json:"gcp,omitempty"`
-	// BareMetal is the configuration used when installing on bare metal.
-	BareMetal *baremetal.MachinePool `json:"bareMetal,omitempty"`
 }
 
 // MachinePoolStatus defines the observed state of MachinePool
@@ -123,6 +120,10 @@ const (
 	// NotEnoughReplicasMachinePoolCondition is true when the minReplicas field
 	// is set too low for the number of machinesets for the machine pool.
 	NotEnoughReplicasMachinePoolCondition MachinePoolConditionType = "NotEnoughReplicas"
+
+	// NoMachinePoolNameLeasesAvailable is true when the cloud provider requires a name lease for the in-cluster MachineSet, but no
+	// leases are available.
+	NoMachinePoolNameLeasesAvailable MachinePoolConditionType = "NoMachinePoolNameLeasesAvailable"
 )
 
 // +genclient

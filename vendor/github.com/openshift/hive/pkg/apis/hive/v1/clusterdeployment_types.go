@@ -36,6 +36,12 @@ const (
 	// searching and filtering clusters, as well as in SelectorSyncSets to only
 	// target specific cloud platforms.
 	HiveClusterPlatformLabel = "hive.openshift.io/cluster-platform"
+
+	// HiveClusterRegionLabel is a label that is applied to ClusterDeployments
+	// to denote which region the cluster was created in. This can be used in
+	// searching and filtering clusters, as well as in SelectorSyncSets to only
+	// target specific regions of the cluster-platform.
+	HiveClusterRegionLabel = "hive.openshift.io/cluster-region"
 )
 
 // ClusterDeploymentSpec defines the desired state of ClusterDeployment
@@ -314,7 +320,7 @@ type Platform struct {
 	GCP *gcp.Platform `json:"gcp,omitempty"`
 
 	// BareMetal is the configuration used when installing on bare metal.
-	BareMetal *baremetal.Platform `json:"bareMetal,omitempty"`
+	BareMetal *baremetal.Platform `json:"baremetal,omitempty"`
 }
 
 // ClusterIngress contains the configurable pieces for any ClusterIngress objects
