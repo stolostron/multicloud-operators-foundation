@@ -7,21 +7,18 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
-
+	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
+	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-
-	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
-
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 )
 
 // ViewReconciler reconciles a ManagedClusterView object
@@ -52,7 +49,7 @@ func (r *ViewReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		updateInterval = time.Duration(managedClusterView.Spec.Scope.UpdateIntervalSeconds) * time.Second
 	}
 
-	if condition := conditions.FindStatusCondition(managedClusterView.Status.Conditions, viewv1beta1.ConditionViewProcessing); condition != nil {
+	if condition := helpers.FindStatusCondition(managedClusterView.Status.Conditions, viewv1beta1.ConditionViewProcessing); condition != nil {
 		sub := time.Since(condition.LastTransitionTime.Time)
 		if sub < updateInterval {
 			return ctrl.Result{RequeueAfter: updateInterval - sub}, nil
@@ -85,7 +82,7 @@ func (r *ViewReconciler) queryResource(managedClusterView *viewv1beta1.ManagedCl
 
 	if scope.Name == "" {
 		err = fmt.Errorf("invalid resource name")
-		conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
+		helpers.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
 			Type:    viewv1beta1.ConditionViewProcessing,
 			Status:  corev1.ConditionFalse,
 			Reason:  viewv1beta1.ReasonResourceNameInvalid,
@@ -96,7 +93,7 @@ func (r *ViewReconciler) queryResource(managedClusterView *viewv1beta1.ManagedCl
 
 	if scope.Resource == "" && (scope.Kind == "" || scope.Version == "") {
 		err = fmt.Errorf("invalid resource type")
-		conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
+		helpers.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
 			Type:    viewv1beta1.ConditionViewProcessing,
 			Status:  corev1.ConditionFalse,
 			Reason:  viewv1beta1.ReasonResourceTypeInvalid,
@@ -109,7 +106,7 @@ func (r *ViewReconciler) queryResource(managedClusterView *viewv1beta1.ManagedCl
 		gvk := schema.GroupVersionKind{Group: scope.Group, Kind: scope.Kind, Version: scope.Version}
 		mapper, err := r.Mapper.MappingForGVK(gvk)
 		if err != nil {
-			conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
+			helpers.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
 				Type:    viewv1beta1.ConditionViewProcessing,
 				Status:  corev1.ConditionFalse,
 				Reason:  viewv1beta1.ReasonResourceGVKInvalid,
@@ -121,7 +118,7 @@ func (r *ViewReconciler) queryResource(managedClusterView *viewv1beta1.ManagedCl
 	} else {
 		mapping, err := r.Mapper.MappingFor(scope.Resource)
 		if err != nil {
-			conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
+			helpers.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
 				Type:    viewv1beta1.ConditionViewProcessing,
 				Status:  corev1.ConditionFalse,
 				Reason:  viewv1beta1.ReasonResourceTypeInvalid,
@@ -134,7 +131,7 @@ func (r *ViewReconciler) queryResource(managedClusterView *viewv1beta1.ManagedCl
 
 	obj, err = r.ManagedClusterDynamicClient.Resource(gvr).Namespace(scope.Namespace).Get(context.TODO(), scope.Name, metav1.GetOptions{})
 	if err != nil {
-		conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
+		helpers.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
 			Type:    viewv1beta1.ConditionViewProcessing,
 			Status:  corev1.ConditionFalse,
 			Reason:  viewv1beta1.ReasonGetResourceFailed,
@@ -143,7 +140,7 @@ func (r *ViewReconciler) queryResource(managedClusterView *viewv1beta1.ManagedCl
 		return err
 	}
 
-	conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
+	helpers.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
 		Type:   viewv1beta1.ConditionViewProcessing,
 		Status: corev1.ConditionTrue,
 	})

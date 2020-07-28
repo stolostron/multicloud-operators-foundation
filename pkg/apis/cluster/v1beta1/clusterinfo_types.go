@@ -165,6 +165,16 @@ const (
 	CloudVendorOther CloudVendorType = "Other"
 )
 
+const (
+	// ManagedClusterInfoSynced means the info on managed cluster is synced.
+	ManagedClusterInfoSynced string = "ManagedClusterInfoSynced"
+)
+
+const (
+	ReasonManagedClusterInfoSynced       string = "ManagedClusterInfoSynced"
+	ReasonManagedClusterInfoSyncedFailed string = "ReasonManagedClusterInfoSyncedFailed"
+)
+
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=managedclusterinfos

@@ -105,7 +105,7 @@ done
 
 for i in {1..7}; do
   echo "############$i  Checking ManagedClusterInfo"
-  INFO=$(kubectl get managedclusterinfos -n "${MANAGED_CLUSTER}" "${MANAGED_CLUSTER}" -o yaml | grep -c "type: ManagedClusterJoined" | tr -d '[:space:]')
+  INFO=$(kubectl get managedclusterinfos -n "${MANAGED_CLUSTER}" "${MANAGED_CLUSTER}" -o yaml | grep -c "loggingCA" | tr -d '[:space:]')
   if [ "${INFO}" -eq 1 ]; then
     break
   fi

@@ -9,6 +9,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
+
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
 
 	corev1 "k8s.io/api/core/v1"
@@ -41,7 +43,7 @@ func (r *ActionReconciler) handleAction(action *actionv1beta1.ManagedClusterActi
 	}
 
 	if err != nil {
-		conditions.SetStatusCondition(&action.Status.Conditions, conditions.Condition{
+		helpers.SetStatusCondition(&action.Status.Conditions, conditions.Condition{
 			Type:    actionv1beta1.ConditionActionCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  reason,
@@ -51,7 +53,7 @@ func (r *ActionReconciler) handleAction(action *actionv1beta1.ManagedClusterActi
 		return err
 	}
 
-	conditions.SetStatusCondition(&action.Status.Conditions, conditions.Condition{
+	helpers.SetStatusCondition(&action.Status.Conditions, conditions.Condition{
 		Type:   actionv1beta1.ConditionActionCompleted,
 		Status: corev1.ConditionTrue,
 	})
