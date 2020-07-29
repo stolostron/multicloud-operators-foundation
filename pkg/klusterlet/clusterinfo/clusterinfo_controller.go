@@ -8,28 +8,26 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
-
-	"k8s.io/klog"
-
-	"k8s.io/apimachinery/pkg/api/equality"
-
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
-
 	"github.com/go-logr/logr"
+	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
+	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/prometheus/common/log"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
-	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 )
 
 // ClusterInfoReconciler reconciles a ManagedClusterInfo object
@@ -60,10 +58,8 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	}
 
 	// Update cluster info status here.
-	newStatus := clusterv1beta1.ClusterInfoStatus{
-		Conditions: clusterInfo.Status.Conditions,
-	}
-
+	newStatus := clusterv1beta1.ClusterInfoStatus{}
+	var errs []error
 	// Config console url
 	_, _, clusterURL := r.getMasterAddresses()
 	newStatus.ConsoleURL = clusterURL
@@ -72,6 +68,7 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	agentEndpoint, agentPort, err := r.readAgentConfig()
 	if err != nil {
 		log.Error(err, "Failed to get agent server config")
+		errs = append(errs, fmt.Errorf("failed to get agent server config, error:%v ", err))
 	} else {
 		newStatus.LoggingEndpoint = *agentEndpoint
 		newStatus.LoggingPort = *agentPort
@@ -84,6 +81,7 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	newStatus.DistributionInfo, err = r.getDistributionInfo()
 	if err != nil {
 		log.Error(err, "Failed to get distribution info")
+		errs = append(errs, fmt.Errorf("failed to get distribution info, error:%v ", err))
 	}
 
 	// Get Vendor
@@ -95,11 +93,44 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	nodeList, err := r.getNodeList()
 	if err != nil {
 		log.Error(err, "Failed to get nodes status")
+		errs = append(errs, fmt.Errorf("failed to get nodes status, error:%v ", err))
 	} else {
 		newStatus.NodeList = nodeList
 	}
 
-	if !equality.Semantic.DeepEqual(newStatus, clusterInfo.Status) {
+	newSyncedCondition := clusterv1.StatusCondition{
+		Type:    clusterv1beta1.ManagedClusterInfoSynced,
+		Status:  metav1.ConditionTrue,
+		Reason:  clusterv1beta1.ReasonManagedClusterInfoSynced,
+		Message: "Managed cluster info is synced",
+	}
+	if len(errs) > 0 {
+		newSyncedCondition.Status = metav1.ConditionFalse
+		newSyncedCondition.Reason = clusterv1beta1.ReasonManagedClusterInfoSyncedFailed
+		applyErrors := errors.NewAggregate(errs)
+		newSyncedCondition.Message = applyErrors.Error()
+	}
+
+	needUpdate := false
+	oldStatus := clusterInfo.Status.DeepCopy()
+	oldSyncedCondition := helpers.FindClusterStatusCondition(oldStatus.Conditions, clusterv1beta1.ManagedClusterInfoSynced)
+	if oldSyncedCondition != nil {
+		oldSyncedCondition.LastTransitionTime = metav1.Time{}
+		if !equality.Semantic.DeepEqual(newSyncedCondition, *oldSyncedCondition) {
+			needUpdate = true
+		}
+	} else {
+		needUpdate = true
+	}
+
+	oldStatus.Conditions = []clusterv1.StatusCondition{}
+	if !equality.Semantic.DeepEqual(newStatus, *oldStatus) {
+		needUpdate = true
+	}
+
+	if needUpdate {
+		newStatus.Conditions = clusterInfo.Status.Conditions
+		helpers.SetClusterStatusCondition(&newStatus.Conditions, newSyncedCondition)
 		clusterInfo.Status = newStatus
 		err = r.Client.Status().Update(ctx, clusterInfo)
 		if err != nil {

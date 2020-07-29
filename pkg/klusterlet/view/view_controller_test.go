@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
-
 	tlog "github.com/go-logr/logr/testing"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -121,7 +121,7 @@ func validateErrorAndStatusConditions(t *testing.T, err, expectedErrorType error
 	}
 
 	for _, condition := range expectedConditions {
-		assert.True(t, conditions.IsStatusConditionPresentAndEqual(view.Status.Conditions, condition.Type, condition.Status))
+		assert.True(t, helpers.IsStatusConditionPresentAndEqual(view.Status.Conditions, condition.Type, condition.Status))
 	}
 	if view != nil {
 		assert.Equal(t, len(expectedConditions), len(view.Status.Conditions))

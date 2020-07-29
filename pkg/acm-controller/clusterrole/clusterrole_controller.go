@@ -4,28 +4,21 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/helpers"
-
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
-
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-
-	"k8s.io/apimachinery/pkg/runtime"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -83,7 +76,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Check DeletionTimestamp to determine if object is under deletion
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		// The object is being deleted
-		if helpers.ContainsString(cluster.GetFinalizers(), clusterRoleFinalizerName) {
+		if utils.ContainsString(cluster.GetFinalizers(), clusterRoleFinalizerName) {
 			if klog.V(4) {
 				klog.Infof("deleting ManagedClusterRole %v", cluster.Name)
 			}
@@ -100,7 +93,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			if klog.V(4) {
 				klog.Infof("removing ManagedClusterInfo Finalizer in ManagedCluster %v", cluster.Name)
 			}
-			cluster.ObjectMeta.Finalizers = helpers.RemoveString(cluster.ObjectMeta.Finalizers, clusterRoleFinalizerName)
+			cluster.ObjectMeta.Finalizers = utils.RemoveString(cluster.ObjectMeta.Finalizers, clusterRoleFinalizerName)
 			if err := r.client.Update(context.TODO(), cluster); err != nil {
 				klog.Warningf("will reconcile since failed to remove Finalizer from ManagedCluster %v, %v", cluster.Name, err)
 				return reconcile.Result{}, err
@@ -109,7 +102,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	if !helpers.ContainsString(cluster.GetFinalizers(), clusterRoleFinalizerName) {
+	if !utils.ContainsString(cluster.GetFinalizers(), clusterRoleFinalizerName) {
 		if klog.V(4) {
 			klog.Infof("adding ManagedClusterRole Finalizer to ManagedCluster %v", cluster.Name)
 		}

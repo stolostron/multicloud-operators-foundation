@@ -4,8 +4,10 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/helpers"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -84,7 +86,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Check DeletionTimestamp to determine if object is under deletion
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		// The object is being deleted
-		if helpers.ContainsString(cluster.GetFinalizers(), clusterFinalizerName) {
+		if utils.ContainsString(cluster.GetFinalizers(), clusterFinalizerName) {
 			klog.Infof("deleting ManagedClusterInfo %v", cluster.Name)
 			err := r.deleteExternalResources(cluster.Name, cluster.Name)
 			if err != nil {
@@ -93,7 +95,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			}
 
 			klog.Infof("removing ManagedClusterInfo Finalizer in ManagedCluster %v", cluster.Name)
-			cluster.ObjectMeta.Finalizers = helpers.RemoveString(cluster.ObjectMeta.Finalizers, clusterFinalizerName)
+			cluster.ObjectMeta.Finalizers = utils.RemoveString(cluster.ObjectMeta.Finalizers, clusterFinalizerName)
 			if err := r.client.Update(context.TODO(), cluster); err != nil {
 				klog.Warningf("will reconcile since failed to remove Finalizer from ManagedCluster %v, %v", cluster.Name, err)
 				return reconcile.Result{}, err
@@ -103,7 +105,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, nil
 	}
 
-	if !helpers.ContainsString(cluster.GetFinalizers(), clusterFinalizerName) {
+	if !utils.ContainsString(cluster.GetFinalizers(), clusterFinalizerName) {
 		klog.Infof("adding ManagedClusterInfo Finalizer to ManagedCluster %v", cluster.Name)
 		cluster.ObjectMeta.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterFinalizerName)
 		if err := r.client.Update(context.TODO(), cluster); err != nil {
@@ -141,8 +143,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	if !reflect.DeepEqual(cluster.Status.Conditions, clusterInfo.Status.Conditions) {
-		clusterInfo.Status.Conditions = cluster.Status.Conditions
+	// TODO: the conditions of managed cluster need to be deprecated.
+	newConditions := cluster.Status.Conditions
+	syncedCondition := helpers.FindClusterStatusCondition(clusterInfo.Status.Conditions, clusterinfov1beta1.ManagedClusterInfoSynced)
+	if syncedCondition != nil {
+		newConditions = append(newConditions, *syncedCondition)
+	}
+
+	if !reflect.DeepEqual(newConditions, clusterInfo.Status.Conditions) {
+		clusterInfo.Status.Conditions = newConditions
 		err = r.client.Status().Update(ctx, clusterInfo)
 		if err != nil {
 			klog.Warningf("will reconcile since failed to update ManagedClusterInfo status %v, %v", cluster.Name, err)

@@ -5,7 +5,7 @@ package clusterinfos_test
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/common"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -60,7 +60,7 @@ var _ = Describe("Testing ManagedClusterInfo", func() {
 					return "", err
 				}
 				// check the ManagedClusterInfo status
-				return common.GetConditionTypeFromStatus(ManagedClusterInfo, clusterv1.ManagedClusterConditionJoined), nil
+				return common.GetConditionTypeFromStatus(ManagedClusterInfo, clusterinfov1beta1.ManagedClusterInfoSynced), nil
 			}, eventuallyTimeout, eventuallyInterval).Should(BeTrue())
 		})
 	})

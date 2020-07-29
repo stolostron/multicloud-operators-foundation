@@ -4,28 +4,23 @@ import (
 	"context"
 	"reflect"
 
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
-
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/helpers"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/klog"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-
 	"k8s.io/apimachinery/pkg/runtime"
-
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -89,7 +84,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Check DeletionTimestamp to determine if object is under deletion
 	if !clusterInfo.GetDeletionTimestamp().IsZero() {
 		// The object is being deleted
-		if helpers.ContainsString(clusterInfo.GetFinalizers(), clusterRBACFinalizerName) {
+		if utils.ContainsString(clusterInfo.GetFinalizers(), clusterRBACFinalizerName) {
 			klog.Infof("deleting rbac for ManagedCluster agent %v", clusterInfo.Name)
 			err := r.deleteExternalResources(roleName(clusterInfo.Name))
 			if err != nil {
@@ -97,7 +92,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 				return reconcile.Result{}, err
 			}
 			klog.Infof("removing rbac Finalizer in ManagedClusterInfo %v", clusterInfo.Name)
-			clusterInfo.ObjectMeta.Finalizers = helpers.RemoveString(clusterInfo.ObjectMeta.Finalizers, clusterRBACFinalizerName)
+			clusterInfo.ObjectMeta.Finalizers = utils.RemoveString(clusterInfo.ObjectMeta.Finalizers, clusterRBACFinalizerName)
 			if err := r.client.Update(context.TODO(), clusterInfo); err != nil {
 				klog.Warningf("will reconcile since failed to remove Finalizer from ManagedClusterInfo %v, %v", clusterInfo.Name, err)
 				return reconcile.Result{}, err
@@ -107,7 +102,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if clusterInfo.GetDeletionTimestamp().IsZero() {
-		if !helpers.ContainsString(clusterInfo.GetFinalizers(), clusterRBACFinalizerName) {
+		if !utils.ContainsString(clusterInfo.GetFinalizers(), clusterRBACFinalizerName) {
 			klog.Infof("adding rbac Finalizer to ManagedClusterInfo %v", clusterInfo.Name)
 			clusterInfo.ObjectMeta.Finalizers = append(clusterInfo.ObjectMeta.Finalizers, clusterRBACFinalizerName)
 			if err := r.client.Update(context.TODO(), clusterInfo); err != nil {

@@ -41,7 +41,7 @@ func AddLabel(labels map[string]string, labelKey, labelValue string) map[string]
 	return labels
 }
 
-//MatchLabelForLabelSelector match labels for labelselector, if labelSelecor is nil, select everything
+// MatchLabelForLabelSelector match labels for labelselector, if labelSelecor is nil, select everything
 func MatchLabelForLabelSelector(targetLabels map[string]string, labelSelector *metav1.LabelSelector) bool {
 	selector, err := ConvertLabels(labelSelector)
 	if err != nil {
@@ -61,7 +61,7 @@ func AddOwnersLabel(owners, resource, name, namespace string) string {
 	return owners + "," + resource + "." + namespace + "." + name
 }
 
-//string to map
+// string to map
 func StringToMap(str string) map[string]string {
 	if len(str) == 0 {
 		return nil
@@ -101,4 +101,25 @@ func ConvertLabels(labelSelector *metav1.LabelSelector) (labels.Selector, error)
 	}
 
 	return labels.Everything(), nil
+}
+
+// ContainsString to check string from a slice of strings.
+func ContainsString(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
+}
+
+// ContainsString to remove string from a slice of strings.
+func RemoveString(slice []string, s string) (result []string) {
+	for _, item := range slice {
+		if item == s {
+			continue
+		}
+		result = append(result, item)
+	}
+	return
 }

@@ -83,3 +83,11 @@ func TestMergeMap(t *testing.T) {
 		})
 	}
 }
+
+func TestStrings(t *testing.T) {
+	str := []string{"label1", "label2", "label3"}
+	outStr := RemoveString(str, "label2")
+	if ContainsString(outStr, "label2") {
+		t.Errorf("failed to remove string from slice")
+	}
+}

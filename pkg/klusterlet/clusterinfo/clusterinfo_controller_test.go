@@ -6,6 +6,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
+
 	tlog "github.com/go-logr/logr/testing"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 	routev1Fake "github.com/openshift/client-go/route/clientset/versioned/fake"
@@ -169,7 +171,7 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-func TestClusterRbacReconcile(t *testing.T) {
+func TestClusterInfoReconcile(t *testing.T) {
 	// Create new cluster
 	now := metav1.Now()
 	clusterInfo := &clusterv1beta1.ManagedClusterInfo{
@@ -195,10 +197,73 @@ func TestClusterRbacReconcile(t *testing.T) {
 	if err != nil {
 		t.Errorf("Failed to run reconcile cluster. error: %v", err)
 	}
+
+	updatedClusterInfo := &clusterv1beta1.ManagedClusterInfo{}
+	err = fr.Get(context.Background(), clusterc1Request.NamespacedName, updatedClusterInfo)
+	if err != nil {
+		t.Errorf("failed get updated clusterinfo ")
+	}
+
+	if helpers.IsClusterStatusConditionFalse(updatedClusterInfo.Status.Conditions, clusterv1beta1.ManagedClusterInfoSynced) {
+		t.Errorf("failed to update synced condtion")
+	}
 }
 func NewClusterInfoReconciler() *ClusterInfoReconciler {
 	fakeKubeClient := kubefake.NewSimpleClientset(
 		kubeNode, kubeEndpoints, ocpConsole, agentIngress, kubeMonitoringSecret, agentService)
+	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
+	return &ClusterInfoReconciler{
+		Log:           tlog.NullLogger{},
+		KubeClient:    fakeKubeClient,
+		RouteV1Client: fakeRouteV1Client,
+		AgentAddress:  "127.0.0.1:8000",
+		AgentIngress:  "kube-system/acm-ingress-testcluster-agent",
+		AgentRoute:    "AgentRoute",
+		AgentService:  "kube-system/agent",
+	}
+}
+
+func TestFailedClusterInfoReconcile(t *testing.T) {
+	// Create new cluster
+	now := metav1.Now()
+	clusterInfo := &clusterv1beta1.ManagedClusterInfo{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              clusterInfoName,
+			Namespace:         clusterInfoNamespace,
+			CreationTimestamp: now,
+		},
+	}
+
+	s := scheme.Scheme
+	s.AddKnownTypes(clusterv1beta1.GroupVersion, &clusterv1beta1.ManagedClusterInfo{})
+	clusterv1beta1.AddToScheme(s)
+
+	c := fake.NewFakeClientWithScheme(s, clusterInfo)
+
+	fr := NewFailedClusterInfoReconciler()
+
+	fr.Client = c
+	fr.Agent = agent.NewAgent("c1", fr.KubeClient)
+
+	_, err := fr.Reconcile(clusterc1Request)
+	if err != nil {
+		t.Errorf("Failed to run reconcile cluster. error: %v", err)
+	}
+
+	updatedClusterInfo := &clusterv1beta1.ManagedClusterInfo{}
+	err = fr.Get(context.Background(), clusterc1Request.NamespacedName, updatedClusterInfo)
+	if err != nil {
+		t.Errorf("failed get updated clusterinfo ")
+	}
+
+	if helpers.IsClusterStatusConditionTrue(updatedClusterInfo.Status.Conditions, clusterv1beta1.ManagedClusterInfoSynced) {
+		t.Errorf("failed to update synced condtion")
+	}
+}
+
+func NewFailedClusterInfoReconciler() *ClusterInfoReconciler {
+	fakeKubeClient := kubefake.NewSimpleClientset(
+		kubeNode, ocpConsole, kubeMonitoringSecret)
 	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
 	return &ClusterInfoReconciler{
 		Log:           tlog.NullLogger{},

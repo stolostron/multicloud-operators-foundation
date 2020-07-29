@@ -4,21 +4,17 @@ import (
 	"context"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
-
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
-	"k8s.io/klog"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"k8s.io/apimachinery/pkg/runtime"
-
+	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 type Reconciler struct {
@@ -71,7 +67,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if condition := conditions.FindStatusCondition(action.Status.Conditions, actionv1beta1.ConditionActionCompleted); condition != nil {
+	if condition := helpers.FindStatusCondition(action.Status.Conditions, actionv1beta1.ConditionActionCompleted); condition != nil {
 		sub := time.Since(condition.LastTransitionTime.Time)
 		if sub < gcTimeout {
 			return ctrl.Result{RequeueAfter: gcTimeout - sub}, nil
