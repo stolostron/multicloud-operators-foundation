@@ -87,6 +87,7 @@ spec:
                 - "--port=4443"
                 - "--agent-address=acm-agent.open-cluster-management-agent.svc"
                 - "--agent-port=443"
+                - "--insecure=true"
               volumeMounts:
                 - name: hub-config
                   mountPath: /var/run/hub

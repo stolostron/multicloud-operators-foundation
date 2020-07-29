@@ -15,14 +15,14 @@ type ManagedClusterAction struct {
 	// Standard object's metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#metadata
 	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// Spec defines the desired behavior of the action.
 	// +optional
-	Spec ActionSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
+	Spec ActionSpec `json:"spec,omitempty"`
 	// Status describes the desired status of the action
 	// +optional
-	Status ActionStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+	Status ActionStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -33,33 +33,31 @@ type ManagedClusterActionList struct {
 	// Standard list metadata.
 	// More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds
 	// +optional
-	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
+	metav1.ListMeta `json:"metadata,omitempty"`
 
 	// List of ManagedClusterAction objects.
-	Items []ManagedClusterAction `json:"items" protobuf:"bytes,2,rep,name=items"`
+	Items []ManagedClusterAction `json:"items"`
 }
 
 // ActionSpec defines the action to be processed on a cluster
 type ActionSpec struct {
 	// ActionType is the type of the action
-	ActionType ActionType `json:"actionType,omitempty" protobuf:"bytes,1,opt,name=actionType"`
+	ActionType ActionType `json:"actionType,omitempty"`
 
 	// KubeWorkSpec is the action payload to process
-	KubeWork *KubeWorkSpec `json:"kube,omitempty" protobuf:"bytes,2,opt,name=kube"`
+	KubeWork *KubeWorkSpec `json:"kube,omitempty"`
 }
 
 // ActionStatus returns the current status of the action
 type ActionStatus struct {
 	// Conditions represents the conditions of this resource on managed cluster
-	// +patchMergeKey=type
-	// +patchStrategy=merge
 	// +optional
-	Conditions []conditions.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,1,rep,name=conditions"`
+	Conditions []conditions.Condition `json:"conditions,omitempty"`
 
 	// Result references the related result of the action
 	// +nullable
 	// +optional
-	Result runtime.RawExtension `json:"result,omitempty" protobuf:"bytes,2,opt,name=result"`
+	Result runtime.RawExtension `json:"result,omitempty"`
 }
 
 // ActionType defines the type of the action
@@ -90,16 +88,16 @@ const (
 // KubeWorkSpec is the kubernetes work details
 type KubeWorkSpec struct {
 	// Resource of the object
-	Resource string `json:"resource,omitempty" protobuf:"bytes,1,opt,name=resource"`
+	Resource string `json:"resource,omitempty"`
 
 	// Name of the object
-	Name string `json:"name,omitempty" protobuf:"bytes,2,opt,name=name"`
+	Name string `json:"name,omitempty"`
 
 	// Namespace of the object
-	Namespace string `json:"namespace,omitempty" protobuf:"bytes,3,opt,name=namespace"`
+	Namespace string `json:"namespace,omitempty"`
 
 	// ObjectTemplate is the template of the object
-	ObjectTemplate runtime.RawExtension `json:"template,omitempty" protobuf:"bytes,4,opt,name=template"`
+	ObjectTemplate runtime.RawExtension `json:"template,omitempty"`
 }
 
 const (

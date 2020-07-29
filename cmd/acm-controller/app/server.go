@@ -54,8 +54,7 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 
 	caData, err := GetAgentCA(o.CAFile)
 	if err != nil {
-		klog.Errorf("unable to get acm agent server CA file: %v", err)
-		return err
+		klog.Warningf("unable to get acm agent server CA file: %v", err)
 	}
 
 	kubeConfig.QPS = o.QPS
