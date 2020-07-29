@@ -1,1 +1,0 @@
-GIT:= $(shell which git)
