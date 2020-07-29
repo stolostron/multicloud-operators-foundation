@@ -27,11 +27,7 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
           - "/acm-controller"
-          - "--agent-cafile=/var/run/agent/ca.crt"
           - "--enable-rbac=true"
-        volumeMounts:
-          - mountPath: /var/run/agent
-            name: agent-certs
         livenessProbe:
           httpGet:
             path: /healthz
@@ -44,8 +40,3 @@ spec:
             port: 8000
           failureThreshold: 3
           periodSeconds: 10
-      volumes:
-      - name: agent-certs
-        secret:
-          defaultMode: 420
-          secretName: acm-agent-cert

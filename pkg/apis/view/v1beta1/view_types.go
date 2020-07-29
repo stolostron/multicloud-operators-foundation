@@ -54,10 +54,8 @@ type ViewSpec struct {
 // ViewStatus returns the status of the view
 type ViewStatus struct {
 	// Conditions represents the conditions of this resource on managed cluster
-	// +patchMergeKey=type
-	// +patchStrategy=merge
 	// +optional
-	Conditions []conditions.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type"`
+	Conditions []conditions.Condition `json:"conditions,omitempty"`
 
 	// Result references the related result of the view
 	// +nullable

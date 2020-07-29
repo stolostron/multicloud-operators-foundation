@@ -8,7 +8,6 @@ spec:
   service:
     namespace: open-cluster-management
     name: acm-proxyserver
-    port: 443
-  caBundle: $ACM_APISERVER_CA
+  insecureSkipTLSVerify: true
   groupPriorityMinimum: 10000
   versionPriority: 20

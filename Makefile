@@ -163,9 +163,6 @@ generate_files: generate_exes $(TYPES_FILES)
   # generate protobuf
 	hack/update-protobuf.sh
 
-create-certs:
-	hack/create-certs.sh
-
 ############################################################
 # build section
 ############################################################

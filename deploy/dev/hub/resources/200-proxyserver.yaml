@@ -23,11 +23,6 @@ spec:
         args:
           - "/acm-proxyserver"
           - "--secure-port=6443"
-          - "--tls-cert-file=/var/run/apiserver/tls.crt"
-          - "--tls-private-key-file=/var/run/apiserver/tls.key"
-          - "--agent-cafile=/var/run/agent/ca.crt"
-          - "--agent-certfile=/var/run/agent/tls.crt"
-          - "--agent-keyfile=/var/run/agent/tls.key"
         livenessProbe:
           httpGet:
             path: /healthz
@@ -41,17 +36,3 @@ spec:
             scheme: HTTPS
             port: 6443
           initialDelaySeconds: 2
-        volumeMounts:
-        - mountPath: /var/run/agent
-          name: agent-certs
-        - mountPath: /var/run/apiserver
-          name: apiserver-certs
-      volumes:
-      - name: agent-certs
-        secret:
-          defaultMode: 420
-          secretName: acm-agent-cert
-      - name: apiserver-certs
-        secret:
-          defaultMode: 420
-          secretName: acm-apiserver-cert
