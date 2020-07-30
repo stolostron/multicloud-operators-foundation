@@ -6,3 +6,7 @@ generate_exes
 generate_files
 .idea
 .ko.yaml
+acm-agent
+acm-controller
+acm-proxyserver
+acm-webhook
