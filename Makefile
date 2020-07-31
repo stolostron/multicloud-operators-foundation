@@ -1,17 +1,3 @@
-# Copyright 2019, 2020 IBM Corporation.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 all: build
 .PHONY: all
 
@@ -57,10 +43,6 @@ $(call build-image,$(IMG),$(REGISTRY)/$(IMG),./Dockerfile,.)
 GITHUB_USER := $(shell echo $(GITHUB_USER) | sed 's/@/%40/g')
 GITHUB_TOKEN ?=
 
-
-default::
-	@echo "Build Harness Bootstrapped"
-
 include test/e2e/Makefile.e2e.mk
 
 ############################################################
@@ -80,56 +62,9 @@ e2e-test: run-all-e2e-test
 # coverage section
 ############################################################
 
-coverage:
-	@common/scripts/codecov.sh
-
 ############################################################
 # This section contains the code generation stuff
 ############################################################
-
-generate_exes: $(BINDIR)/defaulter-gen \
-  $(BINDIR)/deepcopy-gen \
-  $(BINDIR)/conversion-gen \
-  $(BINDIR)/client-gen \
-  $(BINDIR)/lister-gen \
-  $(BINDIR)/informer-gen \
-  $(BINDIR)/openapi-gen \
-  $(BINDIR)/go-to-protobuf \
-  $(BINDIR)/protoc-gen-gogo \
-
-$(BINDIR)/defaulter-gen:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/defaulter-gen
-
-$(BINDIR)/deepcopy-gen:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/deepcopy-gen
-
-$(BINDIR)/conversion-gen:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/conversion-gen
-
-$(BINDIR)/client-gen:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/client-gen
-
-$(BINDIR)/lister-gen:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/lister-gen
-
-$(BINDIR)/informer-gen:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/informer-gen
-
-$(BINDIR)/openapi-gen:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/openapi-gen
-
-$(BINDIR)/go-to-protobuf:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/go-to-protobuf
-
-$(BINDIR)/protoc-gen-gogo:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
-
-# Regenerate all files if the gen exes changed or any "types.go" files changed
-generate_files: generate_exes $(TYPES_FILES)
-  # generate apiserver deps
-	hack/update-apiserver-gen.sh
-  # generate protobuf
-	hack/update-protobuf.sh
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen

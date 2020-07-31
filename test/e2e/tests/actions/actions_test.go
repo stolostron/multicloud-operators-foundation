@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	eventuallyTimeout         = 60
+	eventuallyTimeout         = 120
 	eventuallyInterval        = 2
 	actionDeploymentName      = "nginx-deployment-action"
 	actionDeploymentNameSpace = "default"
@@ -73,7 +73,7 @@ var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 		err error
 	)
 	Context("Creating a UpdateManagedClusterAction when resource do not exist", func() {
-		It("Should create update managedclusteraction successfully", func() {
+		It("Should create updateManagedClusterAction successfully", func() {
 			// load object from json template
 			obj, err = common.LoadResourceFromJSON(template.ManagedClusterActionUpdateTemplate)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -118,7 +118,7 @@ var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 	})
 
 	Context("Creating a DeleteManagedClusterAction when resource do not exist", func() {
-		It("Should create update managedclusteraction successfully", func() {
+		It("Should create deleteManagedCusterAction successfully", func() {
 			// load object from json template
 			obj, err = common.LoadResourceFromJSON(template.ManagedClusterActionDeleteTemplate)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -223,7 +223,7 @@ var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 	})
 
 	Context("Creating a UpdateManagedClusterAction", func() {
-		It("Should create update managedclusteraction successfully", func() {
+		It("Should create udateManagedClusterAction successfully", func() {
 			// load object from json template
 			obj, err = common.LoadResourceFromJSON(template.ManagedClusterActionUpdateTemplate)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -268,7 +268,7 @@ var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 	})
 
 	Context("Creating a DeleteManagedClusterAction", func() {
-		It("Should create update managedclusteraction successfully", func() {
+		It("Should create deleteManagedClusterAction successfully", func() {
 			// load object from json template
 			obj, err = common.LoadResourceFromJSON(template.ManagedClusterActionDeleteTemplate)
 			Ω(err).ShouldNot(HaveOccurred())
@@ -307,7 +307,6 @@ var _ = Describe("Testing ManagedClusterAction when Agent is ok", func() {
 		})
 
 		It("deployment should be deleted successfully in managedcluster", func() {
-
 			if singleManagedOnHub {
 				Eventually(func() (interface{}, error) {
 					return common.HasResource(dynamicClient, depGVR, actionDeploymentNameSpace, actionDeploymentName)
