@@ -7,9 +7,17 @@
 
 ACM Foundation supports some foundational components based ManagedCluster for ACM.
 
+## Community, discussion, contribution, and support
+
+Check the [CONTRIBUTING Doc](CONTRIBUTING.md) for how to contribute to the repo.
+
+------
+
+## Getting Started
+
 This is a guide on how to build and deploy ACM Foundation from code.
 
-## Setup
+### Setup
 
 Create a directory `$GOPATH/src/github.com/open-cluster-management`, and clone the code into the directory.
 
@@ -19,7 +27,7 @@ Populate the vendor directory. If necessary, set environment variable `GO111MODU
 go mod vendor
 ```
 
-## Build
+### Build
 
 Run the following after cloning/pulling/making a change.
 
@@ -29,7 +37,7 @@ make build
 
 make build will build all the binaries in output directory.
 
-## Prerequisites
+### Prerequisites
 
 Need to install ManagedCluster before deploy ACM Foundation.
 
@@ -63,7 +71,7 @@ Need to install ManagedCluster before deploy ACM Foundation.
     kubectl patch managedclusters $MANAGED_CLUSTER  --type merge --patch '{"spec":{"hubAcceptsClient":true}}'
     ```
 
-## Deploy ACM Foundation from quay.io
+### Deploy ACM Foundation from quay.io
 
 You can use `kustomize` to deploy ACM Foundation with the following step.
 
@@ -109,7 +117,7 @@ More info please see: [kustomize](https://github.com/kubernetes-sigs/kustomize/b
     kustomize build deploy/prod/klusterlet | kubectl apply  -f -
     ```
 
-## Deploy for development environment
+### Deploy for development environment
 
 You can use `ko` to deploy ACM Foundation with the following step.
 
@@ -155,3 +163,8 @@ More information see [ko](https://github.com/google/ko)
     ```sh
     ko apply -f deploy/dev/klusterlet/resources --base-import-paths --tags=latest
     ```
+
+## Security Response
+
+If you've found a security issue that you'd like to disclose confidentially please contact
+Red Hat's Product Security team. Details at [here](https://access.redhat.com/security/team/contact)
