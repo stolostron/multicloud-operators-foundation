@@ -28,6 +28,7 @@ require (
 	github.com/coreos/go-systemd v0.0.0 // indirect
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/emicklei/go-restful v2.13.0+incompatible
+	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/go-logr/logr v0.1.0
 	github.com/go-logr/zapr v0.1.1 // indirect
 	github.com/go-openapi/spec v0.19.8
@@ -45,6 +46,7 @@ require (
 	github.com/onsi/gomega v1.10.1
 	github.com/open-cluster-management/api v0.0.0-20200715201722-3c3c076bf062
 	github.com/openshift/api v0.0.0-20200720083901-0c4b3ae5f5df // indirect
+	github.com/openshift/build-machinery-go v0.0.0-20200713135615-1f43d26dccc7
 	github.com/openshift/client-go v0.0.0-20200623090625-83993cebb5ae
 	github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca
 	github.com/openshift/hive v1.0.0
