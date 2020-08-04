@@ -35,7 +35,7 @@ Run the following after cloning/pulling/making a change.
 make build
 ```
 
-make build will build all the binaries in output directory.
+make build will build all the binaries in current directory.
 
 ### Prerequisites
 
@@ -44,7 +44,7 @@ Need to install ManagedCluster before deploy ACM Foundation.
 1. Install Cluster Mananger on Hub cluster.
 
     ```sh
-    bash deploy/managedcluster/hub/install.sh
+    make deploy-hub
     ```
 
 2. Install Klusterlet On Managed cluster.
@@ -53,7 +53,7 @@ Need to install ManagedCluster before deploy ACM Foundation.
     2. Install Klusterlet.
 
         ```sh
-        bash deploy/managedcluster/klusterlet/install.sh
+        make deploy-klusterlet
         ```
 
 3. Approve CSR on Hub cluster.
@@ -73,48 +73,20 @@ Need to install ManagedCluster before deploy ACM Foundation.
 
 ### Deploy ACM Foundation from quay.io
 
-You can use `kustomize` to deploy ACM Foundation with the following step.
-
-Install `kustomize`, you can use
-
-```sh
-curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"  | bash mv kustomize /usr/local/bin/
-```
-
-More info please see: [kustomize](https://github.com/kubernetes-sigs/kustomize/blob/master/docs/INSTALL.md)
-
 1. Install on hub cluster
-
-    Config image repo and image pull secret in `deploy/prod/hub/kustomization.yaml`
-
-    - Change image repo and image tag in `images` section
-    - Change `<AUTH INFO>` with your image repo login info in `secretGenerator` section. It looks like:
-
-        ```json
-        {"auths":{"https://quay.io/open-cluster-management/multicloud-manager":{"username":"<USER NAME>","password":"<TOKEN>/","auth":"<BASE64 ENACODE <USER:TOKEN>>"}}}
-        ```
 
     Deploy hub components
 
     ```sh
-    kustomize build deploy/prod/hub | kubectl apply  -f -
+    make deploy-acm-foundation-hub
     ```
 
 2. Install on managed cluster
 
-    Config image repo and image pull secret info in `deploy/prod/klusterlet/kustomization.yaml`
-
-    - Change image repo and image tag in `images` section
-    - Change `<AUTH INFO>` with your image repo login info in `secretGenerator` section. It looks like:
-
-        ```json
-        {"auths":{"https://quay.io/open-cluster-management/multicloud-manager":{"username":"<USER NAME>","password":"<TOKEN>/","auth":"<BASE64 ENACODE <USER:TOKEN>>"}}}
-        ```
-
     Deploy klusterlet components
 
     ```sh
-    kustomize build deploy/prod/klusterlet | kubectl apply  -f -
+    make deploy-acm-foundation-agent
     ```
 
 ### Deploy for development environment

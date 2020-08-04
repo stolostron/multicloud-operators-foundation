@@ -19,6 +19,7 @@ spec:
       containers:
         - name: acm-agent
           image: ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent
+          imagePullPolicy: IfNotPresent
           args:
             - "/acm-agent"
             - "--hub-kubeconfig=/var/run/hub/kubeconfig"

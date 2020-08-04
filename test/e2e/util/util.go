@@ -1,4 +1,4 @@
-package common
+package util
 
 import (
 	"context"
@@ -9,25 +9,26 @@ import (
 	"os/user"
 	"path"
 	"strings"
+	"time"
 
+	clusterv1client "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/template"
+
+	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 	"k8s.io/client-go/util/retry"
 )
 
-const (
-	kubeConfigFileEnv = "KUBECONFIG"
-	//Managedcluster deployed on hub
-	SingleManagedOnHub = "SINGLE_MANAGED_CLUSTER_ON_HUB"
-)
+const kubeConfigFileEnv = "KUBECONFIG"
 
 var ManagedClusterGVR schema.GroupVersionResource = schema.GroupVersionResource{
 	Group:    "cluster.open-cluster-management.io",
@@ -340,7 +341,7 @@ func GetConditionTypeFromStatus(obj *unstructured.Unstructured, typeName string)
 
 func CreateManagedCluster(dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
 	// create a namespace for testing
-	ns, err := LoadResourceFromJSON(template.NamespaceTemplate)
+	ns, err := LoadResourceFromJSON(NamespaceTemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -350,7 +351,7 @@ func CreateManagedCluster(dynamicClient dynamic.Interface) (*unstructured.Unstru
 	}
 	clusterNamespace := ns.GetName()
 
-	fakeManagedCluster, err := LoadResourceFromJSON(template.ManagedClusterTemplate)
+	fakeManagedCluster, err := LoadResourceFromJSON(ManagedClusterTemplate)
 	if err != nil {
 		return nil, err
 	}
@@ -387,4 +388,115 @@ func CreateManagedCluster(dynamicClient dynamic.Interface) (*unstructured.Unstru
 	}
 
 	return fakeManagedCluster, nil
+}
+
+func AcceptManagedCluster(clusterName string) error {
+	clusterCfg, err := clientcmd.BuildConfigFromFlags("", os.Getenv("KUBECONFIG"))
+	if err != nil {
+		return err
+	}
+
+	hubClient, err := kubernetes.NewForConfig(clusterCfg)
+	if err != nil {
+		return err
+	}
+
+	clusterClient, err := clusterv1client.NewForConfig(clusterCfg)
+	if err != nil {
+		return err
+	}
+
+	var (
+		csrs      *certificatesv1beta1.CertificateSigningRequestList
+		csrClient = hubClient.CertificatesV1beta1().CertificateSigningRequests()
+	)
+	// Waiting for the CSR for ManagedCluster to exist
+	if err := wait.Poll(1*time.Second, 120*time.Second, func() (bool, error) {
+		var err error
+		csrs, err = csrClient.List(context.TODO(), metav1.ListOptions{
+			LabelSelector: fmt.Sprintf("open-cluster-management.io/cluster-name = %v", clusterName),
+		})
+		if err != nil {
+			return false, err
+		}
+
+		if len(csrs.Items) >= 1 {
+			return true, nil
+		}
+
+		return false, nil
+	}); err != nil {
+		return err
+	}
+	// Approving all pending CSRs
+	var csr *certificatesv1beta1.CertificateSigningRequest
+	for i := range csrs.Items {
+		csr = &csrs.Items[i]
+
+		if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			csr, err = csrClient.Get(context.TODO(), csr.Name, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+
+			if isCSRInTerminalState(&csr.Status) {
+				return nil
+			}
+
+			csr.Status.Conditions = append(csr.Status.Conditions, certificatesv1beta1.CertificateSigningRequestCondition{
+				Type:    certificatesv1beta1.CertificateApproved,
+				Reason:  "Approved by E2E",
+				Message: "Approved as part of Loopback e2e",
+			})
+			_, err := csrClient.UpdateApproval(context.TODO(), csr, metav1.UpdateOptions{})
+			return err
+		}); err != nil {
+			return err
+		}
+	}
+
+	var (
+		managedCluster  *clusterv1.ManagedCluster
+		managedClusters = clusterClient.ClusterV1().ManagedClusters()
+	)
+	// Waiting for ManagedCluster to exist
+	if err = wait.Poll(1*time.Second, 120*time.Second, func() (bool, error) {
+		var err error
+		managedCluster, err = managedClusters.Get(context.TODO(), clusterName, metav1.GetOptions{})
+		if err != nil {
+			return false, err
+		}
+		return true, nil
+	}); err != nil {
+		return err
+	}
+	// Accepting ManagedCluster
+	if err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		var err error
+		managedCluster, err = managedClusters.Get(context.TODO(), managedCluster.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+
+		managedCluster.Spec.HubAcceptsClient = true
+		managedCluster.Spec.LeaseDurationSeconds = 5
+		_, err = managedClusters.Update(context.TODO(), managedCluster, metav1.UpdateOptions{})
+		return err
+	}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func isCSRInTerminalState(status *certificatesv1beta1.CertificateSigningRequestStatus) bool {
+	for _, c := range status.Conditions {
+		if c.Type == certificatesv1beta1.CertificateApproved {
+			return true
+		}
+		if c.Type == certificatesv1beta1.CertificateDenied {
+			return true
+		}
+	}
+	return false
 }

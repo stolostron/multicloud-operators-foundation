@@ -1,5 +1,6 @@
 .project
 output
+_output
 apiserver.local.config
 .api_violation.report
 generate_exes
@@ -10,3 +11,5 @@ acm-agent
 acm-controller
 acm-proxyserver
 acm-webhook
+registration-operator
+e2e.test
