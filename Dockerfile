@@ -10,9 +10,10 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 ENV USER_UID=10001 \
     USER_NAME=acm-foundation
 
-COPY acm-proxyserver acm-controller acm-webhook acm-agent /
-
-COPY build/bin /usr/local/bin
+COPY --from=builder /go/src/github.com/open-cluster-management/multicloud-operators-foundation/acm-proxyserver /
+COPY --from=builder /go/src/github.com/open-cluster-management/multicloud-operators-foundation/acm-controller /
+COPY --from=builder /go/src/github.com/open-cluster-management/multicloud-operators-foundation/acm-webhook /
+COPY --from=builder /go/src/github.com/open-cluster-management/multicloud-operators-foundation/acm-agent /
 
 RUN /usr/local/bin/user_setup
 
