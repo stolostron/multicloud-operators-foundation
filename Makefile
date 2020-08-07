@@ -10,23 +10,32 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 	lib/tmp.mk \
 )
 
+# Tools for deploy
+KUBECONFIG ?= ./.kubeconfig
+KUBECTL?=kubectl
+KUSTOMIZE?=$(PERMANENT_TMP_GOPATH)/bin/kustomize
+KUSTOMIZE_VERSION?=v3.5.4
+KUSTOMIZE_ARCHIVE_NAME?=kustomize_$(KUSTOMIZE_VERSION)_$(GOHOSTOS)_$(GOHOSTARCH).tar.gz
+kustomize_dir:=$(dir $(KUSTOMIZE))
+
 # Image URL to use all building/pushing image targets;
-# Use your own docker registry and image name for dev/test by overridding the IMG and REGISTRY environment variable.
-IMG ?= multicloud-manager
-REGISTRY ?= quay.io/open-cluster-management
+IMAGE ?= multicloud-manager
+IMAGE_REGISTRY ?= quay.io/open-cluster-management
+IMAGE_TAG ?= latest
+IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
+
+# KUBEBUILDER for unit test
+export KUBEBUILDER_ASSETS ?=$(shell pwd)/$(PERMANENT_TMP_GOPATH)/kubebuilder/bin
+
+K8S_VERSION ?=1.16.4
+KB_TOOLS_ARCHIVE_NAME :=kubebuilder-tools-$(K8S_VERSION)-$(GOHOSTOS)-$(GOHOSTARCH).tar.gz
+KB_TOOLS_ARCHIVE_PATH := $(PERMANENT_TMP_GOPATH)/$(KB_TOOLS_ARCHIVE_NAME)
+
+# Add packages to do unit test
+GO_TEST_PACKAGES :=./pkg/...
 
 # Produce CRDs that work back to Kubernetes 1.11 (no version conversion)
 CRD_OPTIONS ?= "crd"
-
-# Keep an existing GOPATH, make a private one if it is undefined
-# GOPATH_DEFAULT := $(PWD)/.go
-# export GOPATH ?= $(GOPATH_DEFAULT)
-TESTARGS_DEFAULT := "-v"
-export TESTARGS ?= $(TESTARGS_DEFAULT)
-
-TYPES_FILES = $(shell find pkg/apis -name types.go)
-
-
 
 # This will call a macro called "build-image" which will generate image specific targets based on the parameters:
 # $0 - macro name
@@ -34,56 +43,75 @@ TYPES_FILES = $(shell find pkg/apis -name types.go)
 # $2 - Dockerfile path
 # $3 - context directory for image build
 # It will generate target "image-$(1)" for building the image and binding it as a prerequisite to target "images".
-$(call build-image,$(IMG),$(REGISTRY)/$(IMG),./Dockerfile,.)
+$(call build-image,$(IMAGE),$(IMAGE_REGISTRY)/$(IMAGE),./Dockerfile,.)
 
+test-unit: ensure-kubebuilder
 
-.PHONY: fmt lint test coverage build images build-push-images
+deploy-hub:
+	deploy/managedcluster/hub/install.sh
 
-# GITHUB_USER containing '@' char must be escaped with '%40'
-GITHUB_USER := $(shell echo $(GITHUB_USER) | sed 's/@/%40/g')
-GITHUB_TOKEN ?=
+deploy-klusterlet:
+	deploy/managedcluster/klusterlet/install.sh
 
-include test/e2e/Makefile.e2e.mk
+deploy-acm-foundation-hub: ensure-kustomize
+	cp deploy/prod/hub/kustomization.yaml deploy/prod/hub/kustomization.yaml.tmp
+	cd deploy/prod/hub && ../../../$(KUSTOMIZE) edit set image ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller=$(IMAGE_NAME)
+	cd deploy/prod/hub && ../../../$(KUSTOMIZE) edit set image ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver=$(IMAGE_NAME)
+	$(KUSTOMIZE) build deploy/prod/hub | $(KUBECTL) apply -f -
+	mv deploy/prod/hub/kustomization.yaml.tmp deploy/prod/hub/kustomization.yaml
 
-############################################################
-# test section
-############################################################
+deploy-acm-foundation-agent: ensure-kustomize
+	cp deploy/prod/klusterlet/kustomization.yaml deploy/prod/klusterlet/kustomization.yaml.tmp
+	cd deploy/prod/klusterlet && ../../../$(KUSTOMIZE) edit set image ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent=$(IMAGE_NAME)
+	$(KUSTOMIZE) build deploy/prod/klusterlet | $(KUBECTL) apply -f -
+	mv deploy/prod/klusterlet/kustomization.yaml.tmp deploy/prod/klusterlet/kustomization.yaml
 
-test:
-	@go test ${TESTARGS} $(shell go list ./... | grep -v /test/)
+build-e2e:
+	go test -c ./test/e2e
 
-############################################################
-# e2e test section
-############################################################
-
-e2e-test: run-all-e2e-test
-
-############################################################
-# coverage section
-############################################################
-
-############################################################
-# This section contains the code generation stuff
-############################################################
+test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-acm-foundation-hub deploy-acm-foundation-agent
+	./e2e.test -test.v -ginkgo.v
 
 # Generate manifests e.g. CRD, RBAC etc.
-manifests: controller-gen
+manifests: ensure-controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/action/v1beta1" output:crd:artifacts:config=deploy/dev/hub/resources/crds
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/view/v1beta1" output:crd:artifacts:config=deploy/dev/hub/resources/crds
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/cluster/v1beta1" output:crd:artifacts:config=deploy/dev/hub/resources/crds
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/inventory/v1alpha1" output:crd:artifacts:config=deploy/dev/hub/resources/crds
 
 # Generate code
-generate: controller-gen
+generate: ensure-controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/action/v1beta1"
 	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/view/v1beta1"
 	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/inventory/v1alpha1"
 	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/cluster/v1beta1"
 	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/conditions"
 
-# find or download controller-gen
-# download controller-gen if necessary
-controller-gen:
+# Ensure kubebuilder
+ensure-kubebuilder:
+ifeq "" "$(wildcard $(KUBEBUILDER_ASSETS))"
+	$(info Downloading kube-apiserver into '$(KUBEBUILDER_ASSETS)')
+	mkdir -p '$(KUBEBUILDER_ASSETS)'
+	curl -s -f -L https://storage.googleapis.com/kubebuilder-tools/$(KB_TOOLS_ARCHIVE_NAME) -o '$(KB_TOOLS_ARCHIVE_PATH)'
+	tar -C '$(KUBEBUILDER_ASSETS)' --strip-components=2 -zvxf '$(KB_TOOLS_ARCHIVE_PATH)'
+else
+	$(info Using existing kube-apiserver from "$(KUBEBUILDER_ASSETS)")
+endif
+
+# Ensure kustomize
+ensure-kustomize:
+ifeq "" "$(wildcard $(KUSTOMIZE))"
+	$(info Installing kustomize into '$(KUSTOMIZE)')
+	mkdir -p '$(kustomize_dir)'
+	curl -s -f -L https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/$(KUSTOMIZE_ARCHIVE_NAME) -o '$(kustomize_dir)$(KUSTOMIZE_ARCHIVE_NAME)'
+	tar -C '$(kustomize_dir)' -zvxf '$(kustomize_dir)$(KUSTOMIZE_ARCHIVE_NAME)'
+	chmod +x '$(KUSTOMIZE)';
+else
+	$(info Using existing kustomize from "$(KUSTOMIZE)")
+endif
+
+# Ensure controller-gen
+ensure-controller-gen:
 ifeq (, $(shell which controller-gen))
 	@{ \
 	set -e ;\

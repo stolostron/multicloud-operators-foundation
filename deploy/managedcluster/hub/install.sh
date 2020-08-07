@@ -1,5 +1,11 @@
 #!/bin/bash
 
+set -o errexi
+set -o nounset
+set -o pipefail
+
+rm -rf registration-operator
+
 echo "############  Cloning registration-operator"
 git clone https://github.com/open-cluster-management/registration-operator.git
 cd registration-operator || {

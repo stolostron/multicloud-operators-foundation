@@ -1,5 +1,6 @@
-package template
+package util
 
+// ManagedClusterActionCreateTemplate is json template for create action
 const ManagedClusterActionCreateTemplate = `{
   "apiVersion": "action.open-cluster-management.io/v1beta1",
   "kind": "ManagedClusterAction",
@@ -51,6 +52,7 @@ const ManagedClusterActionCreateTemplate = `{
   }
 }`
 
+// ManagedClusterActionDeleteTemplate is json template for delete action
 const ManagedClusterActionDeleteTemplate = `{
   "apiVersion": "action.open-cluster-management.io/v1beta1",
   "kind": "ManagedClusterAction",
@@ -68,6 +70,7 @@ const ManagedClusterActionDeleteTemplate = `{
   }
 }`
 
+// ManagedClusterActionUpdateTemplate is json template for update action
 const ManagedClusterActionUpdateTemplate = `{
   "apiVersion": "action.open-cluster-management.io/v1beta1",
   "kind": "ManagedClusterAction",
@@ -115,6 +118,56 @@ const ManagedClusterActionUpdateTemplate = `{
           }
         }
       }
+    }
+  }
+}`
+
+// ManagedClusterTemplate is json template for namespace
+const ManagedClusterTemplate = `{
+  "apiVersion": "cluster.open-cluster-management.io/v1",
+  "kind": "ManagedCluster",
+  "metadata": {
+    "name": "cluster1"
+  },
+  "spec": {
+    "hubAcceptsClient": true,
+    "managedClusterClientConfigs": [
+      {
+        "caBundle": "test",
+        "url": "https://test.com"
+      }
+    ]
+  }
+}`
+
+// NamespaceTemplate is json template for namespace
+const NamespaceTemplate = `{
+  "apiVersion": "v1",
+  "kind": "Namespace",
+  "metadata": {
+      "labels": {
+    "test-automation": "true"
+  },
+      "generateName": "test-automation-"
+  }
+}`
+
+// ManagedClusterViewTemplate is json template for namespace
+const ManagedClusterViewTemplate = `{
+  "apiVersion": "view.open-cluster-management.io/v1beta1",
+  "kind": "ManagedClusterView",
+  "metadata": {
+    "labels": {
+      "name": "getdeployment"
+    },
+    "name": "getdeployment",
+    "namespace": "cluster1"
+  },
+  "spec": {
+    "scope": {
+      "resource": "deployments",
+      "name": "acm-agent",
+      "namespace": "open-cluster-management-agent"
     }
   }
 }`

@@ -4,14 +4,6 @@ resources:
 images:
 - name: ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent
   newName: quay.io/open-cluster-management/multicloud-manager
-  newTag: 0.0.1
-
-secretGenerator:
-- name: acm-image-pull-secret
-  namespace: open-cluster-management-agent
-  literals:
-  - .dockerconfigjson=<AUTH INFO>
-  type: "kubernetes.io/dockerconfigjson"
-
-patchesStrategicMerge:
-- serviceaccount-patch.yaml
+  newTag: latest
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
