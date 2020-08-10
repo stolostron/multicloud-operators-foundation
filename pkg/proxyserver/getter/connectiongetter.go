@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilnet "k8s.io/apimachinery/pkg/util/net"

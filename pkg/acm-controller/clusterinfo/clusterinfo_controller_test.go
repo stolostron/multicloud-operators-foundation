@@ -9,8 +9,7 @@ import (
 
 	"github.com/onsi/gomega"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
+	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -52,14 +51,14 @@ func TestMain(m *testing.M) {
 	// AddToSchemes may be used to add all resources defined in the project to a Scheme
 	var AddToSchemes runtime.SchemeBuilder
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, clusterv1.Install, clusterv1beta1.AddToScheme)
+	AddToSchemes = append(AddToSchemes, clusterv1.Install, clusterinfov1beta1.AddToScheme)
 
 	if err := AddToSchemes.AddToScheme(scheme); err != nil {
 		klog.Errorf("Failed adding apis to scheme, %v", err)
 		os.Exit(1)
 	}
 
-	if err := clusterv1beta1.AddToScheme(scheme); err != nil {
+	if err := clusterinfov1beta1.AddToScheme(scheme); err != nil {
 		klog.Errorf("Failed adding cluster info to scheme, %v", err)
 		os.Exit(1)
 	}
@@ -205,7 +204,7 @@ func TestReconcile(t *testing.T) {
 						LeaseDurationSeconds: 0,
 					},
 				},
-				&clusterv1beta1.ManagedClusterInfo{
+				&clusterinfov1beta1.ManagedClusterInfo{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      ManagedClusterName,
 						Namespace: ManagedClusterName,

@@ -9,7 +9,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent/app"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent/app/options"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 	actionctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/action"
 	clusterinfoctl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterinfo"

@@ -7,7 +7,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

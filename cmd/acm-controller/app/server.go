@@ -14,7 +14,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/gc"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/inventory"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
-	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
+	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	"k8s.io/apimachinery/pkg/runtime"
