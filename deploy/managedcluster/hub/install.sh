@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#set -o nounset
-#set -o pipefail
+set -o nounset
+set -o pipefail
 
 KUBECTL=${KUBECTL:-kubectl}
 
@@ -21,23 +21,11 @@ cd registration-operator || {
   return 1
 }
 
-# TODO: Delete this
-if [ -n "$IMAGE_NAME" ]; then
-  IMAGE_NAME_BAK="$IMAGE_NAME"
-  unset IMAGE_NAME
-fi
-
 echo "############  Deploying hub"
 make deploy-hub
 if [ $? -ne 0 ]; then
   echo "############  Failed to deploy hub"
   exit 1
-fi
-
-# TODO: Delete this
-if [ -n "$IMAGE_NAME_BAK" ]; then
-  export FOUNDATION_IMAGE_NAME="$IMAGE_NAME_BAK"
-  unset IMAGE_NAME_BAK
 fi
 
 for i in {1..7}; do
