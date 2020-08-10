@@ -22,7 +22,7 @@ kustomize_dir:=$(dir $(KUSTOMIZE))
 IMAGE ?= multicloud-manager
 IMAGE_REGISTRY ?= quay.io/open-cluster-management
 IMAGE_TAG ?= latest
-IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
+FOUNDATION_IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
 
 # KUBEBUILDER for unit test
 export KUBEBUILDER_ASSETS ?=$(shell pwd)/$(PERMANENT_TMP_GOPATH)/kubebuilder/bin
@@ -55,14 +55,14 @@ deploy-klusterlet:
 
 deploy-acm-foundation-hub: ensure-kustomize
 	cp deploy/prod/hub/kustomization.yaml deploy/prod/hub/kustomization.yaml.tmp
-	cd deploy/prod/hub && ../../../$(KUSTOMIZE) edit set image ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller=$(IMAGE_NAME)
-	cd deploy/prod/hub && ../../../$(KUSTOMIZE) edit set image ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver=$(IMAGE_NAME)
+	cd deploy/prod/hub && ../../../$(KUSTOMIZE) edit set image ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller=$(FOUNDATION_IMAGE_NAME)
+	cd deploy/prod/hub && ../../../$(KUSTOMIZE) edit set image ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver=$(FOUNDATION_IMAGE_NAME)
 	$(KUSTOMIZE) build deploy/prod/hub | $(KUBECTL) apply -f -
 	mv deploy/prod/hub/kustomization.yaml.tmp deploy/prod/hub/kustomization.yaml
 
 deploy-acm-foundation-agent: ensure-kustomize
 	cp deploy/prod/klusterlet/kustomization.yaml deploy/prod/klusterlet/kustomization.yaml.tmp
-	cd deploy/prod/klusterlet && ../../../$(KUSTOMIZE) edit set image ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent=$(IMAGE_NAME)
+	cd deploy/prod/klusterlet && ../../../$(KUSTOMIZE) edit set image ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent=$(FOUNDATION_IMAGE_NAME)
 	$(KUSTOMIZE) build deploy/prod/klusterlet | $(KUBECTL) apply -f -
 	mv deploy/prod/klusterlet/kustomization.yaml.tmp deploy/prod/klusterlet/kustomization.yaml
 
