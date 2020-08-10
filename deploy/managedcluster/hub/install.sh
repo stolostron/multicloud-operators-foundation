@@ -1,7 +1,7 @@
 #!/bin/bash
 
-set -o nounset
-set -o pipefail
+#set -o nounset
+#set -o pipefail
 
 KUBECTL=${KUBECTL:-kubectl}
 
