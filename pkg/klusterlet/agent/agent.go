@@ -7,7 +7,7 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/log/drivers"
 	"k8s.io/client-go/kubernetes"
 	certutil "k8s.io/client-go/util/cert"

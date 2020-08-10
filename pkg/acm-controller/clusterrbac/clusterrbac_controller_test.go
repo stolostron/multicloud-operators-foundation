@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/stretchr/testify/assert"

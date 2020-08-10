@@ -3,7 +3,7 @@ package clusterrbac
 import (
 	"testing"
 
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/cluster/v1beta1"
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 )
 
 func TestRule(t *testing.T) {
