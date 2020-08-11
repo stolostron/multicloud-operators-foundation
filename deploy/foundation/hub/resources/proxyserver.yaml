@@ -18,7 +18,7 @@ spec:
       serviceAccountName: acm-foundation-sa
       containers:
       - name: acm-proxyserver
-        image: ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver
+        image: acm-proxyserver
         imagePullPolicy: IfNotPresent
         args:
           - "/acm-proxyserver"

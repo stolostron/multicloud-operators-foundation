@@ -6,8 +6,18 @@ resources:
 - resources/crds/hive.openshift.io_syncsets.yaml
 - resources/crds/hive.openshift.io_clusterdeployments.yaml
 - resources/crds/hive.openshift.io_syncsetinstances.yaml
-- resources/100-clusterrole.yaml
-- resources/100-proxyserver-apiservice.yaml
-- resources/100-proxyserver-service.yaml
-- resources/200-proxyserver.yaml
-- resources/200-controller.yaml
+- resources/clusterrole.yaml
+- resources/proxyserver-apiservice.yaml
+- resources/proxyserver-service.yaml
+- resources/proxyserver.yaml
+- resources/controller.yaml
+
+images:
+- name: acm-controller
+  newName: quay.io/open-cluster-management/multicloud-manager
+  newTag: latest
+- name: acm-proxyserver
+  newName: quay.io/open-cluster-management/multicloud-manager
+  newTag: latest
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization

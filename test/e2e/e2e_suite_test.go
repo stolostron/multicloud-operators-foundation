@@ -18,7 +18,7 @@ func TestE2E(t *testing.T) {
 }
 
 const (
-	eventuallyTimeout  = 120
+	eventuallyTimeout  = 300
 	eventuallyInterval = 2
 )
 
