@@ -8,8 +8,8 @@ import (
 	"time"
 
 	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	bmaerrors "github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/inventory/errors"
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
+	bmaerrors "github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory/errors"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	hiveconstants "github.com/openshift/hive/pkg/constants"
