@@ -78,7 +78,7 @@ Need to install ManagedCluster before deploy ACM Foundation.
     Deploy hub components
 
     ```sh
-    make deploy-acm-foundation-hub
+    make deploy-foundation-hub
     ```
 
 2. Install on managed cluster
@@ -86,54 +86,7 @@ Need to install ManagedCluster before deploy ACM Foundation.
     Deploy klusterlet components
 
     ```sh
-    make deploy-acm-foundation-agent
-    ```
-
-### Deploy for development environment
-
-You can use `ko` to deploy ACM Foundation with the following step.
-
-Install `ko`, you can use
-
-```sh
-go get github.com/google/ko/cmd/ko
-```
-
-More information see [ko](https://github.com/google/ko)
-
-> Note:
-> * Go version needs >= go1.11.
-> * Need `export GO111MODULE=on` if Go version is go1.11 or go1.12.
-
-1. Config `KO_DOCKER_REPO` for deployment tool **ko**
-
-    Configure `KO_DOCKER_REPO` by running `gcloud auth configure-docker` if you are using Google Container Registry or `docker login` if you are using Docker Hub.
-
-    ```sh
-    export PROJECT_ID=$(gcloud config get-value core/project)
-    export KO_DOCKER_REPO="gcr.io/${PROJECT_ID}"
-    ```
-
-    or
-
-    ```sh
-    export KO_DOCKER_REPO=docker.io/<your account>
-    ```
-
-2. Install on hub cluster
-
-    Deploy hub components
-
-    ```sh
-    ko apply -f deploy/dev/hub/resources --base-import-paths --tags=latest
-    ```
-
-3. Install klusterlet-addon on the hub cluster
-
-    Deploy klusterlet components
-
-    ```sh
-    ko apply -f deploy/dev/klusterlet/resources --base-import-paths --tags=latest
+    make deploy-foundation-agent
     ```
 
 ## Security Response

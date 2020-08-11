@@ -53,32 +53,32 @@ deploy-hub:
 deploy-klusterlet:
 	deploy/managedcluster/klusterlet/install.sh
 
-deploy-acm-foundation-hub: ensure-kustomize
-	cp deploy/prod/hub/kustomization.yaml deploy/prod/hub/kustomization.yaml.tmp
-	cd deploy/prod/hub && ../../../$(KUSTOMIZE) edit set image ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller=$(FOUNDATION_IMAGE_NAME)
-	cd deploy/prod/hub && ../../../$(KUSTOMIZE) edit set image ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver=$(FOUNDATION_IMAGE_NAME)
-	$(KUSTOMIZE) build deploy/prod/hub | $(KUBECTL) apply -f -
-	mv deploy/prod/hub/kustomization.yaml.tmp deploy/prod/hub/kustomization.yaml
+deploy-foundation-hub: ensure-kustomize
+	cp deploy/foundation/hub/kustomization.yaml deploy/foundation/hub/kustomization.yaml.tmp
+	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image acm-controller=$(FOUNDATION_IMAGE_NAME)
+	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image acm-proxyserver=$(FOUNDATION_IMAGE_NAME)
+	$(KUSTOMIZE) build deploy/foundation/hub | $(KUBECTL) apply -f -
+	mv deploy/foundation/hub/kustomization.yaml.tmp deploy/foundation/hub/kustomization.yaml
 
-deploy-acm-foundation-agent: ensure-kustomize
-	cp deploy/prod/klusterlet/kustomization.yaml deploy/prod/klusterlet/kustomization.yaml.tmp
-	cd deploy/prod/klusterlet && ../../../$(KUSTOMIZE) edit set image ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent=$(FOUNDATION_IMAGE_NAME)
-	$(KUSTOMIZE) build deploy/prod/klusterlet | $(KUBECTL) apply -f -
-	mv deploy/prod/klusterlet/kustomization.yaml.tmp deploy/prod/klusterlet/kustomization.yaml
+deploy-foundation-agent: ensure-kustomize
+	cp deploy/foundation/klusterlet/kustomization.yaml deploy/foundation/klusterlet/kustomization.yaml.tmp
+	cd deploy/foundation/klusterlet && ../../../$(KUSTOMIZE) edit set image acm-agent=$(FOUNDATION_IMAGE_NAME)
+	$(KUSTOMIZE) build deploy/foundation/klusterlet | $(KUBECTL) apply -f -
+	mv deploy/foundation/klusterlet/kustomization.yaml.tmp deploy/foundation/klusterlet/kustomization.yaml
 
 build-e2e:
 	go test -c ./test/e2e
 
-test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-acm-foundation-hub deploy-acm-foundation-agent
+test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-foundation-hub deploy-foundation-agent
 	./e2e.test -test.v -ginkgo.v
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: ensure-controller-gen
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/action/v1beta1" output:crd:artifacts:config=deploy/dev/hub/resources/crds
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/view/v1beta1" output:crd:artifacts:config=deploy/dev/hub/resources/crds
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/cluster/v1alpha1" output:crd:artifacts:config=deploy/dev/hub/resources/crds
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/internal.open-cluster-management.io/v1beta1" output:crd:artifacts:config=deploy/dev/hub/resources/crds
-	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/inventory/v1alpha1" output:crd:artifacts:config=deploy/dev/hub/resources/crds
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/action/v1beta1" output:crd:artifacts:config=deploy/foundation/hub/resources/crds
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/view/v1beta1" output:crd:artifacts:config=deploy/foundation/hub/resources/crds
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/cluster/v1alpha1" output:crd:artifacts:config=deploy/dev/foundation/resources/crds
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/internal.open-cluster-management.io/v1beta1" output:crd:artifacts:config=deploy/foundation/hub/resources/crds
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/inventory/v1alpha1" output:crd:artifacts:config=deploy/foundation/hub/resources/crds
 
 # Generate code
 generate: ensure-controller-gen

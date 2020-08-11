@@ -18,7 +18,7 @@ spec:
       serviceAccountName: acm-foundation-sa
       containers:
       - name: acm-controller
-        image: ko://github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller
+        image: acm-controller
         imagePullPolicy: IfNotPresent
         args:
           - "/acm-controller"
