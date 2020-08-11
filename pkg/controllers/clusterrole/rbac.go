@@ -6,7 +6,7 @@
 package clusterrole
 
 import (
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/acm-controller/clusterrbac"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"
 	rbacv1 "k8s.io/api/rbac/v1"
 )
 
