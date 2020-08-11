@@ -24,6 +24,11 @@ IMAGE_REGISTRY ?= quay.io/open-cluster-management
 IMAGE_TAG ?= latest
 IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
 
+GIT_HOST ?= github.com/open-cluster-management
+BASE_DIR := $(shell basename $(PWD))
+DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
+BINDIR ?= output
+
 # KUBEBUILDER for unit test
 export KUBEBUILDER_ASSETS ?=$(shell pwd)/$(PERMANENT_TMP_GOPATH)/kubebuilder/bin
 
@@ -71,6 +76,55 @@ build-e2e:
 
 test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-acm-foundation-hub deploy-acm-foundation-agent
 	./e2e.test -test.v -ginkgo.v
+
+############################################################
+# This section contains the code generation stuff
+############################################################
+
+generate_exes: $(BINDIR)/defaulter-gen \
+  $(BINDIR)/deepcopy-gen \
+  $(BINDIR)/conversion-gen \
+  $(BINDIR)/client-gen \
+  $(BINDIR)/lister-gen \
+  $(BINDIR)/informer-gen \
+  $(BINDIR)/openapi-gen \
+  $(BINDIR)/go-to-protobuf \
+  $(BINDIR)/protoc-gen-gogo \
+
+$(BINDIR)/defaulter-gen:
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/defaulter-gen
+
+$(BINDIR)/deepcopy-gen:
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/deepcopy-gen
+
+$(BINDIR)/conversion-gen:
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/conversion-gen
+
+$(BINDIR)/client-gen:
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/client-gen
+
+$(BINDIR)/lister-gen:
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/lister-gen
+
+$(BINDIR)/informer-gen:
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/informer-gen
+
+$(BINDIR)/openapi-gen:
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/openapi-gen
+
+$(BINDIR)/go-to-protobuf:
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/go-to-protobuf
+
+$(BINDIR)/protoc-gen-gogo:
+	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
+
+# Regenerate all files if the gen exes changed or any "types.go" files changed
+generate_files: generate_exes $(TYPES_FILES)
+  # generate apiserver deps
+	hack/update-apiserver-gen.sh
+  # generate protobuf
+	hack/update-protobuf.sh
+
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: ensure-controller-gen
