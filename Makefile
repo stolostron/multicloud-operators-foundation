@@ -21,7 +21,7 @@ kustomize_dir:=$(dir $(KUSTOMIZE))
 # Image URL to use all building/pushing image targets;
 IMAGE ?= multicloud-manager
 IMAGE_REGISTRY ?= quay.io/open-cluster-management
-IMAGE_TAG ?= latest
+IMAGE_TAG ?= 0.2.0
 FOUNDATION_IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
 
 # KUBEBUILDER for unit test
