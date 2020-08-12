@@ -9,18 +9,33 @@ import (
 
 	"github.com/mattbaird/jsonpatch"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-webhook/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/clusterclaim"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/denynamespace"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/useridentity"
 	"k8s.io/api/admission/v1beta1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/klog"
 )
 
+var namespaceGVR = metav1.GroupVersionResource{
+	Group:    "",
+	Version:  "v1",
+	Resource: "namespaces",
+}
+
+var claimGVR = metav1.GroupVersionResource{
+	Group:    "cluster.open-cluster-management.io",
+	Version:  "v1alpha1",
+	Resource: "managedclusterclaims",
+}
+
 type admissionHandler struct {
 	lister        rbaclisters.RoleBindingLister
+	kubeClient    kubernetes.Interface
 	dynamicClient dynamic.Interface
 }
 
@@ -132,20 +147,25 @@ func (a *admissionHandler) validateResource(ar v1beta1.AdmissionReview) *v1beta1
 		Allowed: true,
 	}
 
-	klog.V(2).Info("validating namespace deletion")
-	namespaceResource := metav1.GroupVersionResource{Group: "", Version: "v1", Resource: "namespaces"}
-	if ar.Request.Resource != namespaceResource {
-		klog.Errorf("expect resource to be %v", namespaceResource)
-		return &reviewResponse
+	switch {
+	case ar.Request.Resource == namespaceGVR:
+		klog.V(2).Info("validating namespace deletion")
+		allowedDeny, msg := denynamespace.ShouldDenyDeleteNamespace(ar.Request.Namespace, a.dynamicClient)
+		reviewResponse.Allowed = !allowedDeny
+		if allowedDeny {
+			reviewResponse.Result = &metav1.Status{Message: msg}
+		}
+		klog.V(2).Infof("reviewResponse %v", reviewResponse)
+	case ar.Request.Resource == claimGVR && len(ar.Request.SubResource) == 0:
+		klog.V(2).Info("validating create/update of managed cluster claim")
+		denied, msg := clusterclaim.DenyClaim(ar.Request, a.kubeClient)
+		reviewResponse.Allowed = !denied
+		if denied {
+			reviewResponse.Result = &metav1.Status{Message: msg}
+		}
+		klog.V(2).Infof("reviewResponse %v", reviewResponse)
 	}
 
-	allowedDeny, msg := denynamespace.ShouldDenyDeleteNamespace(ar.Request.Namespace, a.dynamicClient)
-	reviewResponse.Allowed = !allowedDeny
-	if allowedDeny {
-		reviewResponse.Result = &metav1.Status{Message: msg}
-	}
-
-	klog.V(2).Infof("reviewResponse %v", reviewResponse)
 	return &reviewResponse
 }
 

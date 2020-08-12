@@ -40,6 +40,7 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 
 	ah := &admissionHandler{
 		lister:        informer.Lister(),
+		kubeClient:    kubeClientSet,
 		dynamicClient: dynamicClient,
 	}
 
