@@ -72,6 +72,8 @@ spec:
               app: acm-agent
           spec:
             serviceAccountName: acm-agent-sa
+            securityContext:
+              runAsNonRoot: true
             volumes:
             - name: hub-config
               secret:
