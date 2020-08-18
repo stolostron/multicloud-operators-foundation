@@ -6,8 +6,8 @@ import (
 	"context"
 	"os"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent/app"
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-agent/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/agent/app"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/agent/app/options"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"

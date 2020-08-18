@@ -1,7 +1,7 @@
 apiVersion: work.open-cluster-management.io/v1
 kind: ManifestWork
 metadata:
-  name: deploy-acm-agent
+  name: deploy-foundation-agent
   namespace: cluster1
 spec:
   workload:
@@ -9,12 +9,12 @@ spec:
     - kind: ServiceAccount
       apiVersion: v1
       metadata:
-        name: acm-agent-sa
+        name: foundation-agent-sa
         namespace: open-cluster-management-agent
     - kind: ClusterRole
       apiVersion: rbac.authorization.k8s.io/v1
       metadata:
-        name: acm-agent
+        name: foundation-agent
       rules:
       - apiGroups:
           - '*'
@@ -29,22 +29,22 @@ spec:
     - kind: ClusterRoleBinding
       apiVersion: rbac.authorization.k8s.io/v1
       metadata:
-        name: acm-agent
+        name: foundation-agent
       roleRef:
         apiGroup: rbac.authorization.k8s.io
         kind: ClusterRole
-        name: acm-agent
+        name: foundation-agent
       subjects:
         - kind: ServiceAccount
-          name: acm-agent-sa
+          name: foundation-agent-sa
           namespace: open-cluster-management-agent
     - kind: Service
       apiVersion: v1
       metadata:
-        name: acm-agent
+        name: foundation-agent
         namespace: open-cluster-management-agent
         labels:
-          app: acm-agent
+          app: foundation-agent
       spec:
         type: ClusterIP
         ports:
@@ -53,25 +53,25 @@ spec:
           protocol: TCP
           targetPort: 4443
         selector:
-          app: acm-agent
+          app: foundation-agent
     - kind: Deployment
       apiVersion: apps/v1
       metadata:
-        name: acm-agent
+        name: foundation-agent
         namespace: open-cluster-management-agent
         labels:
-          app: acm-agent
+          app: foundation-agent
       spec:
         replicas: 1
         selector:
           matchLabels:
-            app: acm-agent
+            app: foundation-agent
         template:
           metadata:
             labels:
-              app: acm-agent
+              app: foundation-agent
           spec:
-            serviceAccountName: acm-agent-sa
+            serviceAccountName: foundation-agent-sa
             securityContext:
               runAsNonRoot: true
             volumes:
@@ -79,15 +79,15 @@ spec:
               secret:
                 secretName: hub-kubeconfig-secret
             containers:
-            - name: acm-agent
-              image: acm-agent
+            - name: foundation-agent
+              image: foundation-agent
               imagePullPolicy: IfNotPresent
               args:
-                - "/acm-agent"
+                - "/agent"
                 - "--hub-kubeconfig=/var/run/hub/kubeconfig"
                 - "--cluster-name=cluster1"
                 - "--port=4443"
-                - "--agent-address=acm-agent.open-cluster-management-agent.svc"
+                - "--agent-address=foundation-agent.open-cluster-management-agent.svc"
                 - "--agent-port=443"
                 - "--insecure=true"
               volumeMounts:

@@ -1,11 +1,11 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: acm-proxyserver
+  name: foundation-proxyserver
   namespace: open-cluster-management
 spec:
   selector:
-    app: acm-proxyserver
+    app: foundation-proxyserver
   ports:
     - name: secure
       protocol: TCP

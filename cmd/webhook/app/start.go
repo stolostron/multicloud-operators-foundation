@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-webhook/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -15,7 +15,7 @@ import (
 )
 
 func Run(opts *options.Options, stopCh <-chan struct{}) error {
-	klog.Info("starting acm webhook server")
+	klog.Info("starting foundation webhook server")
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", opts.KubeConfigFile)
 	if err != nil {

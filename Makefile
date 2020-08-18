@@ -60,14 +60,14 @@ deploy-klusterlet:
 
 deploy-foundation-hub: ensure-kustomize
 	cp deploy/foundation/hub/kustomization.yaml deploy/foundation/hub/kustomization.yaml.tmp
-	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image acm-controller=$(FOUNDATION_IMAGE_NAME)
-	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image acm-proxyserver=$(FOUNDATION_IMAGE_NAME)
+	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image foundation-controller=$(FOUNDATION_IMAGE_NAME)
+	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image foundation-proxyserver=$(FOUNDATION_IMAGE_NAME)
 	$(KUSTOMIZE) build deploy/foundation/hub | $(KUBECTL) apply -f -
 	mv deploy/foundation/hub/kustomization.yaml.tmp deploy/foundation/hub/kustomization.yaml
 
 deploy-foundation-agent: ensure-kustomize
 	cp deploy/foundation/klusterlet/kustomization.yaml deploy/foundation/klusterlet/kustomization.yaml.tmp
-	cd deploy/foundation/klusterlet && ../../../$(KUSTOMIZE) edit set image acm-agent=$(FOUNDATION_IMAGE_NAME)
+	cd deploy/foundation/klusterlet && ../../../$(KUSTOMIZE) edit set image foundation-agent=$(FOUNDATION_IMAGE_NAME)
 	$(KUSTOMIZE) build deploy/foundation/klusterlet | $(KUBECTL) apply -f -
 	mv deploy/foundation/klusterlet/kustomization.yaml.tmp deploy/foundation/klusterlet/kustomization.yaml
 

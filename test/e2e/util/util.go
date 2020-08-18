@@ -514,7 +514,7 @@ func CheckFoundationPodsReady() error {
 	}
 
 	if pods, err := hubClient.CoreV1().Pods("open-cluster-management").List(context.TODO(),
-		metav1.ListOptions{LabelSelector: "app=acm-controller"}); err != nil {
+		metav1.ListOptions{LabelSelector: "app=foundation-controller"}); err != nil {
 		if len(pods.Items) == 0 {
 			return fmt.Errorf("failed to get controller pods")
 		}
@@ -527,7 +527,7 @@ func CheckFoundationPodsReady() error {
 	}
 
 	if pods, err := hubClient.CoreV1().Pods("open-cluster-management").List(context.TODO(),
-		metav1.ListOptions{LabelSelector: "app=acm-proxyserver"}); err != nil {
+		metav1.ListOptions{LabelSelector: "app=foundation-proxyserver"}); err != nil {
 		if len(pods.Items) == 0 {
 			return fmt.Errorf("failed to get proxyserver pods")
 		}
@@ -540,7 +540,7 @@ func CheckFoundationPodsReady() error {
 	}
 
 	if pods, err := hubClient.CoreV1().Pods("open-cluster-management-agent").List(context.TODO(),
-		metav1.ListOptions{LabelSelector: "app=acm-agent"}); err != nil {
+		metav1.ListOptions{LabelSelector: "app=foundation-agent"}); err != nil {
 		if len(pods.Items) == 0 {
 			return fmt.Errorf("failed to get agent pods")
 		}

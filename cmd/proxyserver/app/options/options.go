@@ -83,7 +83,7 @@ func (o *Options) APIServerConfig() (*genericapiserver.Config, error) {
 	// enable OpenAPI schemas
 	serverConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(
 		openapi.GetOpenAPIDefinitions, openapinamer.NewDefinitionNamer(api.Scheme))
-	serverConfig.OpenAPIConfig.Info.Title = "acm-proxy-server"
+	serverConfig.OpenAPIConfig.Info.Title = "foundation-proxy-server"
 	serverConfig.OpenAPIConfig.Info.Version = "0.0.1"
 
 	return serverConfig, nil

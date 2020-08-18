@@ -20,7 +20,7 @@ func NewKubeWorkSpec() *actionv1beta1.KubeWorkSpec {
 			APIVersion: "extension/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              "acm-ingress-testcluster-klusterlet",
+			Name:              "foundation-ingress-testcluster-klusterlet",
 			Namespace:         "kube-system",
 			CreationTimestamp: metav1.Now(),
 		},

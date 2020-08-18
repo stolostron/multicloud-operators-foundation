@@ -41,12 +41,12 @@ func NewLeaderElection(scheme *runtime.Scheme, kubeClient kubernetes.Interface, 
 
 	rl, err := resourcelock.New(resourcelock.ConfigMapsResourceLock,
 		namespace,
-		"acm-agent-leader-election",
+		"foundation-agent-leader-election",
 		kubeClient.CoreV1(),
 		kubeClient.CoordinationV1(),
 		resourcelock.ResourceLockConfig{
 			Identity:      id,
-			EventRecorder: eventBroadcaster.NewRecorder(scheme, v1.EventSource{Component: "acm-agent-controller"}),
+			EventRecorder: eventBroadcaster.NewRecorder(scheme, v1.EventSource{Component: "foundation-agent-controller"}),
 		})
 	if err != nil {
 		return nil, fmt.Errorf("couldn't create resource lock: %v", err)
@@ -64,7 +64,7 @@ func NewLeaderElection(scheme *runtime.Scheme, kubeClient kubernetes.Interface, 
 			},
 		},
 		WatchDog: leaderelection.NewLeaderHealthzAdaptor(time.Second * 20),
-		Name:     "acm-agent-controller",
+		Name:     "foundation-agent-controller",
 	}, nil
 }
 

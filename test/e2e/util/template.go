@@ -166,7 +166,7 @@ const ManagedClusterViewTemplate = `{
   "spec": {
     "scope": {
       "resource": "deployments",
-      "name": "acm-agent",
+      "name": "foundation-agent",
       "namespace": "open-cluster-management-agent"
     }
   }
