@@ -5,6 +5,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"fmt"
+	corev1 "k8s.io/api/core/v1"
 	"os"
 	"os/user"
 	"path"
@@ -499,4 +500,74 @@ func isCSRInTerminalState(status *certificatesv1beta1.CertificateSigningRequestS
 		}
 	}
 	return false
+}
+
+func CheckFoundationPodsReady() error {
+	clusterCfg, err := clientcmd.BuildConfigFromFlags("", os.Getenv("KUBECONFIG"))
+	if err != nil {
+		return err
+	}
+
+	hubClient, err := kubernetes.NewForConfig(clusterCfg)
+	if err != nil {
+		return err
+	}
+
+	if pods, err := hubClient.CoreV1().Pods("open-cluster-management").List(context.TODO(),
+		metav1.ListOptions{LabelSelector: "app=acm-controller"}); err != nil {
+		if len(pods.Items) == 0 {
+			return fmt.Errorf("failed to get controller pods")
+		}
+
+		for _, pod := range pods.Items {
+			if err := podConditionsReady(pod); err != nil {
+				return err
+			}
+		}
+	}
+
+	if pods, err := hubClient.CoreV1().Pods("open-cluster-management").List(context.TODO(),
+		metav1.ListOptions{LabelSelector: "app=acm-proxyserver"}); err != nil {
+		if len(pods.Items) == 0 {
+			return fmt.Errorf("failed to get proxyserver pods")
+		}
+
+		for _, pod := range pods.Items {
+			if err := podConditionsReady(pod); err != nil {
+				return err
+			}
+		}
+	}
+
+	if pods, err := hubClient.CoreV1().Pods("open-cluster-management-agent").List(context.TODO(),
+		metav1.ListOptions{LabelSelector: "app=acm-agent"}); err != nil {
+		if len(pods.Items) == 0 {
+			return fmt.Errorf("failed to get agent pods")
+		}
+
+		for _, pod := range pods.Items {
+			if err := podConditionsReady(pod); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func podConditionsReady(pod corev1.Pod) error {
+	if len(pod.Status.Conditions) == 0 {
+		return fmt.Errorf("the pod %v conditions is null", pod.Name)
+	}
+
+	for _, condition := range pod.Status.Conditions {
+		if condition.Type == corev1.PodReady && condition.Status != corev1.ConditionTrue {
+			return fmt.Errorf("the pod %v conditions is not ready", pod.Name)
+		}
+		if condition.Type == corev1.ContainersReady && condition.Status != corev1.ConditionTrue {
+			return fmt.Errorf("the containers of pod %v conditions are not ready", pod.Name)
+		}
+	}
+
+	return nil
 }

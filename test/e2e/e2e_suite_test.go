@@ -3,6 +3,7 @@ package e2e
 import (
 	"os"
 	"testing"
+	"time"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -51,4 +52,9 @@ var _ = ginkgo.BeforeSuite(func() {
 	fakeManagedCluster, err := util.CreateManagedCluster(dynamicClient)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	fakeManagedClusterName = fakeManagedCluster.GetName()
+
+	gomega.Eventually(func() error {
+		return util.CheckFoundationPodsReady()
+	}, 60*time.Second, 2*time.Second).Should(gomega.Succeed())
+
 })
