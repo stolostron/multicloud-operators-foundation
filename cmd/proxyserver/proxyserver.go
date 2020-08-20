@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver/app"
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/proxyserver/app"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/proxyserver/app/options"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/component-base/cli/flag"

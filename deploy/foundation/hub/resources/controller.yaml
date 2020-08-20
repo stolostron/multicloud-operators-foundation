@@ -1,27 +1,27 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: acm-controller
+  name: foundation-controller
   namespace: open-cluster-management
   labels:
-    app: acm-controller
+    app: foundation-controller
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: acm-controller
+      app: foundation-controller
   template:
     metadata:
       labels:
-        app: acm-controller
+        app: foundation-controller
     spec:
-      serviceAccountName: acm-foundation-sa
+      serviceAccountName: foundation-hub-sa
       containers:
-      - name: acm-controller
-        image: acm-controller
+      - name: foundation-controller
+        image: foundation-controller
         imagePullPolicy: IfNotPresent
         args:
-          - "/acm-controller"
+          - "/controller"
           - "--enable-rbac=true"
         livenessProbe:
           httpGet:

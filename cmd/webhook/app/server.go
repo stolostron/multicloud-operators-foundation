@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/mattbaird/jsonpatch"
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-webhook/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/clusterclaim"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/denynamespace"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/useridentity"

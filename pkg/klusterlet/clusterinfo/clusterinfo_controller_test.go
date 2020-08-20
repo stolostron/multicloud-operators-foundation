@@ -105,7 +105,7 @@ var (
 			APIVersion: "extension/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              "acm-ingress-testcluster-agent",
+			Name:              "foundation-ingress-testcluster-agent",
 			Namespace:         "kube-system",
 			CreationTimestamp: metav1.Now(),
 		},
@@ -217,7 +217,7 @@ func NewClusterInfoReconciler() *ClusterInfoReconciler {
 		KubeClient:    fakeKubeClient,
 		RouteV1Client: fakeRouteV1Client,
 		AgentAddress:  "127.0.0.1:8000",
-		AgentIngress:  "kube-system/acm-ingress-testcluster-agent",
+		AgentIngress:  "kube-system/foundation-ingress-testcluster-agent",
 		AgentRoute:    "AgentRoute",
 		AgentService:  "kube-system/agent",
 	}
@@ -270,7 +270,7 @@ func NewFailedClusterInfoReconciler() *ClusterInfoReconciler {
 		KubeClient:    fakeKubeClient,
 		RouteV1Client: fakeRouteV1Client,
 		AgentAddress:  "127.0.0.1:8000",
-		AgentIngress:  "kube-system/acm-ingress-testcluster-agent",
+		AgentIngress:  "kube-system/foundation-ingress-testcluster-agent",
 		AgentRoute:    "AgentRoute",
 		AgentService:  "kube-system/agent",
 	}

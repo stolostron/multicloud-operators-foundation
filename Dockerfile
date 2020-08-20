@@ -10,10 +10,10 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 ENV USER_UID=10001 \
     USER_NAME=acm-foundation
 
-COPY --from=builder /go/src/github.com/open-cluster-management/multicloud-operators-foundation/acm-proxyserver /
-COPY --from=builder /go/src/github.com/open-cluster-management/multicloud-operators-foundation/acm-controller /
-COPY --from=builder /go/src/github.com/open-cluster-management/multicloud-operators-foundation/acm-webhook /
-COPY --from=builder /go/src/github.com/open-cluster-management/multicloud-operators-foundation/acm-agent /
+COPY --from=builder /go/src/github.com/open-cluster-management/multicloud-operators-foundation/proxyserver /
+COPY --from=builder /go/src/github.com/open-cluster-management/multicloud-operators-foundation/controller /
+COPY --from=builder /go/src/github.com/open-cluster-management/multicloud-operators-foundation/webhook /
+COPY --from=builder /go/src/github.com/open-cluster-management/multicloud-operators-foundation/agent /
 
 RUN microdnf update && \
     microdnf clean all

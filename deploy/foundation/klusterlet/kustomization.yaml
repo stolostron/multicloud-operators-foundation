@@ -3,7 +3,7 @@ resources:
 - resources/agent-manifestwork.yaml
 
 images:
-- name: acm-agent
+- name: foundation-agent
   newName: quay.io/open-cluster-management/multicloud-manager
   newTag: latest
 apiVersion: kustomize.config.k8s.io/v1beta1

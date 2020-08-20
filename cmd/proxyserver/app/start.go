@@ -11,7 +11,7 @@ import (
 	apilabels "k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-proxyserver/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/proxyserver/app/options"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/controller"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
 	"k8s.io/client-go/informers"

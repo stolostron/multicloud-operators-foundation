@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/acm-controller/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/controller/app/options"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
@@ -54,7 +54,7 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 
 	caData, err := GetAgentCA(o.CAFile)
 	if err != nil {
-		klog.Warningf("unable to get acm agent server CA file: %v", err)
+		klog.Warningf("unable to get foundation agent server CA file: %v", err)
 	}
 
 	kubeConfig.QPS = o.QPS
@@ -62,7 +62,7 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
 		Scheme:                 scheme,
-		LeaderElectionID:       "acm-controller",
+		LeaderElectionID:       "foundation-controller",
 		LeaderElection:         o.EnableLeaderElection,
 		HealthProbeBindAddress: ":8000",
 	})
