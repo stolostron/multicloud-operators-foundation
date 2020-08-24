@@ -9,7 +9,6 @@ import (
 
 	"github.com/mattbaird/jsonpatch"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/clusterclaim"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/denynamespace"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/useridentity"
 	"k8s.io/api/admission/v1beta1"
@@ -25,12 +24,6 @@ var namespaceGVR = metav1.GroupVersionResource{
 	Group:    "",
 	Version:  "v1",
 	Resource: "namespaces",
-}
-
-var claimGVR = metav1.GroupVersionResource{
-	Group:    "cluster.open-cluster-management.io",
-	Version:  "v1alpha1",
-	Resource: "managedclusterclaims",
 }
 
 type admissionHandler struct {
@@ -153,14 +146,6 @@ func (a *admissionHandler) validateResource(ar v1beta1.AdmissionReview) *v1beta1
 		allowedDeny, msg := denynamespace.ShouldDenyDeleteNamespace(ar.Request.Namespace, a.dynamicClient)
 		reviewResponse.Allowed = !allowedDeny
 		if allowedDeny {
-			reviewResponse.Result = &metav1.Status{Message: msg}
-		}
-		klog.V(2).Infof("reviewResponse %v", reviewResponse)
-	case ar.Request.Resource == claimGVR && len(ar.Request.SubResource) == 0:
-		klog.V(2).Info("validating create/update of managed cluster claim")
-		denied, msg := clusterclaim.DenyClaim(ar.Request, a.kubeClient)
-		reviewResponse.Allowed = !denied
-		if denied {
 			reviewResponse.Result = &metav1.Status{Message: msg}
 		}
 		klog.V(2).Infof("reviewResponse %v", reviewResponse)
