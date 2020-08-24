@@ -345,7 +345,7 @@ func (r *ClusterInfoReconciler) getVendor(gitVersion string, isOpenShift bool) (
 	}
 
 	cloudVendor = r.getCloudVendor()
-	if cloudVendor == clusterv1beta1.CloudVendorAzure {
+	if cloudVendor == clusterv1beta1.CloudVendorAzure && kubeVendor == clusterv1beta1.KubeVendorOther {
 		kubeVendor = clusterv1beta1.KubeVendorAKS
 	}
 
