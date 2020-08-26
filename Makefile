@@ -71,6 +71,12 @@ deploy-foundation-agent: ensure-kustomize
 	$(KUSTOMIZE) build deploy/foundation/klusterlet | $(KUBECTL) apply -f -
 	mv deploy/foundation/klusterlet/kustomization.yaml.tmp deploy/foundation/klusterlet/kustomization.yaml
 
+clean-foundation-hub: ensure-kustomize
+	$(KUSTOMIZE) build deploy/foundation/hub | $(KUBECTL) delete -f -
+
+clean-foundation-agent: ensure-kustomize
+	$(KUSTOMIZE) build deploy/foundation/klusterlet | $(KUBECTL) delete -f -
+
 build-e2e:
 	go test -c ./test/e2e
 
