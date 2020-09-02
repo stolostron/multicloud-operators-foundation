@@ -77,11 +77,11 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// Get version
 	newStatus.Version = r.getVersion()
 
-	// Get distribution info
-	newStatus.DistributionInfo, err = r.getDistributionInfo()
+	// Get distribution info and ClusterID
+	newStatus.DistributionInfo, newStatus.ClusterID, err = r.getDistributionInfoAndClusterID()
 	if err != nil {
-		log.Error(err, "Failed to get distribution info")
-		errs = append(errs, fmt.Errorf("failed to get distribution info, error:%v ", err))
+		log.Error(err, "Failed to get distribution info and clusterID")
+		errs = append(errs, fmt.Errorf("failed to get distribution info and clusterID, error:%v ", err))
 	}
 
 	// Get Vendor
@@ -446,37 +446,41 @@ func (r *ClusterInfoReconciler) getNodeList() ([]clusterv1beta1.NodeStatus, erro
 	return nodeList, nil
 }
 
+func (r *ClusterInfoReconciler) isOpenshift() bool {
+	serverGroups, err := r.KubeClient.Discovery().ServerGroups()
+	if err != nil {
+		klog.Errorf("failed to get server group %v", err)
+		return false
+	}
+	for _, apiGroup := range serverGroups.Groups {
+		if apiGroup.Name == "project.openshift.io" {
+			return true
+		}
+	}
+	return false
+}
+
 var ocpVersionGVR = schema.GroupVersionResource{
 	Group:    "config.openshift.io",
 	Version:  "v1",
 	Resource: "clusterversions",
 }
 
-func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.DistributionInfo, error) {
-	var isOpenShift = false
-	distributionInfo := clusterv1beta1.DistributionInfo{}
-	serverGroups, err := r.KubeClient.Discovery().ServerGroups()
-	if err != nil {
-		return distributionInfo, err
-	}
-	for _, apiGroup := range serverGroups.Groups {
-		if apiGroup.Name == "project.openshift.io" {
-			isOpenShift = true
-			break
-		}
-	}
-	if !isOpenShift {
-		return distributionInfo, nil
-	}
-
-	distributionInfo.Type = clusterv1beta1.DistributionTypeOCP
+func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDistributionInfo, string, error) {
+	ocpDistributionInfo := clusterv1beta1.OCPDistributionInfo{}
 	obj, err := r.ManagedClusterDynamicClient.Resource(ocpVersionGVR).Get(context.TODO(), "version", metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("failed to get OCP cluster version: %v", err)
-		return distributionInfo, client.IgnoreNotFound(err)
+		return ocpDistributionInfo, "", err
 	}
+
+	clusterID, _, err := unstructured.NestedString(obj.Object, "spec", "clusterID")
+	if err != nil {
+		klog.Errorf("failed to get OCP clusterID in spec: %v", err)
+		return ocpDistributionInfo, "", err
+	}
+
 	historyItems, _, err := unstructured.NestedSlice(obj.Object, "status", "history")
-	var version string
 	if err != nil {
 		klog.Errorf("failed to get OCP cluster version in history of status: %v", err)
 	}
@@ -487,7 +491,7 @@ func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.Distributi
 			continue
 		}
 		if state == "Completed" {
-			version, _, err = unstructured.NestedString(historyItem.(map[string]interface{}), "version")
+			ocpDistributionInfo.Version, _, err = unstructured.NestedString(historyItem.(map[string]interface{}), "version")
 			if err != nil {
 				klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
 			}
@@ -495,12 +499,11 @@ func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.Distributi
 		}
 	}
 
-	desiredVersion, _, err := unstructured.NestedString(obj.Object, "status", "desired", "version")
+	ocpDistributionInfo.DesiredVersion, _, err = unstructured.NestedString(obj.Object, "status", "desired", "version")
 	if err != nil {
 		klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
 	}
 	availableUpdates, _, err := unstructured.NestedSlice(obj.Object, "status", "availableUpdates")
-	var availableVersions []string
 	if err != nil {
 		klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
 	}
@@ -510,10 +513,10 @@ func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.Distributi
 			klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
 			continue
 		}
-		availableVersions = append(availableVersions, availableVersion)
+		ocpDistributionInfo.AvailableUpdates = append(ocpDistributionInfo.AvailableUpdates, availableVersion)
 	}
 
-	upgradeFailed := false
+	ocpDistributionInfo.UpgradeFailed = false
 	conditions, _, err := unstructured.NestedSlice(obj.Object, "status", "conditions")
 	if err != nil {
 		klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
@@ -531,22 +534,28 @@ func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.Distributi
 				continue
 			}
 			if conditionstatus == "True" {
-				upgradeFailed = true
+				ocpDistributionInfo.UpgradeFailed = true
 			}
 			break
 		}
 	}
 
-	distributionInfo.OCP = clusterv1beta1.OCPDistributionInfo{
-		Version: version,
-		// status.desired.version
-		DesiredVersion: desiredVersion,
-		// true when the first status.conditions element with type === Failing has status === True
-		UpgradeFailed: upgradeFailed,
-		// the value of the version property from each element in status.availableUpdates
-		AvailableUpdates: availableVersions,
+	return ocpDistributionInfo, clusterID, nil
+}
+
+func (r *ClusterInfoReconciler) getDistributionInfoAndClusterID() (clusterv1beta1.DistributionInfo, string, error) {
+	var err error
+	var clusterID string
+	var distributionInfo = clusterv1beta1.DistributionInfo{}
+
+	switch {
+	case r.isOpenshift():
+		distributionInfo.Type = clusterv1beta1.DistributionTypeOCP
+		if distributionInfo.OCP, clusterID, err = r.getOCPDistributionInfo(); err != nil {
+			return distributionInfo, clusterID, err
+		}
 	}
-	return distributionInfo, nil
+	return distributionInfo, clusterID, nil
 }
 
 func (r *ClusterInfoReconciler) RefreshAgentServer(clusterInfo *clusterv1beta1.ManagedClusterInfo) {

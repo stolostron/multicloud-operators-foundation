@@ -24,6 +24,7 @@ import (
 const (
 	LabelCloudVendor = "cloud"
 	LabelKubeVendor  = "vendor"
+	LabelClusterID   = "clusterID"
 	AutoDetect       = "auto-detect"
 )
 
@@ -86,26 +87,29 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	if clusterInfo.Status.CloudVendor == "" || clusterInfo.Status.KubeVendor == "" {
-		klog.Infof("will reconcile since ManagedClusterInfo is not updated %v", clusterInfo.Name)
-		return ctrl.Result{}, nil
-	}
-
-	labels := cluster.ObjectMeta.Labels
-	if len(labels) == 0 {
-		return ctrl.Result{}, nil
+	labels := cluster.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
 	}
 
 	needUpdate := false
-	if labels[LabelCloudVendor] == AutoDetect {
+	if labels[LabelCloudVendor] == AutoDetect && clusterInfo.Status.CloudVendor != "" {
 		labels[LabelCloudVendor] = string(clusterInfo.Status.CloudVendor)
 		needUpdate = true
 	}
-	if labels[LabelKubeVendor] == AutoDetect {
+
+	if labels[LabelKubeVendor] == AutoDetect && clusterInfo.Status.KubeVendor != "" {
 		labels[LabelKubeVendor] = string(clusterInfo.Status.KubeVendor)
 		needUpdate = true
 	}
+
+	if clusterInfo.Status.ClusterID != "" && labels[LabelClusterID] != clusterInfo.Status.ClusterID {
+		labels[LabelClusterID] = clusterInfo.Status.ClusterID
+		needUpdate = true
+	}
+
 	if needUpdate {
+		cluster.SetLabels(labels)
 		if err := r.client.Update(ctx, cluster); err != nil {
 			klog.Warningf("will reconcile since failed to add labels to ManagedCluster %v, %v", cluster.Name, err)
 			return reconcile.Result{}, err
@@ -113,7 +117,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	if !reflect.DeepEqual(labels, clusterInfo.ObjectMeta.Labels) {
-		clusterInfo.ObjectMeta.Labels = labels
+		clusterInfo.SetLabels(labels)
 		if err := r.client.Update(ctx, clusterInfo); err != nil {
 			klog.Warningf("will reconcile since failed to add labels to ManagedClusterInfo %v, %v", clusterInfo.Name, err)
 			return reconcile.Result{}, err

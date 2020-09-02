@@ -37,6 +37,10 @@ type ClusterInfoStatus struct {
 	// +optional
 	CloudVendor CloudVendorType `json:"cloudVendor,omitempty"`
 
+	// ClusterID is the identifier of managed cluster
+	// +optional
+	ClusterID string `json:"clusterID,omitempty"`
+
 	// DistributionInfo is the information about distribution of managed cluster
 	// +optional
 	DistributionInfo DistributionInfo `json:"distributionInfo,omitempty"`
