@@ -7,7 +7,7 @@
 package v1beta1
 
 import (
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -106,7 +106,7 @@ func (in *ViewStatus) DeepCopyInto(out *ViewStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]conditions.Condition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

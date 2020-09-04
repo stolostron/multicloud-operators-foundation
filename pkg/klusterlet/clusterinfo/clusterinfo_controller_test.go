@@ -6,12 +6,11 @@ import (
 	"os"
 	"testing"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
-
 	tlog "github.com/go-logr/logr/testing"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 	routev1Fake "github.com/openshift/client-go/route/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	extensionv1beta1 "k8s.io/api/extensions/v1beta1"
@@ -204,7 +203,7 @@ func TestClusterInfoReconcile(t *testing.T) {
 		t.Errorf("failed get updated clusterinfo ")
 	}
 
-	if helpers.IsClusterStatusConditionFalse(updatedClusterInfo.Status.Conditions, clusterv1beta1.ManagedClusterInfoSynced) {
+	if meta.IsStatusConditionFalse(updatedClusterInfo.Status.Conditions, clusterv1beta1.ManagedClusterInfoSynced) {
 		t.Errorf("failed to update synced condtion")
 	}
 }
@@ -256,7 +255,7 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 		t.Errorf("failed get updated clusterinfo ")
 	}
 
-	if helpers.IsClusterStatusConditionTrue(updatedClusterInfo.Status.Conditions, clusterv1beta1.ManagedClusterInfoSynced) {
+	if meta.IsStatusConditionTrue(updatedClusterInfo.Status.Conditions, clusterv1beta1.ManagedClusterInfoSynced) {
 		t.Errorf("failed to update synced condtion")
 	}
 }

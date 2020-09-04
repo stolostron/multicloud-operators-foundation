@@ -5,12 +5,13 @@ import (
 	"crypto/x509/pkix"
 	"encoding/base64"
 	"fmt"
-	corev1 "k8s.io/api/core/v1"
 	"os"
 	"os/user"
 	"path"
 	"strings"
 	"time"
+
+	corev1 "k8s.io/api/core/v1"
 
 	clusterv1client "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"

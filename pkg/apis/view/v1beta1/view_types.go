@@ -1,7 +1,6 @@
 package v1beta1
 
 import (
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -50,7 +49,7 @@ type ViewSpec struct {
 type ViewStatus struct {
 	// Conditions represents the conditions of this resource on managed cluster
 	// +optional
-	Conditions []conditions.Condition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// Result references the related result of the view
 	// +nullable
@@ -91,7 +90,7 @@ type ViewScope struct {
 // These are valid conditions of a cluster.
 const (
 	// ConditionViewProcessing means the view is processing.
-	ConditionViewProcessing conditions.ConditionType = "Processing"
+	ConditionViewProcessing string = "Processing"
 )
 
 const (
@@ -99,6 +98,7 @@ const (
 	ReasonResourceTypeInvalid string = "ResourceTypeInvalid"
 	ReasonResourceGVKInvalid  string = "ResourceGVKInvalid"
 	ReasonGetResourceFailed   string = "GetResourceFailed"
+	ReasonGetResource         string = "GetResourceProcessing"
 )
 
 func init() {

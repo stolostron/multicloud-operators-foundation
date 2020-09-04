@@ -130,7 +130,6 @@ generate: ensure-controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/inventory/v1alpha1"
 	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/cluster/v1alpha1"
 	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/internal.open-cluster-management.io/v1beta1"
-	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/conditions"
 
 # Ensure kubebuilder
 ensure-kubebuilder:

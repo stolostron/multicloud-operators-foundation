@@ -4,11 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
-
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
-
-	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
@@ -38,9 +35,9 @@ func (r *ActionReconciler) handleAction(action *actionv1beta1.ManagedClusterActi
 	}
 
 	if err != nil {
-		helpers.SetStatusCondition(&action.Status.Conditions, conditions.Condition{
+		meta.SetStatusCondition(&action.Status.Conditions, metav1.Condition{
 			Type:    actionv1beta1.ConditionActionCompleted,
-			Status:  corev1.ConditionFalse,
+			Status:  metav1.ConditionFalse,
 			Reason:  reason,
 			Message: fmt.Errorf("failed to handle %v action with err: %v", action.Spec.ActionType, err).Error(),
 		})
@@ -48,9 +45,11 @@ func (r *ActionReconciler) handleAction(action *actionv1beta1.ManagedClusterActi
 		return err
 	}
 
-	helpers.SetStatusCondition(&action.Status.Conditions, conditions.Condition{
-		Type:   actionv1beta1.ConditionActionCompleted,
-		Status: corev1.ConditionTrue,
+	meta.SetStatusCondition(&action.Status.Conditions, metav1.Condition{
+		Type:    actionv1beta1.ConditionActionCompleted,
+		Status:  metav1.ConditionTrue,
+		Reason:  "ActionDone",
+		Message: "Resource action is done.",
 	})
 
 	action.Status.Result = res

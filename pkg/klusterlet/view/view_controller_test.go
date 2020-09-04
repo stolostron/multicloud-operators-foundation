@@ -7,12 +7,10 @@ import (
 	"time"
 
 	tlog "github.com/go-logr/logr/testing"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -113,7 +111,7 @@ func newTestReconciler(existingObjs []runtime.Object) *ViewReconciler {
 }
 
 func validateErrorAndStatusConditions(t *testing.T, err, expectedErrorType error,
-	expectedConditions []conditions.Condition, view *viewv1beta1.ManagedClusterView) {
+	expectedConditions []metav1.Condition, view *viewv1beta1.ManagedClusterView) {
 	if expectedErrorType != nil {
 		assert.EqualError(t, err, expectedErrorType.Error())
 	} else {
@@ -121,7 +119,7 @@ func validateErrorAndStatusConditions(t *testing.T, err, expectedErrorType error
 	}
 
 	for _, condition := range expectedConditions {
-		assert.True(t, helpers.IsStatusConditionPresentAndEqual(view.Status.Conditions, condition.Type, condition.Status))
+		assert.True(t, meta.IsStatusConditionPresentAndEqual(view.Status.Conditions, condition.Type, condition.Status))
 	}
 	if view != nil {
 		assert.Equal(t, len(expectedConditions), len(view.Status.Conditions))
@@ -165,10 +163,10 @@ func TestReconcile(t *testing.T) {
 						},
 					},
 					Status: viewv1beta1.ViewStatus{
-						Conditions: []conditions.Condition{
+						Conditions: []metav1.Condition{
 							{
 								Type:               viewv1beta1.ConditionViewProcessing,
-								Status:             corev1.ConditionTrue,
+								Status:             metav1.ConditionTrue,
 								LastTransitionTime: metav1.NewTime(time.Now()),
 							},
 						},
@@ -207,7 +205,7 @@ func TestQueryResource(t *testing.T) {
 		name               string
 		managedClusterView *viewv1beta1.ManagedClusterView
 		expectedErrorType  error
-		expectedConditions []conditions.Condition
+		expectedConditions []metav1.Condition
 	}{
 		{
 			name: "queryResourceOK",
@@ -226,10 +224,10 @@ func TestQueryResource(t *testing.T) {
 					},
 				},
 			},
-			expectedConditions: []conditions.Condition{
+			expectedConditions: []metav1.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
-					Status: corev1.ConditionTrue,
+					Status: metav1.ConditionTrue,
 				},
 			},
 		},
@@ -248,10 +246,10 @@ func TestQueryResource(t *testing.T) {
 					},
 				},
 			},
-			expectedConditions: []conditions.Condition{
+			expectedConditions: []metav1.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
-					Status: corev1.ConditionTrue,
+					Status: metav1.ConditionTrue,
 				},
 			},
 		},
@@ -270,10 +268,10 @@ func TestQueryResource(t *testing.T) {
 				},
 			},
 			expectedErrorType: fmt.Errorf("invalid resource name"),
-			expectedConditions: []conditions.Condition{
+			expectedConditions: []metav1.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
-					Status: corev1.ConditionFalse,
+					Status: metav1.ConditionFalse,
 				},
 			},
 		},
@@ -292,10 +290,10 @@ func TestQueryResource(t *testing.T) {
 				},
 			},
 			expectedErrorType: fmt.Errorf("invalid resource type"),
-			expectedConditions: []conditions.Condition{
+			expectedConditions: []metav1.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
-					Status: corev1.ConditionFalse,
+					Status: metav1.ConditionFalse,
 				},
 			},
 		},
@@ -317,10 +315,10 @@ func TestQueryResource(t *testing.T) {
 				},
 			},
 			expectedErrorType: fmt.Errorf("the server doesn't have a resource type \"Deployment\""),
-			expectedConditions: []conditions.Condition{
+			expectedConditions: []metav1.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
-					Status: corev1.ConditionFalse,
+					Status: metav1.ConditionFalse,
 				},
 			},
 		},
@@ -340,10 +338,10 @@ func TestQueryResource(t *testing.T) {
 				},
 			},
 			expectedErrorType: fmt.Errorf("the server doesn't have a resource type \"deploymentts\""),
-			expectedConditions: []conditions.Condition{
+			expectedConditions: []metav1.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
-					Status: corev1.ConditionFalse,
+					Status: metav1.ConditionFalse,
 				},
 			},
 		},

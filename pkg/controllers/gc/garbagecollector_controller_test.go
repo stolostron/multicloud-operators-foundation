@@ -9,9 +9,7 @@ import (
 
 	"github.com/onsi/gomega"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
 	"github.com/stretchr/testify/assert"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -146,10 +144,10 @@ func TestReconcile(t *testing.T) {
 					},
 					Spec: actionv1beta1.ActionSpec{},
 					Status: actionv1beta1.ActionStatus{
-						Conditions: []conditions.Condition{
+						Conditions: []metav1.Condition{
 							{
 								Type:               actionv1beta1.ConditionActionCompleted,
-								Status:             corev1.ConditionTrue,
+								Status:             metav1.ConditionTrue,
 								LastTransitionTime: metav1.NewTime(time.Now()),
 							},
 						},
@@ -174,7 +172,7 @@ func TestReconcile(t *testing.T) {
 					},
 					Spec: actionv1beta1.ActionSpec{},
 					Status: actionv1beta1.ActionStatus{
-						Conditions: []conditions.Condition{},
+						Conditions: []metav1.Condition{},
 					},
 				},
 			},
@@ -196,10 +194,10 @@ func TestReconcile(t *testing.T) {
 					},
 					Spec: actionv1beta1.ActionSpec{},
 					Status: actionv1beta1.ActionStatus{
-						Conditions: []conditions.Condition{
+						Conditions: []metav1.Condition{
 							{
 								Type:               actionv1beta1.ConditionActionCompleted,
-								Status:             corev1.ConditionTrue,
+								Status:             metav1.ConditionTrue,
 								LastTransitionTime: metav1.NewTime(time.Now().Add(-120 * time.Second)),
 							},
 						},
