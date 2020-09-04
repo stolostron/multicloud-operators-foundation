@@ -3,10 +3,10 @@
 package app
 
 import (
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clustersetmapper"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"io/ioutil"
 	"path"
+
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clustersetmapper"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alaph1 "github.com/open-cluster-management/api/cluster/v1alpha1"
@@ -18,8 +18,10 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterinfo"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrole"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clusterrolebinding"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/gc"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -45,6 +47,9 @@ func init() {
 }
 
 func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
+
+	clustersetToSubject := helpers.NewClustersetSubjectsMapper()
+
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", o.KubeConfig)
 	if err != nil {
 		klog.Errorf("unable to get kube config: %v", err)
@@ -102,6 +107,11 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 
 	if err = autodetect.SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to setup auto detect reconciler: %v", err)
+		return err
+	}
+
+	if err = clusterrolebinding.SetupWithManager(mgr, clustersetToSubject); err != nil {
+		klog.Errorf("unable to setup clusterrolebinding reconciler: %v", err)
 		return err
 	}
 
