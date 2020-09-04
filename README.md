@@ -68,17 +68,13 @@ Need to install ManagedCluster before deploy ACM Foundation.
 
 ### Deploy ACM Foundation from quay.io
 
-1. Install on hub cluster
-
-    Deploy hub components
+1. Deploy hub components on hub cluster
 
     ```sh
     make deploy-foundation-hub
     ```
 
-2. Install on managed cluster
-
-    Deploy klusterlet components
+2. Deploy klusterlet components on managed cluster
 
     ```sh
     make deploy-foundation-agent
