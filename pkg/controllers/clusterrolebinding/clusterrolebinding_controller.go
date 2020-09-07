@@ -3,6 +3,7 @@ package clusterrolebinding
 import (
 	"context"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -17,7 +18,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var ClusterSetLabel string = "Clustersetlabel"
+const (
+	ClustersetFinalizerName string = "open-cluster-management.io/clusterset"
+	ClusterSetLabel         string = "Clusterset"
+)
 
 type Reconciler struct {
 	client                  client.Client
@@ -27,7 +31,6 @@ type Reconciler struct {
 }
 
 func SetupWithManager(mgr manager.Manager, clustersetToSubject map[string][]rbacv1.Subject) error {
-
 	if err := add(mgr, newReconciler(mgr, clustersetToSubject)); err != nil {
 		klog.Errorf("Failed to create auto-detect controller, %v", err)
 		return err
@@ -53,7 +56,6 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	if err != nil {
 		return err
 	}
-
 	err = c.Watch(&source.Kind{Type: &rbacv1.ClusterRole{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
@@ -85,82 +87,70 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	//	var clusterroleToClusterset map[string][]string
 	ctx := context.Background()
 	clusterrole := &rbacv1.ClusterRole{}
-	klog.Errorf("#########In reconcile0:req.NamespacedName:%+v", req.NamespacedName)
-	klog.Errorf("#########In reconcile end0:  r.clusterroleToClusterset:%v", r.clusterroleToClusterset)
-	klog.Errorf("#########In reconcile end1:clustersetToSubject: %v", r.clustersetToSubject)
-
-	//TODO  deleted ,cannot get
 	err := r.client.Get(ctx, req.NamespacedName, clusterrole)
 	if err != nil {
-		klog.Errorf("#########error reconcile1:,error:%+v", err)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
 	clustersetNames := sets.NewString()
-	//generate clusterrole to clusterset map
-	curClustersetInRule := r.getClustersetInRules(clusterrole.Rules)
+	//generate clusterrole's all clustersets
+	curClustersetInRule := utils.GetClustersetInRules(clusterrole.Rules)
 	clustersetNames.Insert(curClustersetInRule...)
 
+	//Both current clustersets and previous clustrersets for this clusterrole
+	unionClustersetNames := clustersetNames.Union(r.clusterroleToClusterset[clusterrole.Name])
+
+	//Add Finalizer to clusterset related clusterrole
+	if clustersetNames.Len() != 0 && !utils.ContainsString(clusterrole.GetFinalizers(), ClustersetFinalizerName) {
+		klog.Infof("adding ClusterRoleBinding Finalizer to ClusterRole %v", clusterrole.Name)
+		clusterrole.ObjectMeta.Finalizers = append(clusterrole.ObjectMeta.Finalizers, ClustersetFinalizerName)
+		if err := r.client.Update(context.TODO(), clusterrole); err != nil {
+			klog.Warningf("will reconcile since failed to add finalizer to ClusterRole %v, %v", clusterrole.Name, err)
+			return reconcile.Result{}, err
+		}
+	}
+
+	//clusterrole is deleted or clusterrole is not related to any clusterset
 	if clustersetNames.Len() == 0 || !clusterrole.GetDeletionTimestamp().IsZero() {
+		// The object is being deleted
+		if utils.ContainsString(clusterrole.GetFinalizers(), ClustersetFinalizerName) {
+			klog.Infof("removing ClusterRoleBinding Finalizer in ClusterRole %v", clusterrole.Name)
+			clusterrole.ObjectMeta.Finalizers = utils.RemoveString(clusterrole.ObjectMeta.Finalizers, ClustersetFinalizerName)
+			if err := r.client.Update(context.TODO(), clusterrole); err != nil {
+				klog.Warningf("will reconcile since failed to remove Finalizer from ClusterRole %v, %v", clusterrole.Name, err)
+				return reconcile.Result{}, err
+			}
+		}
 		if _, ok := r.clusterroleToClusterset[clusterrole.Name]; !ok {
 			return ctrl.Result{}, nil
 		}
-	}
-	if clustersetNames.Equal(r.clusterroleToClusterset[clusterrole.Name]) {
-		return ctrl.Result{}, nil
-	}
-
-	//Changed clusterrole related clusterset, should recaculate all this clusterrole related clusterset's subjects
-	//Both current clusterset names and previous clusterset names
-	unionClustersetNames := clustersetNames.Union(r.clusterroleToClusterset[clusterrole.Name])
-
-	unionClusterroleToClusterset := r.clusterroleToClusterset[clusterrole.Name].Union(clustersetNames)
-	r.clusterroleToClusterset[clusterrole.Name] = unionClusterroleToClusterset
-	clustersetToClusterroles := r.generateClustersetToClusterroles()
-
-	klog.Errorf("######unionClustersetNames:%+v", unionClustersetNames)
-
-	for curClusterset := range unionClustersetNames {
-		klog.Errorf("######clustersetToClusterroles:%+v", clustersetToClusterroles)
-		for _, curClusterRoleName := range clustersetToClusterroles[curClusterset] {
-			subjects, err := r.getClusterroleSubject(ctx, curClusterRoleName)
-			if err != nil {
-				return ctrl.Result{}, err
-			}
-			r.clustersetToSubject[curClusterset] = r.mergesubjects(r.clustersetToSubject[curClusterset], subjects)
-		}
-	}
-
-	//set clusterrole to clusterset map
-	if len(curClustersetInRule) == 0 {
 		delete(r.clusterroleToClusterset, clusterrole.Name)
 	} else {
 		r.clusterroleToClusterset[clusterrole.Name] = clustersetNames
 	}
 
-	klog.Errorf("#########In reconcile end0:  r.clusterroleToClusterset:%v", r.clusterroleToClusterset)
-	klog.Errorf("#########In reconcile end1:clustersetToSubject: %v", r.clustersetToSubject)
+	curClustersetToRoles := generateClustersetToClusterroles(r.clusterroleToClusterset)
+
+	for curClusterset := range unionClustersetNames {
+		var clustersetSubjects []rbacv1.Subject
+		for _, curClusterRoleName := range curClustersetToRoles[curClusterset] {
+			subjects, err := r.getClusterroleSubject(ctx, curClusterRoleName)
+			if err != nil {
+				return ctrl.Result{}, err
+			}
+			clustersetSubjects = utils.Mergesubjects(clustersetSubjects, subjects)
+		}
+		r.clustersetToSubject[curClusterset] = clustersetSubjects
+	}
 
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) generateClustersetToClusterroles() map[string][]string {
-	var clustersetToClusterroles = make(map[string][]string)
-	for currole, cursets := range r.clusterroleToClusterset {
-		for curset := range cursets {
-			clustersetToClusterroles[curset] = append(clustersetToClusterroles[curset], currole)
-		}
-	}
-	return clustersetToClusterroles
-}
-
-//get clusterrole's subject
 func (r *Reconciler) getClusterroleSubject(ctx context.Context, clusterroleName string) ([]rbacv1.Subject, error) {
 	var subjects []rbacv1.Subject
 
-	//TODO should not get managedclusters rolebinding by ourselves
 	clusterrolebindinglist := &rbacv1.ClusterRoleBindingList{}
 	err := r.client.List(ctx, clusterrolebindinglist)
 	if err != nil {
@@ -171,57 +161,20 @@ func (r *Reconciler) getClusterroleSubject(ctx context.Context, clusterroleName 
 		if _, ok := clusterrolebinding.Labels[ClusterSetLabel]; ok {
 			continue
 		}
-		if clusterrolebinding.RoleRef.APIGroup == "rbac.authorization.k8s.io" && clusterrolebinding.RoleRef.Kind == "ClusterRole" && clusterrolebinding.RoleRef.Name == clusterroleName {
-			subjects = r.mergesubjects(subjects, clusterrolebinding.Subjects)
+		if clusterrolebinding.RoleRef.APIGroup == rbacv1.GroupName && clusterrolebinding.RoleRef.Kind == "ClusterRole" && clusterrolebinding.RoleRef.Name == clusterroleName {
+			subjects = utils.Mergesubjects(subjects, clusterrolebinding.Subjects)
 
 		}
 	}
 	return subjects, nil
 }
 
-func (r *Reconciler) mergesubjects(subjects []rbacv1.Subject, cursubjects []rbacv1.Subject) []rbacv1.Subject {
-	var subjectmap = make(map[string]bool)
-	returnSubjects := subjects
-	for _, subject := range subjects {
-		subkey := generateMapKey(subject)
-		subjectmap[subkey] = true
-	}
-	for _, cursubject := range cursubjects {
-		subkey := generateMapKey(cursubject)
-		if _, ok := subjectmap[subkey]; !ok {
-			returnSubjects = append(returnSubjects, cursubject)
+func generateClustersetToClusterroles(clusterroleToClusterset map[string]sets.String) map[string][]string {
+	var clustersetToClusterroles = make(map[string][]string)
+	for currole, cursets := range clusterroleToClusterset {
+		for curset := range cursets {
+			clustersetToClusterroles[curset] = append(clustersetToClusterroles[curset], currole)
 		}
 	}
-	return returnSubjects
-}
-
-func generateMapKey(subject rbacv1.Subject) string {
-	return subject.APIGroup + subject.Kind + subject.Name
-}
-func (r *Reconciler) getClustersetInRules(rules []rbacv1.PolicyRule) []string {
-	var clustersetNames []string
-	for _, rule := range rules {
-		if IsContain(rule.APIGroups, "*") && IsContain(rule.Resources, "*") && IsContain(rule.Verbs, "*") {
-			return []string{"*"}
-		}
-		if IsContain(rule.APIGroups, "cluster.open-cluster-management.io") {
-			if IsContain(rule.Resources, "managedclustersets/bind") {
-				if IsContain(rule.Verbs, "create") {
-					for _, resourcename := range rule.ResourceNames {
-						clustersetNames = append(clustersetNames, resourcename)
-					}
-				}
-			}
-		}
-	}
-	return clustersetNames
-}
-
-func IsContain(items []string, item string) bool {
-	for _, eachItem := range items {
-		if eachItem == item {
-			return true
-		}
-	}
-	return false
+	return clustersetToClusterroles
 }
