@@ -3,9 +3,12 @@
 package app
 
 import (
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clustersetmapper"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"io/ioutil"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	clusterv1alaph1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/controller/app/options"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
@@ -37,6 +40,7 @@ func init() {
 	_ = clusterinfov1beta1.AddToScheme(scheme)
 	_ = clusterv1.Install(scheme)
 	_ = actionv1beta1.AddToScheme(scheme)
+	_ = clusterv1alaph1.Install(scheme)
 }
 
 func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
@@ -114,6 +118,12 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 
 	if err = gc.SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to setup gc reconciler: %v", err)
+		return err
+	}
+
+	clusterSetMapper := helpers.NewClusterSetMapper()
+	if err = clustersetmapper.SetupWithManager(mgr, clusterSetMapper); err != nil {
+		klog.Errorf("unable to setup clustersetmapper reconciler: %v", err)
 		return err
 	}
 
