@@ -348,8 +348,8 @@ github.com/onsi/gomega v1.7.1/go.mod h1:XdKZgCCFLUoM/7CFJVPcG8C1xQ1AJ0vpAezJrB7J
 github.com/onsi/gomega v1.8.1/go.mod h1:Ho0h+IUsWyvy1OpqCwxlQ/21gkhVunqlU8fDGcoTdcA=
 github.com/onsi/gomega v1.10.1 h1:o0+MgICZLuZ7xjH7Vx6zS/zcu93/BEp1VwkIW1mEXCE=
 github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1ybHNo=
-github.com/open-cluster-management/api v0.0.0-20200715201722-3c3c076bf062 h1:sYKu/XTeGrYCjO7x6/r6CfM/R8/Lr2kX7IG1DOC+wW0=
-github.com/open-cluster-management/api v0.0.0-20200715201722-3c3c076bf062/go.mod h1:+vUECYB7WkfCb52r0J7rxgD1mseSGAqGi8rTLLRcbgw=
+github.com/open-cluster-management/api v0.0.0-20200824150602-69fc6a00e4f8 h1:pzQmanam3DNm/GlDNf4yJzdLOFPd7SgxQqipXz/P0nk=
+github.com/open-cluster-management/api v0.0.0-20200824150602-69fc6a00e4f8/go.mod h1:+vUECYB7WkfCb52r0J7rxgD1mseSGAqGi8rTLLRcbgw=
 github.com/openshift/api v0.0.0-20200623075207-eb651a5bb0ad/go.mod h1:l6TGeqJ92DrZBuWMNKcot1iZUHfbYSJyBWHGgg6Dn6s=
 github.com/openshift/api v0.0.0-20200720083901-0c4b3ae5f5df h1:I/N74BP8e9RqzzGzOp5VobATA8DNuL25jD8GGk3qvKY=
 github.com/openshift/api v0.0.0-20200720083901-0c4b3ae5f5df/go.mod h1:vWmWTm4y7XR3wkLR+bDDjRbvkBfx2yP7yve6kfb7+Ts=

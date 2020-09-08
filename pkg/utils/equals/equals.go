@@ -62,3 +62,25 @@ func EqualEndpointAddress(e1, e2 *corev1.EndpointAddress) bool {
 
 	return true
 }
+
+// EqualStringSlice compares 2 slices
+func EqualStringSlice(s1, s2 []string) bool {
+	if len(s1) != len(s2) {
+		return false
+	}
+
+	for _, i := range s1 {
+		contained := false
+		for _, j := range s2 {
+			if i == j {
+				contained = true
+				break
+			}
+		}
+		if !contained {
+			return false
+		}
+	}
+
+	return true
+}
