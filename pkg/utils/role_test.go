@@ -16,9 +16,9 @@ func TestMergesubjects(t *testing.T) {
 		args args
 		want []rbacv1.Subject
 	}{
-		{"test1", args{subjects: []rbacv1.Subject{rbacv1.Subject{Kind: "R1", APIGroup: "G1", Name: "N1"}}, cursubjects: []rbacv1.Subject{rbacv1.Subject{Kind: "R2", APIGroup: "G2", Name: "N2"}}}, []rbacv1.Subject{rbacv1.Subject{Kind: "R2", APIGroup: "G2", Name: "N2"}, rbacv1.Subject{Kind: "R1", APIGroup: "G1", Name: "N1"}}},
-		{"test2", args{cursubjects: []rbacv1.Subject{rbacv1.Subject{Kind: "R2", APIGroup: "G2", Name: "N2"}}}, []rbacv1.Subject{rbacv1.Subject{Kind: "R2", APIGroup: "G2", Name: "N2"}}},
-		{"test3", args{subjects: []rbacv1.Subject{rbacv1.Subject{Kind: "R2", APIGroup: "G2", Name: "N2"}}}, []rbacv1.Subject{rbacv1.Subject{Kind: "R2", APIGroup: "G2", Name: "N2"}}},
+		{"test1", args{subjects: []rbacv1.Subject{{Kind: "R1", APIGroup: "G1", Name: "N1"}}, cursubjects: []rbacv1.Subject{{Kind: "R2", APIGroup: "G2", Name: "N2"}}}, []rbacv1.Subject{{Kind: "R2", APIGroup: "G2", Name: "N2"}, {Kind: "R1", APIGroup: "G1", Name: "N1"}}},
+		{"test2", args{cursubjects: []rbacv1.Subject{{Kind: "R2", APIGroup: "G2", Name: "N2"}}}, []rbacv1.Subject{{Kind: "R2", APIGroup: "G2", Name: "N2"}}},
+		{"test3", args{subjects: []rbacv1.Subject{{Kind: "R2", APIGroup: "G2", Name: "N2"}}}, []rbacv1.Subject{{Kind: "R2", APIGroup: "G2", Name: "N2"}}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

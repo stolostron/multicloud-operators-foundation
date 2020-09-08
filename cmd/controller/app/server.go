@@ -4,6 +4,7 @@ package app
 
 import (
 	"io/ioutil"
+	"sync"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/controller/app/options"
@@ -44,6 +45,7 @@ func init() {
 func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 
 	var clustersetToSubject = make(map[string][]rbacv1.Subject)
+	var ctsmtx sync.RWMutex
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", o.KubeConfig)
 	if err != nil {
@@ -105,7 +107,7 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 		return err
 	}
 
-	if err = clusterrolebinding.SetupWithManager(mgr, clustersetToSubject); err != nil {
+	if err = clusterrolebinding.SetupWithManager(mgr, clustersetToSubject, ctsmtx); err != nil {
 		klog.Errorf("unable to setup clusterrolebinding reconciler: %v", err)
 		return err
 	}
