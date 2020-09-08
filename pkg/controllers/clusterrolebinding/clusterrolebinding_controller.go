@@ -2,6 +2,7 @@ package clusterrolebinding
 
 import (
 	"context"
+	"sync"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -23,15 +24,18 @@ const (
 	ClusterSetLabel         string = "open-cluster-management/clusterset"
 )
 
+//This Controller will generate a Clusterset to Subjects map, and this map will be used to sync
+// clusterset related clusterrolebinding.
 type Reconciler struct {
 	client                  client.Client
 	scheme                  *runtime.Scheme
 	clusterroleToClusterset map[string]sets.String
 	clustersetToSubject     map[string][]rbacv1.Subject
+	ctsmtx                  sync.RWMutex
 }
 
-func SetupWithManager(mgr manager.Manager, clustersetToSubject map[string][]rbacv1.Subject) error {
-	if err := add(mgr, newReconciler(mgr, clustersetToSubject)); err != nil {
+func SetupWithManager(mgr manager.Manager, clustersetToSubject map[string][]rbacv1.Subject, ctsmtx sync.RWMutex) error {
+	if err := add(mgr, newReconciler(mgr, clustersetToSubject, ctsmtx)); err != nil {
 		klog.Errorf("Failed to create auto-detect controller, %v", err)
 		return err
 	}
@@ -39,13 +43,14 @@ func SetupWithManager(mgr manager.Manager, clustersetToSubject map[string][]rbac
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, clustersetToSubject map[string][]rbacv1.Subject) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, clustersetToSubject map[string][]rbacv1.Subject, ctsmtx sync.RWMutex) reconcile.Reconciler {
 	var clusterroleToClusterset = make(map[string]sets.String)
 	return &Reconciler{
 		client:                  mgr.GetClient(),
 		scheme:                  mgr.GetScheme(),
 		clustersetToSubject:     clustersetToSubject,
 		clusterroleToClusterset: clusterroleToClusterset,
+		ctsmtx:                  ctsmtx,
 	}
 }
 
@@ -142,7 +147,9 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			}
 			clustersetSubjects = utils.Mergesubjects(clustersetSubjects, subjects)
 		}
+		r.ctsmtx.Lock()
 		r.clustersetToSubject[curClusterset] = clustersetSubjects
+		r.ctsmtx.Unlock()
 	}
 
 	return ctrl.Result{}, nil

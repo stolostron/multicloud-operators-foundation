@@ -6,15 +6,13 @@ import (
 )
 
 func Mergesubjects(subjects []rbacv1.Subject, cursubjects []rbacv1.Subject) []rbacv1.Subject {
-	var subjectmap = make(map[string]bool)
+	var subjectmap = make(map[rbacv1.Subject]bool)
 	returnSubjects := subjects
 	for _, subject := range subjects {
-		subkey := generateMapKey(subject)
-		subjectmap[subkey] = true
+		subjectmap[subject] = true
 	}
 	for _, cursubject := range cursubjects {
-		subkey := generateMapKey(cursubject)
-		if _, ok := subjectmap[subkey]; !ok {
+		if _, ok := subjectmap[cursubject]; !ok {
 			returnSubjects = append(returnSubjects, cursubject)
 		}
 	}
