@@ -19,8 +19,8 @@ import (
 )
 
 const (
-	ClustersetFinalizerName string = "open-cluster-management.io/clusterset"
-	ClusterSetLabel         string = "Clusterset"
+	ClustersetFinalizerName string = "clusterrolebinding.finalizers.open-cluster-management.io"
+	ClusterSetLabel         string = "open-cluster-management/clusterset"
 )
 
 type Reconciler struct {
