@@ -33,7 +33,7 @@ metadata:
       resources: ["deployables", "deployables/status"]
       verbs: ["get", "list", "watch", "update", "patch"]
     - apiGroups: ["cluster.open-cluster-management.io"]
-      resources: ["managedclusters"]
+      resources: ["managedclusters","managedclustersets"]
       verbs: ["get", "list", "watch", "update"]
     - apiGroups: ["action.open-cluster-management.io"]
       resources: ["managedclusteractions", "managedclusteractions/status"]

@@ -134,3 +134,31 @@ func Test_EqualEndpointAddresses(t *testing.T) {
 		}
 	}
 }
+
+func TestEqualStringSlice(t *testing.T) {
+	tests := []struct {
+		s1, s2 []string
+		rst    bool
+	}{
+		{
+			s1:  []string{"cluster1", "clustertest", "abc"},
+			s2:  []string{"abc", "cluster1", "clustertest"},
+			rst: true,
+		},
+		{
+			s1:  []string{"cluster1", "clustertest", "abc"},
+			s2:  []string{"abc", "clustertest"},
+			rst: false,
+		},
+		{
+			s1:  []string{"cluster1", "clustertest", "abc"},
+			s2:  []string{"123", "cluster1", "clustertest"},
+			rst: false,
+		},
+	}
+	for _, test := range tests {
+		if EqualStringSlice(test.s1, test.s2) != test.rst {
+			t.Error("the test case fails")
+		}
+	}
+}
