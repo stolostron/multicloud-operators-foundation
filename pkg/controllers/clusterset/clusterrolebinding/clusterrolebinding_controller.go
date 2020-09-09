@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	ClustersetFinalizerName string = "clusterrolebinding.finalizers.open-cluster-management.io"
-	ClusterSetLabel         string = "open-cluster-management/clusterset"
+	ClustersetFinalizerName string = "open-cluster-management.io/clusterset"
+	ClusterSetLabel         string = "clusterset.cluster.open-cluster-management.io"
 )
 
 //This Controller will generate a Clusterset to Subjects map, and this map will be used to sync
@@ -96,17 +96,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-
-	clustersetNames := sets.NewString()
 	//generate clusterrole's all clustersets
-	curClustersetInRule := utils.GetClustersetInRules(clusterrole.Rules)
-	clustersetNames.Insert(curClustersetInRule...)
-
-	//Both current clustersets and previous clustrersets for this clusterrole
-	unionClustersetNames := clustersetNames.Union(r.clusterroleToClusterset[clusterrole.Name])
-
+	clustersetsInRule := utils.GetClustersetInRules(clusterrole.Rules)
 	//Add Finalizer to clusterset related clusterrole
-	if clustersetNames.Len() != 0 && !utils.ContainsString(clusterrole.GetFinalizers(), ClustersetFinalizerName) {
+	if clustersetsInRule.Len() != 0 && !utils.ContainsString(clusterrole.GetFinalizers(), ClustersetFinalizerName) {
 		klog.Infof("adding ClusterRoleBinding Finalizer to ClusterRole %v", clusterrole.Name)
 		clusterrole.ObjectMeta.Finalizers = append(clusterrole.ObjectMeta.Finalizers, ClustersetFinalizerName)
 		if err := r.client.Update(context.TODO(), clusterrole); err != nil {
@@ -114,9 +107,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			return reconcile.Result{}, err
 		}
 	}
-
 	//clusterrole is deleted or clusterrole is not related to any clusterset
-	if clustersetNames.Len() == 0 || !clusterrole.GetDeletionTimestamp().IsZero() {
+	if clustersetsInRule.Len() == 0 || !clusterrole.GetDeletionTimestamp().IsZero() {
 		// The object is being deleted
 		if utils.ContainsString(clusterrole.GetFinalizers(), ClustersetFinalizerName) {
 			klog.Infof("removing ClusterRoleBinding Finalizer in ClusterRole %v", clusterrole.Name)
@@ -131,32 +123,31 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 		delete(r.clusterroleToClusterset, clusterrole.Name)
 	} else {
-		r.clusterroleToClusterset[clusterrole.Name] = clustersetNames
+		r.clusterroleToClusterset[clusterrole.Name] = clustersetsInRule
 	}
-
 	curClustersetToRoles := generateClustersetToClusterroles(r.clusterroleToClusterset)
-
-	for curClusterset := range unionClustersetNames {
+	var clustersetToSubjects = make(map[string][]rbacv1.Subject)
+	for curClusterset, curClusterRoles := range curClustersetToRoles {
 		var clustersetSubjects []rbacv1.Subject
-		for _, curClusterRoleName := range curClustersetToRoles[curClusterset] {
-			subjects, err := r.getClusterroleSubject(ctx, curClusterRoleName)
+		for _, curClusterRole := range curClusterRoles {
+			subjects, err := r.getClusterroleSubject(ctx, curClusterRole)
 			if err != nil {
-				return ctrl.Result{}, err
+				klog.Errorf("Failed to get clusterrole subject. clusterrole: %v, error:%v", curClusterRole, err)
 			}
 			clustersetSubjects = utils.Mergesubjects(clustersetSubjects, subjects)
 		}
-		r.clustersetToSubject.Set(curClusterset, clustersetSubjects)
+		clustersetToSubjects[curClusterset] = clustersetSubjects
 	}
+	r.clustersetToSubject.SetMap(clustersetToSubjects)
 	return ctrl.Result{}, nil
 }
 
 func (r *Reconciler) getClusterroleSubject(ctx context.Context, clusterroleName string) ([]rbacv1.Subject, error) {
 	var subjects []rbacv1.Subject
-
 	clusterrolebindinglist := &rbacv1.ClusterRoleBindingList{}
 	err := r.client.List(ctx, clusterrolebindinglist)
 	if err != nil {
-		return nil, client.IgnoreNotFound(err)
+		return nil, err
 	}
 
 	for _, clusterrolebinding := range clusterrolebindinglist.Items {
@@ -165,7 +156,6 @@ func (r *Reconciler) getClusterroleSubject(ctx context.Context, clusterroleName 
 		}
 		if clusterrolebinding.RoleRef.APIGroup == rbacv1.GroupName && clusterrolebinding.RoleRef.Kind == "ClusterRole" && clusterrolebinding.RoleRef.Name == clusterroleName {
 			subjects = utils.Mergesubjects(subjects, clusterrolebinding.Subjects)
-
 		}
 	}
 	return subjects, nil
