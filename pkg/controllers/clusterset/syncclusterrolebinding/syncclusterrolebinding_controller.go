@@ -69,19 +69,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	//reconcile every 60s
-	reconcile := reconcile.Result{RequeueAfter: time.Duration(5) * time.Second}
+	//reconcile every 10s
+	reconcile := reconcile.Result{RequeueAfter: time.Duration(10) * time.Second}
 
 	ctx := context.Background()
 	clusterToSubject := generateClusterSubjectMap(r.clustersetToClusters, r.clustersetToSubject)
-
-	//List Clusterset related clusterrolebinding
-	matchExpressions := metav1.LabelSelectorRequirement{Key: clusterSetLabel, Operator: metav1.LabelSelectorOpExists}
-	labelSelector := metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{matchExpressions}}
-	selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
-	if err != nil {
-		return reconcile, err
-	}
 
 	//apply all disired clusterrolebinding
 	for cluster, subjects := range clusterToSubject {
@@ -94,6 +86,15 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	//Delete clusterrolebinding
 	clusterRoleBindingList := &rbacv1.ClusterRoleBindingList{}
+
+	//List Clusterset related clusterrolebinding
+	matchExpressions := metav1.LabelSelectorRequirement{Key: clusterSetLabel, Operator: metav1.LabelSelectorOpExists}
+	labelSelector := metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{matchExpressions}}
+	selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
+	if err != nil {
+		return reconcile, err
+	}
+
 	err = r.client.List(ctx, clusterRoleBindingList, &client.ListOptions{LabelSelector: selector})
 	if err != nil {
 		return reconcile, err
@@ -101,7 +102,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	for _, curClusterRoleBinding := range clusterRoleBindingList.Items {
 		curClusterName := getClusterNameInClusterrolebinding(curClusterRoleBinding)
 		if curClusterName == "" {
-			klog.Errorf("Failed to get cluster name. clusterrolebinding:%v", curClusterRoleBinding)
+			klog.Errorf("Failed to get cluster name from clusterrolebinding. clusterrolebinding:%v", curClusterRoleBinding)
 			continue
 		}
 		if _, ok := clusterToSubject[curClusterName]; !ok {
@@ -126,9 +127,23 @@ func getClusterNameInClusterrolebinding(clusterrolebinding rbacv1.ClusterRoleBin
 func generateClusterSubjectMap(clustersetToClusters *helpers.ClusterSetMapper, clustersetToSubject *helpers.ClustersetSubjectsMapper) map[string][]rbacv1.Subject {
 	var clusterToSubject = make(map[string][]rbacv1.Subject)
 	for clusterset, subjects := range clustersetToSubject.GetMap() {
-		//TODO need handle not exist
+		if clusterset == "*" {
+			continue
+		}
 		clusters := clustersetToClusters.GetClustersOfClusterSet(clusterset)
-		for _, cluster := range clusters {
+		for _, cluster := range clusters.List() {
+			clusterToSubject[cluster] = utils.Mergesubjects(clusterToSubject[cluster], subjects)
+		}
+	}
+
+	if len(clustersetToSubject.Get("*")) == 0 {
+		return clusterToSubject
+	}
+	//if clusterset is "*", should map this subjects to all clusters
+	allClustersetToClusters := clustersetToClusters.GetAllClusterSetToClusters()
+	for _, clusters := range allClustersetToClusters {
+		subjects := clustersetToSubject.Get("*")
+		for _, cluster := range clusters.List() {
 			clusterToSubject[cluster] = utils.Mergesubjects(clusterToSubject[cluster], subjects)
 		}
 	}
