@@ -1,19 +1,20 @@
 package clustersetmapper
 
 import (
+	"os"
+	"testing"
+
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alapha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
-	utils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/equals"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"testing"
 )
 
 var (
@@ -44,10 +45,10 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-var initMapperData = map[string][]string{
-	"clusterSet1":  {"cluster11", "cluster12", "cluster13"},
-	"clusterSet2":  {"cluster21", "cluster22", "cluster23"},
-	"clusterSet12": {"cluster11", "cluster12", "cluster13", "cluster21", "cluster22", "cluster23"},
+var initMapperData = map[string]sets.String{
+	"clusterSet1":  {"cluster11": {}, "cluster12": {}, "cluster13": {}},
+	"clusterSet2":  {"cluster21": {}, "cluster22": {}, "cluster23": {}},
+	"clusterSet12": {"cluster11": {}, "cluster12": {}, "cluster13": {}, "cluster21": {}, "cluster22": {}, "cluster23": {}},
 }
 
 func newTestReconciler(managedClusterSetObjs, managedClusterObjs []runtime.Object) *Reconciler {
@@ -72,7 +73,7 @@ func TestReconcile(t *testing.T) {
 		name               string
 		clusterSetObjs     []runtime.Object
 		clusterObjs        []runtime.Object
-		expectedMapperData map[string][]string
+		expectedMapperData map[string]sets.String
 		req                reconcile.Request
 	}{
 		{
@@ -131,10 +132,10 @@ func TestReconcile(t *testing.T) {
 					Name: "clusterSet2",
 				},
 			},
-			expectedMapperData: map[string][]string{
-				"clusterSet1":  {"cluster11", "cluster12", "cluster13"},
-				"clusterSet2":  {"cluster11", "cluster31", "cluster22", "cluster32"},
-				"clusterSet12": {"cluster11", "cluster12", "cluster13", "cluster21", "cluster22", "cluster23"},
+			expectedMapperData: map[string]sets.String{
+				"clusterSet1":  {"cluster11": {}, "cluster12": {}, "cluster13": {}},
+				"clusterSet2":  {"cluster11": {}, "cluster31": {}, "cluster22": {}, "cluster32": {}},
+				"clusterSet12": {"cluster11": {}, "cluster12": {}, "cluster13": {}, "cluster21": {}, "cluster22": {}, "cluster23": {}},
 			},
 		},
 		{
@@ -146,9 +147,9 @@ func TestReconcile(t *testing.T) {
 					Name: "clusterSet2",
 				},
 			},
-			expectedMapperData: map[string][]string{
-				"clusterSet1":  {"cluster11", "cluster12", "cluster13"},
-				"clusterSet12": {"cluster11", "cluster12", "cluster13", "cluster21", "cluster22", "cluster23"},
+			expectedMapperData: map[string]sets.String{
+				"clusterSet1":  {"cluster11": {}, "cluster12": {}, "cluster13": {}},
+				"clusterSet12": {"cluster11": {}, "cluster12": {}, "cluster13": {}, "cluster21": {}, "cluster22": {}, "cluster23": {}},
 			},
 		},
 	}
@@ -161,10 +162,10 @@ func TestReconcile(t *testing.T) {
 	}
 }
 
-func validateResult(t *testing.T, r *Reconciler, expectedMapperData map[string][]string) {
-	mapperData := r.clusterSetMapper.GetAllClusterSet2Clusters()
+func validateResult(t *testing.T, r *Reconciler, expectedMapperData map[string]sets.String) {
+	mapperData := r.clusterSetMapper.GetAllClusterSetToClusters()
 	assert.Equal(t, len(mapperData), len(expectedMapperData))
 	for clusterSet, clusters := range mapperData {
-		assert.True(t, utils.EqualStringSlice(clusters, expectedMapperData[clusterSet]))
+		assert.True(t, expectedMapperData[clusterSet].Equal(clusters))
 	}
 }
