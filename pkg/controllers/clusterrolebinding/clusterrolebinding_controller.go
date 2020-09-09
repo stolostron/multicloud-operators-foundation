@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	ClustersetFinalizerName string = "clusterrolebinding.finalizers.open-cluster-management.io"
-	ClusterSetLabel         string = "open-cluster-management/clusterset"
+	ClustersetFinalizerName string = "open-cluster-management.io/clusterset"
+	ClusterSetLabel         string = "clusterset"
 )
 
 //This Controller will generate a Clusterset to Subjects map, and this map will be used to sync

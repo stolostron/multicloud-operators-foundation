@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -21,21 +22,20 @@ import (
 )
 
 const (
-	clusterSetFinalizerName = "clusterrolebinding.finalizers.open-cluster-management.io"
-	clusterLabel            = "open-cluster-management/managedclusters"
-	clusterSetLabel         = "open-cluster-management/clusterset"
+	clusterSetLabel = "clusterset"
+	clusterLabel    = "managedCluster"
 )
 
-//This controller apply clusterset related clusterrolebinding based on clustersetToCluster and clustersetToSubject map
+//This controller apply clusterset related clusterrolebinding based on clustersetToClusters and clustersetToSubject map
 type Reconciler struct {
-	client              client.Client
-	scheme              *runtime.Scheme
-	clustersetToSubject map[string][]rbacv1.Subject
-	clustersetToCluster map[string]string
+	client               client.Client
+	scheme               *runtime.Scheme
+	clustersetToSubject  map[string][]rbacv1.Subject
+	clustersetToClusters map[string][]string
 }
 
-func SetupWithManager(mgr manager.Manager, clustersetToSubject map[string][]rbacv1.Subject, clustersetToCluster map[string]string) error {
-	if err := add(mgr, newReconciler(mgr, clustersetToSubject, clustersetToCluster)); err != nil {
+func SetupWithManager(mgr manager.Manager, clustersetToSubject map[string][]rbacv1.Subject, clustersetToClusters map[string][]string) error {
+	if err := add(mgr, newReconciler(mgr, clustersetToSubject, clustersetToClusters)); err != nil {
 		klog.Errorf("Failed to create ClusterRoleBinding controller, %v", err)
 		return err
 	}
@@ -43,12 +43,12 @@ func SetupWithManager(mgr manager.Manager, clustersetToSubject map[string][]rbac
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, clustersetToSubject map[string][]rbacv1.Subject, clustersetToCluster map[string]string) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, clustersetToSubject map[string][]rbacv1.Subject, clustersetToClusters map[string][]string) reconcile.Reconciler {
 	return &Reconciler{
-		client:              mgr.GetClient(),
-		scheme:              mgr.GetScheme(),
-		clustersetToSubject: clustersetToSubject,
-		clustersetToCluster: clustersetToCluster,
+		client:               mgr.GetClient(),
+		scheme:               mgr.GetScheme(),
+		clustersetToSubject:  clustersetToSubject,
+		clustersetToClusters: clustersetToClusters,
 	}
 }
 
@@ -70,20 +70,17 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	//reconcile every 60s
-	reconcile := reconcile.Result{RequeueAfter: time.Duration(60) * time.Second}
+	reconcile := reconcile.Result{RequeueAfter: time.Duration(5) * time.Second}
 
 	ctx := context.Background()
-	clusterToSubject := generateClusterSubjectMap(r.clustersetToCluster, r.clustersetToSubject)
-	clusterToClusterset := generateClusterToClustersetMap(r.clustersetToCluster)
-
+	clusterToSubject := generateClusterSubjectMap(r.clustersetToClusters, r.clustersetToSubject)
 	//List Clusterset related clusterrolebinding
-	matchExpressions := metav1.LabelSelectorRequirement{Key: clusterSetLabel}
+	matchExpressions := metav1.LabelSelectorRequirement{Key: clusterSetLabel, Operator: metav1.LabelSelectorOpExists}
 	labelSelector := metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{matchExpressions}}
 	selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
 	if err != nil {
 		return reconcile, err
 	}
-
 	clusterRoleBindingList := &rbacv1.ClusterRoleBindingList{}
 	err = r.client.List(ctx, clusterRoleBindingList, &client.ListOptions{LabelSelector: selector})
 	if err != nil {
@@ -100,14 +97,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		curClusterName := curClusterRoleBinding.Labels[clusterLabel]
 		curClusterRoleBindingMap[curClusterName] = true
 		//should delete
-		if _, ok := r.clustersetToSubject[curClusterName]; !ok {
+		if _, ok := clusterToSubject[curClusterName]; !ok {
 			err := r.DeleteClusterRoleBinding(ctx, curClusterRoleBinding.Name)
 			if err != nil {
 				return reconcile, err
 			}
 			continue
 		}
-		if shouldUpdate(curClusterRoleBinding.Subjects, r.clustersetToSubject[curClusterName]) {
+		if equalSubjects(curClusterRoleBinding.Subjects, clusterToSubject[curClusterName]) {
 			err = r.UpdateClusterRoleBinding(ctx, curClusterRoleBinding, clusterToSubject[curClusterName])
 			if err != nil {
 				return reconcile, err
@@ -118,7 +115,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	//should create
 	for curClusterName, curSubjects := range clusterToSubject {
 		if _, ok := curClusterRoleBindingMap[curClusterName]; !ok {
-			err = r.CreateClusterRoleBinding(ctx, curClusterName, clusterToClusterset[curClusterName], curSubjects)
+			err = r.CreateClusterRoleBinding(ctx, curClusterName, curSubjects)
 			if err != nil {
 				return reconcile, err
 			}
@@ -127,24 +124,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return reconcile, nil
 }
 
-func generateClusterToClustersetMap(clustersetToCluster map[string]string) map[string]string {
-	var clusterToClusterset = make(map[string]string)
-	for clusterset, cluster := range clustersetToCluster {
-		clusterToClusterset[cluster] = clusterset
-	}
-	return clusterToClusterset
-}
-func generateClusterSubjectMap(clustersetToCluster map[string]string, clustersetToSubject map[string][]rbacv1.Subject) map[string][]rbacv1.Subject {
-	var clusterToSubject = make(map[string][]rbacv1.Subject)
-	for clusterset, cluster := range clustersetToCluster {
-		if _, ok := clustersetToSubject[clusterset]; ok {
-			clusterToSubject[cluster] = clustersetToSubject[clusterset]
-		}
-	}
-	return clusterToSubject
-}
-
-func shouldUpdate(subjects1, subjects2 []rbacv1.Subject) bool {
+func equalSubjects(subjects1, subjects2 []rbacv1.Subject) bool {
 	if len(subjects1) != len(subjects2) {
 		return true
 	}
@@ -157,24 +137,33 @@ func shouldUpdate(subjects1, subjects2 []rbacv1.Subject) bool {
 	for _, curSubject := range subjects2 {
 		subjectMap2[curSubject] = true
 	}
-	return reflect.DeepEqual(subjectMap1, subjectMap2)
+	return !reflect.DeepEqual(subjectMap1, subjectMap2)
+}
+
+func generateClusterSubjectMap(clustersetToClusters map[string][]string, clustersetToSubject map[string][]rbacv1.Subject) map[string][]rbacv1.Subject {
+	var clusterToSubject = make(map[string][]rbacv1.Subject)
+	for clusterset, subjects := range clustersetToSubject {
+		for _, cluster := range clustersetToClusters[clusterset] {
+			clusterToSubject[cluster] = utils.Mergesubjects(clusterToSubject[cluster], subjects)
+		}
+	}
+	return clusterToSubject
 }
 
 func generateClusterRoleName(clusterName string) string {
 	return "open-cluster-management:admin:" + clusterName
 }
-func generateClusterRoleBindingName(clusterName string, clusterSetName string) string {
-	return "open-cluster-management:clusterset:" + clusterSetName + ":" + clusterName
+func generateClusterRoleBindingName(clusterName string) string {
+	return "open-cluster-management:clusterset:cluster:" + clusterName
 }
 
-func (r *Reconciler) CreateClusterRoleBinding(ctx context.Context, clusterName, clusterSetName string, subjects []rbacv1.Subject) error {
-	clusterRoleBindingName := generateClusterRoleBindingName(clusterName, clusterSetName)
+func (r *Reconciler) CreateClusterRoleBinding(ctx context.Context, clusterName string, subjects []rbacv1.Subject) error {
+	clusterRoleBindingName := generateClusterRoleBindingName(clusterName)
 	clusterRoleName := generateClusterRoleName(clusterName)
 
 	var labels = make(map[string]string)
 	labels[clusterLabel] = clusterName
-	labels[clusterSetLabel] = clusterSetName
-
+	labels[clusterLabel] = "true"
 	rb := &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   clusterRoleBindingName,
