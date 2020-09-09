@@ -4,7 +4,6 @@ package app
 
 import (
 	"io/ioutil"
-	"sync"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/controller/app/options"
@@ -18,8 +17,8 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrolebinding"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/gc"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
-	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -44,8 +43,7 @@ func init() {
 
 func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 
-	var clustersetToSubject = make(map[string][]rbacv1.Subject)
-	var ctsmtx sync.RWMutex
+	clustersetToSubject := helpers.NewClustersetSubjectsMapper()
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", o.KubeConfig)
 	if err != nil {
@@ -107,7 +105,7 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 		return err
 	}
 
-	if err = clusterrolebinding.SetupWithManager(mgr, clustersetToSubject, ctsmtx); err != nil {
+	if err = clusterrolebinding.SetupWithManager(mgr, clustersetToSubject); err != nil {
 		klog.Errorf("unable to setup clusterrolebinding reconciler: %v", err)
 		return err
 	}
