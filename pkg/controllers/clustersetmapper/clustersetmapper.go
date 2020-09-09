@@ -3,6 +3,7 @@ package clustersetmapper
 import (
 	"context"
 	"fmt"
+
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,9 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -50,16 +49,6 @@ func newReconciler(mgr manager.Manager, clusterSetMapper *helpers.ClusterSetMapp
 	}
 }
 
-type ResourceIgnoreUpdatePredicate struct {
-	predicate.Funcs
-}
-
-func (ResourceIgnoreUpdatePredicate) Update(e event.UpdateEvent) bool {
-	return false
-}
-
-var ignoreUpdatePredicate ResourceIgnoreUpdatePredicate
-
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
 func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
@@ -68,7 +57,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// put all managedClusterSets into queue if it is the managedCluster create/delete event
+	// put all managedClusterSets into queue if there is the managedCluster event
 	err = c.Watch(&source.Kind{Type: &clusterv1.ManagedCluster{}},
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(func(obj handler.MapObject) []reconcile.Request {
@@ -96,8 +85,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				klog.V(5).Infof("List managedClusterSet %+v", requests)
 				return requests
 			}),
-		},
-		ignoreUpdatePredicate)
+		})
 	if err != nil {
 		return nil
 	}
@@ -124,18 +112,18 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	selectedCluster := sets.NewString()
+	selectedClusters := sets.NewString()
 	for _, clusterSelector := range managedClusterSet.Spec.ClusterSelectors {
 		clusters, err := r.selectClusters(clusterSelector)
 		if err != nil {
 
 		}
-		selectedCluster.Insert(clusters...)
+		selectedClusters.Insert(clusters...)
 	}
 
-	r.clusterSetMapper.UpdateClusterSetByClusters(managedClusterSet.Name, selectedCluster.UnsortedList())
+	r.clusterSetMapper.UpdateClusterSetByClusters(managedClusterSet.Name, selectedClusters)
 
-	klog.V(5).Infof("clusterSetMapper: %+v", r.clusterSetMapper.GetAllClusterSet2Clusters())
+	klog.V(5).Infof("clusterSetMapper: %+v", r.clusterSetMapper.GetAllClusterSetToClusters())
 	return ctrl.Result{}, nil
 }
 

@@ -378,10 +378,10 @@ func CreateManagedCluster(dynamicClient dynamic.Interface) (*unstructured.Unstru
 	}
 
 	// update fakeManagedCluster status with the new client
-	err = SetStatusType(fakeManagedCluster, clusterv1.ManagedClusterConditionJoined)
-	if err != nil {
-		return nil, err
-	}
+	// err = SetStatusType(fakeManagedCluster, clusterv1.ManagedClusterConditionJoined)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	fakeManagedCluster, err = UpdateResourceStatus(dynamicClient, ManagedClusterGVR, fakeManagedCluster)
 	if err != nil {

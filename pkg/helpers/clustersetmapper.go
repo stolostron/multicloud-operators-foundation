@@ -2,24 +2,23 @@ package helpers
 
 import (
 	"sync"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 type ClusterSetMapper struct {
 	mutex sync.RWMutex
 	// mapping: ClusterSet - Clusters
-	clusterSet2Clusters map[string][]string
-	// mapping: Cluster - ClusterSets
-	cluster2ClusterSets map[string][]string
+	clusterSetToClusters map[string]sets.String
 }
 
 func NewClusterSetMapper() *ClusterSetMapper {
 	return &ClusterSetMapper{
-		clusterSet2Clusters: make(map[string][]string),
-		cluster2ClusterSets: make(map[string][]string),
+		clusterSetToClusters: make(map[string]sets.String),
 	}
 }
 
-func (c *ClusterSetMapper) UpdateClusterSetByClusters(clusterSetName string, clusters []string) {
+func (c *ClusterSetMapper) UpdateClusterSetByClusters(clusterSetName string, clusters sets.String) {
 	if clusterSetName == "" {
 		return
 	}
@@ -27,14 +26,8 @@ func (c *ClusterSetMapper) UpdateClusterSetByClusters(clusterSetName string, clu
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	for _, oldCluster := range c.clusterSet2Clusters[clusterSetName] {
-		c.deleteClusterSetOfCluster(oldCluster, clusterSetName)
-	}
+	c.clusterSetToClusters[clusterSetName] = clusters
 
-	c.clusterSet2Clusters[clusterSetName] = clusters
-	for _, cluster := range clusters {
-		c.cluster2ClusterSets[cluster] = append(c.cluster2ClusterSets[cluster], clusterSetName)
-	}
 	return
 }
 
@@ -46,51 +39,50 @@ func (c *ClusterSetMapper) DeleteClusterSet(clusterSetName string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
-	for _, oldCluster := range c.clusterSet2Clusters[clusterSetName] {
-		c.deleteClusterSetOfCluster(oldCluster, clusterSetName)
-	}
-	delete(c.clusterSet2Clusters, clusterSetName)
+	delete(c.clusterSetToClusters, clusterSetName)
 
 	return
 }
 
-func (c *ClusterSetMapper) GetClustersOfClusterSet(clusterSetName string) []string {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+func (c *ClusterSetMapper) GetClustersOfClusterSet(clusterSetName string) sets.String {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 
-	return c.clusterSet2Clusters[clusterSetName]
+	return c.clusterSetToClusters[clusterSetName]
 }
 
-func (c *ClusterSetMapper) GetAllClusterSet2Clusters() map[string][]string {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+func (c *ClusterSetMapper) GetAllClusterSetToClusters() map[string]sets.String {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
 
-	return c.clusterSet2Clusters
+	return c.clusterSetToClusters
 }
 
-func (c *ClusterSetMapper) GetClusterSetsOfCluster(clusterName string) []string {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	return c.cluster2ClusterSets[clusterName]
-}
-
-func (c *ClusterSetMapper) GetAllCluster2ClusterSets() map[string][]string {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
-	return c.cluster2ClusterSets
-}
-
-func (c *ClusterSetMapper) deleteClusterSetOfCluster(clusterName, clusterSetName string) {
-	for i := 0; i < len(c.cluster2ClusterSets[clusterName]); i++ {
-		if c.cluster2ClusterSets[clusterName][i] == clusterSetName {
-			c.cluster2ClusterSets[clusterName] = append(c.cluster2ClusterSets[clusterName][:i], c.cluster2ClusterSets[clusterName][i+1:]...)
-			break
+func (c *ClusterSetMapper) GetClusterSetsOfCluster(clusterName string) sets.String {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	clusterSets := sets.NewString()
+	for clusterSet, clusters := range c.clusterSetToClusters {
+		if clusters.Has(clusterName) {
+			clusterSets.Insert(clusterSet)
 		}
 	}
-	if len(c.cluster2ClusterSets[clusterName]) == 0 {
-		delete(c.cluster2ClusterSets, clusterName)
+	return clusterSets
+}
+
+func (c *ClusterSetMapper) GetAllClusterToClusterSets() map[string]sets.String {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	clusterToClusterSets := make(map[string]sets.String)
+	for clusterSet, clusters := range c.clusterSetToClusters {
+		for _, cluster := range clusters.UnsortedList() {
+			if _, ok := clusterToClusterSets[cluster]; !ok {
+				clusterToClusterSets[cluster] = sets.NewString(clusterSet)
+				continue
+			}
+			clusterToClusterSets[cluster].Insert(clusterSet)
+		}
 	}
-	return
+	return clusterToClusterSets
 }
