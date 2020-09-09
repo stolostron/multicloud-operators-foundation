@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog"
@@ -30,11 +31,11 @@ const (
 type Reconciler struct {
 	client               client.Client
 	scheme               *runtime.Scheme
-	clustersetToSubject  map[string][]rbacv1.Subject
+	clustersetToSubject  *helpers.ClustersetSubjectsMapper
 	clustersetToClusters map[string][]string
 }
 
-func SetupWithManager(mgr manager.Manager, clustersetToSubject map[string][]rbacv1.Subject, clustersetToClusters map[string][]string) error {
+func SetupWithManager(mgr manager.Manager, clustersetToSubject *helpers.ClustersetSubjectsMapper, clustersetToClusters map[string][]string) error {
 	if err := add(mgr, newReconciler(mgr, clustersetToSubject, clustersetToClusters)); err != nil {
 		klog.Errorf("Failed to create ClusterRoleBinding controller, %v", err)
 		return err
@@ -43,7 +44,7 @@ func SetupWithManager(mgr manager.Manager, clustersetToSubject map[string][]rbac
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, clustersetToSubject map[string][]rbacv1.Subject, clustersetToClusters map[string][]string) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, clustersetToSubject *helpers.ClustersetSubjectsMapper, clustersetToClusters map[string][]string) reconcile.Reconciler {
 	return &Reconciler{
 		client:               mgr.GetClient(),
 		scheme:               mgr.GetScheme(),
@@ -140,9 +141,9 @@ func equalSubjects(subjects1, subjects2 []rbacv1.Subject) bool {
 	return !reflect.DeepEqual(subjectMap1, subjectMap2)
 }
 
-func generateClusterSubjectMap(clustersetToClusters map[string][]string, clustersetToSubject map[string][]rbacv1.Subject) map[string][]rbacv1.Subject {
+func generateClusterSubjectMap(clustersetToClusters map[string][]string, clustersetToSubject *helpers.ClustersetSubjectsMapper) map[string][]rbacv1.Subject {
 	var clusterToSubject = make(map[string][]rbacv1.Subject)
-	for clusterset, subjects := range clustersetToSubject {
+	for clusterset, subjects := range clustersetToSubject.GetMap() {
 		for _, cluster := range clustersetToClusters[clusterset] {
 			clusterToSubject[cluster] = utils.Mergesubjects(clusterToSubject[cluster], subjects)
 		}
