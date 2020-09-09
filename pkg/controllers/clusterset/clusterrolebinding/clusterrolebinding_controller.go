@@ -127,30 +127,27 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 	curClustersetToRoles := generateClustersetToClusterroles(r.clusterroleToClusterset)
 	var clustersetToSubjects = make(map[string][]rbacv1.Subject)
-
 	for curClusterset, curClusterRoles := range curClustersetToRoles {
 		var clustersetSubjects []rbacv1.Subject
 		for _, curClusterRole := range curClusterRoles {
 			subjects, err := r.getClusterroleSubject(ctx, curClusterRole)
 			if err != nil {
-				return ctrl.Result{}, err
+				klog.Errorf("Failed to get clusterrole subject. clusterrole: %v, error:%v", curClusterRole, err)
 			}
 			clustersetSubjects = utils.Mergesubjects(clustersetSubjects, subjects)
 		}
 		clustersetToSubjects[curClusterset] = clustersetSubjects
 	}
 	r.clustersetToSubject.SetMap(clustersetToSubjects)
-	klog.Errorf("#########clustersetToSubject:%v", r.clustersetToSubject.GetMap())
 	return ctrl.Result{}, nil
 }
 
 func (r *Reconciler) getClusterroleSubject(ctx context.Context, clusterroleName string) ([]rbacv1.Subject, error) {
 	var subjects []rbacv1.Subject
-
 	clusterrolebindinglist := &rbacv1.ClusterRoleBindingList{}
 	err := r.client.List(ctx, clusterrolebindinglist)
 	if err != nil {
-		return nil, client.IgnoreNotFound(err)
+		return nil, err
 	}
 
 	for _, clusterrolebinding := range clusterrolebindinglist.Items {
