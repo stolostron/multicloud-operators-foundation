@@ -187,6 +187,7 @@ func TestReconcile(t *testing.T) {
 					Status: clusterv1beta1.ClusterInfoStatus{
 						KubeVendor:  clusterv1beta1.KubeVendorAKS,
 						CloudVendor: clusterv1beta1.CloudVendorAzure,
+						ClusterID:   "c186d39e-f56f-45c3-8869-fc84323165c4",
 					},
 				},
 			},

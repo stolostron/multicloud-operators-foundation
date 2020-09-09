@@ -54,6 +54,9 @@ spec:
               description: CloudVendor describes the cloud provider for the managed
                 cluster.
               type: string
+            clusterID:
+              description: ClusterID is the identifier of managed cluster
+              type: string
             conditions:
               description: Conditions contains condition information for a managed
                 cluster

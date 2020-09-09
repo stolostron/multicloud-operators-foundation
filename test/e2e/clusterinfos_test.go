@@ -3,7 +3,6 @@ package e2e
 import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 
@@ -30,13 +29,35 @@ var _ = ginkgo.Describe("Testing ManagedClusterInfo", func() {
 
 		ginkgo.It("should have a valid condition", func() {
 			gomega.Eventually(func() bool {
-				ManagedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, managedClusterName, managedClusterName)
+				managedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, managedClusterName, managedClusterName)
 				if err != nil {
 					return false
 				}
 				// check the ManagedClusterInfo status
-				return util.GetConditionTypeFromStatus(ManagedClusterInfo, clusterinfov1beta1.ManagedClusterInfoSynced)
+				return util.GetConditionTypeFromStatus(managedClusterInfo, clusterinfov1beta1.ManagedClusterInfoSynced)
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+		})
+
+		ginkgo.It("should have valid distributionInfo", func() {
+			gomega.Eventually(func() error {
+				managedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, managedClusterName, managedClusterName)
+				if err != nil {
+					return err
+				}
+				// check the distributionInfo
+				return util.CheckDistributionInfo(managedClusterInfo)
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		})
+
+		ginkgo.It("should have valid ClusterID", func() {
+			gomega.Eventually(func() error {
+				managedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, managedClusterName, managedClusterName)
+				if err != nil {
+					return err
+				}
+				// check the ClusterID
+				return util.CheckClusterID(managedClusterInfo)
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 		})
 	})
 

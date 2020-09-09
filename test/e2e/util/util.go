@@ -14,6 +14,7 @@ import (
 
 	clusterv1client "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -338,6 +339,54 @@ func GetConditionTypeFromStatus(obj *unstructured.Unstructured, typeName string)
 		}
 	}
 	return false
+}
+
+func CheckDistributionInfo(obj *unstructured.Unstructured) error {
+	distributionInfo, found, err := unstructured.NestedMap(obj.Object, "status", "distributionInfo")
+	if err != nil || !found {
+		return fmt.Errorf("failed to get distributionInfo. found:%v, err:%v", found, err)
+	}
+
+	distributionType, found, err := unstructured.NestedString(distributionInfo, "type")
+	if err != nil || !found {
+		return fmt.Errorf("failed to get distributionType. found:%v, err:%v", found, err)
+	}
+
+	if distributionType == string(clusterinfov1beta1.DistributionTypeOCP) {
+		ocpDistributionInfo, found, err := unstructured.NestedMap(distributionInfo, "ocp")
+		if err != nil || !found {
+			return fmt.Errorf("failed to get ocpDistributionInfo. found:%v, err:%v", found, err)
+		}
+
+		version, found, err := unstructured.NestedString(ocpDistributionInfo, "version")
+		if err != nil || !found {
+			return fmt.Errorf("failed to get ocp version. found:%v, err:%v", found, err)
+		}
+
+		if version == "" {
+			return fmt.Errorf("failed to get valid ocp version")
+		}
+	}
+
+	return nil
+}
+
+func CheckClusterID(obj *unstructured.Unstructured) error {
+	distributionType, found, err := unstructured.NestedString(obj.Object, "status", "distributionInfo", "type")
+	if err != nil || !found {
+		return fmt.Errorf("failed to get distributionType. found:%v, err:%v", found, err)
+	}
+
+	if distributionType == string(clusterinfov1beta1.DistributionTypeOCP) {
+		clusterID, found, err := unstructured.NestedString(obj.Object, "status", "clusterID")
+		if err != nil || !found {
+			return fmt.Errorf("failed to get ClusterID. found:%v, err:%v", found, err)
+		}
+		if clusterID == "" {
+			return fmt.Errorf("failed to get valid ocp clusterID")
+		}
+	}
+	return nil
 }
 
 func CreateManagedCluster(dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
