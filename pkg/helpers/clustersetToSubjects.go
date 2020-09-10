@@ -29,3 +29,9 @@ func (c *ClustersetSubjectsMapper) GetMap() map[string][]rbacv1.Subject {
 	defer c.mutex.RUnlock()
 	return c.clustersetToSubjects
 }
+
+func (c *ClustersetSubjectsMapper) Get(k string) []rbacv1.Subject {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+	return c.clustersetToSubjects[k]
+}
