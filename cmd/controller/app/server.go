@@ -6,6 +6,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clustersetmapper"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"io/ioutil"
+	"path"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alaph1 "github.com/open-cluster-management/api/cluster/v1alpha1"
@@ -137,7 +138,7 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 }
 
 func GetAgentCA(caFile string) ([]byte, error) {
-	pemBlock, err := ioutil.ReadFile(caFile)
+	pemBlock, err := ioutil.ReadFile(path.Clean(caFile))
 	if err != nil {
 		return nil, err
 	}

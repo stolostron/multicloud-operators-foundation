@@ -42,6 +42,7 @@ func ConfigTLS(o *Options) *tls.Config {
 	}
 
 	return &tls.Config{
+		MinVersion:   tls.VersionTLS12,
 		Certificates: []tls.Certificate{sCert},
 	}
 }
