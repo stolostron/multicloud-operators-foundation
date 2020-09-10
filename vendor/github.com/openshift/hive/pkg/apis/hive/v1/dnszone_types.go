@@ -33,6 +33,10 @@ type DNSZoneSpec struct {
 	// GCP specifies GCP-specific cloud configuration
 	// +optional
 	GCP *GCPDNSZoneSpec `json:"gcp,omitempty"`
+
+	// Azure specifes Azure-specific cloud configuration
+	// +optional
+	Azure *AzureDNSZoneSpec `json:"azure,omitempty"`
 }
 
 // AWSDNSZoneSpec contains AWS-specific DNSZone specifications
@@ -70,6 +74,18 @@ type GCPDNSZoneSpec struct {
 	CredentialsSecretRef corev1.LocalObjectReference `json:"credentialsSecretRef"`
 }
 
+// AzureDNSZoneSpec contains Azure-specific DNSZone specifications
+type AzureDNSZoneSpec struct {
+	// CredentialsSecretRef references a secret that will be used to authenticate with
+	// Azure CloudDNS. It will need permission to create and manage CloudDNS Hosted Zones.
+	// Secret should have a key named 'osServicePrincipal.json'.
+	// The credentials must specify the project to use.
+	CredentialsSecretRef corev1.LocalObjectReference `json:"credentialsSecretRef"`
+
+	// ResourceGroupName specifies the Azure resource group in which the Hosted Zone should be created.
+	ResourceGroupName string `json:"resourceGroupName"`
+}
+
 // DNSZoneStatus defines the observed state of DNSZone
 type DNSZoneStatus struct {
 	// LastSyncTimestamp is the time that the zone was last sync'd.
@@ -78,7 +94,8 @@ type DNSZoneStatus struct {
 
 	// LastSyncGeneration is the generation of the zone resource that was last sync'd. This is used to know
 	// if the Object has changed and we should sync immediately.
-	LastSyncGeneration int64 `json:"lastSyncGeneration"`
+	// +optional
+	LastSyncGeneration int64 `json:"lastSyncGeneration,omitempty"`
 
 	// NameServers is a list of nameservers for this DNS zone
 	// +optional
@@ -92,6 +109,9 @@ type DNSZoneStatus struct {
 	// +optional
 	GCP *GCPDNSZoneStatus `json:"gcp,omitempty"`
 
+	// AzureDNSZoneStatus contains status information specific to Azure
+	Azure *AzureDNSZoneStatus `json:"azure,omitempty"`
+
 	// Conditions includes more detailed status for the DNSZone
 	// +optional
 	Conditions []DNSZoneCondition `json:"conditions,omitempty"`
@@ -102,6 +122,10 @@ type AWSDNSZoneStatus struct {
 	// ZoneID is the ID of the zone in AWS
 	// +optional
 	ZoneID *string `json:"zoneID,omitempty"`
+}
+
+// AzureDNSZoneStatus contains status information specific to Azure DNS zones
+type AzureDNSZoneStatus struct {
 }
 
 // GCPDNSZoneStatus contains status information specific to GCP Cloud DNS zones
@@ -142,6 +166,12 @@ const (
 	// DomainNotManaged is true if we try to reconcile a DNSZone and the HiveConfig
 	// does not contain a ManagedDNS entry for the domain in the DNSZone
 	DomainNotManaged DNSZoneConditionType = "DomainNotManaged"
+	// InsufficientCredentialsCondition is true when credentials cannot be used to create a
+	// DNS zone because of insufficient permissions
+	InsufficientCredentialsCondition DNSZoneConditionType = "InsufficientCredentials"
+	// AuthenticationFailureCondition is true when credentials cannot be used to create a
+	// DNS zone because they fail authentication
+	AuthenticationFailureCondition DNSZoneConditionType = "AuthenticationFailure"
 )
 
 // +genclient
@@ -150,6 +180,7 @@ const (
 // DNSZone is the Schema for the dnszones API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced
 type DNSZone struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

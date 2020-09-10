@@ -7,6 +7,17 @@ import (
 	"github.com/openshift/hive/pkg/apis/hive/v1/aws"
 	"github.com/openshift/hive/pkg/apis/hive/v1/azure"
 	"github.com/openshift/hive/pkg/apis/hive/v1/gcp"
+	"github.com/openshift/hive/pkg/apis/hive/v1/openstack"
+	"github.com/openshift/hive/pkg/apis/hive/v1/ovirt"
+	"github.com/openshift/hive/pkg/apis/hive/v1/vsphere"
+)
+
+const (
+	// MachinePoolImageIDOverrideAnnotation can be applied to MachinePools to control the precise image ID to be used
+	// for the MachineSets we reconcile for this pool. This feature is presently only implemented for AWS, and
+	// is intended for very limited use cases we do not recommend pursuing regularly. As such it is not currently
+	// part of our official API.
+	MachinePoolImageIDOverrideAnnotation = "hive.openshift.io/image-id-override"
 )
 
 // MachinePoolSpec defines the desired state of MachinePool
@@ -63,12 +74,19 @@ type MachinePoolPlatform struct {
 	Azure *azure.MachinePool `json:"azure,omitempty"`
 	// GCP is the configuration used when installing on GCP.
 	GCP *gcp.MachinePool `json:"gcp,omitempty"`
+	// OpenStack is the configuration used when installing on OpenStack.
+	OpenStack *openstack.MachinePool `json:"openstack,omitempty"`
+	// VSphere is the configuration used when installing on vSphere
+	VSphere *vsphere.MachinePool `json:"vsphere,omitempty"`
+	// Ovirt is the configuration used when installing on oVirt.
+	Ovirt *ovirt.MachinePool `json:"ovirt,omitempty"`
 }
 
 // MachinePoolStatus defines the observed state of MachinePool
 type MachinePoolStatus struct {
 	// Replicas is the current number of replicas for the machine pool.
-	Replicas int32 `json:"replicas"`
+	// +optional
+	Replicas int32 `json:"replicas,omitempty"`
 
 	// MachineSets is the status of the machine sets for the machine pool on the remote cluster.
 	MachineSets []MachineSetStatus `json:"machineSets,omitempty"`
@@ -124,6 +142,9 @@ const (
 	// NoMachinePoolNameLeasesAvailable is true when the cloud provider requires a name lease for the in-cluster MachineSet, but no
 	// leases are available.
 	NoMachinePoolNameLeasesAvailable MachinePoolConditionType = "NoMachinePoolNameLeasesAvailable"
+
+	// InvalidSubnetsMachinePoolCondition is true when there are missing or invalid entries in the subnet field
+	InvalidSubnetsMachinePoolCondition MachinePoolConditionType = "InvalidSubnets"
 )
 
 // +genclient
@@ -136,7 +157,7 @@ const (
 // +kubebuilder:printcolumn:name="PoolName",type="string",JSONPath=".spec.name"
 // +kubebuilder:printcolumn:name="ClusterDeployment",type="string",JSONPath=".spec.clusterDeploymentRef.name"
 // +kubebuilder:printcolumn:name="Replicas",type="integer",JSONPath=".spec.replicas"
-// +kubebuilder:resource:path=machinepools
+// +kubebuilder:resource:path=machinepools,scope=Namespaced
 type MachinePool struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

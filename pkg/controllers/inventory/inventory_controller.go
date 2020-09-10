@@ -14,7 +14,7 @@ import (
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	objectreferencesv1 "github.com/openshift/custom-resource-status/objectreferences/v1"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
-	hiveconstants "github.com/openshift/hive/pkg/constants"
+	hiveinternalv1alpha1 "github.com/openshift/hive/pkg/apis/hiveinternal/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -126,25 +126,25 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// Watch for changes to SyncSetInstances
+	// Watch for changes to ClusterSync
 	err = c.Watch(
-		&source.Kind{Type: &hivev1.SyncSetInstance{}},
+		&source.Kind{Type: &hiveinternalv1alpha1.ClusterSync{}},
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(func(a handler.MapObject) []reconcile.Request {
-				syncSetInstance, ok := a.Object.(*hivev1.SyncSetInstance)
+				clusterSync, ok := a.Object.(*hiveinternalv1alpha1.ClusterSync)
 				if !ok {
-					// not a SyncSetInstance, returning empty
-					klog.Error("SyncSetInstance handler received non-SyncSetInstance object")
+					// not a ClusterSync, returning empty
+					klog.Error("ClusterSync handler received non-ClusterSync object")
 					return []reconcile.Request{}
 				}
 				bmas := &inventoryv1alpha1.BareMetalAssetList{}
-				err := mgr.GetClient().List(context.TODO(), bmas, client.InNamespace(syncSetInstance.Namespace))
+				err := mgr.GetClient().List(context.TODO(), bmas, client.InNamespace(clusterSync.Namespace))
 				if err != nil {
 					klog.Error("Could not list BareMetalAssets", err)
 				}
 				var requests []reconcile.Request
 				for _, bma := range bmas.Items {
-					if bma.Spec.ClusterDeployment.Name == syncSetInstance.Spec.ClusterDeploymentRef.Name {
+					if bma.Spec.ClusterDeployment.Name == clusterSync.Name {
 						requests = append(requests, reconcile.Request{
 							NamespacedName: types.NamespacedName{
 								Name:      bma.Name,
@@ -402,7 +402,7 @@ func (r *ReconcileBareMetalAsset) checkClusterDeployment(instance *inventoryv1al
 }
 
 func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *inventoryv1alpha1.BareMetalAsset) error {
-	assetSyncCompleted := r.checkHiveSyncSetInstance(instance)
+	assetSyncCompleted := r.checkHiveClusterSync(instance)
 	hsc := r.newHiveSyncSet(instance, assetSyncCompleted)
 	found := &hivev1.SyncSet{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: hsc.Name, Namespace: hsc.Namespace}, found)
@@ -593,145 +593,117 @@ func newBareMetalHost(instance *inventoryv1alpha1.BareMetalAsset, assetSyncCompl
 	return bmhJSON, nil
 }
 
-func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstance(instance *inventoryv1alpha1.BareMetalAsset) bool {
-	found := &hivev1.SyncSetInstanceList{}
-
-	err := r.client.List(context.TODO(), found, client.MatchingLabels{hiveconstants.SyncSetNameLabel: instance.Name})
+func (r *ReconcileBareMetalAsset) checkHiveClusterSync(instance *inventoryv1alpha1.BareMetalAsset) bool {
+	//get related syncSet
+	syncSetNsN := types.NamespacedName{
+		Name:      instance.Name,
+		Namespace: instance.Spec.ClusterDeployment.Namespace,
+	}
+	foundSyncSet := &hivev1.SyncSet{}
+	err := r.client.Get(context.TODO(), syncSetNsN, foundSyncSet)
 	if err != nil {
-		klog.Errorf("Problem getting Hive SyncSetInstanceList with label %s=%s, %v",
-			hiveconstants.SyncSetNameLabel, instance.Name, err)
+		klog.Errorf("Problem getting Hive SyncSet for Name %s in Namespace %s, %v",
+			syncSetNsN.Name, syncSetNsN.Namespace, err)
 		return false
 	}
 
-	if len(found.Items) != 1 {
-		err = fmt.Errorf("unexpected numer of SyncSetInstances with label name %v and label value %v found",
-			hiveconstants.SyncSetNameLabel, instance.Name)
+	//get related clusterSync
+	clusterSyncNsN := types.NamespacedName{
+		Name:      instance.Spec.ClusterDeployment.Name,
+		Namespace: instance.Spec.ClusterDeployment.Namespace,
+	}
+	foundClusterSync := &hiveinternalv1alpha1.ClusterSync{}
+	if r.client.Get(context.TODO(), clusterSyncNsN, foundClusterSync) != nil {
+		klog.Errorf("Problem getting Hive ClusterSync for ClusterDeployment.Name %s in Namespace %s, %v",
+			clusterSyncNsN.Name, clusterSyncNsN.Namespace, err)
+		return false
+	}
+
+	//find locate the correct syncstatus
+	foundSyncStatuses := []hiveinternalv1alpha1.SyncStatus{}
+	for _, syncStatus := range foundClusterSync.Status.SyncSets {
+		if syncStatus.Name == instance.Name {
+			foundSyncStatuses = append(foundSyncStatuses, syncStatus)
+		}
+	}
+
+	if len(foundSyncStatuses) != 1 {
+		err = fmt.Errorf("unable to find SyncStatus  with Name %v in ClusterSyncs %v", instance.Name, clusterSyncNsN.Name)
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 			Status:  corev1.ConditionFalse,
-			Reason:  "SyncSetInstanceNotFound",
+			Reason:  "SyncStatusNotFound",
 			Message: err.Error(),
 		})
 		return false
 	}
 
-	r.checkHiveSyncSetInstanceSecrets(instance, found.Items[0].Status)
-	return r.checkHiveSyncSetInstanceResources(instance, found.Items[0].Status)
+	foundSyncStatus := foundSyncStatuses[0]
+	if foundSyncStatus.ObservedGeneration != foundSyncSet.Generation {
+		klog.Errorf("SyncStatus.ObserveGeneration does not match SyncSet.Generation, %v", err)
+		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
+			Status:  corev1.ConditionFalse,
+			Reason:  "SyncSetNotApplied",
+			Message: "SyncSet not yet been applied",
+		})
+		return false
+	}
+
+	return r.checkHiveSyncStatus(instance, foundSyncSet, foundSyncStatus)
 }
 
-func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *inventoryv1alpha1.BareMetalAsset,
-	syncSetStatus hivev1.SyncSetInstanceStatus) bool {
-	resourceCount := len(syncSetStatus.Resources)
-	if resourceCount == 0 && (len(syncSetStatus.Patches) == 1) {
-		for _, condition := range syncSetStatus.Patches[0].Conditions {
-			if condition.Type == hivev1.ApplyFailureSyncCondition && condition.Status == corev1.ConditionTrue {
-				// Must delete (and recreate) the SyncSet if the BareMetalHost
-				// is not found.
-				if strings.Contains(condition.Message, "not found") {
-					err := r.client.Delete(context.TODO(), r.newHiveSyncSet(instance, false))
-					if err != nil {
-						klog.Errorf("Failed to delete syncSet %v", instance.Name)
-					}
-				}
-				return false
-			}
-		}
-	}
-	if resourceCount != 1 {
-		err := fmt.Errorf("unexpected number of resources found on SyncSetInstance status. Expected (1) Found (%v)",
-			resourceCount)
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  "UnexpectedResourceCount",
-			Message: err.Error(),
-		})
-		return false
-	}
-	res := syncSetStatus.Resources[0]
-	if res.APIVersion != metal3v1alpha1.SchemeGroupVersion.String() || res.Kind != BareMetalHostKind {
-		err := fmt.Errorf("unexpected resource found in SyncSetInstance status. "+
-			"Expected (Kind: %v APIVersion: %v) Found (Kind: %v APIVersion: %v)",
-			BareMetalHostKind, metal3v1alpha1.SchemeGroupVersion.String(), res.Kind, res.APIVersion)
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  "BareMetalHostResourceNotFound",
-			Message: err.Error(),
-		})
-		return false
-	}
-	for _, condition := range res.Conditions {
-		switch condition.Type {
-		case hivev1.ApplySuccessSyncCondition:
-			if condition.Status == corev1.ConditionTrue {
-				if !conditionsv1.IsStatusConditionPresentAndEqual(instance.Status.Conditions,
-					inventoryv1alpha1.ConditionAssetSyncCompleted, corev1.ConditionFalse) {
-					conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-						Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
-						Status:  condition.Status,
-						Reason:  condition.Reason,
-						Message: condition.Message,
-					})
-				}
-				return true
-			}
-		case hivev1.ApplyFailureSyncCondition:
-			if condition.Status == corev1.ConditionTrue {
-				conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-					Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
-					Status:  corev1.ConditionFalse,
-					Reason:  condition.Reason,
-					Message: condition.Message,
-				})
-				return false
-			}
-		}
-	}
-	return false
-}
+func (r *ReconcileBareMetalAsset) checkHiveSyncStatus(
+	instance *inventoryv1alpha1.BareMetalAsset,
+	syncSet *hivev1.SyncSet,
+	syncSetStatus hiveinternalv1alpha1.SyncStatus,
+) bool {
+	resourceCount := len(syncSet.Spec.Resources)
+	patchCount := len(syncSet.Spec.Patches)
 
-func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceSecrets(instance *inventoryv1alpha1.BareMetalAsset,
-	syncSetStatus hivev1.SyncSetInstanceStatus) bool {
-	if len(syncSetStatus.Secrets) != 1 {
-		err := fmt.Errorf("unexpected number of secrets found on SyncSetInstance")
+	if resourceCount == 1 {
+		if syncSetStatus.Result == hiveinternalv1alpha1.SuccessSyncSetResult {
+			conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+				Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
+				Status:  corev1.ConditionTrue,
+				Reason:  "SyncSetAppliedSuccessful",
+				Message: "Successfully applied SyncSet",
+			})
+			return true
+		}
+
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 			Status:  corev1.ConditionFalse,
-			Reason:  "UnexpectedSecretCount",
-			Message: err.Error(),
+			Reason:  "SyncSetAppliedFailed",
+			Message: "Failed to apply SyncSet",
 		})
 		return false
 	}
-	secret := syncSetStatus.Secrets[0]
-	for _, condition := range secret.Conditions {
-		switch condition.Type {
-		case hivev1.ApplySuccessSyncCondition:
-			// Only update success if not marked failed
-			if condition.Status == corev1.ConditionTrue {
-				if !conditionsv1.IsStatusConditionPresentAndEqual(instance.Status.Conditions,
-					inventoryv1alpha1.ConditionAssetSyncCompleted, corev1.ConditionFalse) {
-					conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-						Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
-						Status:  condition.Status,
-						Reason:  condition.Reason,
-						Message: condition.Message,
-					})
+
+	if patchCount == 1 {
+		if syncSetStatus.Result == hiveinternalv1alpha1.FailureSyncSetResult {
+			if strings.Contains(syncSetStatus.FailureMessage, "not found") {
+				if r.client.Delete(context.TODO(), syncSet) != nil {
+					klog.Errorf("Failed to delete syncSet %v", instance.Name)
 				}
-				return true
 			}
-		case hivev1.ApplyFailureSyncCondition:
-			if condition.Status == corev1.ConditionTrue {
-				conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-					Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
-					Status:  corev1.ConditionFalse,
-					Reason:  condition.Reason,
-					Message: condition.Message,
-				})
-				return false
-			}
+			return false
 		}
 	}
+
+	err := fmt.Errorf(
+		"unexpected number of resources found on SyncSet. Expected (1) Found (%v)",
+		resourceCount,
+	)
+
+	conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
+		Status:  corev1.ConditionFalse,
+		Reason:  "UnexpectedResourceCount",
+		Message: err.Error(),
+	})
+
 	return false
 }
 
@@ -763,8 +735,8 @@ func (r *ReconcileBareMetalAsset) deleteSyncSet(instance *inventoryv1alpha1.Bare
 		return reconcile.Result{}, r.client.Update(context.TODO(), foundSyncSet)
 	}
 
-	// Don't delete the SyncSet until the SyncSetInstance is applied
-	if r.checkHiveSyncSetInstance(instance) {
+	// Don't delete the SyncSet until the ClusterSync is applied
+	if r.checkHiveClusterSync(instance) {
 		return reconcile.Result{}, r.client.Delete(context.TODO(), syncSet)
 	}
 	return reconcile.Result{}, nil
@@ -797,27 +769,12 @@ func (r *ReconcileBareMetalAsset) cleanupOldHiveSyncSet(instance *inventoryv1alp
 			Name:      hscRef.Name,
 		},
 	})
+
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			klog.Errorf("Failed to delete Hive SyncSet (%s/%s), %v", hscRef.Name, hscRef.Namespace, err)
 			return err
 		}
-	}
-
-	found := &hivev1.SyncSetInstanceList{}
-	err = r.client.List(context.TODO(),
-		found,
-		client.InNamespace(hscRef.Namespace),
-		client.MatchingLabels{hiveconstants.SyncSetNameLabel: hscRef.Name})
-	if err != nil {
-		klog.Errorf("Problem getting Hive SyncSetInstanceList with label %s=%s, %v", hiveconstants.SyncSetNameLabel, hscRef.Name, err)
-		return err
-	}
-
-	if len(found.Items) > 0 {
-		err = fmt.Errorf("found SyncSetInstances in namespace: %v with label %v:%v. Expected: (%v) Actual: (%v)",
-			hscRef.Namespace, hiveconstants.SyncSetNameLabel, hscRef.Name, 0, len(found.Items))
-		return err
 	}
 
 	// Remove SyncSet from related objects

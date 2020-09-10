@@ -9,6 +9,9 @@ import (
 	"github.com/openshift/hive/pkg/apis/hive/v1/azure"
 	"github.com/openshift/hive/pkg/apis/hive/v1/baremetal"
 	"github.com/openshift/hive/pkg/apis/hive/v1/gcp"
+	"github.com/openshift/hive/pkg/apis/hive/v1/openstack"
+	"github.com/openshift/hive/pkg/apis/hive/v1/ovirt"
+	"github.com/openshift/hive/pkg/apis/hive/v1/vsphere"
 )
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
@@ -42,6 +45,21 @@ const (
 	// searching and filtering clusters, as well as in SelectorSyncSets to only
 	// target specific regions of the cluster-platform.
 	HiveClusterRegionLabel = "hive.openshift.io/cluster-region"
+)
+
+// ClusterPowerState is used to indicate whether a cluster is running or in a
+// hibernating state.
+// +kubebuilder:validation:Enum="";Running;Hibernating
+type ClusterPowerState string
+
+const (
+	// RunningClusterPowerState is the default state of a cluster after it has
+	// been installed. All of its machines should be running.
+	RunningClusterPowerState ClusterPowerState = "Running"
+
+	// HibernatingClusterPowerState is used to stop the machines belonging to a cluster
+	// and move it to a hibernating state.
+	HibernatingClusterPowerState ClusterPowerState = "Hibernating"
 )
 
 // ClusterDeploymentSpec defines the desired state of ClusterDeployment
@@ -90,11 +108,21 @@ type ClusterDeploymentSpec struct {
 	ClusterMetadata *ClusterMetadata `json:"clusterMetadata,omitempty"`
 
 	// Installed is true if the cluster has been installed
+	// +optional
 	Installed bool `json:"installed"`
 
 	// Provisioning contains settings used only for initial cluster provisioning.
 	// May be unset in the case of adopted clusters.
 	Provisioning *Provisioning `json:"provisioning,omitempty"`
+
+	// ClusterPoolRef is a reference to the ClusterPool that this ClusterDeployment originated from.
+	// +optional
+	ClusterPoolRef *ClusterPoolReference `json:"clusterPoolRef,omitempty"`
+
+	// PowerState indicates whether a cluster should be running or hibernating. When omitted,
+	// PowerState defaults to the Running state.
+	// +optional
+	PowerState ClusterPowerState `json:"powerState,omitempty"`
 }
 
 // Provisioning contains settings used only for initial cluster provisioning.
@@ -142,6 +170,17 @@ type ClusterImageSetReference struct {
 	Name string `json:"name"`
 }
 
+// ClusterPoolReference is a reference to a ClusterPool
+type ClusterPoolReference struct {
+	// Namespace is the namespace where the ClusterPool resides.
+	Namespace string `json:"namespace"`
+	// PoolName is the name of the ClusterPool for which the cluster was created.
+	PoolName string `json:"poolName"`
+	// ClaimName is the name of the ClusterClaim that claimed the cluster from the pool.
+	// +optional
+	ClaimName string `json:"claimName,omitempty"`
+}
+
 // ClusterMetadata contains metadata information about the installed cluster.
 type ClusterMetadata struct {
 
@@ -165,7 +204,7 @@ type ClusterDeploymentStatus struct {
 	InstallRestarts int `json:"installRestarts,omitempty"`
 
 	// ClusterVersionStatus will hold a copy of the remote cluster's ClusterVersion.Status
-	ClusterVersionStatus openshiftapiv1.ClusterVersionStatus `json:"clusterVersionStatus,omitempty"`
+	ClusterVersionStatus *openshiftapiv1.ClusterVersionStatus `json:"clusterVersionStatus,omitempty"`
 
 	// APIURL is the URL where the cluster's API can be accessed.
 	APIURL string `json:"apiURL,omitempty"`
@@ -220,6 +259,7 @@ type ClusterDeploymentCondition struct {
 // ClusterDeploymentConditionType is a valid value for ClusterDeploymentCondition.Type
 type ClusterDeploymentConditionType string
 
+// WARNING: All ClusterDeploymentConditionTypes should be added to the AllClusterDeploymentConditions slice below.
 const (
 	// ClusterImageSetNotFoundCondition is set when the ClusterImageSet referenced by the
 	// ClusterDeployment is not found.
@@ -250,7 +290,7 @@ const (
 	InstallFailingCondition ClusterDeploymentConditionType = "InstallFailing"
 
 	// DNSNotReadyCondition indicates that the the DNSZone object created for the clusterDeployment
-	// (ie managedDNS==true) has not yet indicated that the DNS zone is successfully responding to queries.
+	// (ie manageDNS==true) has not yet indicated that the DNS zone is successfully responding to queries.
 	DNSNotReadyCondition ClusterDeploymentConditionType = "DNSNotReady"
 
 	// ProvisionFailedCondition indicates that a provision failed
@@ -258,6 +298,16 @@ const (
 
 	// SyncSetFailedCondition indicates if any syncset for a cluster deployment failed
 	SyncSetFailedCondition ClusterDeploymentConditionType = "SyncSetFailed"
+
+	// RelocationFailedCondition indicates if a relocation to another Hive instance has failed
+	RelocationFailedCondition ClusterDeploymentConditionType = "RelocationFailed"
+
+	// ClusterHibernatingCondition is set when the ClusterDeployment is either
+	// transitioning to/from a hibernating state or is in a hibernating state.
+	ClusterHibernatingCondition ClusterDeploymentConditionType = "Hibernating"
+
+	// InstallLaunchErrorCondition is set when a cluster provision fails to launch an install pod
+	InstallLaunchErrorCondition ClusterDeploymentConditionType = "InstallLaunchError"
 )
 
 // AllClusterDeploymentConditions is a slice containing all condition types. This can be used for dealing with
@@ -273,7 +323,37 @@ var AllClusterDeploymentConditions = []ClusterDeploymentConditionType{
 	DNSNotReadyCondition,
 	ProvisionFailedCondition,
 	SyncSetFailedCondition,
+	RelocationFailedCondition,
+	ClusterHibernatingCondition,
+	InstallLaunchErrorCondition,
 }
+
+// Cluster hibernating reasons
+const (
+	// ResumingHibernationReason is used as the reason when the cluster is transitioning
+	// from a Hibernating state to a Running state.
+	ResumingHibernationReason = "Resuming"
+	// RunningHibernationReason is used as the reason when the cluster is running and
+	// the Hibernating condition is false.
+	RunningHibernationReason = "Running"
+	// StoppingHibernationReason is used as the reason when the cluster is transitioning
+	// from a Running state to a Hibernating state.
+	StoppingHibernationReason = "Stopping"
+	// HibernatingHibernationReason is used as the reason when the cluster is in a
+	// Hibernating state.
+	HibernatingHibernationReason = "Hibernating"
+	// UnsupportedHibernationReason is used as the reason when the cluster spec
+	// specifies that the cluster be moved to a Hibernating state, but either the cluster
+	// version is not compatible with hibernation (< 4.4.8) or the cloud provider of
+	// the cluster is not supported.
+	UnsupportedHibernationReason = "Unsupported"
+	// FailedToStopHibernationReason is used when there was an error stopping machines
+	// to enter hibernation
+	FailedToStopHibernationReason = "FailedToStop"
+	// FailedToStartHibernationReason is used when there was an error starting machines
+	// to leave hibernation
+	FailedToStartHibernationReason = "FailedToStart"
+)
 
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -282,12 +362,12 @@ var AllClusterDeploymentConditions = []ClusterDeploymentConditionType{
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="ClusterName",type="string",JSONPath=".spec.clusterName"
-// +kubebuilder:printcolumn:name="ClusterType",type="string",JSONPath=".metadata.labels.hive\.openshift\.io/cluster-type"
+// +kubebuilder:printcolumn:name="ClusterType",type="string",JSONPath=".metadata.labels.hive\\.openshift\\.io/cluster-type"
 // +kubebuilder:printcolumn:name="BaseDomain",type="string",JSONPath=".spec.baseDomain"
 // +kubebuilder:printcolumn:name="Installed",type="boolean",JSONPath=".spec.installed"
 // +kubebuilder:printcolumn:name="InfraID",type="string",JSONPath=".spec.clusterMetadata.infraID"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +kubebuilder:resource:path=clusterdeployments,shortName=cd
+// +kubebuilder:resource:path=clusterdeployments,shortName=cd,scope=Namespaced
 type ClusterDeployment struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -315,12 +395,21 @@ type Platform struct {
 	// +optional
 	Azure *azure.Platform `json:"azure,omitempty"`
 
+	// BareMetal is the configuration used when installing on bare metal.
+	BareMetal *baremetal.Platform `json:"baremetal,omitempty"`
+
 	// GCP is the configuration used when installing on Google Cloud Platform.
 	// +optional
 	GCP *gcp.Platform `json:"gcp,omitempty"`
 
-	// BareMetal is the configuration used when installing on bare metal.
-	BareMetal *baremetal.Platform `json:"baremetal,omitempty"`
+	// OpenStack is the configuration used when installing on OpenStack
+	OpenStack *openstack.Platform `json:"openstack,omitempty"`
+
+	// VSphere is the configuration used when installing on vSphere
+	VSphere *vsphere.Platform `json:"vsphere,omitempty"`
+
+	// Ovirt is the configuration used when installing on oVirt
+	Ovirt *ovirt.Platform `json:"ovirt,omitempty"`
 }
 
 // ClusterIngress contains the configurable pieces for any ClusterIngress objects
@@ -417,6 +506,19 @@ type CertificateBundleStatus struct {
 	// Generated indicates whether the certificate bundle was generated
 	Generated bool `json:"generated"`
 }
+
+// RelocateStatus is the status of a cluster relocate.
+// This is used in the value of the "hive.openshift.io/relocate" annotation.
+type RelocateStatus string
+
+const (
+	// RelocateOutgoing indicates that a resource is on the source side of an in-progress relocate
+	RelocateOutgoing RelocateStatus = "outgoing"
+	// RelocateComplete indicates that a resource is on the source side of a completed relocate
+	RelocateComplete RelocateStatus = "complete"
+	// RelocateIncoming indicates that a resource is on the destination side of an in-progress relocate
+	RelocateIncoming RelocateStatus = "incoming"
+)
 
 func init() {
 	SchemeBuilder.Register(&ClusterDeployment{}, &ClusterDeploymentList{})
