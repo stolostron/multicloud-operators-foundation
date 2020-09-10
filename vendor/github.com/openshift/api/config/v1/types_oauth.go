@@ -14,11 +14,10 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 type OAuth struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata"`
-	// spec holds user settable values for configuration
+
 	// +kubebuilder:validation:Required
 	// +required
 	Spec OAuthSpec `json:"spec"`
-	// status holds observed values from the cluster. They may not be overridden.
 	// +optional
 	Status OAuthStatus `json:"status"`
 }
@@ -46,25 +45,21 @@ type OAuthStatus struct {
 // TokenConfig holds the necessary configuration options for authorization and access tokens
 type TokenConfig struct {
 	// accessTokenMaxAgeSeconds defines the maximum age of access tokens
-	AccessTokenMaxAgeSeconds int32 `json:"accessTokenMaxAgeSeconds,omitempty"`
+	AccessTokenMaxAgeSeconds int32 `json:"accessTokenMaxAgeSeconds"`
 
-	// accessTokenInactivityTimeoutSeconds - DEPRECATED: setting this field has no effect.
-	// +optional
-	AccessTokenInactivityTimeoutSeconds int32 `json:"accessTokenInactivityTimeoutSeconds,omitempty"`
-
-	// accessTokenInactivityTimeout defines the token inactivity timeout
-	// for tokens granted by any client.
+	// accessTokenInactivityTimeoutSeconds defines the default token
+	// inactivity timeout for tokens granted by any client.
 	// The value represents the maximum amount of time that can occur between
 	// consecutive uses of the token. Tokens become invalid if they are not
 	// used within this temporal window. The user will need to acquire a new
-	// token to regain access once a token times out. Takes valid time
-	// duration string such as "5m", "1.5h" or "2h45m". The minimum allowed
-	// value for duration is 300s (5 minutes). If the timeout is configured
-	// per client, then that value takes precedence. If the timeout value is
-	// not specified and the client does not override the value, then tokens
-	// are valid until their lifetime.
+	// token to regain access once a token times out.
+	// Valid values are integer values:
+	//   x < 0  Tokens time out is enabled but tokens never timeout unless configured per client (e.g. `-1`)
+	//   x = 0  Tokens time out is disabled (default)
+	//   x > 0  Tokens time out if there is no activity for x seconds
+	// The current minimum allowed value for X is 300 (5 minutes)
 	// +optional
-	AccessTokenInactivityTimeout *metav1.Duration `json:"accessTokenInactivityTimeout,omitempty"`
+	AccessTokenInactivityTimeoutSeconds int32 `json:"accessTokenInactivityTimeoutSeconds,omitempty"`
 }
 
 const (

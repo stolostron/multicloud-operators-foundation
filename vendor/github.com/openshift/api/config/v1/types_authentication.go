@@ -43,21 +43,13 @@ type AuthenticationSpec struct {
 	// +optional
 	OAuthMetadata ConfigMapNameReference `json:"oauthMetadata"`
 
-	// webhookTokenAuthenticators is DEPRECATED, setting it has no effect.
-	WebhookTokenAuthenticators []DeprecatedWebhookTokenAuthenticator `json:"webhookTokenAuthenticators,omitempty"`
-
-	// webhookTokenAuthenticator configures a remote token reviewer.
+	// webhookTokenAuthenticators configures remote token reviewers.
 	// These remote authentication webhooks can be used to verify bearer tokens
-	// via the tokenreviews.authentication.k8s.io REST API. This is required to
+	// via the tokenreviews.authentication.k8s.io REST API.  This is required to
 	// honor bearer tokens that are provisioned by an external authentication service.
+	// The namespace for these secrets is openshift-config.
 	// +optional
-	WebhookTokenAuthenticator *WebhookTokenAuthenticator `json:"webhookTokenAuthenticator,omitempty"`
-
-	// serviceAccountIssuer is the identifier of the bound service account token
-	// issuer.
-	// The default is https://kubernetes.default.svc
-	// +optional
-	ServiceAccountIssuer string `json:"serviceAccountIssuer"`
+	WebhookTokenAuthenticators []WebhookTokenAuthenticator `json:"webhookTokenAuthenticators,omitempty"`
 }
 
 type AuthenticationStatus struct {
@@ -105,9 +97,8 @@ const (
 	// AuthenticationTypeKeycloak AuthenticationType = "Keycloak"
 )
 
-// deprecatedWebhookTokenAuthenticator holds the necessary configuration options for a remote token authenticator.
-// It's the same as WebhookTokenAuthenticator but it's missing the 'required' validation on KubeConfig field.
-type DeprecatedWebhookTokenAuthenticator struct {
+// webhookTokenAuthenticator holds the necessary configuration options for a remote token authenticator
+type WebhookTokenAuthenticator struct {
 	// kubeConfig contains kube config file data which describes how to access the remote webhook service.
 	// For further details, see:
 	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
@@ -115,24 +106,6 @@ type DeprecatedWebhookTokenAuthenticator struct {
 	// If the secret or expected key is not found, the webhook is not honored.
 	// If the specified kube config data is not valid, the webhook is not honored.
 	// The namespace for this secret is determined by the point of use.
-	KubeConfig SecretNameReference `json:"kubeConfig"`
-}
-
-// webhookTokenAuthenticator holds the necessary configuration options for a remote token authenticator
-type WebhookTokenAuthenticator struct {
-	// kubeConfig references a secret that contains kube config file data which
-	// describes how to access the remote webhook service.
-	// The namespace for the referenced secret is openshift-config.
-	//
-	// For further details, see:
-	//
-	// https://kubernetes.io/docs/reference/access-authn-authz/authentication/#webhook-token-authentication
-	//
-	// The key "kubeConfig" is used to locate the data.
-	// If the secret or expected key is not found, the webhook is not honored.
-	// If the specified kube config data is not valid, the webhook is not honored.
-	// +kubebuilder:validation:Required
-	// +required
 	KubeConfig SecretNameReference `json:"kubeConfig"`
 }
 

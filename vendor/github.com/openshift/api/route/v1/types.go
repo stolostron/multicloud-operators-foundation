@@ -33,8 +33,7 @@ type Route struct {
 	// spec is the desired state of the route
 	Spec RouteSpec `json:"spec" protobuf:"bytes,2,opt,name=spec"`
 	// status is the current state of the route
-	// +optional
-	Status RouteStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
+	Status RouteStatus `json:"status" protobuf:"bytes,3,opt,name=status"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -68,8 +67,7 @@ type RouteSpec struct {
 	// If not specified a route name will typically be automatically
 	// chosen.
 	// Must follow DNS952 subdomain conventions.
-	// +optional
-	Host string `json:"host,omitempty" protobuf:"bytes,1,opt,name=host"`
+	Host string `json:"host" protobuf:"bytes,1,opt,name=host"`
 	// subdomain is a DNS subdomain that is requested within the ingress controller's
 	// domain (as a subdomain). If host is set this field is ignored. An ingress
 	// controller may choose to ignore this suggested name, in which case the controller
@@ -123,7 +121,6 @@ type RouteTargetReference struct {
 
 	// weight as an integer between 0 and 256, default 100, that specifies the target's relative weight
 	// against other target reference objects. 0 suppresses requests to this backend.
-	// +optional
 	Weight *int32 `json:"weight" protobuf:"varint,3,opt,name=weight"`
 }
 
@@ -141,7 +138,7 @@ type RouteStatus struct {
 	// ingress describes the places where the route may be exposed. The list of
 	// ingress points may contain duplicate Host or RouterName values. Routes
 	// are considered live once they are `Ready`
-	Ingress []RouteIngress `json:"ingress,omitempty" protobuf:"bytes,1,rep,name=ingress"`
+	Ingress []RouteIngress `json:"ingress" protobuf:"bytes,1,rep,name=ingress"`
 }
 
 // RouteIngress holds information about the places where a route is exposed.

@@ -18,6 +18,69 @@ const (
 	// hosts to block delete operations until the physical host can be
 	// deprovisioned.
 	BareMetalHostFinalizer string = "baremetalhost.metal3.io"
+
+	// PausedAnnotation is the annotation that pauses the reconciliation (triggers
+	// an immediate requeue)
+	PausedAnnotation = "baremetalhost.metal3.io/paused"
+
+	// StatusAnnotation is the annotation that keeps a copy of the Status of BMH
+	// This is particularly useful when we pivot BMH. If the status
+	// annotation is present and status is empty, BMO will reconstruct BMH Status
+	// from the status annotation.
+	StatusAnnotation = "baremetalhost.metal3.io/status"
+)
+
+// RootDeviceHints holds the hints for specifying the storage location
+// for the root filesystem for the image.
+type RootDeviceHints struct {
+	// A Linux device name like "/dev/vda". The hint must match the
+	// actual value exactly.
+	DeviceName string `json:"deviceName,omitempty"`
+
+	// A SCSI bus address like 0:0:0:0. The hint must match the actual
+	// value exactly.
+	HCTL string `json:"hctl,omitempty"`
+
+	// A vendor-specific device identifier. The hint can be a
+	// substring of the actual value.
+	Model string `json:"model,omitempty"`
+
+	// The name of the vendor or manufacturer of the device. The hint
+	// can be a substring of the actual value.
+	Vendor string `json:"vendor,omitempty"`
+
+	// Device serial number. The hint must match the actual value
+	// exactly.
+	SerialNumber string `json:"serialNumber,omitempty"`
+
+	// The minimum size of the device in Gigabytes.
+	// +kubebuilder:validation:Minimum=0
+	MinSizeGigabytes int `json:"minSizeGigabytes,omitempty"`
+
+	// Unique storage identifier. The hint must match the actual value
+	// exactly.
+	WWN string `json:"wwn,omitempty"`
+
+	// Unique storage identifier with the vendor extension
+	// appended. The hint must match the actual value exactly.
+	WWNWithExtension string `json:"wwnWithExtension,omitempty"`
+
+	// Unique vendor storage identifier. The hint must match the
+	// actual value exactly.
+	WWNVendorExtension string `json:"wwnVendorExtension,omitempty"`
+
+	// True if the device should use spinning media, false otherwise.
+	Rotational *bool `json:"rotational,omitempty"`
+}
+
+// BootMode is the boot mode of the system
+// +kubebuilder:validation:Enum=UEFI;legacy
+type BootMode string
+
+// Allowed boot mode from metal3
+const (
+	UEFI   BootMode = "UEFI"
+	Legacy BootMode = "legacy"
 )
 
 // OperationalStatus represents the state of the host
@@ -66,6 +129,10 @@ const (
 	// StateNone means the state is unknown
 	StateNone ProvisioningState = ""
 
+	// StateUnmanaged means there is insufficient information available to
+	// register the host
+	StateUnmanaged ProvisioningState = "unmanaged"
+
 	// StateRegistrationError means there was an error registering the
 	// host with the backend
 	StateRegistrationError ProvisioningState = "registration error"
@@ -79,6 +146,9 @@ const (
 
 	// StateReady means the host can be consumed
 	StateReady ProvisioningState = "ready"
+
+	// StateAvailable means the host can be consumed
+	StateAvailable ProvisioningState = "available"
 
 	// StateProvisioning means we are writing an image to the host's
 	// disk(s)
@@ -152,6 +222,15 @@ type BareMetalHostSpec struct {
 	// automatically determine the profile.
 	HardwareProfile string `json:"hardwareProfile,omitempty"`
 
+	// Provide guidance about how to choose the device for the image
+	// being provisioned.
+	RootDeviceHints *RootDeviceHints `json:"rootDeviceHints,omitempty"`
+
+	// Select the method of initializing the hardware during boot to
+	// override the value based on the BMC driver.
+	// +optional
+	BootMode BootMode `json:"bootMode,omitempty"`
+
 	// Which MAC address will PXE boot? This is optional for some
 	// types, but required for libvirt VMs driven by vbmc.
 	// +kubebuilder:validation:Pattern=`[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}`
@@ -172,6 +251,15 @@ type BareMetalHostSpec struct {
 	// data to be passed to the host before it boots.
 	UserData *corev1.SecretReference `json:"userData,omitempty"`
 
+	// NetworkData holds the reference to the Secret containing network
+	// configuration (e.g content of network_data.json which is passed
+	// to Config Drive).
+	NetworkData *corev1.SecretReference `json:"networkData,omitempty"`
+
+	// MetaData holds the reference to the Secret containing host metadata
+	// (e.g. meta_data.json which is passed to Config Drive).
+	MetaData *corev1.SecretReference `json:"metaData,omitempty"`
+
 	// Description is a human-entered text used to help identify the host
 	Description string `json:"description,omitempty"`
 
@@ -182,6 +270,21 @@ type BareMetalHostSpec struct {
 	ExternallyProvisioned bool `json:"externallyProvisioned,omitempty"`
 }
 
+// ChecksumType holds the algorithm name for the checksum
+// +kubebuilder:validation:Enum=md5;sha256;sha512
+type ChecksumType string
+
+const (
+	// MD5 checksum type
+	MD5 ChecksumType = "md5"
+
+	// SHA256 checksum type
+	SHA256 ChecksumType = "sha256"
+
+	// SHA512 checksum type
+	SHA512 ChecksumType = "sha512"
+)
+
 // Image holds the details of an image either to provisioned or that
 // has been provisioned.
 type Image struct {
@@ -190,6 +293,15 @@ type Image struct {
 
 	// Checksum is the checksum for the image.
 	Checksum string `json:"checksum"`
+
+	// ChecksumType is the checksum algorithm for the image.
+	// e.g md5, sha256, sha512
+	ChecksumType ChecksumType `json:"checksumType,omitempty"`
+
+	// DiskFormat contains the format of the image (raw, qcow2, ...)
+	// Needs to be set to raw for raw images streaming
+	// +kubebuilder:validation:Enum=raw;qcow2;vdi;vmdk
+	DiskFormat *string `json:"format,omitempty"`
 }
 
 // FIXME(dhellmann): We probably want some other module to own these
@@ -263,12 +375,13 @@ type Storage struct {
 }
 
 // VLANID is a 12-bit 802.1Q VLAN identifier
+// +kubebuilder:validation:Type=integer
+// +kubebuilder:validation:Minimum=0
+// +kubebuilder:validation:Maximum=4094
 type VLANID int32
 
 // VLAN represents the name and ID of a VLAN
 type VLAN struct {
-	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:validation:Maximum=4094
 	ID VLANID `json:"id"`
 
 	Name string `json:"name,omitempty"`
@@ -296,8 +409,6 @@ type NIC struct {
 	VLANs []VLAN `json:"vlans,omitempty"`
 
 	// The untagged VLAN ID
-	// +kubebuilder:validation:Minimum=0
-	// +kubebuilder:validation:Maximum=4094
 	VLANID VLANID `json:"vlanId"`
 
 	// Whether the NIC is PXE Bootable
@@ -446,6 +557,12 @@ type ProvisionStatus struct {
 	// Image holds the details of the last image successfully
 	// provisioned to the host.
 	Image Image `json:"image,omitempty"`
+
+	// The RootDevicehints set by the user
+	RootDeviceHints *RootDeviceHints `json:"rootDeviceHints,omitempty"`
+
+	// BootMode indicates the boot mode used to provision the node
+	BootMode BootMode `json:"bootMode,omitempty"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -537,6 +654,11 @@ func (host *BareMetalHost) getLabel(name string) string {
 		return ""
 	}
 	return host.Labels[name]
+}
+
+// HasBMCDetails returns true if the BMC details are set
+func (host *BareMetalHost) HasBMCDetails() bool {
+	return host.Spec.BMC.Address != "" || host.Spec.BMC.CredentialsName != ""
 }
 
 // NeedsHardwareProfile returns true if the profile is not set
@@ -696,7 +818,7 @@ func (host *BareMetalHost) NewEvent(reason, message string) corev1.Event {
 			Namespace:  host.Namespace,
 			Name:       host.Name,
 			UID:        host.UID,
-			APIVersion: SchemeGroupVersion.Version,
+			APIVersion: SchemeGroupVersion.String(),
 		},
 		Reason:  reason,
 		Message: message,
@@ -727,6 +849,31 @@ func (host *BareMetalHost) OperationMetricForState(operation ProvisioningState) 
 		metric = &history.Deprovision
 	}
 	return
+}
+
+// GetImageChecksum returns the hash value and its algo.
+func (host *BareMetalHost) GetImageChecksum() (string, string, bool) {
+	if host.Spec.Image == nil {
+		return "", "", false
+	}
+
+	checksum := host.Spec.Image.Checksum
+	checksumType := host.Spec.Image.ChecksumType
+
+	if checksum == "" {
+		// Return empty if checksum is not provided
+		return "", "", false
+	}
+	if checksumType == "" {
+		// If only checksum is specified. Assume type is md5
+		return checksum, string(MD5), true
+	}
+	switch checksumType {
+	case MD5, SHA256, SHA512:
+		return checksum, string(checksumType), true
+	default:
+		return "", "", false
+	}
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

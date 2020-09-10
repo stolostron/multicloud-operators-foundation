@@ -7,14 +7,13 @@ import (
 	"testing"
 	"time"
 
-	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
 	bmaerrors "github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory/errors"
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
-	hiveconstants "github.com/openshift/hive/pkg/constants"
+	hiveinternalv1alpha1 "github.com/openshift/hive/pkg/apis/hiveinternal/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,7 +38,7 @@ func TestMain(m *testing.M) {
 	// AddToSchemes may be used to add all resources defined in the project to a Scheme
 	var AddToSchemes runtime.SchemeBuilder
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, inventoryv1alpha1.SchemeBuilder.AddToScheme)
+	AddToSchemes = append(AddToSchemes, inventoryv1alpha1.SchemeBuilder.AddToScheme, hiveinternalv1alpha1.AddToScheme)
 
 	if err := AddToSchemes.AddToScheme(scheme.Scheme); err != nil {
 		klog.Errorf("Failed adding apis to scheme, %v", err)
@@ -135,25 +134,25 @@ func TestCheckAssetSecret(t *testing.T) {
 		name               string
 		existingObjs       []runtime.Object
 		expectedErrorType  error
-		expectedConditions []conditionsv1.Condition
+		expectedConditions []metav1.Condition
 		bma                *inventoryv1alpha1.BareMetalAsset
 	}{
 		{
 			name:              "SecretNotFound",
 			existingObjs:      []runtime.Object{},
 			expectedErrorType: bmaerrors.NewAssetSecretNotFoundError(testName, testNamespace),
-			expectedConditions: []conditionsv1.Condition{{
+			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionCredentialsFound,
-				Status: corev1.ConditionFalse,
+				Status: metav1.ConditionFalse,
 			}},
 			bma: newBMA(),
 		},
 		{
 			name:         "SecretFound",
 			existingObjs: []runtime.Object{newSecret()},
-			expectedConditions: []conditionsv1.Condition{{
+			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionCredentialsFound,
-				Status: corev1.ConditionTrue,
+				Status: metav1.ConditionTrue,
 			}},
 			bma: newBMA(),
 		},
@@ -199,16 +198,16 @@ func TestCheckClusterDeployment(t *testing.T) {
 		name               string
 		existingObjs       []runtime.Object
 		expectedErrorType  error
-		expectedConditions []conditionsv1.Condition
+		expectedConditions []metav1.Condition
 		bma                *inventoryv1alpha1.BareMetalAsset
 	}{
 		{
 			name:              "No cluster specified",
 			existingObjs:      []runtime.Object{},
 			expectedErrorType: bmaerrors.NewNoClusterError(),
-			expectedConditions: []conditionsv1.Condition{{
+			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionClusterDeploymentFound,
-				Status: corev1.ConditionFalse,
+				Status: metav1.ConditionFalse,
 			}},
 			bma: newBMA(),
 		},
@@ -216,18 +215,18 @@ func TestCheckClusterDeployment(t *testing.T) {
 			name:              "ClusterDeploymentNotFound",
 			existingObjs:      []runtime.Object{},
 			expectedErrorType: fmt.Errorf("clusterdeployments.hive.openshift.io \"%s\" not found", testName),
-			expectedConditions: []conditionsv1.Condition{{
+			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionClusterDeploymentFound,
-				Status: corev1.ConditionFalse,
+				Status: metav1.ConditionFalse,
 			}},
 			bma: newBMAWithClusterDeployment(),
 		},
 		{
 			name:         "ClusterDeploymentFound",
 			existingObjs: []runtime.Object{newClusterDeployment()},
-			expectedConditions: []conditionsv1.Condition{{
+			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionClusterDeploymentFound,
-				Status: corev1.ConditionTrue,
+				Status: metav1.ConditionTrue,
 			}},
 			bma: newBMAWithClusterDeployment(),
 		},
@@ -245,20 +244,20 @@ func TestEnsureHiveSyncSet(t *testing.T) {
 	tests := []struct {
 		name               string
 		existingObjs       []runtime.Object
-		expectedConditions []conditionsv1.Condition
+		expectedConditions []metav1.Condition
 		bma                *inventoryv1alpha1.BareMetalAsset
 	}{
 		{
 			name:         "SyncSetCreate",
 			existingObjs: []runtime.Object{},
-			expectedConditions: []conditionsv1.Condition{
+			expectedConditions: []metav1.Condition{
 				{
 					Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
-					Status: corev1.ConditionTrue,
+					Status: metav1.ConditionTrue,
 				},
 				{
 					Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-					Status: corev1.ConditionFalse,
+					Status: metav1.ConditionFalse,
 				},
 			},
 			bma: newBMAWithClusterDeployment(),
@@ -279,14 +278,14 @@ func TestEnsureHiveSyncSet(t *testing.T) {
 					},
 				}
 			}()},
-			expectedConditions: []conditionsv1.Condition{
+			expectedConditions: []metav1.Condition{
 				{
 					Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
-					Status: corev1.ConditionTrue,
+					Status: metav1.ConditionTrue,
 				},
 				{
 					Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-					Status: corev1.ConditionFalse,
+					Status: metav1.ConditionFalse,
 				},
 			},
 			bma: newBMAWithClusterDeployment(),
@@ -315,191 +314,51 @@ func TestEnsureHiveSyncSet(t *testing.T) {
 		})
 	}
 }
-func TestCheckHiveSyncSetInstance(t *testing.T) {
+
+func TestCheckClusterSync(t *testing.T) {
 	tests := []struct {
 		name               string
 		existingObjs       []runtime.Object
 		returnValue        bool
-		expectedConditions []conditionsv1.Condition
+		expectedConditions []metav1.Condition
 		bma                *inventoryv1alpha1.BareMetalAsset
 	}{
 		{
-			name:         "SyncSetInstanceNotFound",
+			name:         "ClusterSyncNotFound",
 			existingObjs: []runtime.Object{newBMA()},
 			returnValue:  false,
-			expectedConditions: []conditionsv1.Condition{{
+			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: corev1.ConditionFalse,
+				Status: metav1.ConditionFalse,
 			}},
 			bma: newBMA(),
 		},
 		{
 			name:         "UnexpectedResourceCount",
-			existingObjs: []runtime.Object{newBMA(), newSyncSetInstance()},
+			existingObjs: []runtime.Object{newBMA(), newClusterSync()},
 			returnValue:  false,
-			expectedConditions: []conditionsv1.Condition{{
+			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: corev1.ConditionFalse,
+				Status: metav1.ConditionFalse,
 			}},
 			bma: newBMA(),
 		},
 		{
-			name: "BareMetalHostResourceNotFound-Incorrect Kind",
-			existingObjs: []runtime.Object{
-				func() *hivev1.SyncSetInstance {
-					ssi := newSyncSetInstanceResources()
-					ssi.Status.Resources = []hivev1.SyncStatus{
-						{
-							Kind: "AnInvalidKind",
-						},
-					}
-					return ssi
-				}(), newBMA(),
-			},
-			returnValue: false,
-			expectedConditions: []conditionsv1.Condition{{
+			name:         "SecretApplySuccessSyncCondition",
+			existingObjs: []runtime.Object{newBMAWithClusterDeployment(), newSyncSet(), newClusterSyncInstanceResources()},
+			returnValue:  true,
+			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: corev1.ConditionFalse,
+				Status: metav1.ConditionTrue,
 			}},
-			bma: newBMA(),
-		},
-		{
-			name: "BareMetalHostResourceNotFound-Incorrect APIVersion",
-			existingObjs: []runtime.Object{
-				func() *hivev1.SyncSetInstance {
-					ssi := newSyncSetInstanceResources()
-					ssi.Status.Resources = []hivev1.SyncStatus{
-						{
-							APIVersion: "InvalidAPIVersion",
-						},
-					}
-					return ssi
-				}(), newBMA(),
-			},
-			returnValue: false,
-			expectedConditions: []conditionsv1.Condition{{
-				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: corev1.ConditionFalse,
-			}},
-			bma: newBMA(),
-		},
-		{
-			name: "ResourceApplySuccessSyncCondition-SecretMissing",
-			existingObjs: []runtime.Object{
-				newSyncSetInstanceResouceApplySuccess(),
-			},
-			returnValue: true,
-			expectedConditions: []conditionsv1.Condition{{
-				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: corev1.ConditionFalse,
-			}},
-			bma: newBMA(),
-		},
-		{
-			name: "ResourceApplyFailureSyncCondition",
-			existingObjs: []runtime.Object{
-				func() *hivev1.SyncSetInstance {
-					ssi := newSyncSetInstance()
-					ssi.Status.Resources = []hivev1.SyncStatus{{
-						APIVersion: metal3v1alpha1.SchemeGroupVersion.String(),
-						Kind:       testBMHKind,
-						Name:       testName,
-						Conditions: []hivev1.SyncCondition{
-							{
-								Message: "Apply failed",
-								Reason:  "ApplyFailed",
-								Status:  corev1.ConditionTrue,
-								Type:    hivev1.ApplyFailureSyncCondition,
-							},
-						},
-					}}
-					return ssi
-				}(),
-			},
-			returnValue: false,
-			expectedConditions: []conditionsv1.Condition{{
-				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: corev1.ConditionFalse,
-			}},
-			bma: newBMA(),
-		},
-		{
-			name: "SecretApplySuccessSyncCondition",
-			existingObjs: []runtime.Object{func() *hivev1.SyncSetInstance {
-				ssi := newSyncSetInstanceResouceApplySuccess()
-				ssi.Status.Secrets = []hivev1.SyncStatus{
-					{
-						Name: testName,
-						Conditions: []hivev1.SyncCondition{
-							{
-								Message: "Apply successful",
-								Reason:  "ApplySucceeded",
-								Status:  corev1.ConditionTrue,
-								Type:    hivev1.ApplySuccessSyncCondition,
-							},
-						},
-					},
-				}
-				return ssi
-			}()},
-			returnValue: true,
-			expectedConditions: []conditionsv1.Condition{{
-				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: corev1.ConditionTrue,
-			}},
-			bma: newBMA(),
-		},
-		{
-			name: "SecretApplyFailureSyncCondition",
-			existingObjs: []runtime.Object{
-				func() *hivev1.SyncSetInstance {
-					ssi := newSyncSetInstanceResouceApplySuccess()
-					ssi.Status.Secrets = []hivev1.SyncStatus{
-						{
-							Name: testName,
-							Conditions: []hivev1.SyncCondition{
-								{
-									Message: "Apply failed",
-									Reason:  "ApplyFailed",
-									Status:  corev1.ConditionTrue,
-									Type:    hivev1.ApplyFailureSyncCondition,
-								},
-							},
-						},
-					}
-					return ssi
-				}(),
-			},
-			returnValue: true,
-			expectedConditions: []conditionsv1.Condition{{
-				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: corev1.ConditionFalse,
-			}},
-			bma: newBMA(),
-		},
-		{
-			name: "MultipleSyncSetInstancesFound",
-			existingObjs: []runtime.Object{
-				newSyncSetInstance(),
-				func() *hivev1.SyncSetInstance {
-					ssi := newSyncSetInstance()
-					ssi.Name = testNamespace
-					return ssi
-				}(),
-			},
-			returnValue: false,
-			expectedConditions: []conditionsv1.Condition{{
-				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: corev1.ConditionFalse,
-			}},
-			bma: newBMA(),
+			bma: newBMAWithClusterDeployment(),
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
-			assert.Equal(t, test.returnValue, rbma.checkHiveSyncSetInstance(test.bma))
+			assert.Equal(t, test.returnValue, rbma.checkHiveClusterSync(test.bma))
 			validateErrorAndStatusConditions(t, nil, nil, test.expectedConditions, test.bma)
 		})
 	}
@@ -577,44 +436,47 @@ func newClusterDeployment() *hivev1.ClusterDeployment {
 	return cd
 }
 
-func newSyncSetInstance() *hivev1.SyncSetInstance {
-	return &hivev1.SyncSetInstance{
+func newClusterSync() *hiveinternalv1alpha1.ClusterSync {
+	return &hiveinternalv1alpha1.ClusterSync{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      testName,
 			Namespace: testNamespace,
-			Labels:    map[string]string{hiveconstants.SyncSetNameLabel: testName},
 		},
-		Status: hivev1.SyncSetInstanceStatus{},
+		Status: hiveinternalv1alpha1.ClusterSyncStatus{},
 	}
 }
 
-func newSyncSetInstanceResources() *hivev1.SyncSetInstance {
-	ssi := newSyncSetInstance()
-	ssi.Status.Resources = []hivev1.SyncStatus{
-		{
-			APIVersion: metal3v1alpha1.SchemeGroupVersion.String(),
-			Kind:       testBMHKind,
-			Name:       testName,
+func newSyncSet() *hivev1.SyncSet {
+	return &hivev1.SyncSet{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testName,
+			Namespace: testNamespace,
 		},
-	}
-	return ssi
-}
-
-func newSyncSetInstanceResouceApplySuccess() *hivev1.SyncSetInstance {
-	ssi := newSyncSetInstance()
-	ssi.Status.Resources = []hivev1.SyncStatus{{
-		APIVersion: metal3v1alpha1.SchemeGroupVersion.String(),
-		Kind:       testBMHKind,
-		Name:       testName,
-		Conditions: []hivev1.SyncCondition{
-			{
-				Message: "Apply successful",
-				Reason:  "ApplySucceeded",
-				Status:  corev1.ConditionTrue,
-				Type:    hivev1.ApplySuccessSyncCondition,
+		Spec: hivev1.SyncSetSpec{
+			SyncSetCommonSpec: hivev1.SyncSetCommonSpec{
+				Resources: []runtime.RawExtension{
+					{
+						Object: newSecret(),
+					},
+				},
+			},
+			ClusterDeploymentRefs: []corev1.LocalObjectReference{
+				{
+					Name: testName,
+				},
 			},
 		},
-	}}
+	}
+}
+
+func newClusterSyncInstanceResources() *hiveinternalv1alpha1.ClusterSync {
+	ssi := newClusterSync()
+	ssi.Status.SyncSets = []hiveinternalv1alpha1.SyncStatus{
+		{
+			Name:   testName,
+			Result: hiveinternalv1alpha1.SuccessSyncSetResult,
+		},
+	}
 	return ssi
 }
 
@@ -628,14 +490,14 @@ func newTestReconciler(existingObjs []runtime.Object) *ReconcileBareMetalAsset {
 }
 
 func validateErrorAndStatusConditions(t *testing.T, err error, expectedErrorType error,
-	expectedConditions []conditionsv1.Condition, bma *inventoryv1alpha1.BareMetalAsset) {
+	expectedConditions []metav1.Condition, bma *inventoryv1alpha1.BareMetalAsset) {
 	if expectedErrorType != nil {
 		assert.EqualError(t, err, expectedErrorType.Error())
 	} else {
 		assert.NoError(t, err)
 	}
 	for _, condition := range expectedConditions {
-		assert.True(t, conditionsv1.IsStatusConditionPresentAndEqual(bma.Status.Conditions, condition.Type, condition.Status))
+		assert.True(t, meta.IsStatusConditionPresentAndEqual(bma.Status.Conditions, condition.Type, condition.Status))
 	}
 	if bma != nil {
 		assert.Equal(t, len(expectedConditions), len(bma.Status.Conditions))
