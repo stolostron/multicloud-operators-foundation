@@ -180,3 +180,64 @@ const ManagedClusterViewTemplate = `{
     }
   }
 }`
+
+const ManagedClusterSetTemplate = `{
+  "apiVersion": "cluster.open-cluster-management.io/v1alpha1",
+  "kind": "ManagedClusterSet",
+  "metadata": {
+    "name": "clusterset1"
+  },
+  "spec": {
+    "clusterSelectors": [
+        {
+            "clusterNames": [
+                "cluster1"
+            ]
+        }
+    ]
+  }
+}`
+
+const ClusterRoleTemplate = `{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+  "kind": "ClusterRole",
+  "metadata": {
+    "name": "clustersetrole1"
+  },
+  "rules": [
+    {
+        "apiGroups": [
+            "cluster.open-cluster-management.io"
+        ],
+        "resourceNames": [
+            "clusterset1"
+        ],
+        "resources": [
+            "managedclustersets/bind"
+        ],
+        "verbs": [
+            "create"
+        ]
+    }
+ ]
+}`
+
+const ClusterRoleBindingTemplate = `{
+  "apiVersion": "rbac.authorization.k8s.io/v1",
+    "kind": "ClusterRoleBinding",
+    "metadata": {
+        "name": "clustersetrolebinding1"
+    },
+    "roleRef": {
+        "apiGroup": "rbac.authorization.k8s.io",
+        "kind": "ClusterRole",
+        "name": "clustersetrole1"
+    },
+    "subjects": [
+        {
+            "kind": "ServiceAccount",
+            "name": "sa1",
+            "namespace": "default"
+        }
+    ]
+}`
