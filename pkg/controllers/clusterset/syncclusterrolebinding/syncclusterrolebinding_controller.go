@@ -72,11 +72,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	clusterToSubject := generateClusterSubjectMap(r.clustersetToClusters, r.clustersetToSubject)
 	//apply all disired clusterrolebinding
+	errs := []error{}
 	for cluster, subjects := range clusterToSubject {
 		requiredClusterRoleBinding := generateRequiredClusterRoleBinding(cluster, subjects)
 		err := utils.ApplyClusterRoleBinding(ctx, r.client, requiredClusterRoleBinding)
 		if err != nil {
 			klog.Errorf("Failed to apply clusterrolebinding: %v, error:%v", requiredClusterRoleBinding, err)
+			errs = append(errs, err)
 		}
 	}
 
@@ -102,14 +104,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			continue
 		}
 		if _, ok := clusterToSubject[curClusterName]; !ok {
-			r.client.Delete(ctx, &curClusterRoleBinding)
+			err = r.client.Delete(ctx, &curClusterRoleBinding)
 			if err != nil {
-				return reconcile, err
+				errs = append(errs, err)
 			}
 			continue
 		}
 	}
-	return reconcile, nil
+	return reconcile, utils.NewMultiLineAggregate(errs)
 }
 
 func getClusterNameInClusterrolebinding(clusterrolebinding rbacv1.ClusterRoleBinding) string {

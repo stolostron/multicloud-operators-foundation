@@ -83,20 +83,6 @@ func ApplyClusterRoleBinding(ctx context.Context, client client.Client, required
 	existingCopy := existing.DeepCopy()
 	requiredCopy := required.DeepCopy()
 
-	// Enforce apiGroup fields in roleRefs
-	existingCopy.RoleRef.APIGroup = rbacv1.GroupName
-	for i := range existingCopy.Subjects {
-		if existingCopy.Subjects[i].Kind == "User" {
-			existingCopy.Subjects[i].APIGroup = rbacv1.GroupName
-		}
-	}
-
-	requiredCopy.RoleRef.APIGroup = rbacv1.GroupName
-	for i := range requiredCopy.Subjects {
-		if existingCopy.Subjects[i].Kind == "User" {
-			requiredCopy.Subjects[i].APIGroup = rbacv1.GroupName
-		}
-	}
 	modified := false
 
 	MergeMap(&modified, existingCopy.Labels, requiredCopy.Labels)
