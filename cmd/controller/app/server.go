@@ -6,7 +6,8 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clustersetmapper"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alaph1 "github.com/open-cluster-management/api/cluster/v1alpha1"
@@ -19,9 +20,9 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrole"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clusterrolebinding"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/syncclusterrolebinding"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/gc"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -47,9 +48,8 @@ func init() {
 }
 
 func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
-
 	clustersetToSubject := helpers.NewClustersetSubjectsMapper()
-
+	clusterSetMapper := helpers.NewClusterSetMapper()
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", o.KubeConfig)
 	if err != nil {
 		klog.Errorf("unable to get kube config: %v", err)
@@ -115,6 +115,11 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 		return err
 	}
 
+	if err = syncclusterrolebinding.SetupWithManager(mgr, clustersetToSubject, clusterSetMapper); err != nil {
+		klog.Errorf("unable to setup clusterrolebinding reconciler: %v", err)
+		return err
+	}
+
 	if o.EnableRBAC {
 		if err = clusterrbac.SetupWithManager(mgr, kubeClient); err != nil {
 			klog.Errorf("unable to setup clusterrbac reconciler: %v", err)
@@ -132,7 +137,6 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 		return err
 	}
 
-	clusterSetMapper := helpers.NewClusterSetMapper()
 	if err = clustersetmapper.SetupWithManager(mgr, clusterSetMapper); err != nil {
 		klog.Errorf("unable to setup clustersetmapper reconciler: %v", err)
 		return err
