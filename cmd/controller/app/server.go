@@ -24,6 +24,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/gc"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	hiveinternalv1alpha1 "github.com/openshift/hive/pkg/apis/hiveinternal/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -40,6 +41,7 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = inventoryv1alpha1.AddToScheme(scheme)
+	_ = hiveinternalv1alpha1.AddToScheme(scheme)
 	_ = hivev1.AddToScheme(scheme)
 	_ = clusterinfov1beta1.AddToScheme(scheme)
 	_ = clusterv1.Install(scheme)

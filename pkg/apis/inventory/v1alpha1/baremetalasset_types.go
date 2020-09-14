@@ -1,7 +1,6 @@
 package v1alpha1
 
 import (
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -69,7 +68,7 @@ type BareMetalAssetStatus struct {
 	// +patchMergeKey=type
 	// +patchStrategy=merge
 	// +optional
-	Conditions []conditionsv1.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type"`
 
 	// RelatedObjects is a list of objects created and maintained by this
 	// operator. Object references will be added to this list after they have
@@ -82,19 +81,19 @@ type BareMetalAssetStatus struct {
 const (
 	// ConditionCredentialsFound reports whether the secret containing the credentials
 	// of a BareMetalAsset have been found.
-	ConditionCredentialsFound conditionsv1.ConditionType = "CredentialsFound"
+	ConditionCredentialsFound string = "CredentialsFound"
 
 	// ConditionAssetSyncStarted reports whether synchronization of a BareMetalHost
 	// to a managed cluster has started
-	ConditionAssetSyncStarted conditionsv1.ConditionType = "AssetSyncStarted"
+	ConditionAssetSyncStarted string = "AssetSyncStarted"
 
 	// ConditionClusterDeploymentFound reports whether the cluster deployment referenced in
 	// a BareMetalAsset has been found.
-	ConditionClusterDeploymentFound conditionsv1.ConditionType = "ClusterDeploymentFound"
+	ConditionClusterDeploymentFound string = "ClusterDeploymentFound"
 
 	// ConditionAssetSyncCompleted reports whether synchronization of a BareMetalHost
 	// to a managed cluster has completed
-	ConditionAssetSyncCompleted conditionsv1.ConditionType = "AssetSyncCompleted"
+	ConditionAssetSyncCompleted string = "AssetSyncCompleted"
 )
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

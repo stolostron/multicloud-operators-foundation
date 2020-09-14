@@ -32,6 +32,12 @@ type ClusterDeprovisionPlatform struct {
 	Azure *AzureClusterDeprovision `json:"azure,omitempty"`
 	// GCP contains GCP-specific deprovision settings
 	GCP *GCPClusterDeprovision `json:"gcp,omitempty"`
+	// OpenStack contains OpenStack-specific deprovision settings
+	OpenStack *OpenStackClusterDeprovision `json:"openstack,omitempty"`
+	// VSphere contains VMWare vSphere-specific deprovision settings
+	VSphere *VSphereClusterDeprovision `json:"vsphere,omitempty"`
+	// Ovirt contains oVirt-specific deprovision settings
+	Ovirt *OvirtClusterDeprovision `json:"ovirt,omitempty"`
 }
 
 // AWSClusterDeprovision contains AWS-specific configuration for a ClusterDeprovision
@@ -57,6 +63,37 @@ type GCPClusterDeprovision struct {
 	CredentialsSecretRef *corev1.LocalObjectReference `json:"credentialsSecretRef,omitempty"`
 }
 
+// OpenStackClusterDeprovision contains OpenStack-specific configuration for a ClusterDeprovision
+type OpenStackClusterDeprovision struct {
+	// Cloud is the secion in the clouds.yaml secret below to use for auth/connectivity.
+	Cloud string `json:"cloud"`
+	// CredentialsSecretRef is the OpenStack account credentials to use for deprovisioning the cluster
+	CredentialsSecretRef *corev1.LocalObjectReference `json:"credentialsSecretRef,omitempty"`
+}
+
+// VSphereClusterDeprovision contains VMware vSphere-specific configuration for a ClusterDeprovision
+type VSphereClusterDeprovision struct {
+	// CredentialsSecretRef is the vSphere account credentials to use for deprovisioning the cluster
+	CredentialsSecretRef corev1.LocalObjectReference `json:"credentialsSecretRef"`
+	// CertificatesSecretRef refers to a secret that contains the vSphere CA certificates
+	// necessary for communicating with the VCenter.
+	CertificatesSecretRef corev1.LocalObjectReference `json:"certificatesSecretRef"`
+	// VCenter is the vSphere vCenter hostname.
+	VCenter string `json:"vCenter"`
+}
+
+// OvirtClusterDeprovision contains oVirt-specific configuration for a ClusterDeprovision
+type OvirtClusterDeprovision struct {
+	// The oVirt cluster ID
+	ClusterID string `json:"clusterID"`
+	// CredentialsSecretRef is the oVirt account credentials to use for deprovisioning the cluster
+	// secret fields: ovirt_url, ovirt_username, ovirt_password, ovirt_ca_bundle
+	CredentialsSecretRef corev1.LocalObjectReference `json:"credentialsSecretRef"`
+	// CertificatesSecretRef refers to a secret that contains the oVirt CA certificates
+	// necessary for communicating with the oVirt.
+	CertificatesSecretRef corev1.LocalObjectReference `json:"certificatesSecretRef"`
+}
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
@@ -67,7 +104,7 @@ type GCPClusterDeprovision struct {
 // +kubebuilder:printcolumn:name="ClusterID",type="string",JSONPath=".spec.clusterID"
 // +kubebuilder:printcolumn:name="Completed",type="boolean",JSONPath=".status.completed"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
-// +kubebuilder:resource:path=clusterdeprovisions,shortName=cdr
+// +kubebuilder:resource:path=clusterdeprovisions,shortName=cdr,scope=Namespaced
 type ClusterDeprovision struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
