@@ -150,7 +150,7 @@ func generateClusterSubjectMap(clustersetToClusters *helpers.ClusterSetMapper, c
 }
 
 func generateClusterRoleName(clusterName string) string {
-	return "open-cluster-management:managedcluster:" + clusterName
+	return "open-cluster-management:admin:" + clusterName
 }
 func generateClusterRoleBindingName(clusterName string) string {
 	return "open-cluster-management:clusterset:managedcluster:" + clusterName
