@@ -168,10 +168,11 @@ func (r *Reconciler) createOrUpdateRole(clusterName string) error {
 
 // createOrUpdateRoleBinding create or update a role binding for a given cluster
 func (r *Reconciler) createOrUpdateRoleBinding(clusterName string) error {
-	acmRoleBinding := NewRoleBinding(
-		roleName(clusterName), clusterName).Groups(subjectPrefix + clusterName).BindingOrDie()
+	roleName := roleName(clusterName)
+	acmRoleBinding := NewRoleBinding(roleName, clusterName).Groups(subjectPrefix + clusterName).BindingOrDie()
 
-	binding, err := r.kubeClient.RbacV1().RoleBindings(clusterName).Get(context.TODO(), clusterName, metav1.GetOptions{})
+	// role and rolebinding have the same name
+	binding, err := r.kubeClient.RbacV1().RoleBindings(clusterName).Get(context.TODO(), roleName, metav1.GetOptions{})
 	if err != nil {
 		if errors.IsNotFound(err) {
 			_, err = r.kubeClient.RbacV1().RoleBindings(clusterName).Create(context.TODO(), &acmRoleBinding, metav1.CreateOptions{})
