@@ -1,7 +1,6 @@
 package v1beta1
 
 import (
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,7 +22,7 @@ type ClusterInfoSpec struct {
 type ClusterInfoStatus struct {
 	// Conditions contains condition information for a managed cluster
 	// +optional
-	Conditions []clusterv1.StatusCondition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// Version is the kube version of managed cluster.
 	// +optional
@@ -130,7 +129,8 @@ type DistributionType string
 
 // Supported distribution type
 const (
-	DistributionTypeOCP DistributionType = "OCP"
+	DistributionTypeOCP     DistributionType = "OCP"
+	DistributionTypeUnknown DistributionType = "Unknow"
 )
 
 // KubeVendorType describe the kubernetes provider of the cluster

@@ -7,7 +7,7 @@
 package v1beta1
 
 import (
-	"github.com/open-cluster-management/api/cluster/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -36,7 +36,7 @@ func (in *ClusterInfoStatus) DeepCopyInto(out *ClusterInfoStatus) {
 	*out = *in
 	if in.Conditions != nil {
 		in, out := &in.Conditions, &out.Conditions
-		*out = make([]v1.StatusCondition, len(*in))
+		*out = make([]v1.Condition, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

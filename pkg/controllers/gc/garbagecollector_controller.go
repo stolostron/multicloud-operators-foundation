@@ -5,7 +5,7 @@ import (
 	"time"
 
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -67,7 +67,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if condition := helpers.FindStatusCondition(action.Status.Conditions, actionv1beta1.ConditionActionCompleted); condition != nil {
+	if condition := meta.FindStatusCondition(action.Status.Conditions, actionv1beta1.ConditionActionCompleted); condition != nil {
 		sub := time.Since(condition.LastTransitionTime.Time)
 		if sub < gcTimeout {
 			return ctrl.Result{RequeueAfter: gcTimeout - sub}, nil

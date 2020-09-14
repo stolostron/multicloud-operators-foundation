@@ -9,14 +9,13 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/prometheus/common/log"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -98,7 +97,7 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		newStatus.NodeList = nodeList
 	}
 
-	newSyncedCondition := clusterv1.StatusCondition{
+	newSyncedCondition := metav1.Condition{
 		Type:    clusterv1beta1.ManagedClusterInfoSynced,
 		Status:  metav1.ConditionTrue,
 		Reason:  clusterv1beta1.ReasonManagedClusterInfoSynced,
@@ -113,7 +112,7 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	needUpdate := false
 	oldStatus := clusterInfo.Status.DeepCopy()
-	oldSyncedCondition := helpers.FindClusterStatusCondition(oldStatus.Conditions, clusterv1beta1.ManagedClusterInfoSynced)
+	oldSyncedCondition := meta.FindStatusCondition(oldStatus.Conditions, clusterv1beta1.ManagedClusterInfoSynced)
 	if oldSyncedCondition != nil {
 		oldSyncedCondition.LastTransitionTime = metav1.Time{}
 		if !equality.Semantic.DeepEqual(newSyncedCondition, *oldSyncedCondition) {
@@ -123,14 +122,14 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		needUpdate = true
 	}
 
-	oldStatus.Conditions = []clusterv1.StatusCondition{}
+	oldStatus.Conditions = []metav1.Condition{}
 	if !equality.Semantic.DeepEqual(newStatus, *oldStatus) {
 		needUpdate = true
 	}
 
 	if needUpdate {
 		newStatus.Conditions = clusterInfo.Status.Conditions
-		helpers.SetClusterStatusCondition(&newStatus.Conditions, newSyncedCondition)
+		meta.SetStatusCondition(&newStatus.Conditions, newSyncedCondition)
 		clusterInfo.Status = newStatus
 		err = r.Client.Status().Update(ctx, clusterInfo)
 		if err != nil {
@@ -546,7 +545,9 @@ func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDist
 func (r *ClusterInfoReconciler) getDistributionInfoAndClusterID() (clusterv1beta1.DistributionInfo, string, error) {
 	var err error
 	var clusterID string
-	var distributionInfo = clusterv1beta1.DistributionInfo{}
+	var distributionInfo = clusterv1beta1.DistributionInfo{
+		Type: clusterv1beta1.DistributionTypeUnknown,
+	}
 
 	switch {
 	case r.isOpenshift():

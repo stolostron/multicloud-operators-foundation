@@ -1,7 +1,6 @@
 package v1beta1
 
 import (
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/conditions"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -52,7 +51,7 @@ type ActionSpec struct {
 type ActionStatus struct {
 	// Conditions represents the conditions of this resource on managed cluster
 	// +optional
-	Conditions []conditions.Condition `json:"conditions,omitempty"`
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// Result references the related result of the action
 	// +nullable
@@ -75,7 +74,7 @@ const (
 // These are valid conditions of a cluster.
 const (
 	// ConditionActionCompleted means the work is completed.
-	ConditionActionCompleted conditions.ConditionType = "Completed"
+	ConditionActionCompleted string = "Completed"
 )
 
 const (
