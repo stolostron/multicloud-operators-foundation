@@ -160,7 +160,7 @@ const ManagedClusterViewTemplate = `{
     "labels": {
       "name": "getdeployment"
     },
-    "name": "getdeployment",
+    "generateName": "test-automation-view-",
     "namespace": "cluster1"
   },
   "spec": {

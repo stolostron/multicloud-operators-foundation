@@ -348,7 +348,7 @@ func CheckDistributionInfo(obj *unstructured.Unstructured) error {
 	}
 
 	distributionType, found, err := unstructured.NestedString(distributionInfo, "type")
-	if err != nil || !found {
+	if err != nil {
 		return fmt.Errorf("failed to get distributionType. found:%v, err:%v", found, err)
 	}
 
@@ -373,7 +373,7 @@ func CheckDistributionInfo(obj *unstructured.Unstructured) error {
 
 func CheckClusterID(obj *unstructured.Unstructured) error {
 	distributionType, found, err := unstructured.NestedString(obj.Object, "status", "distributionInfo", "type")
-	if err != nil || !found {
+	if err != nil {
 		return fmt.Errorf("failed to get distributionType. found:%v, err:%v", found, err)
 	}
 
