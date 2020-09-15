@@ -5,7 +5,10 @@ const ManagedClusterActionCreateTemplate = `{
   "apiVersion": "action.open-cluster-management.io/v1beta1",
   "kind": "ManagedClusterAction",
   "metadata": {
-    "name": "nginx-action-create",
+    "labels": {
+	  "test-automation": "true"
+    },
+	"generateName": "test-automation-action-create-",
     "namespace": "cluster1"
   },
   "spec": {
@@ -57,7 +60,10 @@ const ManagedClusterActionDeleteTemplate = `{
   "apiVersion": "action.open-cluster-management.io/v1beta1",
   "kind": "ManagedClusterAction",
   "metadata": {
-    "name": "nginx-action-delete",
+    "labels": {
+      "test-automation": "true"
+    },
+	"generateName": "test-automation-action-delete-",
     "namespace": "cluster1"
   },
   "spec": {
@@ -75,7 +81,10 @@ const ManagedClusterActionUpdateTemplate = `{
   "apiVersion": "action.open-cluster-management.io/v1beta1",
   "kind": "ManagedClusterAction",
   "metadata": {
-    "name": "nginx-action-update",
+ 	"labels": {
+	  "test-automation": "true"
+    },
+	"generateName": "test-automation-action-update-",
     "namespace": "cluster1"
   },
   "spec": {
@@ -145,10 +154,10 @@ const NamespaceTemplate = `{
   "apiVersion": "v1",
   "kind": "Namespace",
   "metadata": {
-      "labels": {
-    "test-automation": "true"
-  },
-      "generateName": "test-automation-"
+    "labels": {
+	  "test-automation": "true"
+  	},
+	"generateName": "test-automation-"
   }
 }`
 
@@ -158,9 +167,9 @@ const ManagedClusterViewTemplate = `{
   "kind": "ManagedClusterView",
   "metadata": {
     "labels": {
-      "name": "getdeployment"
+      "test-automation": "true"
     },
-    "name": "getdeployment",
+	"generateName": "test-automation-view-",
     "namespace": "cluster1"
   },
   "spec": {
