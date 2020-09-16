@@ -317,6 +317,7 @@ func SetStatusType(obj *unstructured.Unstructured, statusType string) error {
 
 	return nil
 }
+
 func SetSubjects(obj *unstructured.Unstructured, newSubject rbacv1.Subject) error {
 	subjects, _, err := unstructured.NestedSlice(obj.Object, "subjects")
 	if err != nil {
@@ -651,7 +652,4 @@ func podConditionsReady(pod corev1.Pod) error {
 	}
 
 	return nil
-}
-func GenerateClusterRoleBindingName(clusterName string) string {
-	return "open-cluster-management:clusterset:managedcluster:" + clusterName
 }
