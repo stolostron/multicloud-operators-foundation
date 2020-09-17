@@ -27,10 +27,12 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"
 	"k8s.io/client-go/util/retry"
+	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
 )
 
 const kubeConfigFileEnv = "KUBECONFIG"
@@ -58,6 +60,48 @@ func getKubeConfigFile() (string, error) {
 	}
 
 	return kubeConfigFile, nil
+}
+
+func NewKubeConfig() (*rest.Config, error) {
+	kubeConfigFile, err := getKubeConfigFile()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
+}
+
+func NewKubeClient() (kubernetes.Interface, error) {
+	kubeConfigFile, err := getKubeConfigFile()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return kubernetes.NewForConfig(cfg)
+}
+
+func NewAPIServiceClient() (*apiregistrationclient.ApiregistrationV1Client, error) {
+	kubeConfigFile, err := getKubeConfigFile()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return apiregistrationclient.NewForConfig(cfg)
 }
 
 func NewDynamicClient() (dynamic.Interface, error) {

@@ -1,5 +1,6 @@
 // +k8s:deepcopy-gen=package,register
 // +k8s:openapi-gen=true
+// +k8s:conversion-gen=github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis
 // +k8s:defaulter-gen=TypeMeta
 
 // Package v1beta1 is the v1beta1 version of the API.
