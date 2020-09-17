@@ -98,3 +98,13 @@ func ApplyClusterRoleBinding(ctx context.Context, client client.Client, required
 	existingCopy.RoleRef = requiredCopy.RoleRef
 	return client.Update(ctx, existingCopy)
 }
+
+//managedcluster admin role
+func GenerateClusterRoleName(clusterName string) string {
+	return "open-cluster-management:admin:" + clusterName
+}
+
+//clusterset clusterrolebinding
+func GenerateClusterRoleBindingName(clusterName string) string {
+	return "open-cluster-management:clusterset:managedcluster:" + clusterName
+}

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -71,7 +72,7 @@ func TestReconcile(t *testing.T) {
 					Name: "clusterRole1",
 				},
 			},
-			clusterrolebindingName: generateClusterRoleBindingName("c1"),
+			clusterrolebindingName: utils.GenerateClusterRoleBindingName("c1"),
 			exist:                  false,
 		},
 		{
@@ -83,7 +84,7 @@ func TestReconcile(t *testing.T) {
 					Name: "clusterRole1",
 				},
 			},
-			clusterrolebindingName: generateClusterRoleBindingName("c0"),
+			clusterrolebindingName: utils.GenerateClusterRoleBindingName("c0"),
 			exist:                  false,
 		},
 		{
@@ -95,7 +96,7 @@ func TestReconcile(t *testing.T) {
 					Name: "clusterRole2",
 				},
 			},
-			clusterrolebindingName: generateClusterRoleBindingName("c1"),
+			clusterrolebindingName: utils.GenerateClusterRoleBindingName("c1"),
 			exist:                  true,
 		},
 	}
@@ -117,7 +118,7 @@ func validateResult(t *testing.T, r *Reconciler, clusterrolebindingName string, 
 }
 
 func Test_getClusterNameInClusterrolebinding(t *testing.T) {
-	//	clusterroleBindingName := generateClusterRoleBindingName("c1")
+	//	clusterroleBindingName := utils.GenerateClusterRoleBindingName("c1")
 	requiedRoleBinding1 := generateRequiredClusterRoleBinding("c1", nil)
 	type args struct {
 		clusterrolebinding *rbacv1.ClusterRoleBinding

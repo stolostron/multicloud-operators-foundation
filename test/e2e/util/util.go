@@ -13,6 +13,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
+	rbacv1 "k8s.io/api/rbac/v1"
+
 	clusterv1client "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
@@ -207,6 +209,12 @@ func CreateClusterResource(
 	return dynamicClient.Resource(gvr).Create(context.TODO(), obj, metav1.CreateOptions{})
 }
 
+func UpdateClusterResource(dynamicClient dynamic.Interface,
+	gvr schema.GroupVersionResource,
+	obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	return dynamicClient.Resource(gvr).Update(context.TODO(), obj, metav1.UpdateOptions{})
+}
+
 func CreateResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	return dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
 }
@@ -305,6 +313,30 @@ func SetStatusType(obj *unstructured.Unstructured, statusType string) error {
 		condition := conditions[0].(map[string]interface{})
 		condition["status"] = "True"
 		condition["type"] = statusType
+	}
+
+	return nil
+}
+
+func SetSubjects(obj *unstructured.Unstructured, newSubject rbacv1.Subject) error {
+	subjects, _, err := unstructured.NestedSlice(obj.Object, "subjects")
+	if err != nil {
+		return err
+	}
+
+	if subjects == nil {
+		subjects = make([]interface{}, 0)
+	}
+
+	subjects = append(subjects, map[string]interface{}{
+		"namespace": newSubject.Namespace,
+		"kind":      newSubject.Kind,
+		"name":      newSubject.Name,
+	})
+
+	err = unstructured.SetNestedField(obj.Object, subjects, "subjects")
+	if err != nil {
+		return err
 	}
 
 	return nil

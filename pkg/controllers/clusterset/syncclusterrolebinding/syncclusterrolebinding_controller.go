@@ -149,16 +149,9 @@ func generateClusterSubjectMap(clustersetToClusters *helpers.ClusterSetMapper, c
 	return clusterToSubject
 }
 
-func generateClusterRoleName(clusterName string) string {
-	return "open-cluster-management:admin:" + clusterName
-}
-func generateClusterRoleBindingName(clusterName string) string {
-	return "open-cluster-management:clusterset:managedcluster:" + clusterName
-}
-
 func generateRequiredClusterRoleBinding(clusterName string, subjects []rbacv1.Subject) *rbacv1.ClusterRoleBinding {
-	clusterRoleBindingName := generateClusterRoleBindingName(clusterName)
-	clusterRoleName := generateClusterRoleName(clusterName)
+	clusterRoleBindingName := utils.GenerateClusterRoleBindingName(clusterName)
+	clusterRoleName := utils.GenerateClusterRoleName(clusterName)
 
 	var labels = make(map[string]string)
 	labels[clusterrolebinding.ClusterSetLabel] = "true"
