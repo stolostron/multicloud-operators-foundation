@@ -11,6 +11,8 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
+	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
 )
 
 func TestE2E(t *testing.T) {
@@ -25,6 +27,8 @@ const (
 
 var (
 	dynamicClient          dynamic.Interface
+	kubeClient             kubernetes.Interface
+	apiRegistrationClient  *apiregistrationclient.ApiregistrationV1Client
 	managedClusterName     string
 	fakeManagedClusterName string
 )
@@ -42,6 +46,12 @@ var _ = ginkgo.BeforeSuite(func() {
 	}
 
 	dynamicClient, err = util.NewDynamicClient()
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+	kubeClient, err = util.NewKubeClient()
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+	apiRegistrationClient, err = util.NewAPIServiceClient()
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	// accept the managed cluster that is deployed by registration-operator

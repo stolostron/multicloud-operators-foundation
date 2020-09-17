@@ -29,6 +29,7 @@ type ClusterStatusList struct {
 	Items []ClusterStatus `json:"items" protobuf:"bytes,2,rep,name=items"`
 }
 
+// +k8s:conversion-gen:explicit-from=net/url.Values
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // ClusterStatusProxyOptions is the option for ClusterStatus
