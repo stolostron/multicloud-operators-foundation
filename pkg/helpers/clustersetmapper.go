@@ -1,8 +1,9 @@
 package helpers
 
 import (
-	"k8s.io/apimachinery/pkg/util/sets"
 	"sync"
+
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 type ClusterSetMapper struct {
@@ -43,6 +44,57 @@ func (c *ClusterSetMapper) DeleteClusterSet(clusterSetName string) {
 	return
 }
 
+func (c *ClusterSetMapper) DeleteClusterInClusterSet(clusterName string) {
+	if clusterName == "" {
+		return
+	}
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	for clusterset, clusters := range c.clusterSetToClusters {
+		if !clusters.Has(clusterName) {
+			continue
+		}
+		clusters.Delete(clusterName)
+		if len(clusters) == 0 {
+			delete(c.clusterSetToClusters, clusterset)
+		}
+	}
+
+	return
+}
+func (c *ClusterSetMapper) UpdateClusterInClusterSet(clusterName, clusterSetName string) {
+	if clusterName == "" || clusterSetName == "" {
+		return
+	}
+
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	if _, ok := c.clusterSetToClusters[clusterSetName]; !ok {
+		cluster := sets.NewString(clusterName)
+		c.clusterSetToClusters[clusterSetName] = cluster
+	} else {
+		c.clusterSetToClusters[clusterSetName].Insert(clusterName)
+	}
+
+	for clusterset, clusters := range c.clusterSetToClusters {
+		if clusterSetName == clusterset {
+			continue
+		}
+		if !clusters.Has(clusterName) {
+			continue
+		}
+		clusters.Delete(clusterName)
+		if len(clusters) == 0 {
+			delete(c.clusterSetToClusters, clusterset)
+		}
+	}
+
+	return
+}
+
 func (c *ClusterSetMapper) GetClustersOfClusterSet(clusterSetName string) sets.String {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
@@ -55,33 +107,4 @@ func (c *ClusterSetMapper) GetAllClusterSetToClusters() map[string]sets.String {
 	defer c.mutex.RUnlock()
 
 	return c.clusterSetToClusters
-}
-
-func (c *ClusterSetMapper) GetClusterSetsOfCluster(clusterName string) sets.String {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-	clusterSets := sets.NewString()
-	for clusterSet, clusters := range c.clusterSetToClusters {
-		if clusters.Has(clusterName) {
-			clusterSets.Insert(clusterSet)
-		}
-	}
-	return clusterSets
-}
-
-func (c *ClusterSetMapper) GetAllClusterToClusterSets() map[string]sets.String {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
-	clusterToClusterSets := make(map[string]sets.String)
-	for clusterSet, clusters := range c.clusterSetToClusters {
-		for _, cluster := range clusters.UnsortedList() {
-			if _, ok := clusterToClusterSets[cluster]; !ok {
-				clusterToClusterSets[cluster] = sets.NewString(clusterSet)
-				continue
-			}
-			clusterToClusterSets[cluster].Insert(clusterSet)
-		}
-	}
-	return clusterToClusterSets
 }
