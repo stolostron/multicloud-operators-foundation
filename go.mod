@@ -36,7 +36,7 @@ require (
 	github.com/metal3-io/baremetal-operator v0.0.0
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
-	github.com/open-cluster-management/api v0.0.0-20200903203421-64b667f5455c
+	github.com/open-cluster-management/api v0.0.0-20200923021655-f9a64b7328eb
 	github.com/openshift/build-machinery-go v0.0.0-20200819073603-48aa266c95f7
 	github.com/openshift/client-go v0.0.0-20200623090625-83993cebb5ae
 	github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca
