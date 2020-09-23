@@ -63,7 +63,7 @@ func InitializeTLS(s *options.AgentOptions) (*agent.TLSOptions, error) {
 	tlsOptions := &agent.TLSOptions{
 		CertFile: s.TLSCertFile,
 		KeyFile:  s.TLSPrivateKeyFile,
-		Config:   &tls.Config{},
+		Config:   &tls.Config{MinVersion: tls.VersionTLS12},
 	}
 
 	if len(s.ClientCAFile) > 0 {
@@ -81,7 +81,7 @@ func InitializeTLS(s *options.AgentOptions) (*agent.TLSOptions, error) {
 }
 
 // ServeHealthProbes starts a server to check healthz and readyz probes
-func ServeHealthProbes(stop <-chan struct{}) {
+func ServeHealthProbes(stop <-chan struct{}, healthProbeBindAddress string) {
 	healthzHandler := &healthz.Handler{Checks: map[string]healthz.Checker{
 		"healthz-ping": healthz.Ping,
 	}}
@@ -97,7 +97,7 @@ func ServeHealthProbes(stop <-chan struct{}) {
 		Handler: mux,
 	}
 
-	ln, err := net.Listen("tcp", ":8000")
+	ln, err := net.Listen("tcp", healthProbeBindAddress)
 	if err != nil {
 		klog.Errorf("error listening on %s: %v", ":8000", err)
 		return

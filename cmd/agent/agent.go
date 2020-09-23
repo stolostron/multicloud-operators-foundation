@@ -96,7 +96,7 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 		os.Exit(1)
 	}
 
-	go app.ServeHealthProbes(stopCh)
+	go app.ServeHealthProbes(stopCh, ":8000")
 
 	run := func(ctx context.Context) {
 		// run agent server

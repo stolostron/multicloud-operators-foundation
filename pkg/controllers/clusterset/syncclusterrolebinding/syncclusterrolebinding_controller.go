@@ -97,12 +97,14 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		return reconcile, err
 	}
-	for _, curClusterRoleBinding := range clusterRoleBindingList.Items {
+	for _, clusterRoleBinding := range clusterRoleBindingList.Items {
+		curClusterRoleBinding := clusterRoleBinding
 		curClusterName := getClusterNameInClusterrolebinding(curClusterRoleBinding)
 		if curClusterName == "" {
 			klog.Errorf("Failed to get cluster name from clusterrolebinding. clusterrolebinding:%v", curClusterRoleBinding)
 			continue
 		}
+
 		if _, ok := clusterToSubject[curClusterName]; !ok {
 			err = r.client.Delete(ctx, &curClusterRoleBinding)
 			if err != nil {
