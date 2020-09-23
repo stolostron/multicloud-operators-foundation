@@ -6,8 +6,8 @@ import (
 	clusterv1alapha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -63,6 +63,48 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	// put all managedCluster which have this clusterset label into queue if there is the managedClusterset event
+	err = c.Watch(&source.Kind{Type: &clusterv1alapha1.ManagedClusterSet{}},
+		&handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(func(obj handler.MapObject) []reconcile.Request {
+				if _, ok := obj.Object.(*clusterv1alapha1.ManagedClusterSet); !ok {
+					// not a managedClusterset, returning empty
+					klog.Error("managedClusterset handler received non-managedClusterset object")
+					return []reconcile.Request{}
+				}
+
+				managedClusters := &clusterv1.ManagedClusterList{}
+
+				//List Clusterset related cluster
+				labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{
+					clusterSetLabel: obj.Meta.GetName(),
+				}}
+				selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
+				if err != nil {
+					return nil
+				}
+
+				err = mgr.GetClient().List(context.TODO(), managedClusters, &client.ListOptions{LabelSelector: selector})
+				if err != nil {
+					klog.Errorf("failed to list managedClusterSet %v", err)
+				}
+
+				var requests []reconcile.Request
+				for _, managedCluster := range managedClusters.Items {
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name: managedCluster.Name,
+						},
+					})
+				}
+
+				klog.V(5).Infof("List managedCluster %+v", requests)
+				return requests
+			}),
+		})
+	if err != nil {
+		return nil
+	}
 	return nil
 }
 

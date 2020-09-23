@@ -44,6 +44,7 @@ func (c *ClusterSetMapper) DeleteClusterSet(clusterSetName string) {
 	return
 }
 
+//DeleteClusterInClusterSet will delete cluster in all clusterset mapping
 func (c *ClusterSetMapper) DeleteClusterInClusterSet(clusterName string) {
 	if clusterName == "" {
 		return
@@ -64,6 +65,9 @@ func (c *ClusterSetMapper) DeleteClusterInClusterSet(clusterName string) {
 
 	return
 }
+
+//UpdateClusterInClusterSet updates clusterset to cluster mapping.
+//If a the clusterset of a cluster is changed, this func remove cluster from the previous mapping and add in new one.
 func (c *ClusterSetMapper) UpdateClusterInClusterSet(clusterName, clusterSetName string) {
 	if clusterName == "" || clusterSetName == "" {
 		return

@@ -1285,8 +1285,8 @@ github.com/openshift/cluster-version-operator v3.11.1-0.20190629164025-08cac1c02
 github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca h1:F1MEnOMwSrTA0YAkO0he9ip9w0JhYzI/iCB2mXmaSPg=
 github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca/go.mod h1:GDjWl0tX6FNIj82vIxeudWeSx2Ff6nDZ8uJn0ohUFvo=
 github.com/openshift/generic-admission-server v1.14.1-0.20200903115324-4ddcdd976480/go.mod h1:OAHL5WnZphlhVEf5fTdeGLvNwMu1B2zCWpmxJpCA35o=
-github.com/openshift/hive v1.0.10 h1:zLmYkw8EUNAVwQVDZbqnz3JFH5VVlIidCSlGnRc4sRo=
-github.com/openshift/hive v1.0.10/go.mod h1:0p3hBOLAG2rhLMliKeIZylClTroUjKev3LamAEjE7M0=
+github.com/openshift/hive v1.0.9 h1:ee9yBXgoQNhBXIpIhZzhuOZN9yTCuQp/KhzLBNRmjho=
+github.com/openshift/hive v1.0.9/go.mod h1:g3jhqjas1lsxnc75tq9I30Om96aP+vJugeNpRU9BBxE=
 github.com/openshift/installer v0.9.0-master.0.20200817183917-ab4e753ff30b/go.mod h1:24X05+CUCfQNRxCV6yw7i7WZZsD+yC3V7roFquRLJFc=
 github.com/openshift/library-go v0.0.0-20200918101923-1e4c94603efe/go.mod h1:NI6xOQGuTnLXeHW8Z2glKSFhF7X+YxlAlqlBMaK0zEM=
 github.com/openshift/machine-api-operator v0.0.0-20190312153711-9650e16c9880/go.mod h1:7HeAh0v04zQn1L+4ItUjvpBQYsm2Nf81WaZLiXTcnkc=

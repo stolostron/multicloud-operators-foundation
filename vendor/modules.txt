@@ -235,7 +235,7 @@ github.com/openshift/client-go/route/clientset/versioned/typed/route/v1/fake
 # github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca
 ## explicit
 github.com/openshift/custom-resource-status/objectreferences/v1
-# github.com/openshift/hive v1.0.10
+# github.com/openshift/hive v1.0.9
 ## explicit
 github.com/openshift/hive/pkg/apis/hive/v1
 github.com/openshift/hive/pkg/apis/hive/v1/aws

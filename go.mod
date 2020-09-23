@@ -41,7 +41,7 @@ require (
 	github.com/openshift/build-machinery-go v0.0.0-20200819073603-48aa266c95f7
 	github.com/openshift/client-go v0.0.0-20200827190008-3062137373b5
 	github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca
-	github.com/openshift/hive v1.0.10
+	github.com/openshift/hive v1.0.9
 	github.com/prometheus/common v0.10.0
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/pflag v1.0.5
