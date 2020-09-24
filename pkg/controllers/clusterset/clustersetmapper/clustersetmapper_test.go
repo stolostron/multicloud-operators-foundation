@@ -1,6 +1,9 @@
 package clustersetmapper
 
 import (
+	"os"
+	"testing"
+
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alapha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
@@ -10,10 +13,8 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"testing"
 )
 
 var (
@@ -44,13 +45,7 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-var initMapperData = map[string]sets.String{
-	"clusterSet1":  {"cluster11": {}, "cluster12": {}, "cluster13": {}},
-	"clusterSet2":  {"cluster21": {}, "cluster22": {}, "cluster23": {}},
-	"clusterSet12": {"cluster11": {}, "cluster12": {}, "cluster13": {}, "cluster21": {}, "cluster22": {}, "cluster23": {}},
-}
-
-func newTestReconciler(managedClusterSetObjs, managedClusterObjs []runtime.Object) *Reconciler {
+func newTestReconciler(managedClusterSetObjs, managedClusterObjs []runtime.Object, initMapperData map[string]sets.String) *Reconciler {
 	objs := managedClusterSetObjs
 	objs = append(objs, managedClusterObjs...)
 	r := &Reconciler{
@@ -70,91 +65,82 @@ func TestReconcile(t *testing.T) {
 
 	tests := []struct {
 		name               string
+		initMap            map[string]sets.String
 		clusterSetObjs     []runtime.Object
 		clusterObjs        []runtime.Object
 		expectedMapperData map[string]sets.String
 		req                reconcile.Request
 	}{
 		{
-			name: "update ClusterSet",
+			name: "add Cluster",
+			initMap: map[string]sets.String{
+				"clusterSet1": {"cluster2": {}, "cluster3": {}},
+			},
 			clusterSetObjs: []runtime.Object{
 				&clusterv1alapha1.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "clusterSet2",
+						Name: "clusterSet1",
 					},
-					Spec: clusterv1alapha1.ManagedClusterSetSpec{
-						ClusterSelectors: []clusterv1alapha1.ClusterSelector{
-							{
-								ClusterNames: []string{"cluster31", "cluster11"},
-							},
-							{
-								LabelSelector: &metav1.LabelSelector{
-									MatchLabels: map[string]string{
-										"cloud": "aws",
-									},
-								},
-							},
-						},
-					},
+					Spec: clusterv1alapha1.ManagedClusterSetSpec{},
 				},
 			},
 			clusterObjs: []runtime.Object{
 				&clusterv1.ManagedCluster{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: "cluster31",
-					},
-					Spec: clusterv1.ManagedClusterSpec{},
-				},
-				&clusterv1.ManagedCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "cluster11",
-					},
-					Spec: clusterv1.ManagedClusterSpec{},
-				},
-				&clusterv1.ManagedCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   "cluster32",
-						Labels: map[string]string{"cloud": "aws"},
-					},
-					Spec: clusterv1.ManagedClusterSpec{},
-				},
-				&clusterv1.ManagedCluster{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   "cluster22",
-						Labels: map[string]string{"cloud": "aws"},
+						Name: "cluster1",
+						Labels: map[string]string{
+							ClusterSetLabel: "clusterSet1",
+						},
 					},
 					Spec: clusterv1.ManagedClusterSpec{},
 				},
 			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: "clusterSet2",
+					Name: "cluster1",
 				},
 			},
 			expectedMapperData: map[string]sets.String{
-				"clusterSet1":  {"cluster11": {}, "cluster12": {}, "cluster13": {}},
-				"clusterSet2":  {"cluster11": {}, "cluster31": {}, "cluster22": {}, "cluster32": {}},
-				"clusterSet12": {"cluster11": {}, "cluster12": {}, "cluster13": {}, "cluster21": {}, "cluster22": {}, "cluster23": {}},
-			},
+				"clusterSet1": {"cluster1": {}, "cluster2": {}, "cluster3": {}}},
 		},
 		{
-			name:           "delete ClusterSet",
-			clusterSetObjs: []runtime.Object{},
-			clusterObjs:    []runtime.Object{},
+			name: "update Cluster",
+			initMap: map[string]sets.String{
+				"clusterSet1": {"cluster2": {}, "cluster3": {}},
+			},
+			clusterSetObjs: []runtime.Object{
+				&clusterv1alapha1.ManagedClusterSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "clusterSet2",
+					},
+					Spec: clusterv1alapha1.ManagedClusterSetSpec{},
+				},
+			},
+			clusterObjs: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster2",
+						Labels: map[string]string{
+							ClusterSetLabel: "clusterSet2",
+						},
+					},
+					Spec: clusterv1.ManagedClusterSpec{},
+				},
+			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: "clusterSet2",
+					Name: "cluster2",
 				},
 			},
 			expectedMapperData: map[string]sets.String{
-				"clusterSet1":  {"cluster11": {}, "cluster12": {}, "cluster13": {}},
-				"clusterSet12": {"cluster11": {}, "cluster12": {}, "cluster13": {}, "cluster21": {}, "cluster22": {}, "cluster23": {}},
+				"clusterSet1": {"cluster3": {}},
+				"clusterSet2": {"cluster2": {}},
 			},
 		},
 	}
 
 	for _, test := range tests {
-		r := newTestReconciler(test.clusterSetObjs, test.clusterObjs)
+		r := newTestReconciler(test.clusterSetObjs, test.clusterObjs, test.initMap)
 		r.Reconcile(test.req)
 		validateResult(t, r, test.expectedMapperData)
 
@@ -163,7 +149,9 @@ func TestReconcile(t *testing.T) {
 
 func validateResult(t *testing.T, r *Reconciler, expectedMapperData map[string]sets.String) {
 	mapperData := r.clusterSetMapper.GetAllClusterSetToClusters()
-	assert.Equal(t, len(mapperData), len(expectedMapperData))
+	if !assert.Equal(t, len(mapperData), len(expectedMapperData)) {
+		t.Errorf("expect:%v  actual:%v", expectedMapperData, mapperData)
+	}
 	for clusterSet, clusters := range mapperData {
 		assert.True(t, expectedMapperData[clusterSet].Equal(clusters))
 	}

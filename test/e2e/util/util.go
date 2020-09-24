@@ -333,7 +333,20 @@ func GenerateCSR(clusterNamespace, clusterName string, key []byte) (string, erro
 	csr := base64.StdEncoding.EncodeToString(data)
 	return csr, nil
 }
+func AddLabels(obj *unstructured.Unstructured, labels map[string]string) error {
+	oriLabels, _, err := unstructured.NestedStringMap(obj.Object, "metadata", "labels")
+	if err != nil {
+		return err
+	}
+	if len(oriLabels) == 0 {
+		oriLabels = make(map[string]string)
+	}
+	for k, v := range labels {
+		oriLabels[k] = v
+	}
 
+	return unstructured.SetNestedStringMap(obj.Object, oriLabels, "metadata", "labels")
+}
 func SetStatusType(obj *unstructured.Unstructured, statusType string) error {
 	conditions, _, err := unstructured.NestedSlice(obj.Object, "status", "conditions")
 	if err != nil {

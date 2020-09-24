@@ -3,6 +3,7 @@ package e2e
 import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -48,6 +49,18 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 		// create ManagedClusterSet to real cluster
 		clusterset, err = util.CreateResource(dynamicClient, clusterSetGVR, clusterset)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", clusterSetGVR.Resource)
+
+		//set ManagedClusterset for ManagedCluster
+		managedCluster, err := util.GetClusterResource(dynamicClient, util.ManagedClusterGVR, "cluster1")
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to get %s", util.ManagedClusterGVR.Resource)
+		clustersetlabel := map[string]string{
+			clustersetmapper.ClusterSetLabel: clusterset.GetName(),
+		}
+		err = util.AddLabels(managedCluster, clustersetlabel)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to add label %s", clustersetlabel)
+
+		managedCluster, err = util.UpdateClusterResource(dynamicClient, util.ManagedClusterGVR, managedCluster)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to update %s", util.ManagedClusterGVR.Resource)
 
 		// create clusterrole
 		clusterrole, err = util.LoadResourceFromJSON(util.ClusterRoleTemplate)

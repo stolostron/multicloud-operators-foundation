@@ -2,13 +2,12 @@ package clustersetmapper
 
 import (
 	"context"
-	"fmt"
+
+	clusterv1alapha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -20,9 +19,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+)
+
+const (
+	ClusterSetLabel = "cluster.open-cluster-management.io/clusterset"
 )
 
 type Reconciler struct {
@@ -56,134 +58,90 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	// put all managedClusterSets into queue if there is the managedCluster event
-	err = c.Watch(&source.Kind{Type: &clusterv1.ManagedCluster{}},
+	if err = c.Watch(&source.Kind{Type: &clusterv1.ManagedCluster{}},
+		&handler.EnqueueRequestForObject{}); err != nil {
+		return err
+	}
+
+	// put all managedCluster which have this clusterset label into queue if there is the managedClusterset event
+	err = c.Watch(&source.Kind{Type: &clusterv1alapha1.ManagedClusterSet{}},
 		&handler.EnqueueRequestsFromMapFunc{
 			ToRequests: handler.ToRequestsFunc(func(obj handler.MapObject) []reconcile.Request {
-				if _, ok := obj.Object.(*clusterv1.ManagedCluster); !ok {
-					// not a managedCluster, returning empty
-					klog.Error("managedCluster handler received non-managedCluster object")
+				if _, ok := obj.Object.(*clusterv1alapha1.ManagedClusterSet); !ok {
+					// not a managedClusterset, returning empty
+					klog.Error("managedClusterset handler received non-managedClusterset object")
 					return []reconcile.Request{}
 				}
 
-				managedClusterSets := &clusterv1alpha1.ManagedClusterSetList{}
-				err := mgr.GetClient().List(context.TODO(), managedClusterSets, &client.ListOptions{})
+				managedClusters := &clusterv1.ManagedClusterList{}
+
+				//List Clusterset related cluster
+				labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{
+					ClusterSetLabel: obj.Meta.GetName(),
+				}}
+				selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
+				if err != nil {
+					return nil
+				}
+
+				err = mgr.GetClient().List(context.TODO(), managedClusters, &client.ListOptions{LabelSelector: selector})
 				if err != nil {
 					klog.Errorf("failed to list managedClusterSet %v", err)
 				}
 
 				var requests []reconcile.Request
-				for _, managedClusterSet := range managedClusterSets.Items {
+				for _, managedCluster := range managedClusters.Items {
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
-							Name: managedClusterSet.Name,
+							Name: managedCluster.Name,
 						},
 					})
 				}
 
-				klog.V(5).Infof("List managedClusterSet %+v", requests)
+				klog.V(5).Infof("List managedCluster %+v", requests)
 				return requests
 			}),
 		})
 	if err != nil {
 		return nil
 	}
-
-	if err = c.Watch(&source.Kind{Type: &clusterv1alpha1.ManagedClusterSet{}},
-		&handler.EnqueueRequestForObject{}); err != nil {
-		return err
-	}
-
 	return nil
 }
 
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	managedClusterSet := &clusterv1alpha1.ManagedClusterSet{}
+	managedCluster := &clusterv1.ManagedCluster{}
 	klog.V(5).Infof("reconcile: %+v", req)
-	err := r.client.Get(ctx, types.NamespacedName{Name: req.Name}, managedClusterSet)
+	err := r.client.Get(ctx, types.NamespacedName{Name: req.Name}, managedCluster)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			// managedClusterSet has been deleted
-			r.clusterSetMapper.DeleteClusterSet(req.Name)
+			// managedCluster has been deleted
+			r.clusterSetMapper.DeleteClusterInClusterSet(req.Name)
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+	if _, ok := managedCluster.Labels[ClusterSetLabel]; !ok {
+		r.clusterSetMapper.DeleteClusterInClusterSet(req.Name)
+		return ctrl.Result{}, nil
+	}
+
+	managedClustersetName := managedCluster.Labels[ClusterSetLabel]
+
+	//If the managedclusterset do not exist, delete this clusterset in map
+	managedClusterset := &clusterv1alapha1.ManagedClusterSet{}
+	err = r.client.Get(ctx, types.NamespacedName{Name: managedClustersetName}, managedClusterset)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			r.clusterSetMapper.DeleteClusterSet(managedClustersetName)
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}
 
-	selectedClusters := sets.NewString()
-	for _, clusterSelector := range managedClusterSet.Spec.ClusterSelectors {
-		clusters, err := r.selectClusters(clusterSelector)
-		if err != nil {
-
-		}
-		selectedClusters.Insert(clusters...)
-	}
-
-	r.clusterSetMapper.UpdateClusterSetByClusters(managedClusterSet.Name, selectedClusters)
+	managedClusterName := managedCluster.GetName()
+	r.clusterSetMapper.UpdateClusterInClusterSet(managedClusterName, managedClustersetName)
 
 	klog.V(5).Infof("clusterSetMapper: %+v", r.clusterSetMapper.GetAllClusterSetToClusters())
 	return ctrl.Result{}, nil
-}
-
-// selectClusters returns names of managed clusters which match the cluster selector
-func (r *Reconciler) selectClusters(selector clusterv1alpha1.ClusterSelector) (clusterNames []string, err error) {
-	switch {
-	case len(selector.ClusterNames) > 0 && selector.LabelSelector != nil:
-		// return error if both ClusterNames and LabelSelector is specified for they are mutually exclusive
-		// This case should be handled by validating webhook
-		return nil, fmt.Errorf("both ClusterNames and LabelSelector is specified in ClusterSelector: %v", selector.LabelSelector)
-	case len(selector.ClusterNames) > 0:
-		// select clusters with cluster names
-		for _, clusterName := range selector.ClusterNames {
-			cluster := &clusterv1.ManagedCluster{}
-			err = r.client.Get(context.Background(), types.NamespacedName{Name: clusterName}, cluster)
-			switch {
-			case errors.IsNotFound(err):
-				continue
-			case err != nil:
-				return nil, fmt.Errorf("unable to fetch ManagedCluster %q: %w", clusterName, err)
-			default:
-				clusterNames = append(clusterNames, clusterName)
-			}
-		}
-		return clusterNames, nil
-	case selector.LabelSelector != nil:
-		// select clusters with label selector
-		labelSelector, err := convertLabels(selector.LabelSelector)
-		if err != nil {
-			// This case should be handled by validating webhook
-			return nil, fmt.Errorf("invalid label selector: %v, %w", selector.LabelSelector, err)
-		}
-		clusters := &clusterv1.ManagedClusterList{}
-		err = r.client.List(context.Background(),
-			clusters,
-			&client.ListOptions{
-				LabelSelector: labelSelector},
-		)
-		if err != nil {
-			return nil, fmt.Errorf("unable to list ManagedClusters with label selector: %v, %w", selector.LabelSelector, err)
-		}
-		for _, cluster := range clusters.Items {
-			clusterNames = append(clusterNames, cluster.Name)
-		}
-		return clusterNames, nil
-	default:
-		// no cluster selected if neither ClusterNames nor LabelSelector is specified
-		return clusterNames, nil
-	}
-}
-
-// convertLabels returns label
-func convertLabels(labelSelector *metav1.LabelSelector) (labels.Selector, error) {
-	if labelSelector != nil {
-		selector, err := metav1.LabelSelectorAsSelector(labelSelector)
-		if err != nil {
-			return labels.Nothing(), err
-		}
-
-		return selector, nil
-	}
-
-	return labels.Everything(), nil
 }
