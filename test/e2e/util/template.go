@@ -186,15 +186,6 @@ const ManagedClusterSetTemplate = `{
   "kind": "ManagedClusterSet",
   "metadata": {
     "name": "clusterset1"
-  },
-  "spec": {
-    "clusterSelectors": [
-        {
-            "clusterNames": [
-                "cluster1"
-            ]
-        }
-    ]
   }
 }`
 

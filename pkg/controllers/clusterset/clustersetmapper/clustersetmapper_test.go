@@ -89,7 +89,7 @@ func TestReconcile(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster1",
 						Labels: map[string]string{
-							clusterSetLabel: "clusterSet1",
+							ClusterSetLabel: "clusterSet1",
 						},
 					},
 					Spec: clusterv1.ManagedClusterSpec{},
@@ -121,7 +121,7 @@ func TestReconcile(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cluster2",
 						Labels: map[string]string{
-							clusterSetLabel: "clusterSet2",
+							ClusterSetLabel: "clusterSet2",
 						},
 					},
 					Spec: clusterv1.ManagedClusterSpec{},

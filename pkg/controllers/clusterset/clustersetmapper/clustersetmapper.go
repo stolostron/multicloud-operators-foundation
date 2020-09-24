@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	clusterSetLabel = "cluster.open-cluster-management.io/clusterset"
+	ClusterSetLabel = "cluster.open-cluster-management.io/clusterset"
 )
 
 type Reconciler struct {
@@ -77,7 +77,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 				//List Clusterset related cluster
 				labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{
-					clusterSetLabel: obj.Meta.GetName(),
+					ClusterSetLabel: obj.Meta.GetName(),
 				}}
 				selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
 				if err != nil {
@@ -121,19 +121,19 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 		return ctrl.Result{}, err
 	}
-	if _, ok := managedCluster.Labels[clusterSetLabel]; !ok {
+	if _, ok := managedCluster.Labels[ClusterSetLabel]; !ok {
 		r.clusterSetMapper.DeleteClusterInClusterSet(req.Name)
 		return ctrl.Result{}, nil
 	}
 
-	managedClustersetName := managedCluster.Labels[clusterSetLabel]
+	managedClustersetName := managedCluster.Labels[ClusterSetLabel]
 
 	//If the managedclusterset do not exist, delete this clusterset in map
 	managedClusterset := &clusterv1alapha1.ManagedClusterSet{}
 	err = r.client.Get(ctx, types.NamespacedName{Name: managedClustersetName}, managedClusterset)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			r.clusterSetMapper.DeleteClusterSet("managedClusterset")
+			r.clusterSetMapper.DeleteClusterSet(managedClustersetName)
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
