@@ -59,6 +59,10 @@ metadata:
     - apiGroups: ["inventory.open-cluster-management.io"]
       resources: ["baremetalassets", "baremetalassets/status"]
       verbs: ["get", "list", "watch", "update", "delete"]
+    - apiGroups: ["inventory.open-cluster-management.io"]
+      resources: ["baremetalassets/finalizers"]
+      verbs: ["update"]
+      
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
