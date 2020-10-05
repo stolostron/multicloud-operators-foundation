@@ -97,6 +97,37 @@ func newTestReconciler(existingObjs []runtime.Object) *ViewReconciler {
 				},
 			},
 		},
+		{
+			Group: metav1.APIGroup{
+				TypeMeta: metav1.TypeMeta{
+					Kind:       "Secret",
+					APIVersion: "v1",
+				},
+				Name: "",
+				Versions: []metav1.GroupVersionForDiscovery{
+					{
+						GroupVersion: "v1",
+						Version:      "v1",
+					},
+				},
+				PreferredVersion: metav1.GroupVersionForDiscovery{
+					GroupVersion: "v1",
+					Version:      "v1",
+				},
+				ServerAddressByClientCIDRs: nil,
+			},
+			VersionedResources: map[string][]metav1.APIResource{
+				"v1": {
+					{
+						Name:         "secrets",
+						SingularName: "secret",
+						Group:        "",
+						Kind:         "Secret",
+						Version:      "v1",
+					},
+				},
+			},
+		},
 	}
 
 	viewReconciler := &ViewReconciler{
@@ -338,6 +369,29 @@ func TestQueryResource(t *testing.T) {
 				},
 			},
 			expectedErrorType: fmt.Errorf("the server doesn't have a resource type \"deploymentts\""),
+			expectedConditions: []metav1.Condition{
+				{
+					Type:   viewv1beta1.ConditionViewProcessing,
+					Status: metav1.ConditionFalse,
+				},
+			},
+		},
+		{
+			name: "queryResourceSecrets",
+			managedClusterView: &viewv1beta1.ManagedClusterView{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      managedClusterViewName,
+					Namespace: clusterNamespace,
+				},
+				Spec: viewv1beta1.ViewSpec{
+					Scope: viewv1beta1.ViewScope{
+						Resource:  "secrets",
+						Name:      "secret1",
+						Namespace: "default",
+					},
+				},
+			},
+			expectedErrorType: nil,
 			expectedConditions: []metav1.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
