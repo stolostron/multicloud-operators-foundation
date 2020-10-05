@@ -132,6 +132,17 @@ func (r *ViewReconciler) queryResource(managedClusterView *viewv1beta1.ManagedCl
 		gvr = mapping.Resource
 	}
 
+	// Do not return content of secrets
+	if gvr.Resource == "secrets" {
+		conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
+			Type:    viewv1beta1.ConditionViewProcessing,
+			Status:  corev1.ConditionFalse,
+			Reason:  viewv1beta1.ReasonResourceTypeInvalid,
+			Message: fmt.Errorf("viewing secrets is not allowed").Error(),
+		})
+		return nil
+	}
+
 	obj, err = r.ManagedClusterDynamicClient.Resource(gvr).Namespace(scope.Namespace).Get(scope.Name, metav1.GetOptions{})
 	if err != nil {
 		conditions.SetStatusCondition(&managedClusterView.Status.Conditions, conditions.Condition{
