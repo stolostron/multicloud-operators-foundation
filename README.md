@@ -30,13 +30,13 @@ Run the following after cloning/pulling/making a change.
 make build
 ```
 
-make build will build all the binaries in current directory.
+make build will build all the binaries in the current directory.
 
 ### Prerequisites
 
 Need to install ManagedCluster before deploy ACM Foundation.
 
-1. Install Cluster Mananger on Hub cluster.
+1. Install Cluster Manager on Hub cluster.
 
     ```sh
     make deploy-hub
