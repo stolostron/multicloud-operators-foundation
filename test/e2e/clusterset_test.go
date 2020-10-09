@@ -51,16 +51,21 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", clusterSetGVR.Resource)
 
 		//set ManagedClusterset for ManagedCluster
-		managedCluster, err := util.GetClusterResource(dynamicClient, util.ManagedClusterGVR, "cluster1")
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to get %s", util.ManagedClusterGVR.Resource)
 		clustersetlabel := map[string]string{
 			clustersetmapper.ClusterSetLabel: clusterset.GetName(),
 		}
-		err = util.AddLabels(managedCluster, clustersetlabel)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to add label %s", clustersetlabel)
-
-		managedCluster, err = util.UpdateClusterResource(dynamicClient, util.ManagedClusterGVR, managedCluster)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to update %s", util.ManagedClusterGVR.Resource)
+		gomega.Eventually(func() error {
+			managedCluster, err := util.GetClusterResource(dynamicClient, util.ManagedClusterGVR, "cluster1")
+			if err != nil {
+				return err
+			}
+			err = util.AddLabels(managedCluster, clustersetlabel)
+			if err != nil {
+				return err
+			}
+			_, err = util.UpdateClusterResource(dynamicClient, util.ManagedClusterGVR, managedCluster)
+			return err
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.Succeed())
 
 		// create clusterrole
 		clusterrole, err = util.LoadResourceFromJSON(util.ClusterRoleTemplate)
