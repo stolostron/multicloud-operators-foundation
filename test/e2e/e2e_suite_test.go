@@ -10,6 +10,7 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 
+	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
@@ -28,6 +29,7 @@ const (
 var (
 	dynamicClient          dynamic.Interface
 	kubeClient             kubernetes.Interface
+	hiveClient             hiveclient.Interface
 	apiRegistrationClient  *apiregistrationclient.ApiregistrationV1Client
 	managedClusterName     string
 	fakeManagedClusterName string
@@ -49,6 +51,9 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	kubeClient, err = util.NewKubeClient()
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+	hiveClient, err = util.NewHiveClient()
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	apiRegistrationClient, err = util.NewAPIServiceClient()
