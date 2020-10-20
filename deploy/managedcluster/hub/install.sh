@@ -22,23 +22,11 @@ cd registration-operator || {
 }
 
 echo "############  Deploying hub"
-#make deploy-hub
-#if [ $? -ne 0 ]; then
-#  echo "############  Failed to deploy hub"
-#  exit 1
-#fi
-
-ns=$($KUBECTL get ns open-cluster-management | grep -c "open-cluster-management")
-if [ "${ns}" -eq 0 ]; then
-  $KUBECTL create ns open-cluster-management
+make deploy-hub
+if [ $? -ne 0 ]; then
+ echo "############  Failed to deploy hub"
+ exit 1
 fi
-
-$KUBECTL apply -f deploy/cluster-manager/crds/0000_01_operator.open-cluster-management.io_clustermanagers.crd.yaml
-$KUBECTL apply -f deploy/cluster-manager/cluster_role.yaml
-$KUBECTL apply -f deploy/cluster-manager/cluster_role_binding.yaml
-$KUBECTL apply -f deploy/cluster-manager/service_account.yaml
-$KUBECTL apply -f deploy/cluster-manager/operator.yaml
-$KUBECTL apply -f deploy/cluster-manager/crds/operator_open-cluster-management_clustermanagers.cr.yaml
 
 for i in {1..7}; do
   echo "############$i  Checking cluster-manager-registration-controller"
