@@ -9,6 +9,8 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 
+	"net/http/pprof"
+
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alaph1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/controller/app/options"
@@ -90,6 +92,11 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 	}
 
 	if err := mgr.AddReadyzCheck("readyz-ping", healthz.Ping); err != nil {
+		klog.Errorf("unable to add readyz check handler: %v", err)
+		return err
+	}
+
+	if err := mgr.AddMetricsExtraHandler("/heap", pprof.Handler("heap")); err != nil {
 		klog.Errorf("unable to add readyz check handler: %v", err)
 		return err
 	}
