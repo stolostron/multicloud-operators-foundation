@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"os"
+	ctrlruntimelog "sigs.k8s.io/controller-runtime/pkg/log"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/agent/app"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/agent/app/options"
@@ -90,6 +91,7 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 		Scheme:             scheme,
 		MetricsBindAddress: o.MetricsAddr,
 		Namespace:          o.ClusterName,
+		Logger:             ctrlruntimelog.NullLogger{},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
