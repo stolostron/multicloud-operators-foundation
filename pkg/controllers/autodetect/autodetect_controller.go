@@ -116,6 +116,10 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
+	if len(labels) == 0 && len(clusterInfo.ObjectMeta.Labels) == 0 {
+		return ctrl.Result{}, nil
+	}
+
 	if !reflect.DeepEqual(labels, clusterInfo.ObjectMeta.Labels) {
 		clusterInfo.SetLabels(labels)
 		if err := r.client.Update(ctx, clusterInfo); err != nil {
