@@ -18,6 +18,7 @@ import (
 	clusterv1client "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
 
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -88,6 +89,20 @@ func NewKubeClient() (kubernetes.Interface, error) {
 	}
 
 	return kubernetes.NewForConfig(cfg)
+}
+
+func NewHiveClient() (hiveclient.Interface, error) {
+	kubeConfigFile, err := getKubeConfigFile()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return hiveclient.NewForConfig(cfg)
 }
 
 func NewAPIServiceClient() (*apiregistrationclient.ApiregistrationV1Client, error) {

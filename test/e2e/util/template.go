@@ -232,3 +232,24 @@ const ClusterRoleBindingTemplate = `{
         }
     ]
 }`
+
+const BMATemplate = `
+{
+  "apiVersion": "inventory.open-cluster-management.io/v1alpha1",
+  "kind": "BareMetalAsset",
+  "metadata": {
+     "name": "mycluster"
+  },
+  "spec": {
+     "bmc": {
+        "address": "localhost",
+        "credentialsName": "my-secret"
+     },
+     "hardwareProfile": "test",
+     "Role": "worker",
+     "clusterDeployment": {
+        "name": "mycluster",
+        "namespace": "default"
+     }
+  }
+}`

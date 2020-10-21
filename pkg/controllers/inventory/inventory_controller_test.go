@@ -83,6 +83,21 @@ func TestReconcile(t *testing.T) {
 			requeue: true,
 		},
 		{
+			name: "All found",
+			existingObjs: []runtime.Object{
+				newBMAWithClusterDeployment(),
+				newSecret(),
+				newClusterDeployment(),
+				newSyncSet(),
+			},
+			req: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      testName,
+					Namespace: testNamespace,
+				},
+			},
+		},
+		{
 			name: "ClusterDeploymentsNotFound",
 			existingObjs: []runtime.Object{
 				newBMAWithClusterDeployment(),
