@@ -268,7 +268,7 @@ func TestEnsureHiveSyncSet(t *testing.T) {
 			expectedConditions: []metav1.Condition{
 				{
 					Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
-					Status: metav1.ConditionTrue,
+					Status: metav1.ConditionFalse,
 				},
 				{
 					Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
@@ -292,7 +292,7 @@ func TestEnsureHiveSyncSet(t *testing.T) {
 						},
 					},
 				}
-			}()},
+			}(), newClusterSync()},
 			expectedConditions: []metav1.Condition{
 				{
 					Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
@@ -342,30 +342,72 @@ func TestCheckClusterSync(t *testing.T) {
 			name:         "ClusterSyncNotFound",
 			existingObjs: []runtime.Object{newBMA()},
 			returnValue:  false,
-			expectedConditions: []metav1.Condition{{
-				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: metav1.ConditionFalse,
-			}},
+			expectedConditions: []metav1.Condition{
+				{
+					Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
+					Status: metav1.ConditionFalse,
+				},
+				{
+					Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
+					Status: metav1.ConditionFalse,
+				},
+			},
 			bma: newBMA(),
 		},
 		{
 			name:         "UnexpectedResourceCount",
-			existingObjs: []runtime.Object{newBMA(), newClusterSync()},
+			existingObjs: []runtime.Object{newBMAWithClusterDeployment(), newSyncSet(), newClusterSync()},
 			returnValue:  false,
-			expectedConditions: []metav1.Condition{{
-				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: metav1.ConditionFalse,
-			}},
-			bma: newBMA(),
+			expectedConditions: []metav1.Condition{
+				{
+					Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
+					Status: metav1.ConditionTrue,
+				},
+				{
+					Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
+					Status: metav1.ConditionFalse,
+				},
+			},
+			bma: newBMAWithClusterDeployment(),
 		},
 		{
 			name:         "SecretApplySuccessSyncCondition",
 			existingObjs: []runtime.Object{newBMAWithClusterDeployment(), newSyncSet(), newClusterSyncInstanceResources()},
 			returnValue:  true,
-			expectedConditions: []metav1.Condition{{
-				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
-				Status: metav1.ConditionTrue,
-			}},
+			expectedConditions: []metav1.Condition{
+				{
+					Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
+					Status: metav1.ConditionTrue,
+				},
+				{
+					Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
+					Status: metav1.ConditionTrue,
+				},
+			},
+			bma: newBMAWithClusterDeployment(),
+		},
+		{
+			name: "SecretApplyFailedSyncCondition",
+			existingObjs: []runtime.Object{
+				newBMAWithClusterDeployment(),
+				newSyncSet(),
+				func() *hiveinternalv1alpha1.ClusterSync {
+					clusterSync := newClusterSyncInstanceResources()
+					clusterSync.Status.SyncSets[0].Result = hiveinternalv1alpha1.FailureSyncSetResult
+					return clusterSync
+				}(),
+			},
+			returnValue: false,
+			expectedConditions: []metav1.Condition{
+				{
+					Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
+					Status: metav1.ConditionTrue,
+				},
+				{
+					Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
+					Status: metav1.ConditionFalse,
+				},
+			},
 			bma: newBMAWithClusterDeployment(),
 		},
 	}

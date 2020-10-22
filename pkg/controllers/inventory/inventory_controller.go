@@ -420,12 +420,6 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *inventoryv1alpha1.
 				return err
 			}
 
-			meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
-				Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
-				Status:  metav1.ConditionTrue,
-				Reason:  "SyncSetCreated",
-				Message: "SyncSet created successfully",
-			})
 			return nil
 		}
 		// other error. fail reconcile
@@ -478,12 +472,6 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(instance *inventoryv1alpha1.
 			})
 			return err
 		}
-		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
-			Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
-			Status:  metav1.ConditionTrue,
-			Reason:  "SyncSetUpdated",
-			Message: "SyncSet updated successfully",
-		})
 	}
 	return nil
 }
@@ -604,6 +592,13 @@ func (r *ReconcileBareMetalAsset) checkHiveClusterSync(instance *inventoryv1alph
 	err := r.client.Get(context.TODO(), syncSetNsN, foundSyncSet)
 	if err != nil {
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
+			Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
+			Status: metav1.ConditionFalse,
+			Reason: "SyncStatusNotFound",
+			Message: fmt.Sprintf("Problem getting Hive SyncSet for Name %s in Namespace %s, %v",
+				syncSetNsN.Name, syncSetNsN.Namespace, err),
+		})
+		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 			Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 			Status: metav1.ConditionFalse,
 			Reason: "SyncStatusNotFound",
@@ -623,6 +618,14 @@ func (r *ReconcileBareMetalAsset) checkHiveClusterSync(instance *inventoryv1alph
 	foundClusterSync := &hiveinternalv1alpha1.ClusterSync{}
 	if r.client.Get(context.TODO(), clusterSyncNsN, foundClusterSync) != nil {
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
+			Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
+			Status: metav1.ConditionFalse,
+			Reason: "ClusterSyncsNotFound",
+			Message: fmt.Sprintf("Problem getting Hive ClusterSync for ClusterDeployment.Name %s in Namespace %s, %v",
+				clusterSyncNsN.Name, clusterSyncNsN.Namespace, err),
+		})
+
+		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 			Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 			Status: metav1.ConditionFalse,
 			Reason: "SyncStatusNotFound",
@@ -631,6 +634,13 @@ func (r *ReconcileBareMetalAsset) checkHiveClusterSync(instance *inventoryv1alph
 		})
 		return false
 	}
+
+	// We set started to true only when syncset and clustersyncs are found.
+	meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
+		Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
+		Status: metav1.ConditionTrue,
+		Reason: "ClusterSyncsAndSyncSetFound",
+	})
 
 	//find locate the correct syncstatus
 	foundSyncStatuses := []hiveinternalv1alpha1.SyncStatus{}
