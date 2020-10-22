@@ -689,20 +689,35 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncStatus(
 			Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 			Status:  metav1.ConditionFalse,
 			Reason:  "SyncSetAppliedFailed",
-			Message: "Failed to apply SyncSet",
+			Message: fmt.Sprintf("Failed to apply SyncSet with err %s", syncSetStatus.FailureMessage),
 		})
 		return false
 	}
 
 	if patchCount == 1 {
-		if syncSetStatus.Result == hiveinternalv1alpha1.FailureSyncSetResult {
-			if strings.Contains(syncSetStatus.FailureMessage, "not found") {
-				if r.client.Delete(context.TODO(), syncSet) != nil {
-					klog.Errorf("Failed to delete syncSet %v", instance.Name)
-				}
-			}
-			return false
+		if syncSetStatus.Result == hiveinternalv1alpha1.SuccessSyncSetResult {
+			meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
+				Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
+				Status:  metav1.ConditionTrue,
+				Reason:  "SyncSetAppliedSuccessful",
+				Message: "Successfully applied SyncSet",
+			})
+			return true
 		}
+
+		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
+			Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
+			Status:  metav1.ConditionFalse,
+			Reason:  "SyncSetAppliedFailed",
+			Message: fmt.Sprintf("Failed to apply SyncSet with err %s", syncSetStatus.FailureMessage),
+		})
+
+		if strings.Contains(syncSetStatus.FailureMessage, "not found") {
+			if r.client.Delete(context.TODO(), syncSet) != nil {
+				klog.Errorf("Failed to delete syncSet %v", instance.Name)
+			}
+		}
+		return false
 	}
 
 	err := fmt.Errorf(
