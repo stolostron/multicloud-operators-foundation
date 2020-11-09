@@ -62,6 +62,9 @@ metadata:
     - apiGroups: ["inventory.open-cluster-management.io"]
       resources: ["baremetalassets/finalizers"]
       verbs: ["update"]
+    - apiGroups: ["coordination.k8s.io"]
+      resources: ["leases"]
+      verbs: ["get", "create", "update"]
       
 
 ---

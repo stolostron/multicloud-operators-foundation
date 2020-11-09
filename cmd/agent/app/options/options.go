@@ -8,6 +8,7 @@ import (
 )
 
 type AgentOptions struct {
+	LeaseDurationSeconds int
 	MetricsAddr          string
 	KubeConfig           string
 	HubKubeConfig        string
@@ -30,6 +31,7 @@ type AgentOptions struct {
 
 func NewAgentOptions() *AgentOptions {
 	return &AgentOptions{
+		LeaseDurationSeconds: 60,
 		MetricsAddr:          ":8080",
 		KubeConfig:           "",
 		HubKubeConfig:        "/var/run/hub/kubeconfig",
@@ -47,6 +49,7 @@ func NewAgentOptions() *AgentOptions {
 }
 
 func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
+	fs.IntVar(&o.LeaseDurationSeconds, "lease-duration", o.LeaseDurationSeconds, "The lease duration in seconds, default 60 sec.")
 	fs.StringVar(&o.MetricsAddr, "metrics-addr", o.MetricsAddr, "The address the metric endpoint binds to.")
 	fs.StringVar(&o.KubeConfig, "kubeconfig", o.KubeConfig,
 		"The kubeconfig file of the managed cluster")

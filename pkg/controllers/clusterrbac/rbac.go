@@ -23,7 +23,7 @@ func buildRoleRules() []rbacv1.PolicyRule {
 		NewRule("update", "patch").Groups(actionv1beta1.GroupName).Resources("managedclusteractions/status").RuleOrDie(),
 		NewRule("get", "list", "watch").Groups(viewv1beta1.GroupName).Resources("managedclusterviews").RuleOrDie(),
 		NewRule("update", "patch").Groups(viewv1beta1.GroupName).Resources("managedclusterviews/status").RuleOrDie(),
-
+		NewRule("get", "create", "update").Groups("coordination.k8s.io").Resources("leases").RuleOrDie(),
 		NewRule("create", "update", "patch").Groups("").Resources("events").RuleOrDie(),
 		NewRule("get", "list", "watch", "create", "update", "delete").Groups("").Resources("secrets").RuleOrDie(),
 	}

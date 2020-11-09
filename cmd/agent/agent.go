@@ -5,7 +5,7 @@ package main
 import (
 	"context"
 	"os"
-	ctrlruntimelog "sigs.k8s.io/controller-runtime/pkg/log"
+	"time"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/agent/app"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/agent/app/options"
@@ -13,12 +13,16 @@ import (
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 	actionctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/action"
+	leasectrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/lease"
+	ctrlruntimelog "sigs.k8s.io/controller-runtime/pkg/log"
+
 	clusterinfoctl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterinfo"
 	viewctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/view"
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -35,6 +39,11 @@ import (
 var (
 	scheme   = runtime.NewScheme()
 	setupLog = ctrl.Log.WithName("setup")
+)
+
+const (
+	AddonName               = "work-manager"
+	leaseUpdateJitterFactor = 0.25
 )
 
 func init() {
@@ -99,6 +108,16 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 	}
 
 	go app.ServeHealthProbes(stopCh, ":8000")
+
+	leaseReconciler := leasectrl.LeaseReconciler{
+		KubeClient:           managedClusterKubeClient,
+		LeaseName:            AddonName,
+		LeaseNamespace:       o.ClusterName,
+		LeaseDurationSeconds: int32(o.LeaseDurationSeconds),
+		HubKubeConfigPath:    o.HubKubeConfig,
+	}
+
+	go wait.JitterUntilWithContext(context.TODO(), leaseReconciler.Reconcile, time.Duration(o.LeaseDurationSeconds)*time.Second, leaseUpdateJitterFactor, true)
 
 	run := func(ctx context.Context) {
 		// run agent server
