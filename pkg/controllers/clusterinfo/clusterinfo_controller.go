@@ -8,7 +8,6 @@ import (
 
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
@@ -143,21 +142,6 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 
-	// TODO: the conditions of managed cluster need to be deprecated.
-	newConditions := cluster.Status.Conditions
-	syncedCondition := meta.FindStatusCondition(clusterInfo.Status.Conditions, clusterinfov1beta1.ManagedClusterInfoSynced)
-	if syncedCondition != nil {
-		newConditions = append(newConditions, *syncedCondition)
-	}
-
-	if !reflect.DeepEqual(newConditions, clusterInfo.Status.Conditions) {
-		clusterInfo.Status.Conditions = newConditions
-		err = r.client.Status().Update(ctx, clusterInfo)
-		if err != nil {
-			klog.Warningf("will reconcile since failed to update ManagedClusterInfo status %v, %v", cluster.Name, err)
-			return ctrl.Result{}, err
-		}
-	}
 	return ctrl.Result{}, nil
 }
 
