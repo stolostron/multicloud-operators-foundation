@@ -470,7 +470,7 @@ func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDist
 	obj, err := r.ManagedClusterDynamicClient.Resource(ocpVersionGVR).Get(context.TODO(), "version", metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("failed to get OCP cluster version: %v", err)
-		return ocpDistributionInfo, "", err
+		return ocpDistributionInfo, "", client.IgnoreNotFound(err)
 	}
 
 	clusterID, _, err := unstructured.NestedString(obj.Object, "spec", "clusterID")
