@@ -6,9 +6,6 @@ import (
 	"io/ioutil"
 	"path"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
-
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alaph1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/controller/app/options"
@@ -20,9 +17,11 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrole"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clusterrolebinding"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/syncclusterrolebinding"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/gc"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	hiveinternalv1alpha1 "github.com/openshift/hive/pkg/apis/hiveinternal/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -32,6 +31,7 @@ import (
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	ctrlruntimelog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var (
@@ -77,6 +77,7 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 		LeaderElectionID:       "foundation-controller",
 		LeaderElection:         o.EnableLeaderElection,
 		HealthProbeBindAddress: ":8000",
+		Logger:                 ctrlruntimelog.NullLogger{},
 	})
 	if err != nil {
 		klog.Errorf("unable to start manager: %v", err)
