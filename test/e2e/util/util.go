@@ -274,6 +274,22 @@ func UpdateClusterResource(dynamicClient dynamic.Interface,
 	return dynamicClient.Resource(gvr).Update(context.TODO(), obj, metav1.UpdateOptions{})
 }
 
+func UpdateResource(dynamicClient dynamic.Interface,
+	gvr schema.GroupVersionResource,
+	obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	var rs *unstructured.Unstructured
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		oldObj, err := GetResource(dynamicClient, gvr, obj.GetNamespace(), obj.GetName())
+		if err != nil {
+			return err
+		}
+		obj.SetResourceVersion(oldObj.GetResourceVersion())
+		rs, err = dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Update(context.TODO(), obj, metav1.UpdateOptions{})
+		return err
+	})
+	return rs, err
+}
+
 func CreateResource(dynamicClient dynamic.Interface, gvr schema.GroupVersionResource, obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	return dynamicClient.Resource(gvr).Namespace(obj.GetNamespace()).Create(context.TODO(), obj, metav1.CreateOptions{})
 }
@@ -694,7 +710,7 @@ func CheckFoundationPodsReady() error {
 	}
 
 	if pods, err := hubClient.CoreV1().Pods("open-cluster-management-agent").List(context.TODO(),
-		metav1.ListOptions{LabelSelector: "app=foundation-agent"}); err != nil {
+		metav1.ListOptions{LabelSelector: "app=work-manager"}); err != nil {
 		if len(pods.Items) == 0 {
 			return fmt.Errorf("failed to get agent pods")
 		}

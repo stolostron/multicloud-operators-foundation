@@ -44,7 +44,7 @@ spec:
         name: foundation-agent
         namespace: open-cluster-management-agent
         labels:
-          app: foundation-agent
+          app: work-manager
       spec:
         type: ClusterIP
         ports:
@@ -53,23 +53,23 @@ spec:
           protocol: TCP
           targetPort: 4443
         selector:
-          app: foundation-agent
+          app: work-manager
     - kind: Deployment
       apiVersion: apps/v1
       metadata:
         name: foundation-agent
         namespace: open-cluster-management-agent
         labels:
-          app: foundation-agent
+          app: work-manager
       spec:
         replicas: 1
         selector:
           matchLabels:
-            app: foundation-agent
+            app: work-manager
         template:
           metadata:
             labels:
-              app: foundation-agent
+              app: work-manager
           spec:
             serviceAccountName: foundation-agent-sa
             securityContext:
@@ -89,6 +89,7 @@ spec:
                 - "--port=4443"
                 - "--agent-address=foundation-agent.open-cluster-management-agent.svc"
                 - "--agent-port=443"
+                - "--lease-duration=5"
                 - "--insecure=true"
               volumeMounts:
                 - name: hub-config
