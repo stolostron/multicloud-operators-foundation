@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
@@ -37,6 +38,7 @@ type ClusterInfoReconciler struct {
 	KubeClient                  kubernetes.Interface
 	ManagedClusterDynamicClient dynamic.Interface
 	RouteV1Client               routev1.Interface
+	ClusterName                 string
 	MasterAddresses             string
 	AgentAddress                string
 	AgentIngress                string
@@ -573,4 +575,89 @@ func (r *ClusterInfoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1beta1.ManagedClusterInfo{}).
 		Complete(r)
+}
+
+func (r *ClusterInfoReconciler) GetClusterClaims() ([]*clusterv1alpha1.ClusterClaim, error) {
+	claims := []*clusterv1alpha1.ClusterClaim{}
+	distributionInfo, clusterID, err := r.getDistributionInfoAndClusterID()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get distribution info and clusterID, error: %w ", err)
+	}
+
+	// handle OpenShift specific claims
+	if len(clusterID) > 0 {
+		claims = append(claims, newClusterClaim("id.openshift.io", clusterID))
+	}
+	if len(distributionInfo.OCP.Version) > 0 {
+		claims = append(claims, newClusterClaim("version.openshift.io", distributionInfo.OCP.Version))
+	}
+	_, _, consoleURL := r.getMasterAddresses()
+	if len(consoleURL) > 0 {
+		claims = append(claims, newClusterClaim("consoleurl.cluster.open-cluster-management.io", consoleURL))
+	}
+
+	// handle reserved claims
+	claims = append(claims, newClusterClaim("id.k8s.io", r.ClusterName))
+	kubeVersion, platform, product := r.getVersionPlatformProduct(distributionInfo)
+	claims = append(claims, newClusterClaim("kubeversion.open-cluster-management.io", kubeVersion))
+	if len(platform) > 0 {
+		claims = append(claims, newClusterClaim("platform.open-cluster-management.io", platform))
+	}
+	if len(product) > 0 {
+		claims = append(claims, newClusterClaim("product.open-cluster-management.io", product))
+	}
+
+	return claims, nil
+}
+
+func (r *ClusterInfoReconciler) getVersionPlatformProduct(distributionInfo clusterv1beta1.DistributionInfo) (kubeVersion, platform, product string) {
+	kubeVersion = r.getVersion()
+	isOpenShift := distributionInfo.Type == clusterv1beta1.DistributionTypeOCP
+
+	// deal with product
+	if isOpenShift {
+		product = "OpenShift"
+	}
+
+	// deal with platform
+	cloudVendor := r.getCloudVendor()
+	gitVersion := strings.ToUpper(kubeVersion)
+	switch {
+	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorIKS)):
+		// IKS
+		platform = string(clusterv1beta1.KubeVendorIKS)
+	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorEKS)):
+		// EKS
+		platform = string(clusterv1beta1.KubeVendorEKS)
+		product = string(clusterv1beta1.KubeVendorEKS)
+	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorGKE)):
+		// GKE
+		platform = string(clusterv1beta1.KubeVendorGKE)
+		product = string(clusterv1beta1.KubeVendorGKE)
+	case cloudVendor == clusterv1beta1.CloudVendorAzure && !isOpenShift:
+		// AKS
+		platform = string(clusterv1beta1.KubeVendorAKS)
+	case cloudVendor == clusterv1beta1.CloudVendorAzure && isOpenShift:
+		// Azure
+		platform = string(clusterv1beta1.CloudVendorAzure)
+	case cloudVendor == clusterv1beta1.CloudVendorAWS:
+		// AWS
+		platform = "AWS"
+	case cloudVendor == clusterv1beta1.CloudVendorGoogle:
+		// GCE
+		platform = "GCE"
+	}
+
+	return kubeVersion, platform, product
+}
+
+func newClusterClaim(name, value string) *clusterv1alpha1.ClusterClaim {
+	return &clusterv1alpha1.ClusterClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		Spec: clusterv1alpha1.ClusterClaimSpec{
+			Value: value,
+		},
+	}
 }
