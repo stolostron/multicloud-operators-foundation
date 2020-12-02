@@ -7,16 +7,17 @@ import (
 	"os"
 	"time"
 
+	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
+	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/agent/app"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/agent/app/options"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 	actionctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/action"
-	leasectrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/lease"
-	ctrlruntimelog "sigs.k8s.io/controller-runtime/pkg/log"
-
+	clusterclaimctl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	clusterinfoctl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterinfo"
+	leasectrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/lease"
 	viewctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/view"
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
@@ -32,6 +33,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/leaderelection"
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlruntimelog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
@@ -52,6 +54,7 @@ func init() {
 	_ = actionv1beta1.AddToScheme(scheme)
 	_ = viewv1beta1.AddToScheme(scheme)
 	_ = clusterv1beta1.AddToScheme(scheme)
+	_ = clusterv1alpha1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -93,6 +96,12 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 	managedClusterClient, err := kubernetes.NewForConfig(managedClusterConfig)
 	if err != nil {
 		setupLog.Error(err, "Unable to create managed cluster clientset.")
+		os.Exit(1)
+	}
+
+	managedClusterClusterClient, err := clusterclientset.NewForConfig(managedClusterConfig)
+	if err != nil {
+		setupLog.Error(err, "Unable to create managed cluster cluster clientset.")
 		os.Exit(1)
 	}
 
@@ -155,6 +164,7 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 			Scheme:                      mgr.GetScheme(),
 			KubeClient:                  managedClusterKubeClient,
 			ManagedClusterDynamicClient: managedClusterDynamicClient,
+			ClusterName:                 o.ClusterName,
 			AgentRoute:                  o.AgentRoute,
 			AgentAddress:                o.AgentAddress,
 			AgentIngress:                o.AgentIngress,
@@ -162,6 +172,12 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 			RouteV1Client:               routeV1Client,
 			Agent:                       agent,
 			AgentService:                o.AgentService,
+		}
+
+		clusterClaimReconciler := clusterclaimctl.ClusterClaimReconciler{
+			Log:               ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
+			ClusterClient:     managedClusterClusterClient,
+			ListClusterClaims: clusterInfoReconciler.GetClusterClaims,
 		}
 
 		if err = actionReconciler.SetupWithManager(mgr); err != nil {
@@ -176,6 +192,11 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 
 		if err = clusterInfoReconciler.SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ManagedClusterInfo")
+			os.Exit(1)
+		}
+
+		if err = clusterClaimReconciler.SetupWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterClaim")
 			os.Exit(1)
 		}
 
