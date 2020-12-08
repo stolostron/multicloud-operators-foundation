@@ -83,4 +83,4 @@ Need to install ManagedCluster before deploy ACM Foundation.
 ## Security Response
 
 If you've found a security issue that you'd like to disclose confidentially please contact
-Red Hat's Product Security team. Details at [here](https://access.redhat.com/security/team/contact)
+Red Hat's Product Security team. Details at [here](https://access.redhat.com/security/team/contact).
