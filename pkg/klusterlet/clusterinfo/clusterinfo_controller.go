@@ -16,6 +16,7 @@ import (
 	"github.com/prometheus/common/log"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -471,6 +472,11 @@ func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDist
 	ocpDistributionInfo := clusterv1beta1.OCPDistributionInfo{}
 	obj, err := r.ManagedClusterDynamicClient.Resource(ocpVersionGVR).Get(context.TODO(), "version", metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			ocpDistributionInfo.DesiredVersion = "3.x"
+			ocpDistributionInfo.Version = "3.x"
+			return ocpDistributionInfo, "", nil
+		}
 		klog.Errorf("failed to get OCP cluster version: %v", err)
 		return ocpDistributionInfo, "", client.IgnoreNotFound(err)
 	}
