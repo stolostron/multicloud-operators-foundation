@@ -14,7 +14,7 @@ This is a guide on how to build and deploy ACM Foundation from code.
 
 ### Setup
 
-Create a directory `$GOPATH/src/github.com/open-cluster-management`, and clone the code into the directory.
+Create a directory `$GOPATH/src/github.com/open-cluster-management`, and clone the code into the directory. Since the build process will use (eventually installing) some `golang` tools, makes sure you have `$GOPATH/bin` added to your `$PATH`. 
 
 Populate the vendor directory. If necessary, set environment variable `GO111MODULE=on`.
 
