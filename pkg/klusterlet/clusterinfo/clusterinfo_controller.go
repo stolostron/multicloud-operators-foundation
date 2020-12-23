@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"strconv"
@@ -567,6 +568,86 @@ func (r *ClusterInfoReconciler) getDistributionInfoAndClusterID() (clusterv1beta
 	return distributionInfo, clusterID, nil
 }
 
+var ocpInfrGVR = schema.GroupVersionResource{
+	Group:    "config.openshift.io",
+	Version:  "v1",
+	Resource: "infrastructures",
+}
+
+const (
+	AWSPlatformType = "AWS"
+	GCPPlatformType = "GCP"
+	GCEPlatformType = "GCE"
+)
+
+func (r *ClusterInfoReconciler) getClusterRegion() string {
+	var region = ""
+
+	switch {
+	case r.isOpenshift():
+		obj, err := r.ManagedClusterDynamicClient.Resource(ocpInfrGVR).Get(context.TODO(), "cluster", metav1.GetOptions{})
+		if err != nil {
+			klog.Errorf("failed to get OCP infrastructures.config.openshift.io/cluster: %v", err)
+			return ""
+		}
+
+		platformType, _, err := unstructured.NestedString(obj.Object, "status", "platform")
+		if err != nil {
+			klog.Errorf("failed to get OCP platform type in status of infrastructures.config.openshift.io/cluster: %v", err)
+			return ""
+		}
+
+		// only ocp on aws and gcp has region definition
+		// refer to https://github.com/openshift/api/blob/master/config/v1/types_infrastructure.go
+		switch platformType {
+		case AWSPlatformType:
+			region, _, err = unstructured.NestedString(obj.Object, "status", "platformStatus", "aws", "region")
+			if err != nil {
+				klog.Errorf("failed to get OCP region in status of infrastructures.config.openshift.io/cluster: %v", err)
+				return ""
+			}
+		case GCPPlatformType:
+			region, _, err = unstructured.NestedString(obj.Object, "status", "platformStatus", "gcp", "region")
+			if err != nil {
+				klog.Errorf("failed to get OCP region in status of infrastructures.config.openshift.io/cluster: %v", err)
+				return ""
+			}
+		}
+	}
+
+	return region
+}
+
+type InfraConfig struct {
+	InfraName string `json:"infraName,omitempty"`
+}
+
+func (r *ClusterInfoReconciler) getInfraConfig() string {
+	if !r.isOpenshift() {
+		return ""
+	}
+
+	obj, err := r.ManagedClusterDynamicClient.Resource(ocpInfrGVR).Get(context.TODO(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		klog.Errorf("failed to get OCP infrastructures.config.openshift.io/cluster: %v", err)
+		return ""
+	}
+
+	infraConfig := InfraConfig{}
+	infraConfig.InfraName, _, err = unstructured.NestedString(obj.Object, "status", "infrastructureName")
+	if err != nil {
+		klog.Errorf("failed to get OCP infrastructure Name in status of infrastructures.config.openshift.io/cluster: %v", err)
+		return ""
+	}
+
+	infraConfigRaw, err := json.Marshal(infraConfig)
+	if err != nil {
+		klog.Errorf("failed to marshal infraConfig: %v", err)
+		return ""
+	}
+	return string(infraConfigRaw)
+}
+
 func (r *ClusterInfoReconciler) RefreshAgentServer(clusterInfo *clusterv1beta1.ManagedClusterInfo) {
 	select {
 	case r.Agent.RunServer <- *clusterInfo:
@@ -597,6 +678,12 @@ func (r *ClusterInfoReconciler) GetClusterClaims() ([]*clusterv1alpha1.ClusterCl
 	if len(distributionInfo.OCP.Version) > 0 {
 		claims = append(claims, newClusterClaim("version.openshift.io", distributionInfo.OCP.Version))
 	}
+
+	infraConfig := r.getInfraConfig()
+	if len(infraConfig) > 0 {
+		claims = append(claims, newClusterClaim("infrastructure.openshift.io", infraConfig))
+	}
+
 	_, _, consoleURL := r.getMasterAddresses()
 	if len(consoleURL) > 0 {
 		claims = append(claims, newClusterClaim("consoleurl.cluster.open-cluster-management.io", consoleURL))
@@ -611,6 +698,11 @@ func (r *ClusterInfoReconciler) GetClusterClaims() ([]*clusterv1alpha1.ClusterCl
 	}
 	if len(product) > 0 {
 		claims = append(claims, newClusterClaim("product.open-cluster-management.io", product))
+	}
+
+	region := r.getClusterRegion()
+	if len(region) > 0 {
+		claims = append(claims, newClusterClaim("region.open-cluster-management.io", region))
 	}
 
 	return claims, nil
@@ -648,10 +740,10 @@ func (r *ClusterInfoReconciler) getVersionPlatformProduct(distributionInfo clust
 		platform = string(clusterv1beta1.CloudVendorAzure)
 	case cloudVendor == clusterv1beta1.CloudVendorAWS:
 		// AWS
-		platform = "AWS"
+		platform = AWSPlatformType
 	case cloudVendor == clusterv1beta1.CloudVendorGoogle:
 		// GCE
-		platform = "GCE"
+		platform = GCEPlatformType
 	}
 
 	return kubeVersion, platform, product
