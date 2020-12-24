@@ -2,21 +2,22 @@ package controllers
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
-	dynamicfake "k8s.io/client-go/dynamic/fake"
-	stdlog "log"
-	"os"
-	"testing"
-
 	tlog "github.com/go-logr/logr/testing"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 	routev1Fake "github.com/openshift/client-go/route/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
+	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/scheme"
+	stdlog "log"
+	"os"
+	"testing"
 
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	"github.com/stretchr/testify/assert"
 	extensionv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,9 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/rest"
-
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
-	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -468,6 +466,179 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 			if err != nil {
 				assert.Equal(t, err.Error(), test.expectError)
 			}
+		})
+	}
+}
+
+func NewOCPClusterInfoReconciler() *ClusterInfoReconciler {
+	fakeKubeClient := kubefake.NewSimpleClientset(
+		kubeNode, ocpConsole, kubeMonitoringSecret)
+	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
+
+	project := metav1.APIResource{
+		Name:         "projects",
+		SingularName: "project",
+		Namespaced:   false,
+		Kind:         "Project",
+	}
+	ocpResource := &metav1.APIResourceList{
+		GroupVersion: "project.openshift.io/v1",
+		APIResources: []metav1.APIResource{project},
+	}
+	fakeKubeClient.Resources = append(fakeKubeClient.Resources, ocpResource)
+	return &ClusterInfoReconciler{
+		Log:           tlog.NullLogger{},
+		KubeClient:    fakeKubeClient,
+		RouteV1Client: fakeRouteV1Client,
+		AgentAddress:  "127.0.0.1:8000",
+		AgentIngress:  "kube-system/foundation-ingress-testcluster-agent",
+		AgentRoute:    "AgentRoute",
+		AgentService:  "kube-system/agent",
+	}
+}
+
+const (
+	awsOCPInfraConfig = `{
+    "apiVersion": "config.openshift.io/v1",
+    "kind": "Infrastructure",
+    "metadata": {
+        "name": "cluster"
+    },
+    "spec": {
+        "cloudConfig": {
+        "name": ""
+        },
+        "platformSpec": {
+        "aws": {},
+        "type": "AWS"
+        }
+    },
+    "status": {
+        "apiServerInternalURI": "https://api-int.osd-test.wu67.s1.devshift.org:6443",
+        "apiServerURL": "https://api.osd-test.wu67.s1.devshift.org:6443",
+        "etcdDiscoveryDomain": "osd-test.wu67.s1.devshift.org",
+        "infrastructureName": "ocp-aws",
+        "platform": "AWS",
+        "platformStatus": {
+        "aws": {
+            "region": "region-aws"
+        },
+        "type": "AWS"
+        } 
+    }
+}`
+
+	gcpInfraConfig = `{
+    "apiVersion": "config.openshift.io/v1",
+    "kind": "Infrastructure",
+    "metadata": {
+        "name": "cluster"
+    },
+    "spec": {
+        "cloudConfig": {
+            "name": ""
+        },
+        "platformSpec": {
+            "gcp": {},
+            "type": "GCP"
+        }
+    },
+    "status": {
+        "apiServerInternalURI": "https://api-int.osd-test.wu67.s1.devshift.org:6443",
+        "apiServerURL": "https://api.osd-test.wu67.s1.devshift.org:6443",
+        "etcdDiscoveryDomain": "osd-test.wu67.s1.devshift.org",
+        "infrastructureName": "ocp-gcp",
+        "platform": "GCP",
+        "platformStatus": {
+            "gcp": {
+                "region": "region-gcp"
+            },
+            "type": "GCP"
+        }
+    }
+}`
+)
+
+func newInfraConfig(platformType string) *unstructured.Unstructured {
+	obj := unstructured.Unstructured{}
+	switch platformType {
+	case AWSPlatformType:
+		obj.UnmarshalJSON([]byte(awsOCPInfraConfig))
+	case GCPPlatformType:
+		obj.UnmarshalJSON([]byte(gcpInfraConfig))
+	}
+
+	return &obj
+}
+
+func TestGetRegion(t *testing.T) {
+	tests := []struct {
+		name                  string
+		clusterInfoReconciler *ClusterInfoReconciler
+		dynamicClient         dynamic.Interface
+		expectRegion          string
+	}{
+		{
+			name:                  "aws OCP",
+			clusterInfoReconciler: NewOCPClusterInfoReconciler(),
+			dynamicClient:         dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newInfraConfig(AWSPlatformType)),
+			expectRegion:          "region-aws",
+		},
+		{
+			name:                  "GCP",
+			clusterInfoReconciler: NewOCPClusterInfoReconciler(),
+			dynamicClient:         dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newInfraConfig(GCPPlatformType)),
+			expectRegion:          "region-gcp",
+		},
+		{
+			name:                  "Non-OCP",
+			clusterInfoReconciler: NewClusterInfoReconciler(),
+			dynamicClient:         dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+			expectRegion:          "",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.clusterInfoReconciler.ManagedClusterDynamicClient = test.dynamicClient
+			region := test.clusterInfoReconciler.getClusterRegion()
+			assert.Equal(t, test.expectRegion, region)
+		})
+	}
+}
+
+func TestGetInfraConfig(t *testing.T) {
+	tests := []struct {
+		name                  string
+		clusterInfoReconciler *ClusterInfoReconciler
+		dynamicClient         dynamic.Interface
+		expectInfra           string
+	}{
+		{
+			name:                  "aws OCP",
+			clusterInfoReconciler: NewOCPClusterInfoReconciler(),
+			dynamicClient:         dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newInfraConfig(AWSPlatformType)),
+			expectInfra:           "{\"infraName\":\"ocp-aws\"}",
+		},
+		{
+			name:                  "GCP",
+			clusterInfoReconciler: NewOCPClusterInfoReconciler(),
+			dynamicClient:         dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newInfraConfig(GCPPlatformType)),
+			expectInfra:           "{\"infraName\":\"ocp-gcp\"}",
+		},
+		{
+			name:                  "Non-OCP",
+			clusterInfoReconciler: NewClusterInfoReconciler(),
+			dynamicClient:         dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
+			expectInfra:           "",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.clusterInfoReconciler.ManagedClusterDynamicClient = test.dynamicClient
+			infraName := test.clusterInfoReconciler.getInfraConfig()
+			assert.Equal(t, test.expectInfra, infraName)
 		})
 	}
 }
