@@ -469,13 +469,17 @@ var ocpVersionGVR = schema.GroupVersionResource{
 	Resource: "clusterversions",
 }
 
+const (
+	OCP3Version = "3"
+)
+
 func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDistributionInfo, string, error) {
 	ocpDistributionInfo := clusterv1beta1.OCPDistributionInfo{}
 	obj, err := r.ManagedClusterDynamicClient.Resource(ocpVersionGVR).Get(context.TODO(), "version", metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			ocpDistributionInfo.DesiredVersion = "3.x"
-			ocpDistributionInfo.Version = "3.x"
+			ocpDistributionInfo.DesiredVersion = OCP3Version
+			ocpDistributionInfo.Version = OCP3Version
 			return ocpDistributionInfo, "", nil
 		}
 		klog.Errorf("failed to get OCP cluster version: %v", err)

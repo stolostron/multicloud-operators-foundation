@@ -416,7 +416,7 @@ const clusterVersions = `{
 }`
 
 func newClusterVersions(version string) *unstructured.Unstructured {
-	if version == "3.x" {
+	if version == "3" {
 		return &unstructured.Unstructured{
 			Object: map[string]interface{}{
 				"apiVersion": "test/v1",
@@ -452,8 +452,8 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 		},
 		{
 			name:          "OCP3.x",
-			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("3.x")),
-			expectVersion: "3.x",
+			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("3")),
+			expectVersion: "3",
 			expectError:   "",
 		},
 	}
