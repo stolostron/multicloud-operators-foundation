@@ -545,7 +545,7 @@ func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDist
 				klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
 				continue
 			}
-			if conditionstatus == "True" {
+			if conditionstatus == "True" && ocpDistributionInfo.DesiredVersion != ocpDistributionInfo.Version {
 				ocpDistributionInfo.UpgradeFailed = true
 			}
 			break

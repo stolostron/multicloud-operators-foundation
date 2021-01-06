@@ -317,7 +317,8 @@ func TestClusterInfoReconciler_getMasterAddresses(t *testing.T) {
 	}
 }
 
-const clusterVersions = `{
+const (
+	clusterVersions = `{
   "apiVersion": "config.openshift.io/v1",
   "kind": "ClusterVersion",
   "metadata": {
@@ -414,8 +415,71 @@ const clusterVersions = `{
 	"versionHash": "4lK_pl-YbSw="
   }
 }`
+	clusterVersionsFail = `{
+  "apiVersion": "config.openshift.io/v1",
+  "kind": "ClusterVersion",
+  "metadata": {
+	"name": "version"
+  },
+  "spec": {
+    "channel": "stable-4.5",
+    "clusterID": "ffd989a0-8391-426d-98ac-86ae6d051433",
+    "upstream": "https://api.openshift.com/api/upgrades_info/v1/graph"
+  },
+ "status": {
+	"availableUpdates": [
+	 {
+		"force": false,
+		"image": "quay.io/openshift-release-dev/ocp-release@sha256:78b878986d2d0af6037d637aa63e7b6f80fc8f17d0f0d5b077ac6aca83f792a0",
+		"version": "4.5.20"
+	  }
+	],
+	"conditions": [
+	  {
+		"lastTransitionTime": "2020-09-30T09:00:07Z",
+		"message": "Done applying 4.5.11",
+		"status": "True",
+		"type": "Available"
+	  },
+	  {
+		"lastTransitionTime": "2020-09-30T08:45:02Z",
+		"status": "True",
+		"type": "Failing"
+	  },
+	  {
+		"lastTransitionTime": "2020-09-30T09:00:07Z",
+		"message": "Cluster version is 4.5.11",
+		"status": "False",
+		"type": "Progressing"
+	  },
+	  {
+		"lastTransitionTime": "2020-10-06T13:50:43Z",
+		"status": "True",
+		"type": "RetrievedUpdates"
+	  }
+	],
+	"desired": {
+	  "force": false,
+	  "image": "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+	  "version": "4.5.11"
+	},
+ 	"history": [
+	  {
+	 	"completionTime": "2020-09-30T09:00:07Z",
+		"image": "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+		"startedTime": "2020-09-30T08:36:46Z",
+		"state": "Completed",
+		"verified": false,
+		"version": "4.5.3"
+	  }
+	],
+	"observedGeneration": 1,
+	"versionHash": "4lK_pl-YbSw="
+  }
+}`
+)
 
-func newClusterVersions(version string) *unstructured.Unstructured {
+func newClusterVersions(version, clusterVersions string) *unstructured.Unstructured {
 	if version == "3" {
 		return &unstructured.Unstructured{
 			Object: map[string]interface{}{
@@ -439,22 +503,34 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 	cir := NewClusterInfoReconciler()
 
 	tests := []struct {
-		name          string
-		dynamicClient dynamic.Interface
-		expectVersion string
-		expectError   string
+		name                 string
+		dynamicClient        dynamic.Interface
+		expectVersion        string
+		expectDesiredVersion string
+		expectUpgradeFail    bool
+		expectError          string
 	}{
 		{
-			name:          "OCP4.x",
-			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x")),
-			expectVersion: "4.5.11",
-			expectError:   "",
+			name:                 "OCP4.x",
+			dynamicClient:        dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x", clusterVersions)),
+			expectVersion:        "4.5.11",
+			expectDesiredVersion: "4.5.11",
+			expectUpgradeFail:    false,
+			expectError:          "",
 		},
 		{
 			name:          "OCP3.x",
-			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("3")),
+			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("3", "")),
 			expectVersion: "3",
 			expectError:   "",
+		},
+		{
+			name:                 "UpgradeFail",
+			dynamicClient:        dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x", clusterVersionsFail)),
+			expectVersion:        "4.5.3",
+			expectDesiredVersion: "4.5.11",
+			expectUpgradeFail:    true,
+			expectError:          "",
 		},
 	}
 
@@ -462,10 +538,14 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			cir.ManagedClusterDynamicClient = test.dynamicClient
 			info, _, err := cir.getOCPDistributionInfo()
-			assert.Equal(t, info.Version, test.expectVersion)
 			if err != nil {
 				assert.Equal(t, err.Error(), test.expectError)
 			}
+			assert.Equal(t, info.Version, test.expectVersion)
+			if test.expectDesiredVersion != "" {
+				assert.Equal(t, info.DesiredVersion, test.expectDesiredVersion)
+			}
+			assert.Equal(t, info.UpgradeFailed, test.expectUpgradeFail)
 		})
 	}
 }
