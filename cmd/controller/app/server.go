@@ -19,6 +19,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clusterrolebinding"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/syncclusterrolebinding"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/syncclustersetbinding"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/gc"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
@@ -123,6 +124,11 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 		return err
 	}
 
+	if err = syncclustersetbinding.SetupWithManager(mgr); err != nil {
+		klog.Errorf("unable to setup clustersetbinding reconciler: %v", err)
+		return err
+	}
+
 	if o.EnableRBAC {
 		if err = clusterrbac.SetupWithManager(mgr, kubeClient); err != nil {
 			klog.Errorf("unable to setup clusterrbac reconciler: %v", err)
@@ -161,3 +167,4 @@ func GetAgentCA(caFile string) ([]byte, error) {
 	}
 	return pemBlock, nil
 }
+
