@@ -550,6 +550,84 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 	}
 }
 
+func NewClusterInfoReconcilerWithNodes(cloudVendorType clusterv1beta1.CloudVendorType) *ClusterInfoReconciler {
+	node := &corev1.Node{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "node1",
+		},
+	}
+	switch cloudVendorType {
+	case clusterv1beta1.CloudVendorAWS:
+		node.Spec.ProviderID = "aws:///us-east-1a/i-07bacee3f60562daa"
+	case clusterv1beta1.CloudVendorAzure:
+		node.Spec.ProviderID = "azure:///subscriptions/03e5f0ef-0741-442a-bc1b-ba34ceb3f63f/resourceGroups/yzwaz-rlpjx-rg/providers/Microsoft.Compute/virtualMachines/yzwaz-rlpjx-master-0"
+	case clusterv1beta1.CloudVendorGoogle:
+		node.Spec.ProviderID = "gce:///abc"
+	case clusterv1beta1.CloudVendorIBM:
+		node.Spec.ProviderID = "ibm:///abc"
+	case clusterv1beta1.CloudVendorVSphere:
+		node.Spec.ProviderID = "vsphere://421a27ac-bb12-f6e6-48cb-f2aa74e56156"
+	}
+
+	fakeKubeClient := kubefake.NewSimpleClientset(node)
+	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
+	return &ClusterInfoReconciler{
+		Log:           tlog.NullLogger{},
+		KubeClient:    fakeKubeClient,
+		RouteV1Client: fakeRouteV1Client,
+		AgentAddress:  "127.0.0.1:8000",
+		AgentIngress:  "kube-system/foundation-ingress-testcluster-agent",
+		AgentRoute:    "AgentRoute",
+		AgentService:  "kube-system/agent",
+	}
+}
+
+func TestGetCloudVendor(t *testing.T) {
+	tests := []struct {
+		name                  string
+		clusterInfoReconciler *ClusterInfoReconciler
+		expectVendor          clusterv1beta1.CloudVendorType
+	}{
+		{
+			name:                  "aws",
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorAWS),
+			expectVendor:          clusterv1beta1.CloudVendorAWS,
+		},
+		{
+			name:                  "azure",
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorAzure),
+			expectVendor:          clusterv1beta1.CloudVendorAzure,
+		},
+		{
+			name:                  "google",
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorGoogle),
+			expectVendor:          clusterv1beta1.CloudVendorGoogle,
+		},
+		{
+			name:                  "IBM",
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorIBM),
+			expectVendor:          clusterv1beta1.CloudVendorIBM,
+		},
+		{
+			name:                  "vsphere",
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorVSphere),
+			expectVendor:          clusterv1beta1.CloudVendorVSphere,
+		},
+		{
+			name:                  "others",
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorOther),
+			expectVendor:          clusterv1beta1.CloudVendorOther,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cloudVendor := test.clusterInfoReconciler.getCloudVendor()
+			assert.Equal(t, test.expectVendor, cloudVendor)
+		})
+	}
+}
+
 func NewOCPClusterInfoReconciler() *ClusterInfoReconciler {
 	fakeKubeClient := kubefake.NewSimpleClientset(
 		kubeNode, ocpConsole, kubeMonitoringSecret)

@@ -377,6 +377,8 @@ func (r *ClusterInfoReconciler) getCloudVendor() clusterv1beta1.CloudVendorType 
 		return clusterv1beta1.CloudVendorAWS
 	case strings.Contains(providerID, "gce"):
 		return clusterv1beta1.CloudVendorGoogle
+	case strings.Contains(providerID, "vsphere"):
+		return clusterv1beta1.CloudVendorVSphere
 	}
 
 	return clusterv1beta1.CloudVendorOther
