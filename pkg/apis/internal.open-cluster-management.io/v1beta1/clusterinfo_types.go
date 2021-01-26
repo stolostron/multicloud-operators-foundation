@@ -165,6 +165,8 @@ const (
 	CloudVendorAzure CloudVendorType = "Azure"
 	// CloudVendorGoogle Google
 	CloudVendorGoogle CloudVendorType = "Google"
+	// CloudVendorVSphere vSphere
+	CloudVendorVSphere CloudVendorType = "vSphere"
 	// CloudVendorOther other (unable to auto detect)
 	CloudVendorOther CloudVendorType = "Other"
 )
