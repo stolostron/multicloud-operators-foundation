@@ -567,6 +567,8 @@ func NewClusterInfoReconcilerWithNodes(cloudVendorType clusterv1beta1.CloudVendo
 		node.Spec.ProviderID = "ibm:///abc"
 	case clusterv1beta1.CloudVendorVSphere:
 		node.Spec.ProviderID = "vsphere://421a27ac-bb12-f6e6-48cb-f2aa74e56156"
+	case clusterv1beta1.CloudVendorOpenStack:
+		node.Spec.ProviderID = "openstack:///dda1f31a-3dfb-435a-9e1d-16149a8dd628"
 	}
 
 	fakeKubeClient := kubefake.NewSimpleClientset(node)
@@ -612,6 +614,11 @@ func TestGetCloudVendor(t *testing.T) {
 			name:                  "vsphere",
 			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorVSphere),
 			expectVendor:          clusterv1beta1.CloudVendorVSphere,
+		},
+		{
+			name:                  "openstack",
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorOpenStack),
+			expectVendor:          clusterv1beta1.CloudVendorOpenStack,
 		},
 		{
 			name:                  "others",
