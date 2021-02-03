@@ -208,6 +208,49 @@ func TestEnsureLabels(t *testing.T) {
 	}
 }
 
+func TestCheckDeletingClusterDeployment(t *testing.T) {
+	tests := []struct {
+		name         string
+		existingObjs []runtime.Object
+		expectedBMA  *inventoryv1alpha1.BareMetalAsset
+		bma          *inventoryv1alpha1.BareMetalAsset
+	}{
+		{
+			name:         "existing clusterdeployment",
+			existingObjs: []runtime.Object{newClusterDeployment(), newBMAWithClusterDeployment()},
+			expectedBMA:  newBMAWithClusterDeployment(),
+			bma:          newBMAWithClusterDeployment(),
+		},
+		{
+			name: "existing clusterdeployment",
+			existingObjs: []runtime.Object{
+				func() *hivev1.ClusterDeployment {
+					cluster := newClusterDeployment()
+					now := metav1.Now()
+					cluster.ObjectMeta.DeletionTimestamp = &now
+					return cluster
+				}(),
+				newBMAWithClusterDeployment(),
+			},
+			expectedBMA: newBMA(),
+			bma:         newBMAWithClusterDeployment(),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			rbma := newTestReconciler(test.existingObjs)
+			err := rbma.checkDeletingClusterDeployment(test.bma)
+			assert.NoError(t, err)
+			bma := &inventoryv1alpha1.BareMetalAsset{}
+			bmaError := rbma.client.Get(context.TODO(), types.NamespacedName{Name: test.bma.Name, Namespace: test.bma.Namespace}, bma)
+			assert.NoError(t, bmaError)
+			assert.Equal(t, test.expectedBMA.Spec.ClusterDeployment.Name, bma.Spec.ClusterDeployment.Name)
+			assert.Equal(t, test.expectedBMA.Spec.ClusterDeployment.Namespace, bma.Spec.ClusterDeployment.Namespace)
+		})
+	}
+}
+
 func TestCheckClusterDeployment(t *testing.T) {
 	tests := []struct {
 		name               string

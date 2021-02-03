@@ -49,7 +49,7 @@ metadata:
       verbs: ["get", "create"]
     - apiGroups: ["hive.openshift.io"]
       resources: ["clusterdeployments", "machinepools", "syncsets"]
-      verbs: ["get", "list", "watch"]
+      verbs: ["update", "get", "list", "watch"]
     - apiGroups: ["hiveinternal.openshift.io"]
       resources: ["clustersyncs"]
       verbs: ["get", "list", "watch"]
