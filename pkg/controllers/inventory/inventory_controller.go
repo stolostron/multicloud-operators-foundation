@@ -247,6 +247,9 @@ func (r *ReconcileBareMetalAsset) Reconcile(request reconcile.Request) (reconcil
 	} else {
 		// The object is being deleted
 		if contains(instance.GetFinalizers(), BareMetalAssetFinalizer) {
+			if err := r.removeClusterDeploymentFinalizer(instance); err != nil {
+				return reconcile.Result{}, err
+			}
 			return r.deleteSyncSet(instance)
 		}
 		return reconcile.Result{}, nil
@@ -254,8 +257,9 @@ func (r *ReconcileBareMetalAsset) Reconcile(request reconcile.Request) (reconcil
 
 	instance.Status = inventoryv1alpha1.BareMetalAssetStatus{}
 	for _, f := range []func(*inventoryv1alpha1.BareMetalAsset) error{
-		r.checkAssetSecret,
+		r.checkDeletingClusterDeployment,
 		r.ensureLabels,
+		r.checkAssetSecret,
 		r.cleanupOldHiveSyncSet,
 		r.checkClusterDeployment,
 		r.ensureHiveSyncSet,
@@ -593,6 +597,65 @@ func newBareMetalHost(instance *inventoryv1alpha1.BareMetalAsset, assetSyncCompl
 	return bmhJSON, nil
 }
 
+// If related cluster deploymentt is deleting, clean the ref to cluster deployment
+func (r *ReconcileBareMetalAsset) checkDeletingClusterDeployment(instance *inventoryv1alpha1.BareMetalAsset) error {
+	clusterDeploymentName := instance.Spec.ClusterDeployment.Name
+	clusterDeploymentNamespace := instance.Spec.ClusterDeployment.Namespace
+
+	if clusterDeploymentName == "" || clusterDeploymentNamespace == "" {
+		return nil
+	}
+
+	cd := &hivev1.ClusterDeployment{}
+	err := r.client.Get(
+		context.TODO(), types.NamespacedName{Name: clusterDeploymentName, Namespace: clusterDeploymentNamespace}, cd)
+	if err != nil {
+		return nil
+	}
+	if !cd.GetDeletionTimestamp().IsZero() {
+		instanceCopy := instance.DeepCopy()
+		instanceCopy.Spec.ClusterDeployment.Name = ""
+		instanceCopy.Spec.ClusterDeployment.Namespace = ""
+		cd.ObjectMeta.Finalizers = remove(cd.ObjectMeta.Finalizers, BareMetalAssetFinalizer)
+
+		err = r.client.Update(context.TODO(), cd)
+		if err != nil {
+			return err
+		}
+		return r.client.Update(context.TODO(), instanceCopy)
+	}
+
+	if !contains(cd.GetFinalizers(), BareMetalAssetFinalizer) {
+		klog.Info("Finalizer not found for ClusterDeployment. Adding finalizer")
+		cd.ObjectMeta.Finalizers = append(cd.ObjectMeta.Finalizers, BareMetalAssetFinalizer)
+		return r.client.Update(context.TODO(), cd)
+	}
+	return nil
+}
+
+func (r *ReconcileBareMetalAsset) removeClusterDeploymentFinalizer(instance *inventoryv1alpha1.BareMetalAsset) error {
+	if instance.Spec.ClusterDeployment.Namespace == "" && instance.Spec.ClusterDeployment.Name == "" {
+		return nil
+	}
+
+	cd := &hivev1.ClusterDeployment{}
+	err := r.client.Get(
+		context.TODO(), types.NamespacedName{Name: instance.Spec.ClusterDeployment.Name, Namespace: instance.Spec.ClusterDeployment.Namespace}, cd)
+	if errors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	if !contains(cd.GetFinalizers(), BareMetalAssetFinalizer) {
+		return nil
+	}
+
+	cd.ObjectMeta.Finalizers = remove(cd.ObjectMeta.Finalizers, BareMetalAssetFinalizer)
+	return r.client.Update(context.TODO(), cd)
+}
+
 func (r *ReconcileBareMetalAsset) checkHiveClusterSync(instance *inventoryv1alpha1.BareMetalAsset) bool {
 	//get related syncSet
 	syncSetNsN := types.NamespacedName{
@@ -600,7 +663,6 @@ func (r *ReconcileBareMetalAsset) checkHiveClusterSync(instance *inventoryv1alph
 		Namespace: instance.Spec.ClusterDeployment.Namespace,
 	}
 	foundSyncSet := &hivev1.SyncSet{}
-	klog.Infof("resoruce is here %v\n", instance.Spec.ClusterDeployment.Namespace)
 	err := r.client.Get(context.TODO(), syncSetNsN, foundSyncSet)
 	if err != nil {
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
@@ -619,7 +681,6 @@ func (r *ReconcileBareMetalAsset) checkHiveClusterSync(instance *inventoryv1alph
 		Namespace: instance.Spec.ClusterDeployment.Namespace,
 	}
 
-	klog.Infof("resoruce is %v\n", clusterSyncNsN)
 	foundClusterSync := &hiveinternalv1alpha1.ClusterSync{}
 	if r.client.Get(context.TODO(), clusterSyncNsN, foundClusterSync) != nil {
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
@@ -736,9 +797,7 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncStatus(
 }
 
 func (r *ReconcileBareMetalAsset) deleteSyncSet(instance *inventoryv1alpha1.BareMetalAsset) (reconcile.Result, error) {
-	if instance.Spec.ClusterDeployment.Namespace == "" {
-		klog.Info("Asset not associated with Cluster Deployment")
-		klog.Info("Removing Finalizer")
+	if instance.Spec.ClusterDeployment.Namespace == "" && instance.Spec.ClusterDeployment.Name == "" {
 		instance.ObjectMeta.Finalizers = remove(instance.ObjectMeta.Finalizers, BareMetalAssetFinalizer)
 		return reconcile.Result{}, r.client.Update(context.TODO(), instance)
 	}
@@ -748,7 +807,6 @@ func (r *ReconcileBareMetalAsset) deleteSyncSet(instance *inventoryv1alpha1.Bare
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: syncSet.Name, Namespace: syncSet.Namespace}, foundSyncSet)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			klog.Info("Removing Finalizer")
 			instance.ObjectMeta.Finalizers = remove(instance.ObjectMeta.Finalizers, BareMetalAssetFinalizer)
 			return reconcile.Result{}, r.client.Update(context.TODO(), instance)
 		}
