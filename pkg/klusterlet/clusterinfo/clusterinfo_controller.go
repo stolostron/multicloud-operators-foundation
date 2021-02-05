@@ -341,6 +341,8 @@ func (r *ClusterInfoReconciler) getVendor(gitVersion string, isOpenShift bool) (
 		return
 	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorICP)):
 		kubeVendor = clusterv1beta1.KubeVendorICP
+	case r.isOpenshiftDedicated():
+		kubeVendor = clusterv1beta1.KubeVendorOSD
 	case isOpenShift:
 		kubeVendor = clusterv1beta1.KubeVendorOpenShift
 	default:
@@ -467,6 +469,27 @@ func (r *ClusterInfoReconciler) isOpenshift() bool {
 	return false
 }
 
+func (r *ClusterInfoReconciler) isOpenshiftDedicated() bool {
+	hasProject := false
+	hasManaged := false
+	serverGroups, err := r.KubeClient.Discovery().ServerGroups()
+	if err != nil {
+		klog.Errorf("failed to get server group %v", err)
+		return false
+	}
+	for _, apiGroup := range serverGroups.Groups {
+		if apiGroup.Name == "project.openshift.io" {
+			hasProject = true
+		}
+		// this API group is created for the Openshift Dedicated platform to manage various permissions.
+		// defined in https://github.com/openshift/rbac-permissions-operator/blob/master/pkg/apis/managed/v1alpha1/subjectpermission_types.go
+		if apiGroup.Name == "managed.openshift.io" {
+			hasManaged = true
+		}
+	}
+	return hasProject && hasManaged
+}
+
 var ocpVersionGVR = schema.GroupVersionResource{
 	Group:    "config.openshift.io",
 	Version:  "v1",
@@ -582,10 +605,11 @@ var ocpInfrGVR = schema.GroupVersionResource{
 	Resource: "infrastructures",
 }
 
+// should be the type defined in infrastructure.config.openshift.io
 const (
 	AWSPlatformType = "AWS"
 	GCPPlatformType = "GCP"
-	GCEPlatformType = "GCE"
+	IBMPlatformType = "IBM"
 )
 
 func (r *ClusterInfoReconciler) getClusterRegion() string {
@@ -719,43 +743,53 @@ func (r *ClusterInfoReconciler) GetClusterClaims() ([]*clusterv1alpha1.ClusterCl
 func (r *ClusterInfoReconciler) getVersionPlatformProduct(distributionInfo clusterv1beta1.DistributionInfo) (kubeVersion, platform, product string) {
 	kubeVersion = r.getVersion()
 	isOpenShift := distributionInfo.Type == clusterv1beta1.DistributionTypeOCP
-
-	// deal with product
-	if isOpenShift {
-		product = "OpenShift"
-	}
-
-	// deal with platform
 	cloudVendor := r.getCloudVendor()
 	gitVersion := strings.ToUpper(kubeVersion)
+
+	// deal with product and platform
 	switch {
 	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorIKS)):
-		// IKS
-		platform = string(clusterv1beta1.KubeVendorIKS)
+		// IBM Cloud Platform + IKS
+		platform = IBMPlatformType
+		product = string(clusterv1beta1.KubeVendorIKS)
+		return
 	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorEKS)):
-		// EKS
-		platform = string(clusterv1beta1.KubeVendorEKS)
+		// AWS + EKS
+		platform = AWSPlatformType
 		product = string(clusterv1beta1.KubeVendorEKS)
+		return
 	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorGKE)):
-		// GKE
-		platform = string(clusterv1beta1.KubeVendorGKE)
+		// Google Cloud Platform + GKE
+		platform = GCPPlatformType
 		product = string(clusterv1beta1.KubeVendorGKE)
-	case cloudVendor == clusterv1beta1.CloudVendorAzure && !isOpenShift:
-		// AKS
-		platform = string(clusterv1beta1.KubeVendorAKS)
-	case cloudVendor == clusterv1beta1.CloudVendorAzure && isOpenShift:
-		// Azure
-		platform = string(clusterv1beta1.CloudVendorAzure)
-	case cloudVendor == clusterv1beta1.CloudVendorAWS:
+		return
+	case r.isOpenshiftDedicated():
+		product = string(clusterv1beta1.KubeVendorOSD)
+	case isOpenShift:
+		product = string(clusterv1beta1.KubeVendorOpenShift)
+	}
+
+	switch cloudVendor {
+	case clusterv1beta1.CloudVendorIBM:
+		// IBM Cloud Platform
+		platform = IBMPlatformType
+	case clusterv1beta1.CloudVendorAWS:
 		// AWS
 		platform = AWSPlatformType
-	case cloudVendor == clusterv1beta1.CloudVendorGoogle:
-		// GCE
-		platform = GCEPlatformType
-	case cloudVendor == clusterv1beta1.CloudVendorOpenStack:
+	case clusterv1beta1.CloudVendorGoogle:
+		// Google Cloud Platform
+		platform = GCPPlatformType
+	case clusterv1beta1.CloudVendorAzure:
+		// Azure
+		platform = string(clusterv1beta1.CloudVendorAzure)
+		if !isOpenShift {
+			// Azure + AKS
+			product = string(clusterv1beta1.KubeVendorAKS)
+		}
+	case clusterv1beta1.CloudVendorOpenStack:
 		// OpenStack
 		platform = string(clusterv1beta1.CloudVendorOpenStack)
-	case cloudVendor == clusterv1beta1.CloudVendorVSphere:
+	case clusterv1beta1.CloudVendorVSphere:
 		// VSphere
 		platform = string(clusterv1beta1.CloudVendorVSphere)
 	}
