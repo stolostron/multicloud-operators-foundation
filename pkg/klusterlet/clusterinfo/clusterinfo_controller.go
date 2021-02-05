@@ -752,6 +752,12 @@ func (r *ClusterInfoReconciler) getVersionPlatformProduct(distributionInfo clust
 	case cloudVendor == clusterv1beta1.CloudVendorGoogle:
 		// GCE
 		platform = GCEPlatformType
+	case cloudVendor == clusterv1beta1.CloudVendorOpenStack:
+		// OpenStack
+		platform = string(clusterv1beta1.CloudVendorOpenStack)
+	case cloudVendor == clusterv1beta1.CloudVendorVSphere:
+		// VSphere
+		platform = string(clusterv1beta1.CloudVendorVSphere)
 	}
 
 	return kubeVersion, platform, product
