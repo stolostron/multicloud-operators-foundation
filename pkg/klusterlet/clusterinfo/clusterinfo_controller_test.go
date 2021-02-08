@@ -550,12 +550,14 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 	}
 }
 
-func NewClusterInfoReconcilerWithNodes(cloudVendorType clusterv1beta1.CloudVendorType) *ClusterInfoReconciler {
+func NewClusterInfoReconcilerWithNodes(cloudVendorType clusterv1beta1.CloudVendorType,
+	kubeVendorType clusterv1beta1.KubeVendorType) *ClusterInfoReconciler {
 	node := &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "node1",
 		},
 	}
+
 	switch cloudVendorType {
 	case clusterv1beta1.CloudVendorAWS:
 		node.Spec.ProviderID = "aws:///us-east-1a/i-07bacee3f60562daa"
@@ -573,6 +575,33 @@ func NewClusterInfoReconcilerWithNodes(cloudVendorType clusterv1beta1.CloudVendo
 
 	fakeKubeClient := kubefake.NewSimpleClientset(node)
 	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
+
+	switch kubeVendorType {
+	case clusterv1beta1.KubeVendorOSD:
+		project := metav1.APIResource{
+			Name:         "projects",
+			SingularName: "project",
+			Namespaced:   false,
+			Kind:         "Project",
+		}
+		managed := metav1.APIResource{
+			Name:         "subjectpermissions",
+			SingularName: "subjectpermission",
+			Namespaced:   true,
+			Kind:         "SubjectPermission",
+		}
+		projectResource := &metav1.APIResourceList{
+			GroupVersion: "project.openshift.io/v1",
+			APIResources: []metav1.APIResource{project},
+		}
+		managedResource := &metav1.APIResourceList{
+			GroupVersion: "managed.openshift.io/v1alpha1",
+			APIResources: []metav1.APIResource{managed},
+		}
+
+		fakeKubeClient.Resources = append(fakeKubeClient.Resources, projectResource, managedResource)
+	}
+
 	return &ClusterInfoReconciler{
 		Log:           tlog.NullLogger{},
 		KubeClient:    fakeKubeClient,
@@ -584,53 +613,86 @@ func NewClusterInfoReconcilerWithNodes(cloudVendorType clusterv1beta1.CloudVendo
 	}
 }
 
-func TestGetCloudVendor(t *testing.T) {
+func TestGetVendor(t *testing.T) {
 	tests := []struct {
 		name                  string
 		clusterInfoReconciler *ClusterInfoReconciler
-		expectVendor          clusterv1beta1.CloudVendorType
+		gitVersion            string
+		isOpenShift           bool
+		expectCloudVendor     clusterv1beta1.CloudVendorType
+		expectKubeVendor      clusterv1beta1.KubeVendorType
 	}{
 		{
-			name:                  "aws",
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorAWS),
-			expectVendor:          clusterv1beta1.CloudVendorAWS,
+			name:                  "aws-openshift",
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorAWS, ""),
+			gitVersion:            "v1.18.3+2fbd7c7",
+			isOpenShift:           true,
+			expectCloudVendor:     clusterv1beta1.CloudVendorAWS,
+			expectKubeVendor:      clusterv1beta1.KubeVendorOpenShift,
 		},
 		{
 			name:                  "azure",
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorAzure),
-			expectVendor:          clusterv1beta1.CloudVendorAzure,
+			gitVersion:            "v1.18.3+aks",
+			isOpenShift:           false,
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorAzure, ""),
+			expectCloudVendor:     clusterv1beta1.CloudVendorAzure,
+			expectKubeVendor:      clusterv1beta1.KubeVendorAKS,
 		},
 		{
 			name:                  "google",
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorGoogle),
-			expectVendor:          clusterv1beta1.CloudVendorGoogle,
+			gitVersion:            "v1.18.3+gke",
+			isOpenShift:           false,
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorGoogle, ""),
+			expectCloudVendor:     clusterv1beta1.CloudVendorGoogle,
+			expectKubeVendor:      clusterv1beta1.KubeVendorGKE,
 		},
 		{
 			name:                  "IBM",
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorIBM),
-			expectVendor:          clusterv1beta1.CloudVendorIBM,
+			gitVersion:            "v1.18.3+icp",
+			isOpenShift:           false,
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorIBM, ""),
+			expectCloudVendor:     clusterv1beta1.CloudVendorIBM,
+			expectKubeVendor:      clusterv1beta1.KubeVendorICP,
 		},
 		{
 			name:                  "vsphere",
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorVSphere),
-			expectVendor:          clusterv1beta1.CloudVendorVSphere,
+			gitVersion:            "v1.18.3+2fbd7c7",
+			isOpenShift:           true,
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorVSphere, ""),
+			expectCloudVendor:     clusterv1beta1.CloudVendorVSphere,
+			expectKubeVendor:      clusterv1beta1.KubeVendorOpenShift,
 		},
 		{
 			name:                  "openstack",
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorOpenStack),
-			expectVendor:          clusterv1beta1.CloudVendorOpenStack,
+			gitVersion:            "v1.18.3+2fbd7c7",
+			isOpenShift:           true,
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorOpenStack, ""),
+			expectCloudVendor:     clusterv1beta1.CloudVendorOpenStack,
+			expectKubeVendor:      clusterv1beta1.KubeVendorOpenShift,
+		},
+		{
+			name:                  "aws-osd",
+			gitVersion:            "v1.18.3+2fbd7c7",
+			isOpenShift:           true,
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorAWS, clusterv1beta1.KubeVendorOSD),
+			expectCloudVendor:     clusterv1beta1.CloudVendorAWS,
+			expectKubeVendor:      clusterv1beta1.KubeVendorOSD,
 		},
 		{
 			name:                  "others",
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorOther),
-			expectVendor:          clusterv1beta1.CloudVendorOther,
+			gitVersion:            "v1.18.3+2fbd7c7",
+			isOpenShift:           false,
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorOther, ""),
+			expectCloudVendor:     clusterv1beta1.CloudVendorOther,
+			expectKubeVendor:      clusterv1beta1.KubeVendorOther,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			cloudVendor := test.clusterInfoReconciler.getCloudVendor()
-			assert.Equal(t, test.expectVendor, cloudVendor)
+			kubeVendor, cloudVendor := test.clusterInfoReconciler.getVendor(test.gitVersion, test.isOpenShift)
+			assert.Equal(t, test.expectCloudVendor, cloudVendor)
+			assert.Equal(t, test.expectKubeVendor, kubeVendor)
 		})
 	}
 }

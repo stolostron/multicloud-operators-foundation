@@ -130,7 +130,7 @@ type DistributionType string
 // Supported distribution type
 const (
 	DistributionTypeOCP     DistributionType = "OCP"
-	DistributionTypeUnknown DistributionType = "Unknow"
+	DistributionTypeUnknown DistributionType = "Unknown"
 )
 
 // KubeVendorType describe the kubernetes provider of the cluster
@@ -149,6 +149,8 @@ const (
 	KubeVendorICP KubeVendorType = "ICP"
 	// KubeVendorIKS IBM Kubernetes Service
 	KubeVendorIKS KubeVendorType = "IKS"
+	// KubeVendorOSD OpenShiftDedicated
+	KubeVendorOSD KubeVendorType = "OpenShiftDedicated"
 	// KubeVendorOther other (unable to auto detect)
 	KubeVendorOther KubeVendorType = "Other"
 )
