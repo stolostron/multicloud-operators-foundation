@@ -66,7 +66,7 @@ Need to install ManagedCluster before deploy ACM Foundation.
     kubectl patch managedclusters $MANAGED_CLUSTER  --type merge --patch '{"spec":{"hubAcceptsClient":true}}'
     ```
 
-### Deploy ACM Foundation from quay.io
+### Deploy ACM Foundation from the quay.io
 
 1. Deploy hub components on hub cluster.
 
