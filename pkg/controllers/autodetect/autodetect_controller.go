@@ -25,6 +25,7 @@ const (
 	LabelCloudVendor = "cloud"
 	LabelKubeVendor  = "vendor"
 	LabelClusterID   = "clusterID"
+	LabelManagedBy   = "managed-by"
 	AutoDetect       = "auto-detect"
 )
 
@@ -100,6 +101,11 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	if labels[LabelKubeVendor] == AutoDetect && clusterInfo.Status.KubeVendor != "" {
 		labels[LabelKubeVendor] = string(clusterInfo.Status.KubeVendor)
+		// Backward Compatible for placementrrule
+		if clusterInfo.Status.KubeVendor == clusterinfov1beta1.KubeVendorOSD {
+			labels[LabelKubeVendor] = string(clusterinfov1beta1.KubeVendorOpenShift)
+			labels[LabelManagedBy] = "platform"
+		}
 		needUpdate = true
 	}
 

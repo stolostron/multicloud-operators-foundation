@@ -1,9 +1,11 @@
 package autodetect
 
 import (
+	"context"
 	stdlog "log"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
@@ -117,11 +119,12 @@ func validateError(t *testing.T, err, expectedErrorType error) {
 	}
 }
 
-func newTestReconciler(existingObjs []runtime.Object) *Reconciler {
+func newTestReconciler(existingObjs []runtime.Object) (*Reconciler, client.Client) {
+	client := fake.NewFakeClientWithScheme(scheme, existingObjs...)
 	return &Reconciler{
-		client: fake.NewFakeClientWithScheme(scheme, existingObjs...),
+		client: client,
 		scheme: scheme,
-	}
+	}, client
 }
 
 func TestReconcile(t *testing.T) {
@@ -203,13 +206,104 @@ func TestReconcile(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			svrc := newTestReconciler(test.existingObjs)
+			svrc, _ := newTestReconciler(test.existingObjs)
 			res, err := svrc.Reconcile(test.req)
 			validateError(t, err, test.expectedErrorType)
 			if test.requeue {
 				assert.Equal(t, res.Requeue, true)
 			} else {
 				assert.Equal(t, res.Requeue, false)
+			}
+		})
+	}
+}
+
+func TestOSDVendor(t *testing.T) {
+	tests := []struct {
+		name              string
+		existingObjs      []runtime.Object
+		expectedErrorType error
+		req               reconcile.Request
+		expectedLabel     map[string]string
+	}{
+		{
+			name: "UpdateManagedClusterLabelsOpenShift",
+			existingObjs: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: ManagedClusterName,
+						Labels: map[string]string{
+							LabelCloudVendor: AutoDetect,
+							LabelKubeVendor:  AutoDetect,
+						},
+					},
+					Spec: clusterv1.ManagedClusterSpec{},
+				},
+				&clusterv1beta1.ManagedClusterInfo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      ManagedClusterName,
+						Namespace: ManagedClusterName,
+					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
+					Status: clusterv1beta1.ClusterInfoStatus{
+						KubeVendor:  clusterv1beta1.KubeVendorOpenShift,
+						CloudVendor: clusterv1beta1.CloudVendorAzure,
+					},
+				},
+			},
+			expectedLabel:     map[string]string{LabelCloudVendor: "Azure", LabelKubeVendor: "OpenShift"},
+			expectedErrorType: nil,
+			req: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: ManagedClusterName,
+				},
+			},
+		},
+		{
+			name: "UpdateManagedClusterLabelsOpenShiftDedicated",
+			existingObjs: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: ManagedClusterName,
+						Labels: map[string]string{
+							LabelCloudVendor: AutoDetect,
+							LabelKubeVendor:  AutoDetect,
+						},
+					},
+					Spec: clusterv1.ManagedClusterSpec{},
+				},
+				&clusterv1beta1.ManagedClusterInfo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      ManagedClusterName,
+						Namespace: ManagedClusterName,
+					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
+					Status: clusterv1beta1.ClusterInfoStatus{
+						KubeVendor:  clusterv1beta1.KubeVendorOSD,
+						CloudVendor: clusterv1beta1.CloudVendorAzure,
+					},
+				},
+			},
+			expectedLabel:     map[string]string{LabelCloudVendor: "Azure", LabelKubeVendor: "OpenShift", LabelManagedBy: "platform"},
+			expectedErrorType: nil,
+			req: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: ManagedClusterName,
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			svrc, client := newTestReconciler(test.existingObjs)
+			_, err := svrc.Reconcile(test.req)
+			validateError(t, err, test.expectedErrorType)
+			cluster := &clusterv1.ManagedCluster{}
+			err = client.Get(context.Background(), types.NamespacedName{Name: ManagedClusterName}, cluster)
+			validateError(t, err, nil)
+			if !reflect.DeepEqual(cluster.Labels, test.expectedLabel) {
+				t.Errorf("Labels not equal, actual %v, expected %v", cluster.Labels, test.expectedLabel)
 			}
 		})
 	}
