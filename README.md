@@ -1,6 +1,6 @@
-# ACM Foundation
+# open-cluster-management Foundation
 
-ACM Foundation supports some foundational components based ManagedCluster for ACM.
+open-cluster-management Foundation supports some foundational components based ManagedCluster for ACM.
 
 ## Community, discussion, contribution, and support
 
@@ -10,7 +10,7 @@ Check the [CONTRIBUTING Doc](CONTRIBUTING.md) for how to contribute to the repo.
 
 ## Getting Started
 
-This is a guide on how to build and deploy ACM Foundation from code.
+This is a guide on how to build and deploy open-cluster-management Foundation from code.
 
 ### Setup
 
@@ -34,7 +34,7 @@ make build will build all the binaries in the current directory.
 
 ### Prerequisites
 
-Need to install ManagedCluster before deploy ACM Foundation.
+Need to install ManagedCluster before deploy open-cluster-management Foundation.
 
 1. Install Cluster Manager on Hub cluster.
 
@@ -66,7 +66,7 @@ Need to install ManagedCluster before deploy ACM Foundation.
     kubectl patch managedclusters $MANAGED_CLUSTER  --type merge --patch '{"spec":{"hubAcceptsClient":true}}'
     ```
 
-### Deploy ACM Foundation from the quay.io
+### Deploy open-cluster-management Foundation from the quay.io
 
 1. Deploy hub components on hub cluster.
 
