@@ -74,6 +74,10 @@ type HiveConfigSpec struct {
 	// DisabledControllers allows selectively disabling Hive controllers by name.
 	// The name of an individual controller matches the name of the controller as seen in the Hive logging output.
 	DisabledControllers []string `json:"disabledControllers,omitempty"`
+
+	// ControllersConfig is used to configure different hive controllers
+	// +optional
+	ControllersConfig *ControllersConfig `json:"controllersConfig,omitempty"`
 }
 
 // HiveConfigStatus defines the observed state of Hive
@@ -121,9 +125,11 @@ type VeleroBackupConfig struct {
 // FailedProvisionConfig contains settings to control behavior undertaken by Hive when an installation attempt fails.
 type FailedProvisionConfig struct {
 
-	// SkipGatherLogs disables functionality that attempts to gather full logs from the cluster if an installation
-	// fails for any reason. The logs will be stored in a persistent volume for up to 7 days.
-	SkipGatherLogs bool `json:"skipGatherLogs,omitempty"`
+	// TODO: Figure out how to mark SkipGatherLogs as deprecated (more than just a comment)
+
+	// DEPRECATED: This flag is no longer respected and will be removed in the future.
+	SkipGatherLogs bool                      `json:"skipGatherLogs,omitempty"`
+	AWS            *FailedProvisionAWSConfig `json:"aws,omitempty"`
 }
 
 // ManageDNSConfig contains the domain being managed, and the cloud-specific
@@ -148,6 +154,30 @@ type ManageDNSConfig struct {
 	// As other cloud providers are supported, additional fields will be
 	// added for each of those cloud providers. Only a single cloud provider
 	// may be configured at a time.
+}
+
+// FailedProvisionAWSConfig contains AWS-specific info to upload log files.
+type FailedProvisionAWSConfig struct {
+	// CredentialsSecretRef references a secret in the TargetNamespace that will be used to authenticate with
+	// AWS S3. It will need permission to upload logs to S3.
+	// Secret should have keys named aws_access_key_id and aws_secret_access_key that contain the AWS credentials.
+	// Example Secret:
+	//   data:
+	//     aws_access_key_id: minio
+	//     aws_secret_access_key: minio123
+	CredentialsSecretRef corev1.LocalObjectReference `json:"credentialsSecretRef"`
+
+	// Region is the AWS region to use for S3 operations.
+	// This defaults to us-east-1.
+	// For AWS China, use cn-northwest-1.
+	// +optional
+	Region string `json:"region,omitempty"`
+
+	// ServiceEndpoint is the url to connect to an S3 compatible provider.
+	ServiceEndpoint string `json:"serviceEndpoint,omitempty"`
+
+	// Bucket is the S3 bucket to store the logs in.
+	Bucket string `json:"bucket,omitempty"`
 }
 
 // ManageDNSAWSConfig contains AWS-specific info to manage a given domain.
@@ -193,6 +223,97 @@ type ManageDNSAzureConfig struct {
 	// ResourceGroupName specifies the Azure resource group containing the DNS zones
 	// for the domains being managed.
 	ResourceGroupName string `json:"resourceGroupName"`
+}
+
+// ControllerConfig contains the configuration for a controller
+type ControllerConfig struct {
+	// ConcurrentReconciles specifies number of concurrent reconciles for a controller
+	// +optional
+	ConcurrentReconciles *int32 `json:"concurrentReconciles,omitempty"`
+	// ClientQPS specifies client rate limiter QPS for a controller
+	// +optional
+	ClientQPS *int32 `json:"clientQPS,omitempty"`
+	// ClientBurst specifies client rate limiter burst for a controller
+	// +optional
+	ClientBurst *int32 `json:"clientBurst,omitempty"`
+	// QueueQPS specifies workqueue rate limiter QPS for a controller
+	// +optional
+	QueueQPS *int32 `json:"queueQPS,omitempty"`
+	// QueueBurst specifies workqueue rate limiter burst for a controller
+	// +optional
+	QueueBurst *int32 `json:"queueBurst,omitempty"`
+	// Replicas specifies the number of replicas the specific controller pod should use.
+	// This is ONLY for controllers that have been split out into their own pods.
+	// This is ignored for all others.
+	Replicas *int32 `json:"replicas,omitempty"`
+}
+
+// +kubebuilder:validation:Enum=clusterDeployment;clusterrelocate;clusterstate;clusterversion;controlPlaneCerts;dnsendpoint;dnszone;remoteingress;remotemachineset;syncidentityprovider;unreachable;velerobackup;clusterprovision;clusterDeprovision;clusterpool;clusterpoolnamespace;hibernation;clusterclaim;metrics;clustersync
+type ControllerName string
+
+func (controllerName ControllerName) String() string {
+	return string(controllerName)
+}
+
+// ControllerNames is a slice of controller names
+type ControllerNames []ControllerName
+
+// Contains says whether or not the controller name is in the slice of controller names.
+func (c ControllerNames) Contains(controllerName ControllerName) bool {
+	for _, curControllerName := range c {
+		if curControllerName == controllerName {
+			return true
+		}
+	}
+
+	return false
+}
+
+// WARNING: All the controller names below should also be added to the kubebuilder validation of the type ControllerName
+const (
+	ClusterClaimControllerName         ControllerName = "clusterclaim"
+	ClusterDeploymentControllerName    ControllerName = "clusterDeployment"
+	ClusterDeprovisionControllerName   ControllerName = "clusterDeprovision"
+	ClusterpoolControllerName          ControllerName = "clusterpool"
+	ClusterpoolNamespaceControllerName ControllerName = "clusterpoolnamespace"
+	ClusterProvisionControllerName     ControllerName = "clusterProvision"
+	ClusterRelocateControllerName      ControllerName = "clusterRelocate"
+	ClusterStateControllerName         ControllerName = "clusterState"
+	ClusterVersionControllerName       ControllerName = "clusterversion"
+	ControlPlaneCertsControllerName    ControllerName = "controlPlaneCerts"
+	DNSEndpointControllerName          ControllerName = "dnsendpoint"
+	DNSZoneControllerName              ControllerName = "dnszone"
+	HibernationControllerName          ControllerName = "hibernation"
+	RemoteIngressControllerName        ControllerName = "remoteingress"
+	RemoteMachinesetControllerName     ControllerName = "remotemachineset"
+	SyncIdentityProviderControllerName ControllerName = "syncidentityprovider"
+	UnreachableControllerName          ControllerName = "unreachable"
+	VeleroBackupControllerName         ControllerName = "velerobackup"
+	MetricsControllerName              ControllerName = "metrics"
+	ClustersyncControllerName          ControllerName = "clustersync"
+)
+
+// SpecificControllerConfig contains the configuration for a specific controller
+type SpecificControllerConfig struct {
+	// Name specifies the name of the controller
+	Name ControllerName `json:"name"`
+	// ControllerConfig contains the configuration for the controller specified by Name field
+	Config ControllerConfig `json:"config"`
+}
+
+// ControllersConfig contains default as well as controller specific configurations
+type ControllersConfig struct {
+	// Default specifies default configuration for all the controllers, can be used to override following coded defaults
+	// default for concurrent reconciles is 5
+	// default for client qps is 5
+	// default for client burst is 10
+	// default for queue qps is 10
+	// default for queue burst is 100
+	// +optional
+	Default *ControllerConfig `json:"default,omitempty"`
+	// Controllers contains a list of configurations for different controllers
+	// +optional
+	Controllers []SpecificControllerConfig `json:"controllers,omitempty"`
 }
 
 // +genclient:nonNamespaced
