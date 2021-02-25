@@ -203,39 +203,4 @@ var _ = ginkgo.Describe("Testing BareMetalAsset", func() {
 			}, 60*time.Second, 1*time.Second).Should(gomega.BeTrue())
 		})
 	})
-	ginkgo.Context("Deleting a Baremetalasset", func() {
-		ginkgo.BeforeEach(func() {
-			bma, err := util.LoadResourceFromJSON(util.BMATemplate)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-			err = unstructured.SetNestedField(bma.Object, testNamespace, "metadata", "namespace")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-			err = unstructured.SetNestedField(bma.Object, testName, "metadata", "name")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-			err = unstructured.SetNestedField(bma.Object, testNamespace, "spec", "clusterDeployment", "namespace")
-			// create managedClusterView to real cluster
-			_, err = util.CreateResource(dynamicClient, bmaGVR, bma)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", bmaGVR.Resource)
-		})
-		ginkgo.It("delete bma should clean finalizer in clusterdeployment", func() {
-			gomega.Eventually(func() (interface{}, error) {
-				cd, err := hiveClient.HiveV1().ClusterDeployments(testNamespace).Get(context.Background(), testName, metav1.GetOptions{})
-				if err != nil {
-					return []string{}, err
-				}
-				return cd.Finalizers, nil
-			}, 60*time.Second, 1*time.Second).Should(gomega.Equal([]string{"baremetalasset.inventory.open-cluster-management.io"}))
-
-			err := util.DeleteResource(dynamicClient, bmaGVR, testNamespace, testName)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			gomega.Eventually(func() (interface{}, error) {
-				cd, err := hiveClient.HiveV1().ClusterDeployments(testNamespace).Get(context.Background(), testName, metav1.GetOptions{})
-				if err != nil {
-					return -1, err
-				}
-				return len(cd.Finalizers), nil
-			}, 60*time.Second, 1*time.Second).Should(gomega.Equal(0))
-		})
-	})
-
 })
