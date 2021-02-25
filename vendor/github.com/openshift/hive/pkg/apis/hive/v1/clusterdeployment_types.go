@@ -4,7 +4,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	openshiftapiv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/hive/pkg/apis/hive/v1/aws"
 	"github.com/openshift/hive/pkg/apis/hive/v1/azure"
 	"github.com/openshift/hive/pkg/apis/hive/v1/baremetal"
@@ -123,6 +122,16 @@ type ClusterDeploymentSpec struct {
 	// PowerState defaults to the Running state.
 	// +optional
 	PowerState ClusterPowerState `json:"powerState,omitempty"`
+
+	// HibernateAfter will transition a cluster to hibernating power state after it has been running for the
+	// given duration. The time that a cluster has been running is the time since the cluster was installed or the
+	// time since the cluster last came out of hibernation.
+	// +optional
+	HibernateAfter *metav1.Duration `json:"hibernateAfter,omitempty"`
+
+	// InstallAttemptsLimit is the maximum number of times Hive will attempt to install the cluster.
+	// +optional
+	InstallAttemptsLimit *int32 `json:"installAttemptsLimit,omitempty"`
 }
 
 // Provisioning contains settings used only for initial cluster provisioning.
@@ -203,9 +212,6 @@ type ClusterDeploymentStatus struct {
 	// InstallRestarts is the total count of container restarts on the clusters install job.
 	InstallRestarts int `json:"installRestarts,omitempty"`
 
-	// ClusterVersionStatus will hold a copy of the remote cluster's ClusterVersion.Status
-	ClusterVersionStatus *openshiftapiv1.ClusterVersionStatus `json:"clusterVersionStatus,omitempty"`
-
 	// APIURL is the URL where the cluster's API can be accessed.
 	APIURL string `json:"apiURL,omitempty"`
 
@@ -285,13 +291,13 @@ const (
 	// API URL override.
 	ActiveAPIURLOverrideCondition ClusterDeploymentConditionType = "ActiveAPIURLOverride"
 
-	// InstallFailingCondition indicates that a failure has been detected and we will attempt to offer some
-	// information as to why in the reason.
-	InstallFailingCondition ClusterDeploymentConditionType = "InstallFailing"
-
 	// DNSNotReadyCondition indicates that the the DNSZone object created for the clusterDeployment
 	// (ie manageDNS==true) has not yet indicated that the DNS zone is successfully responding to queries.
 	DNSNotReadyCondition ClusterDeploymentConditionType = "DNSNotReady"
+
+	// InstallImagesResolvedCondition indicates that the the install images for the clusterDeployment
+	// have been not been resolved. This usually includes the installer and OpenShift cli images.
+	InstallImagesNotResolvedCondition ClusterDeploymentConditionType = "InstallImagesNotResolved"
 
 	// ProvisionFailedCondition indicates that a provision failed
 	ProvisionFailedCondition ClusterDeploymentConditionType = "ProvisionFailed"
@@ -308,6 +314,15 @@ const (
 
 	// InstallLaunchErrorCondition is set when a cluster provision fails to launch an install pod
 	InstallLaunchErrorCondition ClusterDeploymentConditionType = "InstallLaunchError"
+
+	// DeprovisionLaunchErrorCondition is set when a cluster deprovision fails to launch.
+	DeprovisionLaunchErrorCondition ClusterDeploymentConditionType = "DeprovisionLaunchError"
+
+	// ProvisionStoppedCondition is set when cluster provisioning is stopped
+	ProvisionStoppedCondition ClusterDeploymentConditionType = "ProvisionStopped"
+
+	// AuthenticationFailureCondition is true when platform credentials cannot be used because of authentication failure
+	AuthenticationFailureClusterDeploymentCondition ClusterDeploymentConditionType = "AuthenticationFailure"
 )
 
 // AllClusterDeploymentConditions is a slice containing all condition types. This can be used for dealing with
@@ -319,7 +334,6 @@ var AllClusterDeploymentConditions = []ClusterDeploymentConditionType{
 	IngressCertificateNotFoundCondition,
 	UnreachableCondition,
 	ActiveAPIURLOverrideCondition,
-	InstallFailingCondition,
 	DNSNotReadyCondition,
 	ProvisionFailedCondition,
 	SyncSetFailedCondition,
@@ -353,6 +367,9 @@ const (
 	// FailedToStartHibernationReason is used when there was an error starting machines
 	// to leave hibernation
 	FailedToStartHibernationReason = "FailedToStart"
+	// SyncSetsNotAppliedReason is used as the reason when SyncSets have not yet been applied
+	// for the cluster based on ClusterSync.Status.FirstSucessTime
+	SyncSetsNotAppliedReason = "SyncSetsNotApplied"
 )
 
 // +genclient
@@ -361,11 +378,13 @@ const (
 // ClusterDeployment is the Schema for the clusterdeployments API
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
-// +kubebuilder:printcolumn:name="ClusterName",type="string",JSONPath=".spec.clusterName"
+// +kubebuilder:printcolumn:name="Platform",type="string",JSONPath=".metadata.labels.hive\\.openshift\\.io/cluster-platform"
+// +kubebuilder:printcolumn:name="Region",type="string",JSONPath=".metadata.labels.hive\\.openshift\\.io/cluster-region"
 // +kubebuilder:printcolumn:name="ClusterType",type="string",JSONPath=".metadata.labels.hive\\.openshift\\.io/cluster-type"
-// +kubebuilder:printcolumn:name="BaseDomain",type="string",JSONPath=".spec.baseDomain"
 // +kubebuilder:printcolumn:name="Installed",type="boolean",JSONPath=".spec.installed"
 // +kubebuilder:printcolumn:name="InfraID",type="string",JSONPath=".spec.clusterMetadata.infraID"
+// +kubebuilder:printcolumn:name="Version",type="string",JSONPath=".metadata.labels.hive\\.openshift\\.io/version-major-minor-patch"
+// +kubebuilder:printcolumn:name="PowerState",type="string",JSONPath=".status.conditions[?(@.type=='Hibernating')].reason"
 // +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp"
 // +kubebuilder:resource:path=clusterdeployments,shortName=cd,scope=Namespaced
 type ClusterDeployment struct {
