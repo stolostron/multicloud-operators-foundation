@@ -8,8 +8,13 @@ generate_files
 .idea
 .ko.yaml
 agent
+!agent/
 controller
+!controller/
 proxyserver
+!proxyserver/
 webhook
+!webhook/
 registration-operator
 e2e.test
+.DS_Store

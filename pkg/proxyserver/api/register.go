@@ -2,11 +2,20 @@ package api
 
 import (
 	"context"
+	clusterv1client "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
+	clusterv1informers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/cache"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/log"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/managedcluster"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/proxy"
+	"k8s.io/client-go/informers"
+	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis"
-	v1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1"
+	apisclusterview "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview"
+	clusterviewv1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1"
+	apisproxy "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/proxy"
+	proxyv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
-	proxyrest "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -26,22 +35,62 @@ var (
 )
 
 func init() {
-	apis.Install(Scheme)
-
 	// we need to add the options to empty v1
 	metav1.AddToGroupVersion(Scheme, schema.GroupVersion{Version: "v1"})
+	apisproxy.Install(Scheme)
+	apisclusterview.Install(Scheme)
 }
 
 func Install(proxyServiceInfoGetter *getter.ProxyServiceInfoGetter,
 	logConnectionInfoGetter getter.ConnectionInfoGetter,
-	server *genericapiserver.GenericAPIServer) error {
-	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(v1beta1.GroupName, Scheme, ParameterCodec, Codecs)
-	apiGroupInfo.VersionedResourcesStorageMap[v1beta1.SchemeGroupVersion.Version] = map[string]rest.Storage{
-		"clusterstatuses":            &clusterStatusStorage{},
-		"clusterstatuses/aggregator": proxyrest.NewProxyRest(proxyServiceInfoGetter),
-		"clusterstatuses/log":        proxyrest.NewLogRest(logConnectionInfoGetter),
+	server *genericapiserver.GenericAPIServer,
+	client clusterv1client.Interface,
+	informerFactory informers.SharedInformerFactory,
+	clusterInformer clusterv1informers.SharedInformerFactory) error {
+	if err := installProxyGroup(proxyServiceInfoGetter, logConnectionInfoGetter, server); err != nil {
+		return err
 	}
+	if err := installClusterViewGroup(server, client, informerFactory, clusterInformer); err != nil {
+		return err
+	}
+	return nil
+}
 
+func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
+	client clusterv1client.Interface,
+	informerFactory informers.SharedInformerFactory,
+	clusterInformer clusterv1informers.SharedInformerFactory) error {
+
+	clusterCache := cache.NewClusterCache(
+		clusterInformer.Cluster().V1().ManagedClusters(),
+		informerFactory.Rbac().V1().ClusterRoles(),
+		informerFactory.Rbac().V1().ClusterRoleBindings(),
+	)
+
+	v1storage := map[string]rest.Storage{
+		"managedclusters": managedcluster.NewREST(
+			client, clusterCache, clusterCache,
+			clusterInformer.Cluster().V1().ManagedClusters().Lister(),
+			informerFactory.Rbac().V1().ClusterRoles().Lister(),
+		),
+	}
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(clusterviewv1.GroupName, Scheme, ParameterCodec, Codecs)
+
+	apiGroupInfo.VersionedResourcesStorageMap[clusterviewv1.SchemeGroupVersion.Version] = v1storage
+
+	go clusterCache.Run(1 * time.Second)
+	return server.InstallAPIGroup(&apiGroupInfo)
+}
+
+func installProxyGroup(proxyServiceInfoGetter *getter.ProxyServiceInfoGetter,
+	logConnectionInfoGetter getter.ConnectionInfoGetter,
+	server *genericapiserver.GenericAPIServer) error {
+	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(proxyv1beta1.GroupName, Scheme, ParameterCodec, Codecs)
+	apiGroupInfo.VersionedResourcesStorageMap[proxyv1beta1.SchemeGroupVersion.Version] = map[string]rest.Storage{
+		"clusterstatuses":            &clusterStatusStorage{},
+		"clusterstatuses/aggregator": proxy.NewProxyRest(proxyServiceInfoGetter),
+		"clusterstatuses/log":        log.NewLogRest(logConnectionInfoGetter),
+	}
 	return server.InstallAPIGroup(&apiGroupInfo)
 }
 
@@ -57,7 +106,7 @@ var (
 
 // Storage interface
 func (s *clusterStatusStorage) New() runtime.Object {
-	return &v1beta1.ClusterStatus{}
+	return &proxyv1beta1.ClusterStatus{}
 }
 
 // KindProvider interface
@@ -67,17 +116,17 @@ func (s *clusterStatusStorage) Kind() string {
 
 // Lister interface
 func (s *clusterStatusStorage) NewList() runtime.Object {
-	return &v1beta1.ClusterStatusList{}
+	return &proxyv1beta1.ClusterStatusList{}
 }
 
 // Lister interface
 func (s *clusterStatusStorage) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
-	return &v1beta1.ClusterStatusList{}, nil
+	return &proxyv1beta1.ClusterStatusList{}, nil
 }
 
 // Getter interface
 func (s *clusterStatusStorage) Get(ctx context.Context, name string, opts *metav1.GetOptions) (runtime.Object, error) {
-	return &v1beta1.ClusterStatus{}, nil
+	return &proxyv1beta1.ClusterStatus{}, nil
 }
 
 // Scoper interface

@@ -1,4 +1,4 @@
-package rest
+package log
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
 	"k8s.io/apimachinery/pkg/runtime"
 	netutil "k8s.io/apimachinery/pkg/util/net"

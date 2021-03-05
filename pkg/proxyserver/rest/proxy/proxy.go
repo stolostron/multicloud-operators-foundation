@@ -1,4 +1,4 @@
-package rest
+package proxy
 
 import (
 	"context"
@@ -11,7 +11,7 @@ import (
 
 	apirequest "k8s.io/apiserver/pkg/endpoints/request"
 
-	v1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1"
+	v1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/proxy"

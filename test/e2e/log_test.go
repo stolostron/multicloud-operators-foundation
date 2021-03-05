@@ -8,7 +8,7 @@ import (
 	"github.com/onsi/gomega"
 
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/cli-runtime/pkg/resource"
