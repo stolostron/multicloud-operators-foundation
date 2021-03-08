@@ -50,6 +50,22 @@ var NamespaceGVR = schema.GroupVersionResource{
 	Resource: "namespaces",
 }
 
+var ClusterSetGVR = schema.GroupVersionResource{
+	Group:    "cluster.open-cluster-management.io",
+	Version:  "v1alpha1",
+	Resource: "managedclustersets",
+}
+var ClusterRoleGVR = schema.GroupVersionResource{
+	Group:    "rbac.authorization.k8s.io",
+	Version:  "v1",
+	Resource: "clusterroles",
+}
+var ClusterRoleBindingGVR = schema.GroupVersionResource{
+	Group:    "rbac.authorization.k8s.io",
+	Version:  "v1",
+	Resource: "clusterrolebindings",
+}
+
 func getKubeConfigFile() (string, error) {
 	kubeConfigFile := os.Getenv(kubeConfigFileEnv)
 	if kubeConfigFile == "" {
@@ -137,6 +153,23 @@ func NewDynamicClient() (dynamic.Interface, error) {
 	}
 
 	return dynamicClient, nil
+}
+
+func NewDynamicClientWithImpersonate(user string, groups []string) (dynamic.Interface, error) {
+	kubeConfigFile, err := getKubeConfigFile()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.Impersonate.UserName = user
+	cfg.Impersonate.Groups = groups
+
+	return dynamic.NewForConfig(cfg)
 }
 
 func GetHostFromClientConfig() (string, error) {
@@ -272,6 +305,26 @@ func UpdateClusterResource(dynamicClient dynamic.Interface,
 	gvr schema.GroupVersionResource,
 	obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	return dynamicClient.Resource(gvr).Update(context.TODO(), obj, metav1.UpdateOptions{})
+}
+
+func ApplyClusterResource(dynamicClient dynamic.Interface,
+	gvr schema.GroupVersionResource,
+	obj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	var rs *unstructured.Unstructured
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		oldObj, err := GetClusterResource(dynamicClient, gvr, obj.GetName())
+		if err != nil {
+			if errors.IsNotFound(err) {
+				rs, err = CreateClusterResource(dynamicClient, gvr, obj)
+				return err
+			}
+			return err
+		}
+		obj.SetResourceVersion(oldObj.GetResourceVersion())
+		rs, err = UpdateClusterResource(dynamicClient, gvr, obj)
+		return err
+	})
+	return rs, err
 }
 
 func UpdateResource(dynamicClient dynamic.Interface,
@@ -559,6 +612,16 @@ func CreateManagedCluster(dynamicClient dynamic.Interface) (*unstructured.Unstru
 	}
 
 	return fakeManagedCluster, nil
+}
+
+func DeleteManagedCluster(dynamicClient dynamic.Interface, clusterName string) error {
+	if err := DeleteClusterResource(dynamicClient, ManagedClusterGVR, clusterName); err != nil {
+		return err
+	}
+	if err := DeleteClusterResource(dynamicClient, NamespaceGVR, clusterName); err != nil {
+		return err
+	}
+	return nil
 }
 
 func AcceptManagedCluster(clusterName string) error {

@@ -43,6 +43,7 @@ require (
 	github.com/openshift/client-go v0.0.0-20200827190008-3062137373b5
 	github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca
 	github.com/openshift/hive v1.0.17
+	github.com/openshift/library-go v0.0.0-20200918101923-1e4c94603efe
 	github.com/prometheus/common v0.10.0
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/pflag v1.0.5
@@ -57,6 +58,7 @@ require (
 	k8s.io/code-generator v0.19.0
 	k8s.io/component-base v0.19.0
 	k8s.io/klog v1.0.0
+	k8s.io/klog/v2 v2.3.0
 	k8s.io/kube-aggregator v0.19.0
 	k8s.io/kube-openapi v0.0.0-20200805222855-6aeccd4b50c6
 	sigs.k8s.io/controller-runtime v0.6.2

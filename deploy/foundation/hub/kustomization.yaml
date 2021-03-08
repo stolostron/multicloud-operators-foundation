@@ -11,6 +11,8 @@ resources:
 - resources/proxyserver-service.yaml
 - resources/proxyserver.yaml
 - resources/controller.yaml
+- resources/clusterviewv1-apiservice.yaml
+
 
 images:
 - name: foundation-controller

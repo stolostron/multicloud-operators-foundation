@@ -1293,6 +1293,7 @@ github.com/openshift/generic-admission-server v1.14.1-0.20200903115324-4ddcdd976
 github.com/openshift/hive v1.0.17 h1:BmMBT2qX/FUJjuv/rbI8SmGY8yVZN7Y0pd7bPBKs89Y=
 github.com/openshift/hive v1.0.17/go.mod h1:Hv5v6eoEY4SrYZE2TWA7euqY5ldyxg+YH6pR9RzUv8I=
 github.com/openshift/installer v0.9.0-master.0.20201103204150-888dc5bab60c/go.mod h1:FsTPqP4aUu5/bcxbtRyWFF7n/YXR/d/VRe7+hTNldGA=
+github.com/openshift/library-go v0.0.0-20200918101923-1e4c94603efe h1:MJqGN0NVONnTLDYPVIEH4uo6i3gAK7LAkhLnyFO8Je0=
 github.com/openshift/library-go v0.0.0-20200918101923-1e4c94603efe/go.mod h1:NI6xOQGuTnLXeHW8Z2glKSFhF7X+YxlAlqlBMaK0zEM=
 github.com/openshift/machine-api-operator v0.0.0-20190312153711-9650e16c9880/go.mod h1:7HeAh0v04zQn1L+4ItUjvpBQYsm2Nf81WaZLiXTcnkc=
 github.com/openshift/machine-api-operator v0.2.1-0.20191128180243-986b771e661d/go.mod h1:9qQPF00anuIsc6RiHYfHE0+cZZImbvFNLln0NRBVVMg=
