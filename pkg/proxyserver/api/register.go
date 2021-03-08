@@ -2,17 +2,20 @@ package api
 
 import (
 	"context"
-	clusterv1client "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	clusterv1informers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
+	clusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
+	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/cache"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/log"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/managedcluster"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/managedclusterset"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/proxy"
 	"k8s.io/client-go/informers"
 	"time"
 
 	apisclusterview "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview"
 	clusterviewv1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1"
+	clusterviewv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1alpha1"
+
 	apisproxy "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/proxy"
 	proxyv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
@@ -44,9 +47,9 @@ func init() {
 func Install(proxyServiceInfoGetter *getter.ProxyServiceInfoGetter,
 	logConnectionInfoGetter getter.ConnectionInfoGetter,
 	server *genericapiserver.GenericAPIServer,
-	client clusterv1client.Interface,
+	client clusterclient.Interface,
 	informerFactory informers.SharedInformerFactory,
-	clusterInformer clusterv1informers.SharedInformerFactory) error {
+	clusterInformer clusterinformers.SharedInformerFactory) error {
 	if err := installProxyGroup(proxyServiceInfoGetter, logConnectionInfoGetter, server); err != nil {
 		return err
 	}
@@ -57,9 +60,9 @@ func Install(proxyServiceInfoGetter *getter.ProxyServiceInfoGetter,
 }
 
 func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
-	client clusterv1client.Interface,
+	client clusterclient.Interface,
 	informerFactory informers.SharedInformerFactory,
-	clusterInformer clusterv1informers.SharedInformerFactory) error {
+	clusterInformer clusterinformers.SharedInformerFactory) error {
 
 	clusterCache := cache.NewClusterCache(
 		clusterInformer.Cluster().V1().ManagedClusters(),
@@ -74,11 +77,28 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 			informerFactory.Rbac().V1().ClusterRoles().Lister(),
 		),
 	}
+
+	clusterSetCache := cache.NewClusterSetCache(
+		clusterInformer.Cluster().V1alpha1().ManagedClusterSets(),
+		informerFactory.Rbac().V1().ClusterRoles(),
+		informerFactory.Rbac().V1().ClusterRoleBindings(),
+	)
+
+	v1alpha1storage := map[string]rest.Storage{
+		"managedclustersets": managedclusterset.NewREST(
+			client, clusterSetCache, clusterSetCache,
+			clusterInformer.Cluster().V1alpha1().ManagedClusterSets().Lister(),
+			informerFactory.Rbac().V1().ClusterRoles().Lister(),
+		),
+	}
+
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(clusterviewv1.GroupName, Scheme, ParameterCodec, Codecs)
 
 	apiGroupInfo.VersionedResourcesStorageMap[clusterviewv1.SchemeGroupVersion.Version] = v1storage
+	apiGroupInfo.VersionedResourcesStorageMap[clusterviewv1alpha1.SchemeGroupVersion.Version] = v1alpha1storage
 
 	go clusterCache.Run(1 * time.Second)
+	go clusterSetCache.Run(1 * time.Second)
 	return server.InstallAPIGroup(&apiGroupInfo)
 }
 

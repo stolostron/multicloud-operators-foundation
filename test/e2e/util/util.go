@@ -50,7 +50,7 @@ var NamespaceGVR = schema.GroupVersionResource{
 	Resource: "namespaces",
 }
 
-var ClusterSetGVR = schema.GroupVersionResource{
+var ManagedClusterSetGVR = schema.GroupVersionResource{
 	Group:    "cluster.open-cluster-management.io",
 	Version:  "v1alpha1",
 	Resource: "managedclustersets",
@@ -612,6 +612,33 @@ func CreateManagedCluster(dynamicClient dynamic.Interface) (*unstructured.Unstru
 	}
 
 	return fakeManagedCluster, nil
+}
+
+func CreateManagedClusterSet(dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
+	fakeManagedClusterSet, err := LoadResourceFromJSON(ManagedClusterSetRandomTemplate)
+	if err != nil {
+		return nil, err
+	}
+
+	// create a fakeManagedClusterSet
+	fakeManagedClusterSet, err = CreateClusterResource(dynamicClient, ManagedClusterSetGVR, fakeManagedClusterSet)
+	if err != nil {
+		return nil, err
+	}
+
+	exists, err := HasResource(dynamicClient, ManagedClusterSetGVR, "", fakeManagedClusterSet.GetName())
+	if err != nil {
+		return nil, err
+	}
+	if !exists {
+		return nil, fmt.Errorf("failed to get managedclusterset: %v", err)
+	}
+
+	return fakeManagedClusterSet, nil
+}
+
+func DeleteManagedClusterSet(dynamicClient dynamic.Interface, clusterSetName string) error {
+	return DeleteClusterResource(dynamicClient, ManagedClusterSetGVR, clusterSetName)
 }
 
 func DeleteManagedCluster(dynamicClient dynamic.Interface, clusterName string) error {

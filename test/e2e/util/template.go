@@ -189,6 +189,14 @@ const ManagedClusterSetTemplate = `{
   }
 }`
 
+const ManagedClusterSetRandomTemplate = `{
+  "apiVersion": "cluster.open-cluster-management.io/v1alpha1",
+  "kind": "ManagedClusterSet",
+  "metadata": {
+    "generateName": "test-automation-clusterset-"
+  }
+}`
+
 const ClusterRoleTemplate = `{
   "apiVersion": "rbac.authorization.k8s.io/v1",
   "kind": "ClusterRole",
