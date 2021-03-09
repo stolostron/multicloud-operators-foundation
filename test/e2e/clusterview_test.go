@@ -21,8 +21,13 @@ var (
 		Version:  "v1",
 		Resource: "managedclusters",
 	}
-	clusterRoleNamePostfix        = "ListClusterRole"
-	clusterRoleBindingNamePostfix = "ListClusterRoleBinding"
+	managedClusterSetViewGVR = schema.GroupVersionResource{
+		Group:    "clusterview.open-cluster-management.io",
+		Version:  "v1alpha1",
+		Resource: "managedclustersets",
+	}
+	clusterRoleNamePostfix        = "-ViewClusterRole"
+	clusterRoleBindingNamePostfix = "-ViewClusterRoleBinding"
 )
 
 func generateClusterRoleWithClusters(userName string, clusters []string) *unstructured.Unstructured {
@@ -63,15 +68,52 @@ func generateClusterRoleWithClusters(userName string, clusters []string) *unstru
 	}
 }
 
-func generateClusterRoleBinding(userName string) *unstructured.Unstructured {
-	clusterroleBinding := userName + clusterRoleBindingNamePostfix
-	clusterRole := userName + clusterRoleNamePostfix
+func generateClusterRoleWithClusterSets(userName string, clusterSets []string) *unstructured.Unstructured {
+	return &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"apiVersion": "rbac.authorization.k8s.io/v1",
+			"kind":       "ClusterRole",
+			"metadata": map[string]interface{}{
+				"name": userName + clusterRoleNamePostfix,
+			},
+			"rules": []map[string]interface{}{
+				{
+					"apiGroups": []interface{}{
+						"clusterview.open-cluster-management.io",
+					},
+					"resources": []interface{}{
+						"managedclustersets",
+					},
+					"resourceNames": []interface{}{},
+					"verbs": []interface{}{
+						"list", "watch",
+					},
+				},
+				{
+					"apiGroups": []interface{}{
+						"cluster.open-cluster-management.io",
+					},
+					"resources": []interface{}{
+						"managedclustersets",
+					},
+					"resourceNames": clusterSets,
+					"verbs": []interface{}{
+						"list", "get",
+					},
+				},
+			},
+		},
+	}
+}
+
+func generateClusterRoleBinding(userName, clusterRole string) *unstructured.Unstructured {
+	clusterRoleBinding := userName + clusterRoleBindingNamePostfix
 	return &unstructured.Unstructured{
 		Object: map[string]interface{}{
 			"apiVersion": "rbac.authorization.k8s.io/v1",
 			"kind":       "ClusterRoleBinding",
 			"metadata": map[string]interface{}{
-				"name": clusterroleBinding,
+				"name": clusterRoleBinding,
 			},
 			"roleRef": map[string]interface{}{
 				"apiGroup": "rbac.authorization.k8s.io",
@@ -90,12 +132,11 @@ func generateClusterRoleBinding(userName string) *unstructured.Unstructured {
 }
 
 func createClusterRoleAndRoleBinding(userName string) {
-	clusterRole := generateClusterRoleWithClusters(userName, []string{"cluster1"})
-
+	clusterRole := generateClusterRoleWithClusters(userName, []string{""})
 	_, err := util.ApplyClusterResource(dynamicClient, util.ClusterRoleGVR, clusterRole)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-	clusterRoleBinding := generateClusterRoleBinding(userName)
+	clusterRoleBinding := generateClusterRoleBinding(userName, clusterRole.GetName())
 	_, err = util.ApplyClusterResource(dynamicClient, util.ClusterRoleBindingGVR, clusterRoleBinding)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 }
@@ -105,7 +146,26 @@ func deleteClusterRoleAndRoleBinding(userName string) {
 	clusterRoleBindingName := userName + clusterRoleBindingNamePostfix
 	err := util.DeleteClusterResource(dynamicClient, util.ClusterRoleGVR, clusterRoleName)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-	err = util.DeleteClusterResource(dynamicClient, util.ClusterRoleGVR, clusterRoleBindingName)
+	err = util.DeleteClusterResource(dynamicClient, util.ClusterRoleBindingGVR, clusterRoleBindingName)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+}
+
+func createClusterSetRoleAndRoleBinding(userName string) {
+	clusterRole := generateClusterRoleWithClusterSets(userName, []string{""})
+	_, err := util.ApplyClusterResource(dynamicClient, util.ClusterRoleGVR, clusterRole)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+	clusterRoleBinding := generateClusterRoleBinding(userName, clusterRole.GetName())
+	_, err = util.ApplyClusterResource(dynamicClient, util.ClusterRoleBindingGVR, clusterRoleBinding)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+}
+
+func deleteClusterSetRoleAndRoleBinding(userName string) {
+	clusterRoleName := userName + clusterRoleNamePostfix
+	clusterRoleBindingName := userName + clusterRoleBindingNamePostfix
+	err := util.DeleteClusterResource(dynamicClient, util.ClusterRoleGVR, clusterRoleName)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	err = util.DeleteClusterResource(dynamicClient, util.ClusterRoleBindingGVR, clusterRoleBindingName)
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 }
 
@@ -234,7 +294,7 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusters", func() {
 		err = util.DeleteClusterResource(dynamicClient, util.ClusterRoleGVR, userName+clusterRoleNamePostfix)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		expectedClusters = []string{}
-		expectedError := "validateClusterView: failed to List Resource managedclusters.clusterview.open-cluster-management.io is forbidden: User \"Bob\" cannot list resource \"managedclusters\" in API group \"clusterview.open-cluster-management.io\" at the cluster scope: RBAC: clusterrole.rbac.authorization.k8s.io \"BobListClusterRole\" not found"
+		expectedError := "validateClusterView: failed to List Resource managedclusters.clusterview.open-cluster-management.io is forbidden: User \"" + userName + "\" cannot list resource \"managedclusters\" in API group \"clusterview.open-cluster-management.io\" at the cluster scope: RBAC: clusterrole.rbac.authorization.k8s.io \"" + userName + clusterRoleNamePostfix + "\" not found"
 		gomega.Eventually(func() error {
 			return validateClusterView(userDynamicClient, managedClusterViewGVR,
 				util.ManagedClusterGVR, expectedClusters)
@@ -309,6 +369,176 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusters", func() {
 				timeCount++
 			}
 			if expectedClusterCount == clusterCount {
+				return
+			}
+			gomega.Expect(timeCount).ShouldNot(gomega.BeNumerically(">=", 10))
+		}
+	})
+})
+
+var _ = ginkgo.Describe("Testing ClusterView to get managedClusterSets", func() {
+	var userName = "Tonny"
+	var clusterSet1, clusterSet2, clusterSet3 *unstructured.Unstructured
+	var userDynamicClient dynamic.Interface
+	ginkgo.BeforeEach(func() {
+		var err error
+		// create clusterRole and clusterRoleBinding for user
+		createClusterSetRoleAndRoleBinding(userName)
+
+		// impersonate user to the default kubeConfig
+		userDynamicClient, err = util.NewDynamicClientWithImpersonate(userName, nil)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		// prepare 3 clusterSets
+		clusterSet1, err = util.CreateManagedClusterSet(dynamicClient)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		clusterSet2, err = util.CreateManagedClusterSet(dynamicClient)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		clusterSet3, err = util.CreateManagedClusterSet(dynamicClient)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+	})
+	ginkgo.AfterEach(func() {
+		// cleanup clusterRole and clusterRoleBinding
+		deleteClusterSetRoleAndRoleBinding(userName)
+
+		// cleanup clusterSets
+		err := util.DeleteManagedClusterSet(dynamicClient, clusterSet1.GetName())
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		err = util.DeleteManagedClusterSet(dynamicClient, clusterSet2.GetName())
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		err = util.DeleteManagedClusterSet(dynamicClient, clusterSet3.GetName())
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	})
+	// all cases are running in order with the same clusterRole and clusterRoleBinding of the user
+	ginkgo.It("should list the managedClusterSets.clusterview successfully", func() {
+		// Case 1: authorize clusterSet1, clusterSet2 to user
+		expectedClusterSets := []string{clusterSet1.GetName(), clusterSet2.GetName()}
+		clusterRole := generateClusterRoleWithClusterSets(userName, expectedClusterSets)
+		_, err := util.ApplyClusterResource(dynamicClient, util.ClusterRoleGVR, clusterRole)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		gomega.Eventually(func() error {
+			return validateClusterView(userDynamicClient, managedClusterSetViewGVR,
+				util.ManagedClusterSetGVR, expectedClusterSets)
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+		// Case 2: append clusterSet3 to user role
+		expectedClusterSets = []string{clusterSet1.GetName(), clusterSet2.GetName(), clusterSet3.GetName()}
+		clusterRole = generateClusterRoleWithClusterSets(userName, expectedClusterSets)
+		_, err = util.ApplyClusterResource(dynamicClient, util.ClusterRoleGVR, clusterRole)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		gomega.Eventually(func() error {
+			return validateClusterView(userDynamicClient, managedClusterSetViewGVR,
+				util.ManagedClusterSetGVR, expectedClusterSets)
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+		// Case 3: delete clusterSet2 in user role
+		expectedClusterSets = []string{clusterSet1.GetName(), clusterSet3.GetName()}
+		clusterRole = generateClusterRoleWithClusterSets(userName, expectedClusterSets)
+		_, err = util.ApplyClusterResource(dynamicClient, util.ClusterRoleGVR, clusterRole)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		gomega.Eventually(func() error {
+			return validateClusterView(userDynamicClient, managedClusterSetViewGVR,
+				util.ManagedClusterSetGVR, expectedClusterSets)
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+		// Case 4: delete clusterSet3
+		err = util.DeleteManagedClusterSet(dynamicClient, clusterSet3.GetName())
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		clusterSetInRole := []string{clusterSet1.GetName(), clusterSet3.GetName()}
+		clusterRole = generateClusterRoleWithClusterSets(userName, clusterSetInRole)
+		_, err = util.ApplyClusterResource(dynamicClient, util.ClusterRoleGVR, clusterRole)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		expectedClusterSets = []string{clusterSet1.GetName()}
+		gomega.Eventually(func() error {
+			return validateClusterView(userDynamicClient, managedClusterSetViewGVR,
+				util.ManagedClusterSetGVR, expectedClusterSets)
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+		// Case 5: delete clusterRole
+		err = util.DeleteClusterResource(dynamicClient, util.ClusterRoleGVR, userName+clusterRoleNamePostfix)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		expectedClusterSets = []string{}
+		expectedError := "validateClusterView: failed to List Resource managedclustersets.clusterview.open-cluster-management.io is forbidden: User \"" + userName + "\" cannot list resource \"managedclustersets\" in API group \"clusterview.open-cluster-management.io\" at the cluster scope: RBAC: clusterrole.rbac.authorization.k8s.io \"" + userName + clusterRoleNamePostfix + "\" not found"
+		gomega.Eventually(func() error {
+			return validateClusterView(userDynamicClient, managedClusterSetViewGVR,
+				util.ManagedClusterSetGVR, expectedClusterSets)
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.Equal(errors.New(expectedError)))
+
+		// Case 6: add clusterRole
+		expectedClusterSets = []string{clusterSet1.GetName(), clusterSet2.GetName()}
+		clusterRole = generateClusterRoleWithClusterSets(userName, expectedClusterSets)
+		_, err = util.ApplyClusterResource(dynamicClient, util.ClusterRoleGVR, clusterRole)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		gomega.Eventually(func() error {
+			return validateClusterView(userDynamicClient, managedClusterSetViewGVR,
+				util.ManagedClusterSetGVR, expectedClusterSets)
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+	})
+})
+
+var _ = ginkgo.Describe("Testing ClusterView to watch managedClusterSets", func() {
+	var userName = "Lucy"
+	var clusterSet *unstructured.Unstructured
+	var userDynamicClient dynamic.Interface
+	ginkgo.BeforeEach(func() {
+		var err error
+		// create clusterRole and clusterRoleBinding for user
+		createClusterSetRoleAndRoleBinding(userName)
+
+		// impersonate user to the default kubeConfig
+		userDynamicClient, err = util.NewDynamicClientWithImpersonate(userName, nil)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		// prepare 1 clusterSet
+		clusterSet, err = util.CreateManagedClusterSet(dynamicClient)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	})
+	ginkgo.AfterEach(func() {
+		// cleanup clusterRole and clusterRoleBinding
+		deleteClusterSetRoleAndRoleBinding(userName)
+
+		// cleanup clusterSet
+		err := util.DeleteManagedClusterSet(dynamicClient, clusterSet.GetName())
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	})
+	ginkgo.It("should watch the managedClusterSets.clusterview successfully", func() {
+		watchedClient, err := userDynamicClient.Resource(managedClusterSetViewGVR).Watch(context.Background(), metav1.ListOptions{})
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		defer watchedClient.Stop()
+		go func() {
+			expectedClusterSets := []string{clusterSet.GetName()}
+			clusterRole := generateClusterRoleWithClusterSets(userName, expectedClusterSets)
+			_, err = util.ApplyClusterResource(dynamicClient, util.ClusterRoleGVR, clusterRole)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		}()
+
+		for {
+			timeCount := 0
+			clusterCount := 0
+			expectedClusterSetCount := 1
+			expectedClusterSetName := clusterSet.GetName()
+			select {
+			case event, ok := <-watchedClient.ResultChan():
+				gomega.Expect(ok).Should(gomega.BeTrue())
+				if event.Type == watch.Added {
+					obj := event.Object.DeepCopyObject()
+					clusterSet := obj.(*unstructured.Unstructured)
+					name, _, _ := unstructured.NestedString(clusterSet.Object, "metadata", "name")
+					gomega.Expect(name).Should(gomega.Equal(expectedClusterSetName))
+					clusterCount++
+					break
+				}
+			case <-time.After(1 * time.Second):
+				timeCount++
+			}
+			if expectedClusterSetCount == clusterCount {
 				return
 			}
 			gomega.Expect(timeCount).ShouldNot(gomega.BeNumerically(">=", 10))

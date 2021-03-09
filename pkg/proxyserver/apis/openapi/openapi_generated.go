@@ -24,6 +24,16 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"github.com/open-cluster-management/api/cluster/v1.ManagedClusterSpec":                                                            schema_open_cluster_management_api_cluster_v1_ManagedClusterSpec(ref),
 		"github.com/open-cluster-management/api/cluster/v1.ManagedClusterStatus":                                                          schema_open_cluster_management_api_cluster_v1_ManagedClusterStatus(ref),
 		"github.com/open-cluster-management/api/cluster/v1.ManagedClusterVersion":                                                         schema_open_cluster_management_api_cluster_v1_ManagedClusterVersion(ref),
+		"github.com/open-cluster-management/api/cluster/v1alpha1.ClusterClaim":                                                            schema_open_cluster_management_api_cluster_v1alpha1_ClusterClaim(ref),
+		"github.com/open-cluster-management/api/cluster/v1alpha1.ClusterClaimList":                                                        schema_open_cluster_management_api_cluster_v1alpha1_ClusterClaimList(ref),
+		"github.com/open-cluster-management/api/cluster/v1alpha1.ClusterClaimSpec":                                                        schema_open_cluster_management_api_cluster_v1alpha1_ClusterClaimSpec(ref),
+		"github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSet":                                                       schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSet(ref),
+		"github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetBinding":                                                schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSetBinding(ref),
+		"github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetBindingList":                                            schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSetBindingList(ref),
+		"github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetBindingSpec":                                            schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSetBindingSpec(ref),
+		"github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetList":                                                   schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSetList(ref),
+		"github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetSpec":                                                   schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSetSpec(ref),
+		"github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetStatus":                                                 schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSetStatus(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1.ClusterStatus":             schema_proxyserver_apis_proxy_v1beta1_ClusterStatus(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1.ClusterStatusList":         schema_proxyserver_apis_proxy_v1beta1_ClusterStatusList(ref),
 		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1.ClusterStatusProxyOptions": schema_proxyserver_apis_proxy_v1beta1_ClusterStatusProxyOptions(ref),
@@ -370,6 +380,361 @@ func schema_open_cluster_management_api_cluster_v1_ManagedClusterVersion(ref com
 				},
 			},
 		},
+	}
+}
+
+func schema_open_cluster_management_api_cluster_v1alpha1_ClusterClaim(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterClaim represents cluster information that a managed cluster claims ClusterClaims with well known names include,\n  1. id.k8s.io, it contains a unique identifier for the cluster.\n  2. clusterset.k8s.io, it contains an identifier that relates the cluster\n     to the ClusterSet in which it belongs.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec defines the attributes of the ClusterClaim.",
+							Ref:         ref("github.com/open-cluster-management/api/cluster/v1alpha1.ClusterClaimSpec"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/api/cluster/v1alpha1.ClusterClaimSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_open_cluster_management_api_cluster_v1alpha1_ClusterClaimList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ClusterClaimList is a collection of ClusterClaim.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Items is a list of ClusterClaim.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/api/cluster/v1alpha1.ClusterClaim"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/api/cluster/v1alpha1.ClusterClaim", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_open_cluster_management_api_cluster_v1alpha1_ClusterClaimSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"value": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Value is a claim-dependent string",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSet(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ManagedClusterSet defines a group of ManagedClusters that user's workload can run on. A workload can be defined to deployed on a ManagedClusterSet, which mean:\n  1. The workload can run on any ManagedCluster in the ManagedClusterSet\n  2. The workload cannot run on any ManagedCluster outside the ManagedClusterSet\n  3. The service exposed by the workload can be shared in any ManagedCluster in the ManagedClusterSet\n\nIn order to assign a ManagedCluster to a certian ManagedClusterSet, add a label with name `cluster.open-cluster-management.io/clusterset` on the ManagedCluster to refers to the ManagedClusterSet. User is not allow to add/remove this label on a ManagedCluster unless they have a RBAC rule to CREATE on a virtual subresource of managedclustersets/join. In order to update this label, user must have the permission on both the old and new ManagedClusterSet.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec defines the attributes of the ManagedClusterSet",
+							Ref:         ref("github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status represents the current status of the ManagedClusterSet",
+							Ref:         ref("github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetStatus"),
+						},
+					},
+				},
+				Required: []string{"spec"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetSpec", "github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSetBinding(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ManagedClusterSetBinding projects a ManagedClusterSet into a certain namespace. User is able to create a ManagedClusterSetBinding in a namespace and bind it to a ManagedClusterSet if they have an RBAC rule to CREATE on the virtual subresource of managedclustersets/bind. Workloads created in the same namespace can only be distributed to ManagedClusters in ManagedClusterSets bound in this namespace by higher level controllers.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"),
+						},
+					},
+					"spec": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Spec defines the attributes of ManagedClusterSetBinding.",
+							Ref:         ref("github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetBindingSpec"),
+						},
+					},
+				},
+				Required: []string{"spec"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetBindingSpec", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+	}
+}
+
+func schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSetBindingList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ManagedClusterSetBindingList is a collection of ManagedClusterSetBinding.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Items is a list of ManagedClusterSetBinding.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetBinding"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSetBinding", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSetBindingSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ManagedClusterSetBindingSpec defines the attributes of ManagedClusterSetBinding.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"clusterSet": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ClusterSet is the name of the ManagedClusterSet to bind. It must match the instance name of the ManagedClusterSetBinding and cannot change once created. User is allowed to set this field if they have an RBAC rule to CREATE on the virtual subresource of managedclustersets/bind.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"clusterSet"},
+			},
+		},
+	}
+}
+
+func schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ManagedClusterSetList is a collection of ManagedClusterSet.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"kind": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"apiVersion": {
+						SchemaProps: spec.SchemaProps{
+							Description: "APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"metadata": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Standard list metadata. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"),
+						},
+					},
+					"items": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Items is a list of ManagedClusterSet.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSet"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"items"},
+			},
+		},
+		Dependencies: []string{
+			"github.com/open-cluster-management/api/cluster/v1alpha1.ManagedClusterSet", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+	}
+}
+
+func schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ManagedClusterSetSpec describes the attributes of the ManagedClusterSet",
+				Type:        []string{"object"},
+			},
+		},
+	}
+}
+
+func schema_open_cluster_management_api_cluster_v1alpha1_ManagedClusterSetStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ManagedClusterSetStatus represents the current status of the ManagedClusterSet.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Conditions contains the different condition statuses for this ManagedClusterSet.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Ref: ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"conditions"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition"},
 	}
 }
 

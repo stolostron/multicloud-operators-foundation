@@ -2,6 +2,8 @@ package clusterview
 
 import (
 	clusterviewv1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1"
+	clusterviewv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1alpha1"
+
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -54,5 +56,6 @@ func Resource(resource string) schema.GroupResource {
 
 func Install(scheme *runtime.Scheme) {
 	utilruntime.Must(clusterviewv1.AddToScheme(scheme))
-	utilruntime.Must(scheme.SetVersionPriority(clusterviewv1.SchemeGroupVersion))
+	utilruntime.Must(clusterviewv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(scheme.SetVersionPriority(clusterviewv1.SchemeGroupVersion, clusterviewv1alpha1.SchemeGroupVersion))
 }
