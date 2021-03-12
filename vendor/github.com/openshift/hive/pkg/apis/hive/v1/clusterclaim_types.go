@@ -15,10 +15,16 @@ type ClusterClaimSpec struct {
 	// +optional
 	Subjects []rbacv1.Subject `json:"subjects,omitempty"`
 
-	// Namespace is the namespace containing the ClusterDeployment of the claimed cluster.
-	// This field will be set by the ClusterPool when the claim is assigned a cluster.
+	// Namespace is the namespace containing the ClusterDeployment (name will match the namespace) of the claimed cluster.
+	// This field will be set as soon as a suitable cluster can be found, however that cluster may still be
+	// resuming and not yet ready for use. Wait for the ClusterRunning condition to be true to avoid this issue.
 	// +optional
 	Namespace string `json:"namespace,omitempty"`
+
+	// Lifetime is the maximum lifetime of the claim after it is assigned a cluster. If the claim still exists
+	// when the lifetime has elapsed, the claim will be deleted by Hive.
+	// +optional
+	Lifetime *metav1.Duration `json:"lifetime,omitempty"`
 }
 
 // ClusterClaimStatus defines the observed state of ClusterClaim.
@@ -56,6 +62,8 @@ const (
 	ClusterClaimPendingCondition ClusterClaimConditionType = "Pending"
 	// ClusterClaimClusterDeletedCondition is set when the cluster assigned to the claim has been deleted.
 	ClusterClaimClusterDeletedCondition ClusterClaimConditionType = "ClusterDeleted"
+	// ClusterRunningCondition is true when a claimed cluster is running and ready for use.
+	ClusterRunningCondition ClusterClaimConditionType = "ClusterRunning"
 )
 
 // +genclient
