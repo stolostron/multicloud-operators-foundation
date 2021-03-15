@@ -349,11 +349,11 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusters", func() {
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		}()
 
+		timeCount := 0
+		clusterCount := 0
+		expectedClusterCount := 1
+		expectedClusterName := cluster.GetName()
 		for {
-			timeCount := 0
-			clusterCount := 0
-			expectedClusterCount := 1
-			expectedClusterName := cluster.GetName()
 			select {
 			case event, ok := <-watchedClient.ResultChan():
 				gomega.Expect(ok).Should(gomega.BeTrue())
@@ -369,7 +369,7 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusters", func() {
 				timeCount++
 			}
 			if expectedClusterCount == clusterCount {
-				return
+				break
 			}
 			gomega.Expect(timeCount).ShouldNot(gomega.BeNumerically(">=", 10))
 		}
@@ -519,11 +519,11 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusterSets", func(
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		}()
 
+		timeCount := 0
+		clusterCount := 0
+		expectedClusterSetCount := 1
+		expectedClusterSetName := clusterSet.GetName()
 		for {
-			timeCount := 0
-			clusterCount := 0
-			expectedClusterSetCount := 1
-			expectedClusterSetName := clusterSet.GetName()
 			select {
 			case event, ok := <-watchedClient.ResultChan():
 				gomega.Expect(ok).Should(gomega.BeTrue())
@@ -539,7 +539,7 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusterSets", func(
 				timeCount++
 			}
 			if expectedClusterSetCount == clusterCount {
-				return
+				break
 			}
 			gomega.Expect(timeCount).ShouldNot(gomega.BeNumerically(">=", 10))
 		}
