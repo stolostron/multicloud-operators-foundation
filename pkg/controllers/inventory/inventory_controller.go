@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/equality"
+	"k8s.io/client-go/util/retry"
 	"reflect"
 	"strings"
 	"time"
@@ -245,7 +247,6 @@ func (r *ReconcileBareMetalAsset) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, nil
 	}
 
-	instance.Status = inventoryv1alpha1.BareMetalAssetStatus{}
 	for _, f := range []func(*inventoryv1alpha1.BareMetalAsset) error{
 		r.ensureLabels,
 		r.checkAssetSecret,
@@ -258,17 +259,16 @@ func (r *ReconcileBareMetalAsset) Reconcile(request reconcile.Request) (reconcil
 			switch {
 			case bmaerrors.IsNoClusterError(err):
 				klog.Info("No cluster specified")
-				return reconcile.Result{}, r.client.Status().Update(context.TODO(), instance)
+				return reconcile.Result{}, r.updateStatus(instance)
 			case bmaerrors.IsAssetSecretNotFoundError(err):
 				// since we won't be notified when the secret is created, requeue after some time
 				klog.Infof("Secret not found, RequeueAfter.Duration %v seconds", assetSecretRequeueAfter)
 				return reconcile.Result{RequeueAfter: time.Duration(assetSecretRequeueAfter) * time.Second},
-					r.client.Status().Update(context.TODO(), instance)
+					r.updateStatus(instance)
 			}
 
 			klog.Errorf("Failed reconcile, %v", err)
-			statusErr := r.client.Status().Update(context.TODO(), instance)
-			if statusErr != nil {
+			if statusErr := r.updateStatus(instance); statusErr != nil {
 				klog.Errorf("Failed to update status, %v", statusErr)
 			}
 
@@ -277,7 +277,26 @@ func (r *ReconcileBareMetalAsset) Reconcile(request reconcile.Request) (reconcil
 	}
 
 	klog.Info("BareMetalAsset Reconciled")
-	return reconcile.Result{}, r.client.Status().Update(context.TODO(), instance)
+	return reconcile.Result{}, r.updateStatus(instance)
+}
+
+func (r *ReconcileBareMetalAsset) updateStatus(instance *inventoryv1alpha1.BareMetalAsset) error {
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		newInstance := &inventoryv1alpha1.BareMetalAsset{}
+		err := r.client.Get(context.TODO(), types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}, newInstance)
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+		if equality.Semantic.DeepEqual(newInstance.Status, instance.Status) {
+			return nil
+		}
+		newInstance.Status = instance.Status
+		return r.client.Status().Update(context.TODO(), newInstance)
+	})
+	return err
 }
 
 // checkAssetSecret verifies that we can find the secret listed in the BareMetalAsset
