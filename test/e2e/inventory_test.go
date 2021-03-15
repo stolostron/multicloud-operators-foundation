@@ -46,10 +46,14 @@ var _ = ginkgo.Describe("Testing BareMetalAsset", func() {
 				Namespace: testNamespace,
 			},
 			Spec: hivev1.ClusterDeploymentSpec{
-				BaseDomain:   "hive.example.com",
-				ClusterName:  testName,
-				Platform:     hivev1.Platform{},
-				Provisioning: &hivev1.Provisioning{},
+				BaseDomain:  "hive.example.com",
+				ClusterName: testName,
+				Platform:    hivev1.Platform{},
+				Provisioning: &hivev1.Provisioning{
+					InstallConfigSecretRef: &corev1.LocalObjectReference{
+						Name: "secret-ref",
+					},
+				},
 				PullSecretRef: &corev1.LocalObjectReference{
 					Name: "pull-ref",
 				},
