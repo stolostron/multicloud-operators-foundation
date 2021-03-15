@@ -5,6 +5,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	// FeatureGateAgentInstallStrategy enables the use of the alpha ClusterDeployment agent based
+	// install strategy and platforms.
+	FeatureGateAgentInstallStrategy = "AlphaAgentInstallStrategy"
+)
+
 // HiveConfigSpec defines the desired state of Hive
 type HiveConfigSpec struct {
 
@@ -78,6 +84,54 @@ type HiveConfigSpec struct {
 	// ControllersConfig is used to configure different hive controllers
 	// +optional
 	ControllersConfig *ControllersConfig `json:"controllersConfig,omitempty"`
+
+	FeatureGates *FeatureGateSelection `json:"featureGates,omitempty"`
+}
+
+// FeatureSet defines the set of feature gates that should be used.
+// +kubebuilder:validation:Enum="";Custom
+type FeatureSet string
+
+var (
+	// DefaultFeatureSet feature set is the default things supported as part of normal supported platform.
+	DefaultFeatureSet FeatureSet = ""
+
+	// CustomFeatureSet allows the enabling or disabling of any feature. Turning this feature set on IS NOT SUPPORTED.
+	// Because of its nature, this setting cannot be validated.  If you have any typos or accidentally apply invalid combinations
+	// it might leave object in a state that is unrecoverable.
+	CustomFeatureSet FeatureSet = "Custom"
+)
+
+// FeatureGateSelection allows selecting feature gates for the controller.
+type FeatureGateSelection struct {
+	// featureSet changes the list of features in the cluster.  The default is empty.  Be very careful adjusting this setting.
+	// +unionDiscriminator
+	// +optional
+	FeatureSet FeatureSet `json:"featureSet,omitempty"`
+
+	// custom allows the enabling or disabling of any feature.
+	// Because of its nature, this setting cannot be validated.  If you have any typos or accidentally apply invalid combinations
+	// might cause unknown behavior. featureSet must equal "Custom" must be set to use this field.
+	// +optional
+	// +nullable
+	Custom *FeatureGatesEnabled `json:"custom,omitempty"`
+}
+
+// FeatureGatesEnabled is list of feature gates that must be enabled.
+type FeatureGatesEnabled struct {
+	// enabled is a list of all feature gates that you want to force on
+	// +optional
+	Enabled []string `json:"enabled,omitempty"`
+}
+
+// FeatureSets Contains a map of Feature names to Enabled/Disabled Feature.
+var FeatureSets = map[FeatureSet]*FeatureGatesEnabled{
+	DefaultFeatureSet: {
+		Enabled: []string{},
+	},
+	CustomFeatureSet: {
+		Enabled: []string{},
+	},
 }
 
 // HiveConfigStatus defines the observed state of Hive

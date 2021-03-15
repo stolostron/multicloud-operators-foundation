@@ -6,8 +6,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
+)
+
+var (
+	scheme = runtime.NewScheme()
 )
 
 func newManagedCluster(name string) *unstructured.Unstructured {
@@ -48,6 +53,11 @@ func newClusterDeployment(namespace, name string) *unstructured.Unstructured {
 }
 
 func Test_ShouldDenyDeleteNamespace(t *testing.T) {
+	gvrToListKind := map[schema.GroupVersionResource]string{
+		clusterDeploymentsGVR: "ClusterDeploymentsList",
+		managedClustersGVR:    "ManagedClustersList",
+		manifestWorksGVR:      "ManifestWorkList",
+	}
 	tests := []struct {
 		name           string
 		namespace      string
@@ -64,21 +74,21 @@ func Test_ShouldDenyDeleteNamespace(t *testing.T) {
 		{
 			name:           "case: there is no managedcluster",
 			namespace:      "cluster1",
-			dynamicClient:  dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newManifestWork("cluster1", "work")),
+			dynamicClient:  dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, gvrToListKind, newManifestWork("cluster1", "work")),
 			expectedResult: false,
 			expectdMsg:     "",
 		},
 		{
 			name:           "case: there is no resource in ns",
 			namespace:      "cluster1",
-			dynamicClient:  dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newManagedCluster("cluster1")),
+			dynamicClient:  dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, gvrToListKind, newManagedCluster("cluster1")),
 			expectedResult: false,
 			expectdMsg:     "",
 		},
 		{
 			name:      "case: there is only manifestwork",
 			namespace: "cluster2",
-			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(),
+			dynamicClient: dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, gvrToListKind,
 				newManagedCluster("cluster2"), newManifestWork("cluster2", "work")),
 			expectedResult: true,
 			expectdMsg:     "deny deleting namespace cluster2 since the manifestworks exist",
@@ -86,7 +96,7 @@ func Test_ShouldDenyDeleteNamespace(t *testing.T) {
 		{
 			name:      "case: there is only clusterdeployment",
 			namespace: "cluster3",
-			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(),
+			dynamicClient: dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, gvrToListKind,
 				newManagedCluster("cluster3"), newClusterDeployment("cluster3", "clusterdeployment")),
 			expectedResult: true,
 			expectdMsg:     "deny deleting namespace cluster3 since the clusterdeployments exist",
@@ -94,7 +104,7 @@ func Test_ShouldDenyDeleteNamespace(t *testing.T) {
 		{
 			name:      "case: there are both manifestwork and clusterdeployment",
 			namespace: "cluster4",
-			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(),
+			dynamicClient: dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme, gvrToListKind,
 				newManagedCluster("cluster4"), newManifestWork("cluster4", "work"), newClusterDeployment("cluster4", "clusterdeployment")),
 			expectedResult: true,
 			expectdMsg:     "deny deleting namespace cluster4 since the manifestworks and clusterdeployments exist",

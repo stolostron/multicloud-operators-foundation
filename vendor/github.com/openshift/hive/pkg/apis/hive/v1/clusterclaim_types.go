@@ -32,6 +32,11 @@ type ClusterClaimStatus struct {
 	// Conditions includes more detailed status for the cluster pool.
 	// +optional
 	Conditions []ClusterClaimCondition `json:"conditions,omitempty"`
+
+	// Lifetime is the maximum lifetime of the claim after it is assigned a cluster. If the claim still exists
+	// when the lifetime has elapsed, the claim will be deleted by Hive.
+	// +optional
+	Lifetime *metav1.Duration `json:"lifetime,omitempty"`
 }
 
 // ClusterClaimCondition contains details for the current condition of a cluster claim.
@@ -73,6 +78,10 @@ const (
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=clusterclaims
+// +kubebuilder:printcolumn:name="Pool",type="string",JSONPath=".spec.clusterPoolName"
+// +kubebuilder:printcolumn:name="Pending",type="string",JSONPath=".status.conditions[?(@.type=='Pending')].reason"
+// +kubebuilder:printcolumn:name="ClusterNamespace",type="string",JSONPath=".spec.namespace"
+// +kubebuilder:printcolumn:name="ClusterRunning",type="string",JSONPath=".status.conditions[?(@.type=='ClusterRunning')].reason"
 type ClusterClaim struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
