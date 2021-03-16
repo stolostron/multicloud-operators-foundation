@@ -340,12 +340,20 @@ func getResourceNamesFromClusterRole(clusterRole *rbacv1.ClusterRole, group, res
 		if !rbac.APIGroupMatches(&rule, group) {
 			continue
 		}
+
+		if !rbac.VerbMatches(&rule, "get") && !rbac.VerbMatches(&rule, "list") {
+			continue
+		}
+
+		if len(rule.ResourceNames) == 0 {
+			all = true
+			return names, all
+		}
+
 		if !rbac.ResourceMatches(&rule, resource, "") {
 			continue
 		}
-		if len(rule.ResourceNames) == 0 {
-			all = true
-		}
+
 		names.Insert(rule.ResourceNames...)
 	}
 	return names, all

@@ -81,6 +81,15 @@ func TestSyncManagedClusterCache(t *testing.T) {
 			expectedSets: sets.String{}.Insert("cluster1", "cluster2"),
 		},
 		{
+			name: "group4 no get role",
+			user: &user.DefaultInfo{
+				Name:   "group4",
+				UID:    "group4-uid",
+				Groups: []string{"group4"},
+			},
+			expectedSets: sets.String{},
+		},
+		{
 			name: "no user4",
 			user: &user.DefaultInfo{
 				Name:   "user4",

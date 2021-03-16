@@ -46,3 +46,13 @@ func ResourceMatches(rule *rbacv1.PolicyRule, combinedRequestedResource, request
 
 	return false
 }
+
+func VerbMatches(rule *rbacv1.PolicyRule, requestedVerb string) bool {
+	for _, verb := range rule.Verbs {
+		if verb == requestedVerb {
+			return true
+		}
+	}
+
+	return false
+}

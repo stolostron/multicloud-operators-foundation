@@ -11,6 +11,7 @@ import (
 )
 
 var managedclusterGroup = "cluster.open-cluster-management.io"
+var managedClusterViewGroup = "clusterview.open-cluster-management.io"
 
 // buildAdminRoleRules builds the clusteadminroles
 func buildAdminRoleRules(clusterName string) []rbacv1.PolicyRule {
@@ -19,6 +20,10 @@ func buildAdminRoleRules(clusterName string) []rbacv1.PolicyRule {
 			Groups(managedclusterGroup).
 			Resources("managedclusters").
 			Names(clusterName).
+			RuleOrDie(),
+		clusterrbac.NewRule("get", "list", "watch").
+			Groups(managedClusterViewGroup).
+			Resources("managedclusters").
 			RuleOrDie(),
 	}
 }
@@ -30,5 +35,9 @@ func buildViewRoleRules(clusterName string) []rbacv1.PolicyRule {
 			Groups(managedclusterGroup).
 			Resources("managedclusters").
 			Names(clusterName).RuleOrDie(),
+		clusterrbac.NewRule("get", "list", "watch").
+			Groups(managedClusterViewGroup).
+			Resources("managedclusters").
+			RuleOrDie(),
 	}
 }
