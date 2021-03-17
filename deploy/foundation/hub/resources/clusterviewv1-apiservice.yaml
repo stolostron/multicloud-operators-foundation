@@ -9,5 +9,5 @@ spec:
     namespace: open-cluster-management
     name: foundation-proxyserver
   insecureSkipTLSVerify: true
-  groupPriorityMinimum: 10000
+  groupPriorityMinimum: 10
   versionPriority: 20

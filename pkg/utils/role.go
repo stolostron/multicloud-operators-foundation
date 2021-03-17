@@ -36,7 +36,7 @@ func GetClustersetInRules(rules []rbacv1.PolicyRule) sets.String {
 		if !ContainsString(rule.APIGroups, clusterv1alpha1.GroupName) {
 			continue
 		}
-		if !ContainsString(rule.Resources, "managedclustersets/bind") && !ContainsString(rule.Resources, "*") {
+		if !ContainsString(rule.Resources, "managedclustersets/bind") && !ContainsString(rule.Resources, "managedclustersets/join") && !ContainsString(rule.Resources, "*") {
 			continue
 		}
 

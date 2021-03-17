@@ -78,6 +78,21 @@ var (
 					},
 				},
 			},
+			{
+				ObjectMeta: metav1.ObjectMeta{Name: "role4", ResourceVersion: "3"},
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{"clusterview.open-cluster-management.io"},
+						Resources: []string{"managedclusters"},
+					},
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{"cluster.open-cluster-management.io"},
+						Resources: []string{"managedclusters"},
+					},
+				},
+			},
 		},
 	}
 	clusterRoleBindingList = rbacv1.ClusterRoleBindingList{
@@ -130,6 +145,22 @@ var (
 					APIGroup: "rbac.authorization.k8s.io",
 					Kind:     "ClusterRole",
 					Name:     "role3",
+				},
+			},
+			{
+				TypeMeta:   metav1.TypeMeta{},
+				ObjectMeta: metav1.ObjectMeta{Name: "rolebinding4", ResourceVersion: "2"},
+				Subjects: []rbacv1.Subject{
+					{
+						Kind:     "Group",
+						APIGroup: "rbac.authorization.k8s.io",
+						Name:     "group4",
+					},
+				},
+				RoleRef: rbacv1.RoleRef{
+					APIGroup: "rbac.authorization.k8s.io",
+					Kind:     "ClusterRole",
+					Name:     "role4",
 				},
 			},
 		},
@@ -224,6 +255,15 @@ func TestClusterCacheList(t *testing.T) {
 				Groups: []string{"group3"},
 			},
 			expectedClusters: sets.String{}.Insert("cluster1", "cluster2"),
+		},
+		{
+			name: "group4 no get role",
+			user: &user.DefaultInfo{
+				Name:   "group4",
+				UID:    "group4-uid",
+				Groups: []string{"group4"},
+			},
+			expectedClusters: sets.String{},
 		},
 		{
 			name: "no user4",

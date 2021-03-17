@@ -339,8 +339,14 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusters", func() {
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
 	ginkgo.It("should watch the managedClusters.clusterview successfully", func() {
-		watchedClient, err := userDynamicClient.Resource(managedClusterViewGVR).Watch(context.Background(), metav1.ListOptions{})
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		var watchedClient watch.Interface
+		var err error
+
+		gomega.Eventually(func() error {
+			watchedClient, err = userDynamicClient.Resource(managedClusterViewGVR).Watch(context.Background(), metav1.ListOptions{})
+			return err
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
 		defer watchedClient.Stop()
 		go func() {
 			expectedClusters := []string{cluster.GetName()}
@@ -509,8 +515,14 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusterSets", func(
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
 	ginkgo.It("should watch the managedClusterSets.clusterview successfully", func() {
-		watchedClient, err := userDynamicClient.Resource(managedClusterSetViewGVR).Watch(context.Background(), metav1.ListOptions{})
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		var watchedClient watch.Interface
+		var err error
+
+		gomega.Eventually(func() error {
+			watchedClient, err = userDynamicClient.Resource(managedClusterSetViewGVR).Watch(context.Background(), metav1.ListOptions{})
+			return err
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
 		defer watchedClient.Stop()
 		go func() {
 			expectedClusterSets := []string{clusterSet.GetName()}
