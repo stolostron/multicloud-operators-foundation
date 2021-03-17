@@ -161,6 +161,10 @@ type CloudVendorType string
 const (
 	// CloudVendorIBM IBM
 	CloudVendorIBM CloudVendorType = "IBM"
+	// CloudVendorIBMZ IBM s360x
+	CloudVendorIBMZ CloudVendorType = "IBMZPlatform"
+	// CloudVendorIBMP IBM Power
+	CloudVendorIBMP CloudVendorType = "IBMPowerPlatform"
 	// CloudVendorAWS Amazon
 	CloudVendorAWS CloudVendorType = "Amazon"
 	// CloudVendorAzure Azure
