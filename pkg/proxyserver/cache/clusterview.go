@@ -341,7 +341,7 @@ func getResourceNamesFromClusterRole(clusterRole *rbacv1.ClusterRole, group, res
 			continue
 		}
 
-		if !rbac.VerbMatches(&rule, "get") && !rbac.VerbMatches(&rule, "list") {
+		if !rbac.VerbMatches(&rule, "get") && !rbac.VerbMatches(&rule, "list") && !rbac.VerbMatches(&rule, "*") {
 			continue
 		}
 

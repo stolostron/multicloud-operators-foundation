@@ -30,7 +30,7 @@ type REST struct {
 	tableConverter    rest.TableConvertor
 }
 
-// NewMangedClusterREST returns a RESTStorage object that will work against ManagedCluster resources
+// NewREST returns a RESTStorage object that will work against ManagedCluster resources
 func NewREST(
 	client clientset.Interface,
 	lister cache.ClusterLister,
@@ -93,7 +93,7 @@ func (s *REST) Watch(ctx context.Context, options *metainternalversion.ListOptio
 	}
 	user, ok := request.UserFrom(ctx)
 	if !ok {
-		return nil, errors.NewForbidden(clusterv1.Resource("managedclusters"), "", fmt.Errorf("unable to list mangedCluster without a user on the context"))
+		return nil, errors.NewForbidden(clusterv1.Resource("managedclusters"), "", fmt.Errorf("unable to list managedCluster without a user on the context"))
 	}
 
 	includeAllExistingClusters := (options != nil) && options.ResourceVersion == "0"
@@ -110,7 +110,7 @@ var _ = rest.Getter(&REST{})
 func (s *REST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	user, ok := request.UserFrom(ctx)
 	if !ok {
-		return nil, errors.NewForbidden(clusterv1.Resource("managedclusters"), "", fmt.Errorf("unable to get mangedCluster without a user on the context"))
+		return nil, errors.NewForbidden(clusterv1.Resource("managedclusters"), "", fmt.Errorf("unable to get managedCluster without a user on the context"))
 	}
 
 	clusterList, err := s.lister.List(user, labels.Everything())
@@ -123,5 +123,5 @@ func (s *REST) Get(ctx context.Context, name string, options *metav1.GetOptions)
 		}
 	}
 
-	return nil, errors.NewForbidden(clusterv1.Resource("managedclusters"), "", fmt.Errorf("the user cannot get the mangedCluster"))
+	return nil, errors.NewForbidden(clusterv1.Resource("managedclusters"), "", fmt.Errorf("the user cannot get the managedCluster %v", name))
 }
