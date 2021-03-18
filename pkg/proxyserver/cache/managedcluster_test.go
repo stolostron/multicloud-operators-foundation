@@ -55,10 +55,10 @@ var (
 						Resources: []string{"managedclusters"},
 					},
 					{
-						Verbs:         []string{"get"},
+						Verbs:         []string{"list"},
 						APIGroups:     []string{"cluster.open-cluster-management.io"},
 						Resources:     []string{"managedclusters"},
-						ResourceNames: []string{"cluster1", "cluster2"},
+						ResourceNames: []string{},
 					},
 				},
 			},
@@ -71,7 +71,7 @@ var (
 						Resources: []string{"managedclusters"},
 					},
 					{
-						Verbs:         []string{"get"},
+						Verbs:         []string{"*"},
 						APIGroups:     []string{"cluster.open-cluster-management.io"},
 						Resources:     []string{"managedclusters"},
 						ResourceNames: []string{"cluster1", "cluster2", "cluster3"},
