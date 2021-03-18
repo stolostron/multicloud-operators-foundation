@@ -369,6 +369,13 @@ func (r *ClusterInfoReconciler) getCloudVendor() clusterv1beta1.CloudVendorType 
 		return clusterv1beta1.CloudVendorOther
 	}
 
+	switch nodes.Items[0].Status.NodeInfo.Architecture {
+	case "s390x":
+		return clusterv1beta1.CloudVendorIBMZ
+	case "ppc64le":
+		return clusterv1beta1.CloudVendorIBMP
+	}
+
 	providerID := nodes.Items[0].Spec.ProviderID
 	switch {
 	case strings.Contains(providerID, "ibm"):
@@ -770,6 +777,10 @@ func (r *ClusterInfoReconciler) getVersionPlatformProduct(distributionInfo clust
 	}
 
 	switch cloudVendor {
+	case clusterv1beta1.CloudVendorIBMP:
+		platform = string(clusterv1beta1.CloudVendorIBMP)
+	case clusterv1beta1.CloudVendorIBMZ:
+		platform = string(clusterv1beta1.CloudVendorIBMZ)
 	case clusterv1beta1.CloudVendorIBM:
 		// IBM Cloud Platform
 		platform = IBMPlatformType

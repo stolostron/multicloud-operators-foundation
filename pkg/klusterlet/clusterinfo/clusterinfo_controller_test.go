@@ -571,6 +571,10 @@ func NewClusterInfoReconcilerWithNodes(cloudVendorType clusterv1beta1.CloudVendo
 		node.Spec.ProviderID = "vsphere://421a27ac-bb12-f6e6-48cb-f2aa74e56156"
 	case clusterv1beta1.CloudVendorOpenStack:
 		node.Spec.ProviderID = "openstack:///dda1f31a-3dfb-435a-9e1d-16149a8dd628"
+	case clusterv1beta1.CloudVendorIBMZ:
+		node.Status.NodeInfo.Architecture = "s390x"
+	case clusterv1beta1.CloudVendorIBMP:
+		node.Status.NodeInfo.Architecture = "ppc64le"
 	}
 
 	fakeKubeClient := kubefake.NewSimpleClientset(node)
@@ -653,6 +657,22 @@ func TestGetVendor(t *testing.T) {
 			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorIBM, ""),
 			expectCloudVendor:     clusterv1beta1.CloudVendorIBM,
 			expectKubeVendor:      clusterv1beta1.KubeVendorICP,
+		},
+		{
+			name:                  "IBMP",
+			gitVersion:            "v1.18.3",
+			isOpenShift:           true,
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorIBMP, ""),
+			expectCloudVendor:     clusterv1beta1.CloudVendorIBMP,
+			expectKubeVendor:      clusterv1beta1.KubeVendorOpenShift,
+		},
+		{
+			name:                  "IBMZ",
+			gitVersion:            "v1.18.3",
+			isOpenShift:           true,
+			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorIBMZ, ""),
+			expectCloudVendor:     clusterv1beta1.CloudVendorIBMZ,
+			expectKubeVendor:      clusterv1beta1.KubeVendorOpenShift,
 		},
 		{
 			name:                  "vsphere",
