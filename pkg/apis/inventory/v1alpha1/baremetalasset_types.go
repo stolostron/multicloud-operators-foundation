@@ -59,6 +59,7 @@ type BareMetalAssetSpec struct {
 	Role Role `json:"role,omitempty"`
 
 	// ClusterDeployment which the asset belongs to.
+	// +kubebuilder:pruning:PreserveUnknownFields
 	ClusterDeployment metav1.ObjectMeta `json:"clusterDeployment,omitempty"`
 }
 

@@ -56,6 +56,8 @@ type ActionStatus struct {
 	// Result references the related result of the action
 	// +nullable
 	// +optional
+	// +kubebuilder:validation:EmbeddedResource
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Result runtime.RawExtension `json:"result,omitempty"`
 }
 
@@ -96,6 +98,8 @@ type KubeWorkSpec struct {
 	Namespace string `json:"namespace,omitempty"`
 
 	// ObjectTemplate is the template of the object
+	// +kubebuilder:validation:EmbeddedResource
+	// +kubebuilder:pruning:PreserveUnknownFields
 	ObjectTemplate runtime.RawExtension `json:"template,omitempty"`
 }
 
