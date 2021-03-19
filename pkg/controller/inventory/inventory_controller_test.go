@@ -450,6 +450,32 @@ func TestCheckHiveSyncSetInstance(t *testing.T) {
 			bma: newBMA(),
 		},
 		{
+			name: "SecretApplySuccessSyncConditionWithPatch",
+			existingObjs: []runtime.Object{func() *hivev1.SyncSetInstance {
+				ssi := newSyncSetInstancePatchApplySuccess()
+				ssi.Status.Secrets = []hivev1.SyncStatus{
+					{
+						Name: testName,
+						Conditions: []hivev1.SyncCondition{
+							{
+								Message: "Apply successful",
+								Reason:  "ApplySucceeded",
+								Status:  corev1.ConditionTrue,
+								Type:    hivev1.ApplySuccessSyncCondition,
+							},
+						},
+					},
+				}
+				return ssi
+			}()},
+			returnValue: true,
+			expectedConditions: []conditionsv1.Condition{{
+				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
+				Status: corev1.ConditionTrue,
+			}},
+			bma: newBMA(),
+		},
+		{
 			name: "SecretApplyFailureSyncCondition",
 			existingObjs: []runtime.Object{
 				func() *hivev1.SyncSetInstance {
@@ -603,6 +629,24 @@ func newSyncSetInstanceResources() *hivev1.SyncSetInstance {
 func newSyncSetInstanceResouceApplySuccess() *hivev1.SyncSetInstance {
 	ssi := newSyncSetInstance()
 	ssi.Status.Resources = []hivev1.SyncStatus{{
+		APIVersion: metal3v1alpha1.SchemeGroupVersion.String(),
+		Kind:       testBMHKind,
+		Name:       testName,
+		Conditions: []hivev1.SyncCondition{
+			{
+				Message: "Apply successful",
+				Reason:  "ApplySucceeded",
+				Status:  corev1.ConditionTrue,
+				Type:    hivev1.ApplySuccessSyncCondition,
+			},
+		},
+	}}
+	return ssi
+}
+
+func newSyncSetInstancePatchApplySuccess() *hivev1.SyncSetInstance {
+	ssi := newSyncSetInstance()
+	ssi.Status.Patches = []hivev1.SyncStatus{{
 		APIVersion: metal3v1alpha1.SchemeGroupVersion.String(),
 		Kind:       testBMHKind,
 		Name:       testName,
