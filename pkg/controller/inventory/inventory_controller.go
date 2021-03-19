@@ -654,20 +654,27 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *in
 	resourceCount := len(syncSetStatus.Resources)
 	if resourceCount == 0 && (len(syncSetStatus.Patches) == 1) {
 		for _, condition := range syncSetStatus.Patches[0].Conditions {
-			if condition.Type == hivev1.ApplyFailureSyncCondition && condition.Status == corev1.ConditionTrue {
-				// Must delete (and recreate) the SyncSet if the BareMetalHost
-				// is not found.
-				if strings.Contains(condition.Message, "not found") {
-					err := r.client.Delete(context.TODO(), r.newHiveSyncSet(instance, false))
-					if err != nil {
-						klog.Errorf("Failed to delete syncSet %v", instance.Name)
-					}
-				}
-				return false
+			if condition.Type != hivev1.ApplyFailureSyncCondition {
+				continue
 			}
+
+			if condition.Status != corev1.ConditionTrue {
+				continue
+			}
+			// Must delete (and recreate) the SyncSet if the BareMetalHost
+			// is not found.
+			if !strings.Contains(condition.Message, "not found") {
+				continue
+			}
+
+			err := r.client.Delete(context.TODO(), r.newHiveSyncSet(instance, false))
+			if err != nil {
+				klog.Errorf("Failed to delete syncSet %v", instance.Name)
+			}
+			return false
 		}
 	}
-	if resourceCount != 1 {
+	if resourceCount != 1 && len(syncSetStatus.Patches) != 1 {
 		err := fmt.Errorf("unexpected number of resources found on SyncSetInstance status. Expected (1) Found (%v)",
 			resourceCount)
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
@@ -678,7 +685,14 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncSetInstanceResources(instance *in
 		})
 		return false
 	}
-	res := syncSetStatus.Resources[0]
+
+	var res hivev1.SyncStatus
+	if resourceCount == 1 {
+		res = syncSetStatus.Resources[0]
+	} else if len(syncSetStatus.Patches) == 1 {
+		res = syncSetStatus.Patches[0]
+	}
+
 	if res.APIVersion != metal3v1alpha1.SchemeGroupVersion.String() || res.Kind != BareMetalHostKind {
 		err := fmt.Errorf("unexpected resource found in SyncSetInstance status. "+
 			"Expected (Kind: %v APIVersion: %v) Found (Kind: %v APIVersion: %v)",
