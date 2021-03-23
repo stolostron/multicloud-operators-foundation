@@ -3,17 +3,13 @@ package clusterrole
 import (
 	"context"
 	"os"
-	"path/filepath"
-	"sync"
 	"testing"
 	"time"
 
 	cliScheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 
-	"github.com/onsi/gomega"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -25,8 +21,6 @@ import (
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -37,79 +31,27 @@ var (
 )
 
 const (
-	ManagedClusterName = "foo"
+	ManagedClusterSetName = "foo"
 )
 
 func TestMain(m *testing.M) {
-	t := &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "deploy", "foundation", "hub", "resources", "crds")},
-	}
-
-	clusterv1beta1.AddToScheme(cliScheme.Scheme)
-	clusterv1.AddToScheme(cliScheme.Scheme)
-
-	var err error
-	if cfg, err = t.Start(); err != nil {
-		klog.Errorf("Failed to start, %v", err)
-	}
-
+	clusterv1alpha1.AddToScheme(cliScheme.Scheme)
 	// AddToSchemes may be used to add all resources defined in the project to a Scheme
 	var AddToSchemes runtime.SchemeBuilder
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, clusterv1.Install, clusterv1beta1.AddToScheme)
+	AddToSchemes = append(AddToSchemes, clusterv1alpha1.Install)
 
 	if err := AddToSchemes.AddToScheme(scheme); err != nil {
 		klog.Errorf("Failed adding apis to scheme, %v", err)
 		os.Exit(1)
 	}
-
-	if err := clusterv1beta1.AddToScheme(scheme); err != nil {
-		klog.Errorf("Failed adding cluster info to scheme, %v", err)
-		os.Exit(1)
-	}
-	if err := clusterv1.Install(scheme); err != nil {
+	if err := clusterv1alpha1.Install(scheme); err != nil {
 		klog.Errorf("Failed adding cluster to scheme, %v", err)
 		os.Exit(1)
 	}
 
 	exitVal := m.Run()
 	os.Exit(exitVal)
-}
-
-// StartTestManager adds recFn
-func StartTestManager(mgr manager.Manager, g *gomega.GomegaWithT) (chan struct{}, *sync.WaitGroup) {
-	stop := make(chan struct{})
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		g.Expect(mgr.Start(stop)).NotTo(gomega.HaveOccurred())
-	}()
-
-	return stop, wg
-}
-
-func TestControllerReconcile(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
-
-	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
-	// channel when it is finished.
-	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
-
-	c = mgr.GetClient()
-
-	SetupWithManager(mgr, nil)
-
-	stopMgr, mgrStopped := StartTestManager(mgr, g)
-
-	defer func() {
-		close(stopMgr)
-		mgrStopped.Wait()
-	}()
-
-	time.Sleep(time.Second * 1)
 }
 
 func validateError(t *testing.T, err, expectedErrorType error) {
@@ -131,7 +73,7 @@ func newAdminRoleObjs() []runtime.Object {
 	return []runtime.Object{
 		&rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: utils.BuildClusterRoleName(ManagedClusterName, "admin"),
+				Name: utils.BuildClusterRoleName(ManagedClusterSetName, "clusterset-admin"),
 			},
 			Rules: nil,
 		},
@@ -148,83 +90,67 @@ func TestReconcile(t *testing.T) {
 		requeue           bool
 	}{
 		{
-			name:         "ManagedClusterNotFound",
+			name:         "ManagedClusterSetNotFound",
 			existingObjs: []runtime.Object{},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: ManagedClusterName,
+					Name: ManagedClusterSetName,
 				},
 			},
 		},
 		{
-			name: "ManagedClusterHasFinalizerWithoutClusterRole",
+			name: "ManagedClusterSetHasFinalizerWithoutClusterRole",
 			existingObjs: []runtime.Object{
-				&clusterv1.ManagedCluster{
+				&clusterv1alpha1.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: ManagedClusterName,
+						Name: ManagedClusterSetName,
 						DeletionTimestamp: &metav1.Time{
 							Time: time.Now(),
 						},
 						Finalizers: []string{
-							clusterRoleFinalizerName,
+							clustersetRoleFinalizerName,
 						},
 					},
-					Spec: clusterv1.ManagedClusterSpec{},
+					Spec: clusterv1alpha1.ManagedClusterSetSpec{},
 				},
 			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: ManagedClusterName,
+					Name: ManagedClusterSetName,
 				},
 			},
 		},
 		{
-			name: "ManagedClusterNoFinalizerWithoutClusterRole",
+			name: "ManagedClusterSetNoFinalizerWithoutClusterRole",
 			existingObjs: []runtime.Object{
-				&clusterv1.ManagedCluster{
+				&clusterv1alpha1.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: ManagedClusterName,
+						Name: ManagedClusterSetName,
 					},
-					Spec: clusterv1.ManagedClusterSpec{
-						ManagedClusterClientConfigs: []clusterv1.ClientConfig{
-							{
-								URL: "",
-							},
-						},
-						HubAcceptsClient:     false,
-						LeaseDurationSeconds: 0,
-					},
+					Spec: clusterv1alpha1.ManagedClusterSetSpec{},
 				},
 			},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: ManagedClusterName,
+					Name: ManagedClusterSetName,
 				},
 			},
 			requeue: false,
 		},
 		{
-			name: "ManagedClusterNoFinalizerWithClusterRole",
+			name: "ManagedClusterSetNoFinalizerWithClusterRole",
 			existingObjs: []runtime.Object{
-				&clusterv1.ManagedCluster{
+				&clusterv1alpha1.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
-						Name: ManagedClusterName,
+						Name: ManagedClusterSetName,
 					},
-					Spec: clusterv1.ManagedClusterSpec{
-						ManagedClusterClientConfigs: []clusterv1.ClientConfig{
-							{
-								URL: "",
-							},
-						},
-						HubAcceptsClient:     false,
-						LeaseDurationSeconds: 0,
-					},
+					Spec: clusterv1alpha1.ManagedClusterSetSpec{},
 				},
 			},
 			existingRoleOjbs: newAdminRoleObjs(),
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
-					Name: ManagedClusterName,
+					Name: ManagedClusterSetName,
 				},
 			},
 		},
@@ -235,7 +161,7 @@ func TestReconcile(t *testing.T) {
 			svrc := newTestReconciler(test.existingObjs, test.existingRoleOjbs)
 			clusterNamespace := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: ManagedClusterName,
+					Name: ManagedClusterSetName,
 				},
 			}
 			svrc.kubeClient.CoreV1().Namespaces().Create(context.TODO(), clusterNamespace, metav1.CreateOptions{})

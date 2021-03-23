@@ -47,7 +47,8 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		// create ManagedClusterSet to real cluster
-		clusterset, err = util.CreateResource(dynamicClient, clusterSetGVR, clusterset)
+		clusterset, err = util.ApplyClusterResource(dynamicClient, clusterSetGVR, clusterset)
+		//clusterset, err = util.CreateResource(dynamicClient, clusterSetGVR, clusterset)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", clusterSetGVR.Resource)
 
 		//set ManagedClusterset for ManagedCluster
@@ -72,7 +73,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		// create clusterRole to real cluster
-		clusterrole, err = util.CreateResource(dynamicClient, clusterRoleGVR, clusterrole)
+		clusterrole, err = util.ApplyClusterResource(dynamicClient, clusterRoleGVR, clusterrole)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", clusterRoleGVR.Resource)
 
 		//create clusterrolebinding
@@ -80,7 +81,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		// create clusterRoleBinding to real cluster
-		clusterrolebinding, err = util.CreateResource(dynamicClient, clusterRoleBindingGVR, clusterrolebinding)
+		clusterrolebinding, err = util.ApplyClusterResource(dynamicClient, clusterRoleBindingGVR, clusterrolebinding)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", clusterRoleBindingGVR.Resource)
 
 	})
@@ -145,6 +146,56 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			gomega.Eventually(func() (interface{}, error) {
 				clusterroleBindingName := utils.GenerateClusterRoleBindingName("cluster1")
 				return util.HasClusterResource(dynamicClient, clusterRoleBindingGVR, clusterroleBindingName)
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeFalse())
+		})
+	})
+	ginkgo.Context("Clusterset admin/view clusterrole auto create/delete.", func() {
+		ginkgo.It("Clusterset admin/view clusterrole auto create/delete successfully", func() {
+			clusterset, err := util.CreateManagedClusterSet(dynamicClient)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			gomega.Eventually(func() (interface{}, error) {
+				//clusterset-admin clusterrole should be auto created
+				adminClustersetRole := utils.BuildClusterRoleName(clusterset.GetName(), "clusterset-admin")
+				_, err = util.GetClusterResource(dynamicClient, clusterRoleGVR, adminClustersetRole)
+				if err != nil {
+					return false, nil
+				}
+				return true, nil
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			gomega.Eventually(func() (interface{}, error) {
+				//clusterset-view clusterrole should be auto created
+				viewClustersetRole := utils.BuildClusterRoleName(clusterset.GetName(), "clusterset-view")
+				_, err = util.GetClusterResource(dynamicClient, clusterRoleGVR, viewClustersetRole)
+				if err != nil {
+					return false, nil
+				}
+				return true, nil
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			//delete clusterset
+			err = util.DeleteClusterResource(dynamicClient, clusterSetGVR, clusterset.GetName())
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			gomega.Eventually(func() (interface{}, error) {
+				//clusterset-admin clusterrole should be auto deleted
+				adminClustersetRole := utils.BuildClusterRoleName(clusterset.GetName(), "clusterset-admin")
+				_, err = util.GetClusterResource(dynamicClient, clusterRoleGVR, adminClustersetRole)
+				if err != nil {
+					return false, nil
+				}
+				return true, nil
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeFalse())
+
+			gomega.Eventually(func() (interface{}, error) {
+				//clusterset-view clusterrole should be auto deleted
+				viewClustersetRole := utils.BuildClusterRoleName(clusterset.GetName(), "clusterset-view")
+				_, err = util.GetClusterResource(dynamicClient, clusterRoleGVR, viewClustersetRole)
+				if err != nil {
+					return false, nil
+				}
+				return true, nil
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeFalse())
 		})
 	})

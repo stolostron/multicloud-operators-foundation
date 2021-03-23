@@ -16,6 +16,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterinfo"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrole"
+	clustersetrole "github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clusterrole"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clusterrolebinding"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/syncclusterrolebinding"
@@ -132,6 +133,10 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 
 	if err = clusterrole.SetupWithManager(mgr, kubeClient); err != nil {
 		klog.Errorf("unable to setup clusterrole reconciler: %v", err)
+		return err
+	}
+	if err = clustersetrole.SetupWithManager(mgr, kubeClient); err != nil {
+		klog.Errorf("unable to setup clustersetrole reconciler: %v", err)
 		return err
 	}
 
