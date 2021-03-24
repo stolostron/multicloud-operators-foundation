@@ -54,6 +54,8 @@ type ViewStatus struct {
 	// Result references the related result of the view
 	// +nullable
 	// +optional
+	// +kubebuilder:validation:EmbeddedResource
+	// +kubebuilder:pruning:PreserveUnknownFields
 	Result runtime.RawExtension `json:"result,omitempty"`
 }
 

@@ -52,7 +52,6 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 	}
 
 	http.HandleFunc("/mutating", ah.serveMutateResource)
-	http.HandleFunc("/validating", ah.serverValidateResource)
 
 	server := &http.Server{
 		Addr:      ":8000",
