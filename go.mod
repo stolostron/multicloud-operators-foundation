@@ -56,7 +56,6 @@ require (
 	github.com/stretchr/testify v1.6.1
 	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
 	k8s.io/api v0.20.0
-	k8s.io/apiextensions-apiserver v0.20.0
 	k8s.io/apimachinery v0.20.0
 	k8s.io/apiserver v0.20.0
 	k8s.io/cli-runtime v0.20.0

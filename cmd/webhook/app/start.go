@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/useridentity"
 	"net/http"
 	"time"
 
@@ -38,10 +39,10 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 	informerFactory := informers.NewSharedInformerFactory(kubeClientSet, 10*time.Minute)
 	informer := informerFactory.Rbac().V1().RoleBindings()
 
-	ah := &admissionHandler{
-		lister:        informer.Lister(),
-		kubeClient:    kubeClientSet,
-		dynamicClient: dynamicClient,
+	ah := &useridentity.AdmissionHandler{
+		Lister:        informer.Lister(),
+		KubeClient:    kubeClientSet,
+		DynamicClient: dynamicClient,
 	}
 
 	go informerFactory.Start(stopCh)
@@ -51,7 +52,7 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 		return fmt.Errorf("failed to wait for kubernetes caches to sync")
 	}
 
-	http.HandleFunc("/mutating", ah.serveMutateResource)
+	http.HandleFunc("/mutating", ah.ServeMutateResource)
 
 	server := &http.Server{
 		Addr:      ":8000",

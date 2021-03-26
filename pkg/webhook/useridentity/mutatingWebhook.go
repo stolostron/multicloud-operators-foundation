@@ -1,28 +1,27 @@
-package app
+package useridentity
 
 import (
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"net/http"
 
 	"github.com/mattbaird/jsonpatch"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/useridentity"
 	"k8s.io/api/admission/v1"
-	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
 )
 
-type admissionHandler struct {
-	lister        rbaclisters.RoleBindingLister
-	kubeClient    kubernetes.Interface
-	dynamicClient dynamic.Interface
+type AdmissionHandler struct {
+	Lister        rbaclisters.RoleBindingLister
+	KubeClient    kubernetes.Interface
+	DynamicClient dynamic.Interface
 }
 
 // toAdmissionResponse is a helper function to create an AdmissionResponse
@@ -40,7 +39,7 @@ type admitFunc func(v1.AdmissionReview) *v1.AdmissionResponse
 
 // serve handles the http portion of a request prior to handing to an admit
 // function
-func (a *admissionHandler) serve(w io.Writer, r *http.Request, admit admitFunc) {
+func (a *AdmissionHandler) serve(w io.Writer, r *http.Request, admit admitFunc) {
 	var body []byte
 	if r.Body != nil {
 		if data, err := ioutil.ReadAll(r.Body); err == nil {
@@ -71,10 +70,12 @@ func (a *admissionHandler) serve(w io.Writer, r *http.Request, admit admitFunc) 
 		responseAdmissionReview.Response = admit(requestedAdmissionReview)
 	}
 
+	responseAdmissionReview.Kind = requestedAdmissionReview.Kind
+	responseAdmissionReview.APIVersion = requestedAdmissionReview.APIVersion
 	// Return the same UID
 	responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
 
-	klog.V(2).Info(fmt.Sprintf("sending response: %v", responseAdmissionReview.Response))
+	klog.V(2).Info(fmt.Sprintf("sending response: %+v", responseAdmissionReview))
 
 	respBytes, err := json.Marshal(responseAdmissionReview)
 	if err != nil {
@@ -85,37 +86,34 @@ func (a *admissionHandler) serve(w io.Writer, r *http.Request, admit admitFunc) 
 	}
 }
 
-func (a *admissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionResponse {
+func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionResponse {
 	klog.V(2).Info("mutating custom resource")
-	raw := ar.Request.Object.Raw
-	crd := apiextensionsv1.CustomResourceDefinition{}
-	deserializer := options.Codecs.UniversalDeserializer()
-	if _, _, err := deserializer.Decode(raw, nil, &crd); err != nil {
-		klog.Error(err)
-		return toAdmissionResponse(err)
-	}
-	ori, err := json.Marshal(crd)
+	obj := unstructured.Unstructured{}
+	err := obj.UnmarshalJSON(ar.Request.Object.Raw)
 	if err != nil {
 		klog.Error(err)
 		return toAdmissionResponse(err)
 	}
-	annotations := crd.GetAnnotations()
 
-	resAnnotations := useridentity.MergeUserIdentityToAnnotations(ar.Request.UserInfo, annotations, crd.GetNamespace(), a.lister)
-	crd.SetAnnotations(resAnnotations)
+	annotations := obj.GetAnnotations()
+	resAnnotations := MergeUserIdentityToAnnotations(ar.Request.UserInfo, annotations, obj.GetNamespace(), a.Lister)
+	obj.SetAnnotations(resAnnotations)
+
 	reviewResponse := v1.AdmissionResponse{}
 	reviewResponse.Allowed = true
 
-	crBytes, err := json.Marshal(crd)
+	updatedObj, err := obj.MarshalJSON()
 	if err != nil {
 		klog.Errorf("marshal json error: %+v", err)
 		return nil
 	}
-	res, err := jsonpatch.CreatePatch(ori, crBytes)
+	res, err := jsonpatch.CreatePatch(ar.Request.Object.Raw, updatedObj)
 	if err != nil {
 		klog.Errorf("Create patch error: %+v", err)
 		return nil
 	}
+	klog.V(2).Infof("obj patch : %+v \n", res)
+
 	resBytes, err := json.Marshal(res)
 	if err != nil {
 		klog.Errorf("marshal json error: %+v", err)
@@ -124,10 +122,11 @@ func (a *admissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionRe
 	reviewResponse.Patch = resBytes
 	pt := v1.PatchTypeJSONPatch
 	reviewResponse.PatchType = &pt
-	klog.V(2).Infof("Successfully Added user and group for resource: %+v, name: %+v", ar.Request.Resource.Resource, crd.GetName())
+
+	klog.V(2).Infof("Successfully Added user and group for resource: %+v, name: %+v", ar.Request.Resource.Resource, obj.GetName())
 	return &reviewResponse
 }
 
-func (a *admissionHandler) serveMutateResource(w http.ResponseWriter, r *http.Request) {
+func (a *AdmissionHandler) ServeMutateResource(w http.ResponseWriter, r *http.Request) {
 	a.serve(w, r, a.mutateResource)
 }
