@@ -2,12 +2,12 @@ package app
 
 import (
 	"fmt"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/clusterset"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/useridentity"
 	"net/http"
 	"time"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -24,12 +24,6 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 		return err
 	}
 
-	dynamicClient, err := dynamic.NewForConfig(kubeConfig)
-	if err != nil {
-		klog.Errorf("Error building dynamic client: %s", err.Error())
-		return err
-	}
-
 	kubeClientSet, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
 		klog.Errorf("Error building kubernetes clientset: %s", err.Error())
@@ -39,10 +33,12 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 	informerFactory := informers.NewSharedInformerFactory(kubeClientSet, 10*time.Minute)
 	informer := informerFactory.Rbac().V1().RoleBindings()
 
-	ah := &useridentity.AdmissionHandler{
-		Lister:        informer.Lister(),
-		KubeClient:    kubeClientSet,
-		DynamicClient: dynamicClient,
+	mutatingAh := &useridentity.AdmissionHandler{
+		Lister: informer.Lister(),
+	}
+
+	validatingAh := &clusterset.AdmissionHandler{
+		KubeClient: kubeClientSet,
 	}
 
 	go informerFactory.Start(stopCh)
@@ -52,7 +48,8 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 		return fmt.Errorf("failed to wait for kubernetes caches to sync")
 	}
 
-	http.HandleFunc("/mutating", ah.ServeMutateResource)
+	http.HandleFunc("/mutating", mutatingAh.ServeMutateResource)
+	http.HandleFunc("/validating", validatingAh.ServerValidateResource)
 
 	server := &http.Server{
 		Addr:      ":8000",
