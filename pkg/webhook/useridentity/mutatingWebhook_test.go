@@ -6,17 +6,12 @@ import (
 	authenticationv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	kubefake "k8s.io/client-go/kubernetes/fake"
 	"testing"
 )
 
 func newAdmissionHandler() *AdmissionHandler {
-	var objs []runtime.Object
-	client := kubefake.NewSimpleClientset(objs...)
 	return &AdmissionHandler{
-		Lister:        nil,
-		KubeClient:    client,
-		DynamicClient: nil,
+		Lister: nil,
 	}
 }
 

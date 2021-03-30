@@ -12,16 +12,12 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
 	"k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/kubernetes"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/klog/v2"
 )
 
 type AdmissionHandler struct {
-	Lister        rbaclisters.RoleBindingLister
-	KubeClient    kubernetes.Interface
-	DynamicClient dynamic.Interface
+	Lister rbaclisters.RoleBindingLister
 }
 
 // toAdmissionResponse is a helper function to create an AdmissionResponse
