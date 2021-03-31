@@ -7,8 +7,10 @@ import (
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/kubernetes"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -107,4 +109,44 @@ func GenerateClusterRoleName(clusterName string) string {
 //clusterset clusterrolebinding
 func GenerateClusterRoleBindingName(clusterName string) string {
 	return "open-cluster-management:clusterset:managedcluster:" + clusterName
+}
+
+//Delete cluster role
+func DeleteClusterRole(kubeClient kubernetes.Interface, clusterRoleName string) error {
+	err := kubeClient.RbacV1().ClusterRoles().Delete(context.TODO(), clusterRoleName, metav1.DeleteOptions{})
+	if err != nil {
+		return client.IgnoreNotFound(err)
+	}
+	return nil
+}
+
+//apply cluster role
+func ApplyClusterRole(kubeClient kubernetes.Interface, clusterRoleName string, rules []rbacv1.PolicyRule) error {
+	clusterRole, err := kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), clusterRoleName, metav1.GetOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			clusterRole = &rbacv1.ClusterRole{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: clusterRoleName,
+				},
+				Rules: rules,
+			}
+			_, err = kubeClient.RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, metav1.CreateOptions{})
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
+	}
+	if !reflect.DeepEqual(clusterRole.Rules, rules) {
+		clusterRole.Rules = rules
+		_, err := kubeClient.RbacV1().ClusterRoles().Update(context.TODO(), clusterRole, metav1.UpdateOptions{})
+		return err
+	}
+	return nil
+}
+
+func BuildClusterRoleName(objName, rule string) string {
+	return "open-cluster-management:" + rule + ":" + objName
 }

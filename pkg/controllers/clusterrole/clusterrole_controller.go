@@ -2,12 +2,9 @@ package clusterrole
 
 import (
 	"context"
-	"reflect"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	rbacv1 "k8s.io/api/rbac/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
@@ -80,12 +77,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			if klog.V(4) {
 				klog.Infof("deleting ManagedClusterRole %v", cluster.Name)
 			}
-			err := r.deleteClusterRole(buildClusterRoleName(cluster.Name, "admin"))
+			err := utils.DeleteClusterRole(r.kubeClient, utils.BuildClusterRoleName(cluster.Name, "admin"))
 			if err != nil {
 				klog.Warningf("will reconcile since failed to delete clusterrole %v : %v", cluster.Name, err)
 				return reconcile.Result{}, err
 			}
-			err = r.deleteClusterRole(buildClusterRoleName(cluster.Name, "view"))
+			err = utils.DeleteClusterRole(r.kubeClient, utils.BuildClusterRoleName(cluster.Name, "view"))
 			if err != nil {
 				klog.Warningf("will reconcile since failed to delete clusterrole %v : %v", cluster.Name, err)
 				return reconcile.Result{}, err
@@ -115,13 +112,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	//add clusterrole
 	adminRules := buildAdminRoleRules(cluster.Name)
-	err = r.applyClusterRole(buildClusterRoleName(cluster.Name, "admin"), adminRules)
+	err = utils.ApplyClusterRole(r.kubeClient, utils.BuildClusterRoleName(cluster.Name, "admin"), adminRules)
 	if err != nil {
 		klog.Warningf("will reconcile since failed to create/update clusterrole %v, %v", cluster.Name, err)
 		return ctrl.Result{}, err
 	}
 	viewRules := buildViewRoleRules(cluster.Name)
-	err = r.applyClusterRole(buildClusterRoleName(cluster.Name, "view"), viewRules)
+	err = utils.ApplyClusterRole(r.kubeClient, utils.BuildClusterRoleName(cluster.Name, "view"), viewRules)
 	if err != nil {
 		klog.Warningf("will reconcile since failed to create/update clusterrole %v, %v", cluster.Name, err)
 		return ctrl.Result{}, err
@@ -148,44 +145,4 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}
 	return ctrl.Result{}, nil
-}
-
-//Delete cluster role
-func (r *Reconciler) deleteClusterRole(clusterRoleName string) error {
-	err := r.kubeClient.RbacV1().ClusterRoles().Delete(context.TODO(), clusterRoleName, metav1.DeleteOptions{})
-	if err != nil {
-		return client.IgnoreNotFound(err)
-	}
-	return nil
-}
-
-//apply cluster role
-func (r *Reconciler) applyClusterRole(clusterRoleName string, rules []rbacv1.PolicyRule) error {
-	clusterRole, err := r.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), clusterRoleName, metav1.GetOptions{})
-	if err != nil {
-		if errors.IsNotFound(err) {
-			clusterRole = &rbacv1.ClusterRole{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: clusterRoleName,
-				},
-				Rules: rules,
-			}
-			_, err = r.kubeClient.RbacV1().ClusterRoles().Create(context.TODO(), clusterRole, metav1.CreateOptions{})
-			if err != nil {
-				return err
-			}
-		} else {
-			return err
-		}
-	}
-	if !reflect.DeepEqual(clusterRole.Rules, rules) {
-		clusterRole.Rules = rules
-		_, err := r.kubeClient.RbacV1().ClusterRoles().Update(context.TODO(), clusterRole, metav1.UpdateOptions{})
-		return err
-	}
-	return nil
-}
-
-func buildClusterRoleName(clusterName, rule string) string {
-	return "open-cluster-management:" + rule + ":" + clusterName
 }
