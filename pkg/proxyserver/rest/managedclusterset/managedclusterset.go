@@ -3,11 +3,12 @@ package managedclusterset
 import (
 	"context"
 	"fmt"
+
 	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterv1alpha1lister "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/cache"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/cache"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/helpers"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"

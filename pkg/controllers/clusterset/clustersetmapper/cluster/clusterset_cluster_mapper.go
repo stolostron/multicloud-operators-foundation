@@ -1,4 +1,4 @@
-package clustersetmapper
+package clustersetclusters
 
 import (
 	"context"
@@ -27,6 +27,7 @@ const (
 	ClusterSetLabel = "cluster.open-cluster-management.io/clusterset"
 )
 
+// This controller maintain the clusterset to managedclusters map
 type Reconciler struct {
 	client           client.Client
 	scheme           *runtime.Scheme
@@ -116,13 +117,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// managedCluster has been deleted
-			r.clusterSetMapper.DeleteClusterInClusterSet(req.Name)
+			r.clusterSetMapper.DeleteObjectInClusterSet(req.Name)
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
 	}
 	if _, ok := managedCluster.Labels[ClusterSetLabel]; !ok {
-		r.clusterSetMapper.DeleteClusterInClusterSet(req.Name)
+		r.clusterSetMapper.DeleteObjectInClusterSet(req.Name)
 		return ctrl.Result{}, nil
 	}
 
@@ -140,8 +141,8 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	managedClusterName := managedCluster.GetName()
-	r.clusterSetMapper.UpdateClusterInClusterSet(managedClusterName, managedClustersetName)
+	r.clusterSetMapper.UpdateObjectInClusterSet(managedClusterName, managedClustersetName)
 
-	klog.V(5).Infof("clusterSetMapper: %+v", r.clusterSetMapper.GetAllClusterSetToClusters())
+	klog.V(5).Infof("clusterSetMapper: %+v", r.clusterSetMapper.GetAllClusterSetToObjects())
 	return ctrl.Result{}, nil
 }

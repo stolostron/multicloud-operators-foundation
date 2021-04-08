@@ -2,12 +2,12 @@ package cache
 
 import (
 	"fmt"
-	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
-	"k8s.io/klog/v2"
 	"strings"
 	"sync"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/cache/rbac"
+	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
+	"k8s.io/klog/v2"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -18,19 +18,19 @@ import (
 	"k8s.io/client-go/tools/cache"
 )
 
-// subjectRecord is a cache record for the set of resources a subject can access
-type subjectRecord struct {
-	subject string
-	names   sets.String
+// SubjectRecord is a cache record for the set of resources a subject can access
+type SubjectRecord struct {
+	Subject string
+	Names   sets.String
 }
 
-// subjectRecordKeyFn is a key func for subjectRecord objects
+// subjectRecordKeyFn is a key func for SubjectRecord objects
 func subjectRecordKeyFn(obj interface{}) (string, error) {
-	subjectRecord, ok := obj.(*subjectRecord)
+	SubjectRecord, ok := obj.(*SubjectRecord)
 	if !ok {
-		return "", fmt.Errorf("expected subjectRecord")
+		return "", fmt.Errorf("expected SubjectRecord")
 	}
-	return subjectRecord.subject, nil
+	return SubjectRecord.Subject, nil
 }
 
 // LastSyncResourceVersioner is any object that can divulge a LastSyncResourceVersion
@@ -109,7 +109,8 @@ type AuthCache struct {
 	userSubjectRecordStore  cache.Store
 	groupSubjectRecordStore cache.Store
 
-	syncResources func() (sets.String, error)
+	syncResources                   func() (sets.String, error)
+	getResourceNamesFromClusterRole func(*rbacv1.ClusterRole, string, string) (sets.String, bool)
 
 	group    string
 	resource string
@@ -123,6 +124,7 @@ func NewAuthCache(clusterRoleInformer rbacv1informers.ClusterRoleInformer,
 	group, resource string,
 	lastSyncResourceVersioner LastSyncResourceVersioner,
 	syncResourcesFunc func() (sets.String, error),
+	getResourceNamesFromClusterRole func(*rbacv1.ClusterRole, string, string) (sets.String, bool),
 ) *AuthCache {
 	scrLister := syncedClusterRoleLister{
 		clusterRoleInformer.Lister(),
@@ -144,8 +146,9 @@ func NewAuthCache(clusterRoleInformer rbacv1informers.ClusterRoleInformer,
 
 		userSubjectRecordStore:  cache.NewStore(subjectRecordKeyFn),
 		groupSubjectRecordStore: cache.NewStore(subjectRecordKeyFn),
+		skip:                    &statelessSkipSynchronizer{},
 
-		skip: &statelessSkipSynchronizer{},
+		getResourceNamesFromClusterRole: getResourceNamesFromClusterRole,
 
 		watchers: []CacheWatcher{},
 	}
@@ -154,7 +157,7 @@ func NewAuthCache(clusterRoleInformer rbacv1informers.ClusterRoleInformer,
 }
 
 // synchronize runs a a full synchronization over the cache data.  it must be run in a single-writer model, it's not thread-safe by design.
-func (ac *AuthCache) synchronize() {
+func (ac *AuthCache) Synchronize() {
 	// if none of our internal reflectors changed, then we can skip reviewing the cache
 	skip, currentState := ac.skip.SkipSynchronize(ac.lastState, ac.lastSyncResourceVersioner, ac.policyLastSyncResourceVersioner)
 	if skip {
@@ -198,7 +201,7 @@ func (ac *AuthCache) synchronizeClusterRoleBindings(userSubjectRecordStore cache
 		if err != nil {
 			continue
 		}
-		resources, all := getResourceNamesFromClusterRole(clusterRole, ac.group, ac.resource)
+		resources, all := ac.getResourceNamesFromClusterRole(clusterRole, ac.group, ac.resource)
 		if all {
 			resources = ac.knownResources
 		}
@@ -256,6 +259,32 @@ func (ac *AuthCache) synchronizeClusterRoleBindings(userSubjectRecordStore cache
 	ac.knownGroups = newAllGroups
 }
 
+func (ac *AuthCache) GetUserSubjectRecord() []*SubjectRecord {
+	if ac == nil || ac.userSubjectRecordStore == nil {
+		return []*SubjectRecord{}
+	}
+	subjectRecordStore := ac.userSubjectRecordStore.List()
+	var returnSubjectRecord []*SubjectRecord
+	for _, subjectRecord := range subjectRecordStore {
+		s := subjectRecord.(*SubjectRecord)
+		returnSubjectRecord = append(returnSubjectRecord, s)
+	}
+	return returnSubjectRecord
+}
+
+func (ac *AuthCache) GetGroupSubjectRecord() []*SubjectRecord {
+	if ac == nil || ac.userSubjectRecordStore == nil {
+		return []*SubjectRecord{}
+	}
+	subjectRecordStore := ac.groupSubjectRecordStore.List()
+	var returnSubjectRecord []*SubjectRecord
+	for _, subjectRecord := range subjectRecordStore {
+		s := subjectRecord.(*SubjectRecord)
+		returnSubjectRecord = append(returnSubjectRecord, s)
+	}
+	return returnSubjectRecord
+}
+
 func (ac *AuthCache) listNames(userInfo user.Info) sets.String {
 	keys := sets.String{}
 	user := userInfo.GetName()
@@ -263,15 +292,15 @@ func (ac *AuthCache) listNames(userInfo user.Info) sets.String {
 
 	obj, exists, _ := ac.userSubjectRecordStore.GetByKey(user)
 	if exists {
-		subjectRecord := obj.(*subjectRecord)
-		keys.Insert(subjectRecord.names.List()...)
+		SubjectRecord := obj.(*SubjectRecord)
+		keys.Insert(SubjectRecord.Names.List()...)
 	}
 
 	for _, group := range groups {
 		obj, exists, _ := ac.groupSubjectRecordStore.GetByKey(group)
 		if exists {
-			subjectRecord := obj.(*subjectRecord)
-			keys.Insert(subjectRecord.names.List()...)
+			SubjectRecord := obj.(*SubjectRecord)
+			keys.Insert(SubjectRecord.Names.List()...)
 		}
 	}
 
@@ -311,13 +340,13 @@ func (ac *AuthCache) notifyWatchers(names, users, groups sets.String) {
 }
 
 func updateResourcesToSubject(subjectRecordStore cache.Store, subject string, names sets.String) {
-	var item *subjectRecord
+	var item *SubjectRecord
 	obj, exists, _ := subjectRecordStore.GetByKey(subject)
 	if exists {
-		item = obj.(*subjectRecord)
-		item.names = names
+		item = obj.(*SubjectRecord)
+		item.Names = names
 	} else {
-		item = &subjectRecord{subject: subject, names: names}
+		item = &SubjectRecord{Subject: subject, Names: names}
 		subjectRecordStore.Add(item)
 	}
 	return
@@ -326,35 +355,9 @@ func updateResourcesToSubject(subjectRecordStore cache.Store, subject string, na
 func deleteSubject(subjectRecordStore cache.Store, subject string) {
 	obj, exists, _ := subjectRecordStore.GetByKey(subject)
 	if exists {
-		subjectRecord := obj.(*subjectRecord)
-		subjectRecordStore.Delete(subjectRecord)
+		SubjectRecord := obj.(*SubjectRecord)
+		subjectRecordStore.Delete(SubjectRecord)
 	}
 
 	return
-}
-
-func getResourceNamesFromClusterRole(clusterRole *rbacv1.ClusterRole, group, resource string) (sets.String, bool) {
-	names := sets.NewString()
-	all := false
-	for _, rule := range clusterRole.Rules {
-		if !rbac.APIGroupMatches(&rule, group) {
-			continue
-		}
-
-		if !rbac.VerbMatches(&rule, "get") && !rbac.VerbMatches(&rule, "list") && !rbac.VerbMatches(&rule, "*") {
-			continue
-		}
-
-		if len(rule.ResourceNames) == 0 {
-			all = true
-			return names, all
-		}
-
-		if !rbac.ResourceMatches(&rule, resource, "") {
-			continue
-		}
-
-		names.Insert(rule.ResourceNames...)
-	}
-	return names, all
 }

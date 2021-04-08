@@ -1,4 +1,4 @@
-package syncclusterrolebinding
+package syncrolebinding
 
 import (
 	"context"
@@ -19,10 +19,8 @@ var (
 )
 
 func newTestReconciler(clustersetToClusters *helpers.ClusterSetMapper, clusterSetCache *cache.ClusterSetCache) *Reconciler {
-	ca0 := generateRequiredClusterRoleBinding("c0", nil, "admin")
-	cv0 := generateRequiredClusterRoleBinding("c0", nil, "view")
-	cv1 := generateRequiredClusterRoleBinding("c1", nil, "view")
-	objs := []runtime.Object{ca0, cv0, cv1}
+	cb := generateRequiredRoleBinding("c0", nil, "admin")
+	objs := []runtime.Object{cb}
 	r := &Reconciler{
 		client:               fake.NewFakeClient(objs...),
 		scheme:               scheme,
@@ -64,7 +62,7 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 					},
 				},
 			},
-			clusterrolebindingName: utils.GenerateClustersetClusterRoleBindingName("c1", "admin"),
+			clusterrolebindingName: utils.GenerateClustersetResourceRoleBindingName("admin"),
 			exist:                  false,
 		},
 		{
@@ -77,7 +75,7 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 					},
 				},
 			},
-			clusterrolebindingName: utils.GenerateClustersetClusterRoleBindingName("c0", "admin"),
+			clusterrolebindingName: utils.GenerateClustersetResourceRoleBindingName("admin"),
 			exist:                  false,
 		},
 		{
@@ -90,7 +88,7 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 					},
 				},
 			},
-			clusterrolebindingName: utils.GenerateClustersetClusterRoleBindingName("c1", "admin"),
+			clusterrolebindingName: utils.GenerateClustersetResourceRoleBindingName("admin"),
 			exist:                  true,
 		},
 	}
@@ -98,7 +96,7 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 	for _, test := range tests {
 		ctx := context.Background()
 		r := newTestReconciler(test.clustersetToClusters, test.clusterSetCache)
-		r.syncManagedClusterClusterroleBinding(ctx, test.clustersetToSubject, "admin")
+		r.syncRoleBinding(ctx, test.clustersetToClusters, test.clustersetToSubject, "admin")
 		validateResult(t, r, test.clusterrolebindingName, test.exist)
 	}
 }
@@ -109,35 +107,5 @@ func validateResult(t *testing.T, r *Reconciler, clusterrolebindingName string, 
 	r.client.Get(ctx, types.NamespacedName{Name: clusterrolebindingName}, clusterrolebinding)
 	if exist && clusterrolebinding == nil {
 		t.Errorf("Failed to apply clusterrolebinding")
-	}
-}
-
-func Test_getClusterNameInClusterrolebinding(t *testing.T) {
-	type args struct {
-		clusterrolebindingName string
-		role                   string
-	}
-	tests := []struct {
-		name                   string
-		clusterrolebindingName string
-		want                   string
-	}{
-		{
-			name:                   "right name",
-			clusterrolebindingName: "open-cluster-management:managedclusterset:admin:managedcluster:managedcluster1",
-			want:                   "managedcluster1",
-		},
-		{
-			name:                   "wrong name",
-			clusterrolebindingName: "",
-			want:                   "",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := getClusterNameInClusterrolebinding(tt.clusterrolebindingName); got != tt.want {
-				t.Errorf("getClusterNameInClusterrolebinding() = %v, want %v", got, tt.want)
-			}
-		})
 	}
 }

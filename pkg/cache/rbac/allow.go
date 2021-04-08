@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 )
 
 func APIGroupMatches(rule *rbacv1.PolicyRule, requestedGroup string) bool {
@@ -55,4 +56,56 @@ func VerbMatches(rule *rbacv1.PolicyRule, requestedVerb string) bool {
 	}
 
 	return false
+}
+
+func GetViewResourceFromClusterRole(clusterRole *rbacv1.ClusterRole, group, resource string) (sets.String, bool) {
+	names := sets.NewString()
+	all := false
+	for _, rule := range clusterRole.Rules {
+		if !APIGroupMatches(&rule, group) {
+			continue
+		}
+
+		if !VerbMatches(&rule, "get") && !VerbMatches(&rule, "list") && !VerbMatches(&rule, "*") {
+			continue
+		}
+
+		if len(rule.ResourceNames) == 0 {
+			all = true
+			return names, all
+		}
+
+		if !ResourceMatches(&rule, resource, "") {
+			continue
+		}
+
+		names.Insert(rule.ResourceNames...)
+	}
+	return names, all
+}
+
+func GetAdminResourceFromClusterRole(clusterRole *rbacv1.ClusterRole, group, resource string) (sets.String, bool) {
+	names := sets.NewString()
+	all := false
+	for _, rule := range clusterRole.Rules {
+		if !APIGroupMatches(&rule, group) {
+			continue
+		}
+
+		if !VerbMatches(&rule, "update") && !VerbMatches(&rule, "*") {
+			continue
+		}
+
+		if len(rule.ResourceNames) == 0 {
+			all = true
+			return names, all
+		}
+
+		if !ResourceMatches(&rule, resource, "") {
+			continue
+		}
+
+		names.Insert(rule.ResourceNames...)
+	}
+	return names, all
 }

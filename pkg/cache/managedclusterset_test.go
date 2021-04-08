@@ -1,6 +1,9 @@
 package cache
 
 import (
+	"testing"
+	"time"
+
 	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
@@ -12,8 +15,6 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
-	"testing"
-	"time"
 )
 
 var (
@@ -228,7 +229,8 @@ func TestClusterSetCacheList(t *testing.T) {
 			expectedClusterSets: sets.String{},
 		},
 	}
-	clusterSetCache.cache.synchronize()
+	clusterSetCache.AdminCache.Synchronize()
+	clusterSetCache.ViewCache.Synchronize()
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clusterSetList, err := clusterSetCache.List(test.user, labels.Everything())

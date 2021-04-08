@@ -1,4 +1,4 @@
-package clustersetmapper
+package clustersetclusters
 
 import (
 	"os"
@@ -55,7 +55,7 @@ func newTestReconciler(managedClusterSetObjs, managedClusterObjs []runtime.Objec
 	}
 
 	for clusterSet, clusters := range initMapperData {
-		r.clusterSetMapper.UpdateClusterSetByClusters(clusterSet, clusters)
+		r.clusterSetMapper.UpdateClusterSetByObjects(clusterSet, clusters)
 	}
 
 	return r
@@ -148,7 +148,7 @@ func TestReconcile(t *testing.T) {
 }
 
 func validateResult(t *testing.T, r *Reconciler, expectedMapperData map[string]sets.String) {
-	mapperData := r.clusterSetMapper.GetAllClusterSetToClusters()
+	mapperData := r.clusterSetMapper.GetAllClusterSetToObjects()
 	if !assert.Equal(t, len(mapperData), len(expectedMapperData)) {
 		t.Errorf("expect:%v  actual:%v", expectedMapperData, mapperData)
 	}

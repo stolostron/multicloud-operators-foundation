@@ -1,15 +1,17 @@
 package cache
 
 import (
+	"testing"
+	"time"
+
 	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	clusterv1informers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/cache/rbac"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
-	"testing"
-	"time"
 )
 
 func validateSet(set, expectedSet sets.String) bool {
@@ -45,9 +47,10 @@ func TestSyncManagedClusterCache(t *testing.T) {
 		"cluster.open-cluster-management.io", "managedclusters",
 		clusterInformers.Cluster().V1().ManagedClusters().Informer(),
 		clusterCache.ListResources,
+		rbac.GetViewResourceFromClusterRole,
 	)
 
-	autheCache.synchronize()
+	autheCache.Synchronize()
 	tests := []struct {
 		name         string
 		user         user.Info

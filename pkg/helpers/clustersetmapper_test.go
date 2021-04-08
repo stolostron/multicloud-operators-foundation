@@ -18,11 +18,11 @@ func TestClusterSetMapper(t *testing.T) {
 	}
 
 	for clusterSet, clusters := range inputs {
-		clusterSetMapper.UpdateClusterSetByClusters(clusterSet, clusters)
-		assert.True(t, clusterSetMapper.GetClustersOfClusterSet(clusterSet).Equal(clusters))
+		clusterSetMapper.UpdateClusterSetByObjects(clusterSet, clusters)
+		assert.True(t, clusterSetMapper.GetObjectsOfClusterSet(clusterSet).Equal(clusters))
 	}
 
-	allClusterSetToClusters := clusterSetMapper.GetAllClusterSetToClusters()
+	allClusterSetToClusters := clusterSetMapper.GetAllClusterSetToObjects()
 	assert.Equal(t, len(allClusterSetToClusters), len(inputs))
 	for clusterSet, clusters := range allClusterSetToClusters {
 		assert.True(t, clusters.Equal(inputs[clusterSet]))
@@ -41,11 +41,11 @@ func TestClusterSetMapper(t *testing.T) {
 	}
 
 	for clusterSet, clusters := range updateInputs {
-		clusterSetMapper.UpdateClusterSetByClusters(clusterSet, clusters)
-		assert.True(t, clusterSetMapper.GetClustersOfClusterSet(clusterSet).Equal(clusters))
+		clusterSetMapper.UpdateClusterSetByObjects(clusterSet, clusters)
+		assert.True(t, clusterSetMapper.GetObjectsOfClusterSet(clusterSet).Equal(clusters))
 	}
 
-	allClusterSetToClusters = clusterSetMapper.GetAllClusterSetToClusters()
+	allClusterSetToClusters = clusterSetMapper.GetAllClusterSetToObjects()
 	assert.Equal(t, len(allClusterSetToClusters), len(expectedAllClusterSetToClusters))
 	for clusterSet, clusters := range allClusterSetToClusters {
 		assert.True(t, expectedAllClusterSetToClusters[clusterSet].Equal(clusters))
@@ -61,11 +61,11 @@ func TestClusterSetMapper(t *testing.T) {
 
 	clusterSetMapper.DeleteClusterSet(deleteClusterSet)
 	for clusterSet, clusters := range updateInputs {
-		clusterSetMapper.UpdateClusterSetByClusters(clusterSet, clusters)
-		assert.True(t, clusterSetMapper.GetClustersOfClusterSet(clusterSet).Equal(clusters))
+		clusterSetMapper.UpdateClusterSetByObjects(clusterSet, clusters)
+		assert.True(t, clusterSetMapper.GetObjectsOfClusterSet(clusterSet).Equal(clusters))
 	}
 
-	allClusterSetToClusters = clusterSetMapper.GetAllClusterSetToClusters()
+	allClusterSetToClusters = clusterSetMapper.GetAllClusterSetToObjects()
 	assert.Equal(t, len(allClusterSetToClusters), len(expectedAllClusterSetToClusters))
 	for clusterSet, clusters := range allClusterSetToClusters {
 		assert.True(t, expectedAllClusterSetToClusters[clusterSet].Equal(clusters))
@@ -76,12 +76,12 @@ func TestClusterSetMapper(t *testing.T) {
 func initClustersetmap(m map[string]sets.String) *ClusterSetMapper {
 	var clusterSetMapper = NewClusterSetMapper()
 	for clusterset, cluster := range m {
-		clusterSetMapper.UpdateClusterSetByClusters(clusterset, cluster)
+		clusterSetMapper.UpdateClusterSetByObjects(clusterset, cluster)
 	}
 	return clusterSetMapper
 }
 
-func TestClusterSetMapper_DeleteClusterInClusterSet(t *testing.T) {
+func TestClusterSetMapper_DeleteObjectInClusterSet(t *testing.T) {
 	// Delete cluster in clusterset
 	initMap := map[string]sets.String{
 		"clusterSet4": {"cluster11": {}},
@@ -93,12 +93,12 @@ func TestClusterSetMapper_DeleteClusterInClusterSet(t *testing.T) {
 		"clusterSet1": {"cluster12": {}, "cluster13": {}},
 		"clusterSet3": {"cluster12": {}},
 	}
-	clusterSetMapper.DeleteClusterInClusterSet("cluster11")
-	clusterSetMapper.DeleteClusterInClusterSet("cluster22")
+	clusterSetMapper.DeleteObjectInClusterSet("cluster11")
+	clusterSetMapper.DeleteObjectInClusterSet("cluster22")
 	assert.Equal(t, len(expectClustermap), len(initMap)-1)
 }
 
-func TestClusterSetMapper_UpdateClusterInClusterSet(t *testing.T) {
+func TestClusterSetMapper_UpdateObjectInClusterSet(t *testing.T) {
 	initMap := map[string]sets.String{
 		"clusterSet2": {"cluster11": {}},
 		"clusterSet1": {"cluster12": {}, "cluster13": {}},
@@ -110,8 +110,8 @@ func TestClusterSetMapper_UpdateClusterInClusterSet(t *testing.T) {
 		"clusterSet3": {"cluster12": {}, "cluster11": {}},
 		"clusterSet4": {"cluster22": {}},
 	}
-	clusterSetMapper.UpdateClusterInClusterSet("cluster11", "clusterSet3")
-	clusterSetMapper.UpdateClusterInClusterSet("cluster22", "clusterSet4")
+	clusterSetMapper.UpdateObjectInClusterSet("cluster11", "clusterSet3")
+	clusterSetMapper.UpdateObjectInClusterSet("cluster22", "clusterSet4")
 	assert.Equal(t, len(expectClustermap), len(initMap))
 
 }

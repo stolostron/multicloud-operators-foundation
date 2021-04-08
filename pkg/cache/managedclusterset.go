@@ -6,6 +6,8 @@ import (
 	clusterinformerv1alpha1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
 	clusterv1alpha1lister "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/cache/rbac"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -23,7 +25,8 @@ type ClusterSetLister interface {
 }
 
 type ClusterSetCache struct {
-	cache            *AuthCache
+	AdminCache       *AuthCache
+	ViewCache        *AuthCache
 	clusterSetLister clusterv1alpha1lister.ManagedClusterSetLister
 }
 
@@ -34,16 +37,22 @@ func NewClusterSetCache(clusterSetInformer clusterinformerv1alpha1.ManagedCluste
 	clusterSetCache := &ClusterSetCache{
 		clusterSetLister: clusterSetInformer.Lister(),
 	}
-	authCache := NewAuthCache(clusterRoleInformer, clusterRolebindingInformer,
+	adminCache := NewAuthCache(clusterRoleInformer, clusterRolebindingInformer,
 		"cluster.open-cluster-management.io", "managedclustersets",
 		clusterSetInformer.Informer(),
 		clusterSetCache.ListResources,
+		rbac.GetAdminResourceFromClusterRole,
 	)
-	clusterSetCache.cache = authCache
-
+	clusterSetCache.AdminCache = adminCache
+	viewCache := NewAuthCache(clusterRoleInformer, clusterRolebindingInformer,
+		"cluster.open-cluster-management.io", "managedclustersets",
+		clusterSetInformer.Informer(),
+		clusterSetCache.ListResources,
+		rbac.GetViewResourceFromClusterRole,
+	)
+	clusterSetCache.ViewCache = viewCache
 	return clusterSetCache
 }
-
 func (c *ClusterSetCache) ListResources() (sets.String, error) {
 	allClusterSets := sets.String{}
 	clusterSets, err := c.clusterSetLister.List(labels.Everything())
@@ -57,8 +66,14 @@ func (c *ClusterSetCache) ListResources() (sets.String, error) {
 	return allClusterSets, nil
 }
 
+// Run begins watching and synchronizing the cache
+func (c *ClusterSetCache) Run(period time.Duration) {
+	go utilwait.Forever(func() { c.AdminCache.Synchronize() }, period)
+	go utilwait.Forever(func() { c.ViewCache.Synchronize() }, period)
+}
+
 func (c *ClusterSetCache) List(userInfo user.Info, selector labels.Selector) (*clusterv1alpha1.ManagedClusterSetList, error) {
-	names := c.cache.listNames(userInfo)
+	names := c.ViewCache.listNames(userInfo)
 
 	clusterSetList := &clusterv1alpha1.ManagedClusterSetList{}
 	for key := range names {
@@ -96,14 +111,9 @@ func (c *ClusterSetCache) ConvertResource(name string) runtime.Object {
 }
 
 func (c *ClusterSetCache) RemoveWatcher(w CacheWatcher) {
-	c.cache.RemoveWatcher(w)
+	c.ViewCache.RemoveWatcher(w)
 }
 
 func (c *ClusterSetCache) AddWatcher(w CacheWatcher) {
-	c.cache.AddWatcher(w)
-}
-
-// Run begins watching and synchronizing the cache
-func (c *ClusterSetCache) Run(period time.Duration) {
-	go utilwait.Forever(func() { c.cache.synchronize() }, period)
+	c.ViewCache.AddWatcher(w)
 }

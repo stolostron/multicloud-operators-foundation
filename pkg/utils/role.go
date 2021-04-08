@@ -2,15 +2,13 @@ package utils
 
 import (
 	"context"
-	"fmt"
 	"reflect"
+	"strings"
 
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -28,32 +26,6 @@ func Mergesubjects(subjects []rbacv1.Subject, cursubjects []rbacv1.Subject) []rb
 		}
 	}
 	return returnSubjects
-}
-
-func GetClustersetInRules(rules []rbacv1.PolicyRule) sets.String {
-	clustersetNames := sets.NewString()
-	for _, rule := range rules {
-		if ContainsString(rule.APIGroups, "*") && ContainsString(rule.Resources, "*") && ContainsString(rule.Verbs, "*") {
-			clustersetNames.Insert("*")
-		}
-		if !ContainsString(rule.APIGroups, clusterv1alpha1.GroupName) {
-			continue
-		}
-		if !ContainsString(rule.Resources, "managedclustersets/bind") && !ContainsString(rule.Resources, "managedclustersets/join") && !ContainsString(rule.Resources, "*") {
-			continue
-		}
-
-		if !ContainsString(rule.Verbs, "create") && !ContainsString(rule.Verbs, "*") {
-			continue
-		}
-		for _, resourcename := range rule.ResourceNames {
-			if resourcename == "*" {
-				return sets.NewString("*")
-			}
-			clustersetNames.Insert(resourcename)
-		}
-	}
-	return clustersetNames
 }
 
 func EqualSubjects(subjects1, subjects2 []rbacv1.Subject) bool {
@@ -102,18 +74,52 @@ func ApplyClusterRoleBinding(ctx context.Context, client client.Client, required
 	return client.Update(ctx, existingCopy)
 }
 
-//managedcluster admin role
-func GenerateClusterRoleName(clusterName, role string) string {
-	return fmt.Sprintf("open-cluster-management:%s:%s", role, clusterName)
+//ApplyRoleBinding merges objectmeta, requires subjects and role refs
+func ApplyRoleBinding(ctx context.Context, client client.Client, required *rbacv1.RoleBinding) error {
+	existing := &rbacv1.RoleBinding{}
+	err := client.Get(ctx, types.NamespacedName{Namespace: required.Namespace, Name: required.Name}, existing)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return client.Create(ctx, required)
+		}
+		return err
+	}
+
+	existingCopy := existing.DeepCopy()
+	requiredCopy := required.DeepCopy()
+
+	modified := false
+
+	MergeMap(&modified, existingCopy.Labels, requiredCopy.Labels)
+
+	roleRefIsSame := reflect.DeepEqual(existingCopy.RoleRef, requiredCopy.RoleRef)
+	subjectsAreSame := EqualSubjects(existingCopy.Subjects, requiredCopy.Subjects)
+
+	if subjectsAreSame && roleRefIsSame && !modified {
+		return nil
+	}
+
+	existingCopy.Subjects = requiredCopy.Subjects
+	existingCopy.RoleRef = requiredCopy.RoleRef
+	return client.Update(ctx, existingCopy)
 }
 
+//managedcluster admin role
+func GenerateClusterRoleName(clusterName, role string) string {
+	return "open-cluster-management:" + role + ":" + clusterName
+}
 func GenerateClustersetClusterroleName(clustersetName, role string) string {
-	return fmt.Sprintf("open-cluster-management:managedclusterset:%s:%s", role, clustersetName)
+	return "open-cluster-management:managedclusterset:" + role + ":" + clustersetName
 }
 
 //clusterset clusterrolebinding
-func GenerateClusterRoleBindingName(clusterName string) string {
-	return fmt.Sprintf("open-cluster-management:clusterset:managedcluster:%s", clusterName)
+func GenerateClustersetClusterRoleBindingName(clusterName, role string) string {
+	return "open-cluster-management:managedclusterset:" + role + ":managedcluster:" + clusterName
+}
+
+//clusterset resource rolebinding name
+func GenerateClustersetResourceRoleBindingName(role string) string {
+	return "open-cluster-management:managedclusterset:" + role
 }
 
 //Delete cluster role
@@ -153,5 +159,10 @@ func ApplyClusterRole(kubeClient kubernetes.Interface, clusterRoleName string, r
 }
 
 func BuildClusterRoleName(objName, rule string) string {
-	return fmt.Sprintf("open-cluster-management:%s:%s", rule, objName)
+	return "open-cluster-management:" + rule + ":" + objName
+}
+
+func IsManagedClusterClusterrolebinding(clusterrolebindingName, role string) bool {
+	requiredName := GenerateClustersetClusterRoleBindingName("", role)
+	return strings.HasPrefix(clusterrolebindingName, requiredName)
 }
