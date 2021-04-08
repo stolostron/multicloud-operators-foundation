@@ -1,104 +1,63 @@
 package e2e
 
 import (
+	"context"
+	"fmt"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	addonv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-var leaseGVR = schema.GroupVersionResource{
-	Group:    "coordination.k8s.io",
-	Version:  "v1",
-	Resource: "leases",
-}
-var secretGVR = schema.GroupVersionResource{
-	Group:    "",
-	Version:  "v1",
-	Resource: "secrets",
-}
-var podGVR = schema.GroupVersionResource{
-	Group:    "",
-	Version:  "v1",
-	Resource: "pods",
-}
 
 const (
 	podNamespace = "open-cluster-management-agent"
-	secretName   = "hub-kubeconfig-secret"
 )
 
 var _ = ginkgo.Describe("Testing Lease", func() {
 	ginkgo.Context("Get Lease", func() {
 		ginkgo.It("should get/update lease successfully in cluster", func() {
-			var firstLeaseTime string
+			var firstLeaseTime *metav1.MicroTime
+			// Creat managedclusteraddon apis
+			addon := &addonv1alpha1.ManagedClusterAddOn{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "work-manager",
+					Namespace: managedClusterName,
+					Annotations: map[string]string{
+						"addon.open-cluster-management.io/installNamespace": podNamespace,
+					},
+				},
+			}
+			_, err := addonClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(), addon, metav1.CreateOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Eventually(func() error {
+				lease, err := kubeClient.CoordinationV1().Leases(podNamespace).Get(context.Background(), "work-manager", metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				firstLeaseTime = lease.Spec.RenewTime
+				return nil
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+			gomega.Eventually(func() error {
+				updatedLease, err := kubeClient.CoordinationV1().Leases(podNamespace).Get(context.Background(), "work-manager", metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				updatedLeaseTime := updatedLease.Spec.RenewTime
+				if updatedLeaseTime.Equal(firstLeaseTime) {
+					return fmt.Errorf("lease should be updated")
+				}
+				return nil
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+			// Ensure the addon status is correct
 			gomega.Eventually(func() bool {
-				lease, err := util.GetResource(dynamicClient, leaseGVR, managedClusterName, "work-manager")
+				addon, err := addonClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Get(context.Background(), "work-manager", metav1.GetOptions{})
 				if err != nil {
 					return false
 				}
-				var found bool
-				firstLeaseTime, found, err = unstructured.NestedString(lease.Object, "spec", "renewTime")
-				if err != nil || !found {
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				}
-				return true
+				return meta.IsStatusConditionTrue(addon.Status.Conditions, "Available")
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
-			gomega.Eventually(func() bool {
-				updatedLease, err := util.GetResource(dynamicClient, leaseGVR, managedClusterName, "work-manager")
-				if err != nil {
-					return false
-				}
-				updatedLeaseTime, found, err := unstructured.NestedString(updatedLease.Object, "spec", "renewTime")
-				if err != nil || !found {
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				}
-				if updatedLeaseTime != firstLeaseTime {
-					return true
-				}
-				return false
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
-		})
-	})
-	ginkgo.Context("Update kubeconfig", func() {
-		ginkgo.It("should delete agent pods successfully", func() {
-			hubSecret, err := util.GetResource(dynamicClient, secretGVR, podNamespace, secretName)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			podsList, err := util.ListResource(dynamicClient, podGVR, podNamespace, "app=work-manager")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			oriKubeconfig, _, err := unstructured.NestedString(hubSecret.Object, "data", "kubeconfig")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			//update kubeconfig
-			err = unstructured.SetNestedField(hubSecret.Object, "Ymhyc2Y=", "data", "kubeconfig")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			_, err = util.UpdateResource(dynamicClient, secretGVR, hubSecret)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			//check pod deleted
-			gomega.Eventually(func() bool {
-				for _, podItem := range podsList {
-					podName, _, err := unstructured.NestedString(podItem.Object, "metadata", "name")
-					gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-					exist, _ := util.HasResource(dynamicClient, podGVR, podNamespace, podName)
-					if exist {
-						return false
-					}
-				}
-				return true
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
-
-			//update kubeconfig to right value
-			err = unstructured.SetNestedField(hubSecret.Object, oriKubeconfig, "data", "kubeconfig")
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			_, err = util.UpdateResource(dynamicClient, secretGVR, hubSecret)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
 		})
 	})
 })

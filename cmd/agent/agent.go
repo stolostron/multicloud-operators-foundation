@@ -121,9 +121,7 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 	leaseReconciler := leasectrl.LeaseReconciler{
 		KubeClient:           managedClusterKubeClient,
 		LeaseName:            AddonName,
-		LeaseNamespace:       o.ClusterName,
 		LeaseDurationSeconds: int32(o.LeaseDurationSeconds),
-		HubKubeConfigPath:    o.HubKubeConfig,
 	}
 
 	go wait.JitterUntilWithContext(context.TODO(), leaseReconciler.Reconcile, time.Duration(o.LeaseDurationSeconds)*time.Second, leaseUpdateJitterFactor, true)

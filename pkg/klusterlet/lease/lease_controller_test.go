@@ -6,9 +6,6 @@ package controllers
 
 import (
 	"context"
-	"io/ioutil"
-	"os"
-	"path"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -18,15 +15,14 @@ import (
 )
 
 const (
-	leaseName      = "lease"
-	leaseNamespace = "lease-ns"
-	podName        = "pod"
-	agentNs        = "open-cluster-management-agent"
+	leaseName = "lease"
+	podName   = "pod"
+	agentNs   = "open-cluster-management-agent"
 )
 
 var ns = &corev1.Namespace{
 	ObjectMeta: metav1.ObjectMeta{
-		Name: leaseNamespace,
+		Name: agentNs,
 	},
 }
 var pod = &corev1.Pod{
@@ -50,26 +46,12 @@ func TestLeaseReconciler_Reconcile(t *testing.T) {
 	s := scheme.Scheme
 	s.AddKnownTypes(corev1.SchemeGroupVersion, &corev1.Namespace{})
 	kubeClient := kubefake.NewSimpleClientset(ns, pod)
-	kubeconfigData := []byte("default kubeconfig")
-
-	//init kubeconfig
-	tempdir, err := ioutil.TempDir("", "kube")
-	if err != nil {
-		return
-	}
-	defer os.RemoveAll(tempdir)
-	if err := ioutil.WriteFile(path.Join(tempdir, "kubeconfig"), kubeconfigData, 0600); err != nil {
-		t.Errorf("Failed to generator kubeconfig. error: %v", err)
-	}
 
 	leaseReconciler := &LeaseReconciler{
 		KubeClient:           kubeClient,
 		LeaseName:            leaseName,
-		LeaseNamespace:       leaseNamespace,
 		LeaseDurationSeconds: 1,
-		cachedKubeConfig:     kubeconfigData,
-		HubKubeConfigPath:    path.Join(tempdir, "kubeconfig"),
-		hubClient:            kubeClient,
+		componentNamespace:   agentNs,
 	}
 
 	//create lease
@@ -88,36 +70,13 @@ func TestLeaseReconciler_Reconcile(t *testing.T) {
 	leaseReconciler2 := &LeaseReconciler{
 		KubeClient:           kubeClient,
 		LeaseName:            leaseName,
-		LeaseNamespace:       leaseNamespace,
 		componentNamespace:   "",
 		LeaseDurationSeconds: 1,
-		cachedKubeConfig:     nil,
-		HubKubeConfigPath:    path.Join(tempdir, "kubeconfig"),
-		hubClient:            kubeClient,
 	}
 	leaseReconciler2.Reconcile(context.TODO())
 	//kubeconfig can not work, so cached kubeconfig should also be nil
-	if leaseReconciler2.cachedKubeConfig != nil {
-		t.Errorf("cached kubeconfig should be nil")
-	}
 	if leaseReconciler2.componentNamespace == "" {
 		t.Errorf("failed to update component namespace")
-	}
-
-	//delete pods
-	leaseReconciler3 := &LeaseReconciler{
-		KubeClient:           kubeClient,
-		LeaseName:            leaseName,
-		LeaseNamespace:       leaseNamespace,
-		componentNamespace:   "",
-		LeaseDurationSeconds: 1,
-		cachedKubeConfig:     []byte("cached data"),
-		HubKubeConfigPath:    path.Join(tempdir, "kubeconfig"),
-		hubClient:            kubeClient,
-	}
-	leaseReconciler3.Reconcile(context.TODO())
-	if !actionExist(kubeClient, "delete-collection") {
-		t.Errorf("failed to delete pods")
 	}
 }
 

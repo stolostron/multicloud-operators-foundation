@@ -11,7 +11,7 @@ import (
 func GetComponentNamespace() (string, error) {
 	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
-		return "open-cluster-management-agent", err
+		return "open-cluster-management-agent-addon", err
 	}
 	return string(nsBytes), nil
 }
