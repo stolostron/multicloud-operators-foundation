@@ -161,3 +161,10 @@ func verifyApply(ctx context.Context, client client.Client, required *rbacv1.Clu
 	}
 	return true
 }
+
+func TestBuildClusterRoleName(t *testing.T) {
+	roleName := BuildClusterRoleName("obj", "admin")
+	if roleName != "open-cluster-management:admin:obj" {
+		t.Errorf("Failed to generate clusterroleName: %v", roleName)
+	}
+}
