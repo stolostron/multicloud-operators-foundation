@@ -162,6 +162,7 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 			Scheme:                      mgr.GetScheme(),
 			KubeClient:                  managedClusterKubeClient,
 			ManagedClusterDynamicClient: managedClusterDynamicClient,
+			ClusterClient:               managedClusterClusterClient,
 			ClusterName:                 o.ClusterName,
 			AgentRoute:                  o.AgentRoute,
 			AgentAddress:                o.AgentAddress,
@@ -172,10 +173,16 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 			AgentService:                o.AgentService,
 		}
 
+		clusterClaimer := clusterclaimctl.ClusterClaimer{
+			ClusterName:   o.ClusterName,
+			KubeClient:    managedClusterKubeClient,
+			DynamicClient: managedClusterDynamicClient,
+		}
+
 		clusterClaimReconciler := clusterclaimctl.ClusterClaimReconciler{
 			Log:               ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
 			ClusterClient:     managedClusterClusterClient,
-			ListClusterClaims: clusterInfoReconciler.GetClusterClaims,
+			ListClusterClaims: clusterClaimer.List,
 		}
 
 		if err = actionReconciler.SetupWithManager(mgr); err != nil {
