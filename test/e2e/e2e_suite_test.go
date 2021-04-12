@@ -10,6 +10,7 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 
+	addonv1alpha1client "github.com/open-cluster-management/api/client/addon/clientset/versioned"
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -30,6 +31,7 @@ var (
 	dynamicClient          dynamic.Interface
 	kubeClient             kubernetes.Interface
 	hiveClient             hiveclient.Interface
+	addonClient            addonv1alpha1client.Interface
 	apiRegistrationClient  *apiregistrationclient.ApiregistrationV1Client
 	managedClusterName     string
 	fakeManagedClusterName string
@@ -57,6 +59,11 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	apiRegistrationClient, err = util.NewAPIServiceClient()
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+	cfg, err := util.NewKubeConfig()
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	addonClient, err = addonv1alpha1client.NewForConfig(cfg)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	// accept the managed cluster that is deployed by registration-operator
