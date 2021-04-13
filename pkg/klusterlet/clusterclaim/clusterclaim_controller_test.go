@@ -20,17 +20,6 @@ func newClusterClaimReconciler(clusterClient clusterclientset.Interface, listFun
 	}
 }
 
-func newClusterClaim(name, value string) *clusterv1alpha1.ClusterClaim {
-	return &clusterv1alpha1.ClusterClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Spec: clusterv1alpha1.ClusterClaimSpec{
-			Value: value,
-		},
-	}
-}
-
 func TestCreateOrUpdate(t *testing.T) {
 	// create
 	clusterClient := clusterfake.NewSimpleClientset()

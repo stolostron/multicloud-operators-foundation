@@ -2,22 +2,20 @@ package controllers
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	"net"
-	"strconv"
 	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/prometheus/common/log"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -39,6 +37,7 @@ type ClusterInfoReconciler struct {
 	Scheme                      *runtime.Scheme
 	KubeClient                  kubernetes.Interface
 	ManagedClusterDynamicClient dynamic.Interface
+	ClusterClient               clusterclientset.Interface
 	RouteV1Client               routev1.Interface
 	ClusterName                 string
 	MasterAddresses             string
@@ -63,9 +62,6 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	// Update cluster info status here.
 	newStatus := clusterv1beta1.ClusterInfoStatus{}
 	var errs []error
-	// Config console url
-	_, _, clusterURL := r.getMasterAddresses()
-	newStatus.ConsoleURL = clusterURL
 
 	// Config Agent endpoint
 	agentEndpoint, agentPort, err := r.readAgentConfig()
@@ -77,20 +73,12 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		newStatus.LoggingPort = *agentPort
 	}
 
-	// Get version
-	newStatus.Version = r.getVersion()
-
-	// Get distribution info and ClusterID
-	newStatus.DistributionInfo, newStatus.ClusterID, err = r.getDistributionInfoAndClusterID()
+	// Get distribution info
+	newStatus.DistributionInfo, err = r.getDistributionInfo()
 	if err != nil {
-		log.Error(err, "Failed to get distribution info and clusterID")
-		errs = append(errs, fmt.Errorf("failed to get distribution info and clusterID, error:%v ", err))
+		log.Error(err, "Failed to get distribution info")
+		errs = append(errs, fmt.Errorf("failed to get distribution info, error:%v ", err))
 	}
-
-	// Get Vendor
-	kubeVendor, cloudVendor := r.getVendor(newStatus.Version, newStatus.DistributionInfo.Type == clusterv1beta1.DistributionTypeOCP)
-	newStatus.KubeVendor = kubeVendor
-	newStatus.CloudVendor = cloudVendor
 
 	// Get nodeList
 	nodeList, err := r.getNodeList()
@@ -99,6 +87,31 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		errs = append(errs, fmt.Errorf("failed to get nodes status, error:%v ", err))
 	} else {
 		newStatus.NodeList = nodeList
+	}
+
+	claims, err := r.ClusterClient.ClusterV1alpha1().ClusterClaims().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		log.Error(err, "Failed to list claims.")
+		errs = append(errs, fmt.Errorf("failed to list clusterClaims error:%v ", err))
+	}
+	for _, claim := range claims.Items {
+		value := claim.Spec.Value
+		switch claim.Name {
+		case clusterclaim.ClaimOCMConsoleURL:
+			newStatus.ConsoleURL = value
+		case clusterclaim.ClaimOCMKubeVersion:
+			newStatus.Version = value
+		case clusterclaim.ClaimOpenshiftID:
+			newStatus.ClusterID = value
+		case clusterclaim.ClaimOCMProduct:
+			newStatus.KubeVendor = r.getKubeVendor(value)
+		case clusterclaim.ClaimOCMPlatform:
+			newStatus.CloudVendor = r.getCloudVendor(value)
+		case clusterclaim.ClaimOpenshiftVersion:
+			if newStatus.DistributionInfo.Type == clusterv1beta1.DistributionTypeOCP {
+				newStatus.DistributionInfo.OCP.Version = value
+			}
+		}
 	}
 
 	newSyncedCondition := metav1.Condition{
@@ -144,65 +157,7 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 
 	r.RefreshAgentServer(clusterInfo)
 
-	return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
-}
-
-func (r *ClusterInfoReconciler) getMasterAddresses() ([]corev1.EndpointAddress, []corev1.EndpointPort, string) {
-	// for OpenShift
-	masterAddresses, masterPorts, clusterURL, notEmpty, err := r.getMasterAddressesFromConsoleConfig()
-	if err == nil && notEmpty {
-		return masterAddresses, masterPorts, clusterURL
-	}
-
-	if r.MasterAddresses == "" {
-		kubeEndpoints, serviceErr := r.KubeClient.CoreV1().Endpoints("default").Get(context.TODO(), "kubernetes", metav1.GetOptions{})
-		if serviceErr == nil && len(kubeEndpoints.Subsets) > 0 {
-			masterAddresses = kubeEndpoints.Subsets[0].Addresses
-			masterPorts = kubeEndpoints.Subsets[0].Ports
-		}
-	} else {
-		masterAddresses = append(masterAddresses, corev1.EndpointAddress{IP: r.MasterAddresses})
-	}
-
-	return masterAddresses, masterPorts, clusterURL
-}
-
-// for OpenShift, read endpoint address from console-config in openshift-console
-func (r *ClusterInfoReconciler) getMasterAddressesFromConsoleConfig() ([]corev1.EndpointAddress, []corev1.EndpointPort, string, bool, error) {
-	masterAddresses := []corev1.EndpointAddress{}
-	masterPorts := []corev1.EndpointPort{}
-	clusterURL := ""
-
-	cfg, err := r.KubeClient.CoreV1().ConfigMaps("openshift-console").Get(context.TODO(), "console-config", metav1.GetOptions{})
-	if err == nil && cfg.Data != nil {
-		consoleConfigString, ok := cfg.Data["console-config.yaml"]
-		if ok {
-			consoleConfigList := strings.Split(consoleConfigString, "\n")
-			eu := ""
-			cu := ""
-			for _, configInfo := range consoleConfigList {
-				parse := strings.Split(strings.Trim(configInfo, " "), ": ")
-				if parse[0] == "masterPublicURL" {
-					eu = strings.Trim(parse[1], " ")
-				}
-				if parse[0] == "consoleBaseAddress" {
-					cu = strings.Trim(parse[1], " ")
-				}
-			}
-			if eu != "" {
-				euArray := strings.Split(strings.Trim(eu, "htps:/"), ":")
-				if len(euArray) == 2 {
-					masterAddresses = append(masterAddresses, corev1.EndpointAddress{IP: euArray[0]})
-					port, _ := strconv.ParseInt(euArray[1], 10, 32)
-					masterPorts = append(masterPorts, corev1.EndpointPort{Port: int32(port)})
-				}
-			}
-			if cu != "" {
-				clusterURL = cu
-			}
-		}
-	}
-	return masterAddresses, masterPorts, clusterURL, cfg != nil && cfg.Data != nil, err
+	return ctrl.Result{RequeueAfter: 60 * time.Minute}, nil
 }
 
 func (r *ClusterInfoReconciler) readAgentConfig() (*corev1.EndpointAddress, *corev1.EndpointPort, error) {
@@ -313,86 +268,49 @@ func (r *ClusterInfoReconciler) setEndpointAddressFromRoute(endpoint *corev1.End
 	return nil
 }
 
-func (r *ClusterInfoReconciler) getVersion() string {
-	serverVersionString := ""
-	serverVersion, err := r.KubeClient.Discovery().ServerVersion()
-	if err == nil {
-		serverVersionString = serverVersion.String()
-	}
-
-	return serverVersionString
-}
-
-func (r *ClusterInfoReconciler) getVendor(gitVersion string, isOpenShift bool) (
-	kubeVendor clusterv1beta1.KubeVendorType, cloudVendor clusterv1beta1.CloudVendorType) {
-	gitVersion = strings.ToUpper(gitVersion)
-	switch {
-	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorIKS)):
-		kubeVendor = clusterv1beta1.KubeVendorIKS
-		cloudVendor = clusterv1beta1.CloudVendorIBM
-		return
-	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorEKS)):
-		kubeVendor = clusterv1beta1.KubeVendorEKS
+func (r *ClusterInfoReconciler) getCloudVendor(platform string) (cloudVendor clusterv1beta1.CloudVendorType) {
+	switch platform {
+	case clusterclaim.PlatformAzure:
+		cloudVendor = clusterv1beta1.CloudVendorAzure
+	case clusterclaim.PlatformAWS:
 		cloudVendor = clusterv1beta1.CloudVendorAWS
-		return
-	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorGKE)):
-		kubeVendor = clusterv1beta1.KubeVendorGKE
+	case clusterclaim.PlatformIBM:
+		cloudVendor = clusterv1beta1.CloudVendorIBM
+	case clusterclaim.PlatformIBMZ:
+		cloudVendor = clusterv1beta1.CloudVendorIBMZ
+	case clusterclaim.PlatformIBMP:
+		cloudVendor = clusterv1beta1.CloudVendorIBMP
+	case clusterclaim.PlatformGCP:
 		cloudVendor = clusterv1beta1.CloudVendorGoogle
-		return
-	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorICP)):
+	case clusterclaim.PlatformVSphere:
+		cloudVendor = clusterv1beta1.CloudVendorVSphere
+	case clusterclaim.PlatformOpenStack:
+		cloudVendor = clusterv1beta1.CloudVendorOpenStack
+	default:
+		cloudVendor = clusterv1beta1.CloudVendorOther
+	}
+	return
+}
+func (r *ClusterInfoReconciler) getKubeVendor(product string) (kubeVendor clusterv1beta1.KubeVendorType) {
+	switch product {
+	case clusterclaim.ProductAKS:
+		kubeVendor = clusterv1beta1.KubeVendorAKS
+	case clusterclaim.ProductGKE:
+		kubeVendor = clusterv1beta1.KubeVendorGKE
+	case clusterclaim.ProductEKS:
+		kubeVendor = clusterv1beta1.KubeVendorEKS
+	case clusterclaim.ProductIKS:
+		kubeVendor = clusterv1beta1.KubeVendorIKS
+	case clusterclaim.ProductICP:
 		kubeVendor = clusterv1beta1.KubeVendorICP
-	case r.isOpenshiftDedicated():
-		kubeVendor = clusterv1beta1.KubeVendorOSD
-	case isOpenShift:
+	case clusterclaim.ProductOpenShift:
 		kubeVendor = clusterv1beta1.KubeVendorOpenShift
+	case clusterclaim.ProductOSD:
+		kubeVendor = clusterv1beta1.KubeVendorOSD
 	default:
 		kubeVendor = clusterv1beta1.KubeVendorOther
 	}
-
-	cloudVendor = r.getCloudVendor()
-	if cloudVendor == clusterv1beta1.CloudVendorAzure && kubeVendor == clusterv1beta1.KubeVendorOther {
-		kubeVendor = clusterv1beta1.KubeVendorAKS
-	}
-
 	return
-}
-
-func (r *ClusterInfoReconciler) getCloudVendor() clusterv1beta1.CloudVendorType {
-	nodes, err := r.KubeClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		klog.Errorf("failed to get nodes list %v", err)
-		return clusterv1beta1.CloudVendorOther
-	}
-
-	if len(nodes.Items) == 0 {
-		klog.Errorf("failed to get nodes list, the count of nodes is 0")
-		return clusterv1beta1.CloudVendorOther
-	}
-
-	switch nodes.Items[0].Status.NodeInfo.Architecture {
-	case "s390x":
-		return clusterv1beta1.CloudVendorIBMZ
-	case "ppc64le":
-		return clusterv1beta1.CloudVendorIBMP
-	}
-
-	providerID := nodes.Items[0].Spec.ProviderID
-	switch {
-	case strings.Contains(providerID, "ibm"):
-		return clusterv1beta1.CloudVendorIBM
-	case strings.Contains(providerID, "azure"):
-		return clusterv1beta1.CloudVendorAzure
-	case strings.Contains(providerID, "aws"):
-		return clusterv1beta1.CloudVendorAWS
-	case strings.Contains(providerID, "gce"):
-		return clusterv1beta1.CloudVendorGoogle
-	case strings.Contains(providerID, "vsphere"):
-		return clusterv1beta1.CloudVendorVSphere
-	case strings.Contains(providerID, "openstack"):
-		return clusterv1beta1.CloudVendorOpenStack
-	}
-
-	return clusterv1beta1.CloudVendorOther
 }
 
 const (
@@ -403,7 +321,7 @@ const (
 	// NodeLabelRole specifies the role of a node
 	NodeLabelRole = "kubernetes.io/role"
 
-	// copied from k8s.io/api/core/v1/well_known_labels.go
+	// copied from k8s.io/api/core/v1/well_known_label.go
 	LabelZoneFailureDomain  = "failure-domain.beta.kubernetes.io/zone"
 	LabelZoneRegion         = "failure-domain.beta.kubernetes.io/region"
 	LabelInstanceType       = "beta.kubernetes.io/instance-type"
@@ -476,73 +394,17 @@ func (r *ClusterInfoReconciler) isOpenshift() bool {
 	return false
 }
 
-func (r *ClusterInfoReconciler) isOpenshiftDedicated() bool {
-	hasProject := false
-	hasManaged := false
-	serverGroups, err := r.KubeClient.Discovery().ServerGroups()
-	if err != nil {
-		klog.Errorf("failed to get server group %v", err)
-		return false
-	}
-	for _, apiGroup := range serverGroups.Groups {
-		if apiGroup.Name == "project.openshift.io" {
-			hasProject = true
-		}
-		// this API group is created for the Openshift Dedicated platform to manage various permissions.
-		// defined in https://github.com/openshift/rbac-permissions-operator/blob/master/pkg/apis/managed/v1alpha1/subjectpermission_types.go
-		if apiGroup.Name == "managed.openshift.io" {
-			hasManaged = true
-		}
-	}
-	return hasProject && hasManaged
-}
-
 var ocpVersionGVR = schema.GroupVersionResource{
 	Group:    "config.openshift.io",
 	Version:  "v1",
 	Resource: "clusterversions",
 }
 
-const (
-	OCP3Version = "3"
-)
-
-func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDistributionInfo, string, error) {
+func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDistributionInfo, error) {
 	ocpDistributionInfo := clusterv1beta1.OCPDistributionInfo{}
 	obj, err := r.ManagedClusterDynamicClient.Resource(ocpVersionGVR).Get(context.TODO(), "version", metav1.GetOptions{})
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			ocpDistributionInfo.DesiredVersion = OCP3Version
-			ocpDistributionInfo.Version = OCP3Version
-			return ocpDistributionInfo, "", nil
-		}
-		klog.Errorf("failed to get OCP cluster version: %v", err)
-		return ocpDistributionInfo, "", client.IgnoreNotFound(err)
-	}
-
-	clusterID, _, err := unstructured.NestedString(obj.Object, "spec", "clusterID")
-	if err != nil {
-		klog.Errorf("failed to get OCP clusterID in spec: %v", err)
-		return ocpDistributionInfo, "", err
-	}
-
-	historyItems, _, err := unstructured.NestedSlice(obj.Object, "status", "history")
-	if err != nil {
-		klog.Errorf("failed to get OCP cluster version in history of status: %v", err)
-	}
-	for _, historyItem := range historyItems {
-		state, _, err := unstructured.NestedString(historyItem.(map[string]interface{}), "state")
-		if err != nil {
-			klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
-			continue
-		}
-		if state == "Completed" {
-			ocpDistributionInfo.Version, _, err = unstructured.NestedString(historyItem.(map[string]interface{}), "version")
-			if err != nil {
-				klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
-			}
-			break
-		}
+		return ocpDistributionInfo, client.IgnoreNotFound(err)
 	}
 
 	ocpDistributionInfo.DesiredVersion, _, err = unstructured.NestedString(obj.Object, "status", "desired", "version")
@@ -586,12 +448,11 @@ func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDist
 		}
 	}
 
-	return ocpDistributionInfo, clusterID, nil
+	return ocpDistributionInfo, nil
 }
 
-func (r *ClusterInfoReconciler) getDistributionInfoAndClusterID() (clusterv1beta1.DistributionInfo, string, error) {
+func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.DistributionInfo, error) {
 	var err error
-	var clusterID string
 	var distributionInfo = clusterv1beta1.DistributionInfo{
 		Type: clusterv1beta1.DistributionTypeUnknown,
 	}
@@ -599,92 +460,11 @@ func (r *ClusterInfoReconciler) getDistributionInfoAndClusterID() (clusterv1beta
 	switch {
 	case r.isOpenshift():
 		distributionInfo.Type = clusterv1beta1.DistributionTypeOCP
-		if distributionInfo.OCP, clusterID, err = r.getOCPDistributionInfo(); err != nil {
-			return distributionInfo, clusterID, err
+		if distributionInfo.OCP, err = r.getOCPDistributionInfo(); err != nil {
+			return distributionInfo, err
 		}
 	}
-	return distributionInfo, clusterID, nil
-}
-
-var ocpInfrGVR = schema.GroupVersionResource{
-	Group:    "config.openshift.io",
-	Version:  "v1",
-	Resource: "infrastructures",
-}
-
-// should be the type defined in infrastructure.config.openshift.io
-const (
-	AWSPlatformType = "AWS"
-	GCPPlatformType = "GCP"
-	IBMPlatformType = "IBM"
-)
-
-func (r *ClusterInfoReconciler) getClusterRegion() string {
-	var region = ""
-
-	switch {
-	case r.isOpenshift():
-		obj, err := r.ManagedClusterDynamicClient.Resource(ocpInfrGVR).Get(context.TODO(), "cluster", metav1.GetOptions{})
-		if err != nil {
-			klog.Errorf("failed to get OCP infrastructures.config.openshift.io/cluster: %v", err)
-			return ""
-		}
-
-		platformType, _, err := unstructured.NestedString(obj.Object, "status", "platform")
-		if err != nil {
-			klog.Errorf("failed to get OCP platform type in status of infrastructures.config.openshift.io/cluster: %v", err)
-			return ""
-		}
-
-		// only ocp on aws and gcp has region definition
-		// refer to https://github.com/openshift/api/blob/master/config/v1/types_infrastructure.go
-		switch platformType {
-		case AWSPlatformType:
-			region, _, err = unstructured.NestedString(obj.Object, "status", "platformStatus", "aws", "region")
-			if err != nil {
-				klog.Errorf("failed to get OCP region in status of infrastructures.config.openshift.io/cluster: %v", err)
-				return ""
-			}
-		case GCPPlatformType:
-			region, _, err = unstructured.NestedString(obj.Object, "status", "platformStatus", "gcp", "region")
-			if err != nil {
-				klog.Errorf("failed to get OCP region in status of infrastructures.config.openshift.io/cluster: %v", err)
-				return ""
-			}
-		}
-	}
-
-	return region
-}
-
-type InfraConfig struct {
-	InfraName string `json:"infraName,omitempty"`
-}
-
-func (r *ClusterInfoReconciler) getInfraConfig() string {
-	if !r.isOpenshift() {
-		return ""
-	}
-
-	obj, err := r.ManagedClusterDynamicClient.Resource(ocpInfrGVR).Get(context.TODO(), "cluster", metav1.GetOptions{})
-	if err != nil {
-		klog.Errorf("failed to get OCP infrastructures.config.openshift.io/cluster: %v", err)
-		return ""
-	}
-
-	infraConfig := InfraConfig{}
-	infraConfig.InfraName, _, err = unstructured.NestedString(obj.Object, "status", "infrastructureName")
-	if err != nil {
-		klog.Errorf("failed to get OCP infrastructure Name in status of infrastructures.config.openshift.io/cluster: %v", err)
-		return ""
-	}
-
-	infraConfigRaw, err := json.Marshal(infraConfig)
-	if err != nil {
-		klog.Errorf("failed to marshal infraConfig: %v", err)
-		return ""
-	}
-	return string(infraConfigRaw)
+	return distributionInfo, nil
 }
 
 func (r *ClusterInfoReconciler) RefreshAgentServer(clusterInfo *clusterv1beta1.ManagedClusterInfo) {
@@ -701,120 +481,4 @@ func (r *ClusterInfoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clusterv1beta1.ManagedClusterInfo{}).
 		Complete(r)
-}
-
-func (r *ClusterInfoReconciler) GetClusterClaims() ([]*clusterv1alpha1.ClusterClaim, error) {
-	claims := []*clusterv1alpha1.ClusterClaim{}
-	distributionInfo, clusterID, err := r.getDistributionInfoAndClusterID()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get distribution info and clusterID, error: %w ", err)
-	}
-
-	// handle OpenShift specific claims
-	if len(clusterID) > 0 {
-		claims = append(claims, newClusterClaim("id.openshift.io", clusterID))
-	}
-	if len(distributionInfo.OCP.Version) > 0 {
-		claims = append(claims, newClusterClaim("version.openshift.io", distributionInfo.OCP.Version))
-	}
-
-	infraConfig := r.getInfraConfig()
-	if len(infraConfig) > 0 {
-		claims = append(claims, newClusterClaim("infrastructure.openshift.io", infraConfig))
-	}
-
-	_, _, consoleURL := r.getMasterAddresses()
-	if len(consoleURL) > 0 {
-		claims = append(claims, newClusterClaim("consoleurl.cluster.open-cluster-management.io", consoleURL))
-	}
-
-	// handle reserved claims
-	claims = append(claims, newClusterClaim("id.k8s.io", r.ClusterName))
-	kubeVersion, platform, product := r.getVersionPlatformProduct(distributionInfo)
-	claims = append(claims, newClusterClaim("kubeversion.open-cluster-management.io", kubeVersion))
-	if len(platform) > 0 {
-		claims = append(claims, newClusterClaim("platform.open-cluster-management.io", platform))
-	}
-	if len(product) > 0 {
-		claims = append(claims, newClusterClaim("product.open-cluster-management.io", product))
-	}
-
-	region := r.getClusterRegion()
-	if len(region) > 0 {
-		claims = append(claims, newClusterClaim("region.open-cluster-management.io", region))
-	}
-
-	return claims, nil
-}
-
-func (r *ClusterInfoReconciler) getVersionPlatformProduct(distributionInfo clusterv1beta1.DistributionInfo) (kubeVersion, platform, product string) {
-	kubeVersion = r.getVersion()
-	isOpenShift := distributionInfo.Type == clusterv1beta1.DistributionTypeOCP
-	cloudVendor := r.getCloudVendor()
-	gitVersion := strings.ToUpper(kubeVersion)
-
-	// deal with product and platform
-	switch {
-	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorIKS)):
-		// IBM Cloud Platform + IKS
-		platform = IBMPlatformType
-		product = string(clusterv1beta1.KubeVendorIKS)
-		return
-	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorEKS)):
-		// AWS + EKS
-		platform = AWSPlatformType
-		product = string(clusterv1beta1.KubeVendorEKS)
-		return
-	case strings.Contains(gitVersion, string(clusterv1beta1.KubeVendorGKE)):
-		// Google Cloud Platform + GKE
-		platform = GCPPlatformType
-		product = string(clusterv1beta1.KubeVendorGKE)
-		return
-	case r.isOpenshiftDedicated():
-		product = string(clusterv1beta1.KubeVendorOSD)
-	case isOpenShift:
-		product = string(clusterv1beta1.KubeVendorOpenShift)
-	}
-
-	switch cloudVendor {
-	case clusterv1beta1.CloudVendorIBMP:
-		platform = string(clusterv1beta1.CloudVendorIBMP)
-	case clusterv1beta1.CloudVendorIBMZ:
-		platform = string(clusterv1beta1.CloudVendorIBMZ)
-	case clusterv1beta1.CloudVendorIBM:
-		// IBM Cloud Platform
-		platform = IBMPlatformType
-	case clusterv1beta1.CloudVendorAWS:
-		// AWS
-		platform = AWSPlatformType
-	case clusterv1beta1.CloudVendorGoogle:
-		// Google Cloud Platform
-		platform = GCPPlatformType
-	case clusterv1beta1.CloudVendorAzure:
-		// Azure
-		platform = string(clusterv1beta1.CloudVendorAzure)
-		if !isOpenShift {
-			// Azure + AKS
-			product = string(clusterv1beta1.KubeVendorAKS)
-		}
-	case clusterv1beta1.CloudVendorOpenStack:
-		// OpenStack
-		platform = string(clusterv1beta1.CloudVendorOpenStack)
-	case clusterv1beta1.CloudVendorVSphere:
-		// VSphere
-		platform = string(clusterv1beta1.CloudVendorVSphere)
-	}
-
-	return kubeVersion, platform, product
-}
-
-func newClusterClaim(name, value string) *clusterv1alpha1.ClusterClaim {
-	return &clusterv1alpha1.ClusterClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-		Spec: clusterv1alpha1.ClusterClaimSpec{
-			Value: value,
-		},
-	}
 }

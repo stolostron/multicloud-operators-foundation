@@ -1408,6 +1408,7 @@ github.com/openshift/cluster-api-provider-libvirt v0.2.1-0.20191219173431-233678
 github.com/openshift/cluster-api-provider-openstack v0.0.0-20201116051540-155384b859c5/go.mod h1:vhv3G5oWIev2paJytOa57cXUYdzEyVgoUMwU3uuOB7Y=
 github.com/openshift/cluster-api-provider-ovirt v0.1.1-0.20200504092944-27473ea1ae43/go.mod h1:Vl/bvZulLw6PdUADIFWGfoTWH1O4L1B80eN7BtLYEuo=
 github.com/openshift/cluster-autoscaler-operator v0.0.0-20190521201101-62768a6ba480/go.mod h1:/XmV44Fh28Vo3Ye93qFrxAbcFJ/Uy+7LPD+jGjmfJYc=
+github.com/openshift/custom-resource-status v0.0.0-20190822192428-e62f2f3b79f3 h1:XuAys09+XqT5/FjdR23G/UtbBLII89dFe9XIi73EKIQ=
 github.com/openshift/custom-resource-status v0.0.0-20190822192428-e62f2f3b79f3/go.mod h1:GDjWl0tX6FNIj82vIxeudWeSx2Ff6nDZ8uJn0ohUFvo=
 github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca h1:F1MEnOMwSrTA0YAkO0he9ip9w0JhYzI/iCB2mXmaSPg=
 github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca/go.mod h1:GDjWl0tX6FNIj82vIxeudWeSx2Ff6nDZ8uJn0ohUFvo=

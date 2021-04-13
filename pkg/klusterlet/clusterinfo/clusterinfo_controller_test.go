@@ -3,7 +3,9 @@ package controllers
 import (
 	"context"
 	tlog "github.com/go-logr/logr/testing"
+	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	routev1Fake "github.com/openshift/client-go/route/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -16,6 +18,7 @@ import (
 	"os"
 	"testing"
 
+	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	extensionv1beta1 "k8s.io/api/extensions/v1beta1"
@@ -30,8 +33,27 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var (
-	kubeNode = &corev1.Node{
+var clusterInfoNamespace = "cn1"
+var clusterInfoName = "c1"
+var clusterc1Request = reconcile.Request{
+	NamespacedName: types.NamespacedName{
+		Name: clusterInfoName, Namespace: clusterInfoNamespace}}
+
+var cfg *rest.Config
+
+func TestMain(m *testing.M) {
+	t := &envtest.Environment{}
+	var err error
+	if cfg, err = t.Start(); err != nil {
+		stdlog.Fatal(err)
+	}
+	code := m.Run()
+	t.Stop()
+	os.Exit(code)
+}
+
+func newNode() *corev1.Node {
+	return &corev1.Node{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "node1",
 			Labels: map[string]string{
@@ -53,45 +75,10 @@ var (
 			},
 		},
 	}
+}
 
-	ocpConsole = &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "console-config",
-			Namespace: "openshift-console",
-		},
-		Data: map[string]string{
-			"console-config.yaml": "apiVersion: console.openshift.io/v1\nauth:\n" +
-				"clientID: console\n  clientSecretFile: /var/oauth-config/clientSecret\n" +
-				"oauthEndpointCAFile: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt\n" +
-				"clusterInfo:\n  consoleBaseAddress: https://console-openshift-console.apps.daliu-clu428.dev04.red-chesterfield.com\n" +
-				"masterPublicURL: https://api.daliu-clu428.dev04.red-chesterfield.com:6443\ncustomization:\n" +
-				"branding: ocp\n  documentationBaseURL: https://docs.openshift.com/container-platform/4.3/\n" +
-				"kind: ConsoleConfig\nproviders: {}\nservingInfo:\n  bindAddress: https://[::]:8443\n" +
-				"certFile: /var/serving-cert/tls.crt\n  keyFile: /var/serving-cert/tls.key\n",
-		},
-	}
-	kubeEndpoints = &corev1.Endpoints{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "kubernetes",
-			Namespace: "default",
-		},
-		Subsets: []corev1.EndpointSubset{
-			{
-				Addresses: []corev1.EndpointAddress{
-					{
-						IP: "127.0.0.1",
-					},
-				},
-				Ports: []corev1.EndpointPort{
-					{
-						Port: 443,
-					},
-				},
-			},
-		},
-	}
-
-	kubeMonitoringSecret = &corev1.Secret{
+func newMonitoringSecret() *corev1.Secret {
+	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "monitoring",
 			Namespace: "kube-system",
@@ -101,7 +88,10 @@ var (
 			"tls.key": []byte("aaa"),
 		},
 	}
-	agentIngress = &extensionv1beta1.Ingress{
+}
+
+func newAgentIngress() *extensionv1beta1.Ingress {
+	return &extensionv1beta1.Ingress{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Ingress",
 			APIVersion: "extension/v1alpha1",
@@ -128,8 +118,10 @@ var (
 			},
 		},
 	}
+}
 
-	agentService = &corev1.Service{
+func newAgentService() *corev1.Service {
+	return &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "agent",
 			Namespace: "kube-system",
@@ -153,24 +145,65 @@ var (
 			},
 		},
 	}
-)
-var clusterInfoNamespace = "cn1"
-var clusterInfoName = "c1"
-var clusterc1Request = reconcile.Request{
-	NamespacedName: types.NamespacedName{
-		Name: clusterInfoName, Namespace: clusterInfoNamespace}}
+}
 
-var cfg *rest.Config
-
-func TestMain(m *testing.M) {
-	t := &envtest.Environment{}
-	var err error
-	if cfg, err = t.Start(); err != nil {
-		stdlog.Fatal(err)
+func newClusterClaimList() *clusterv1alpha1.ClusterClaimList {
+	return &clusterv1alpha1.ClusterClaimList{
+		TypeMeta: metav1.TypeMeta{},
+		ListMeta: metav1.ListMeta{},
+		Items: []clusterv1alpha1.ClusterClaim{
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: clusterclaim.ClaimOCMConsoleURL,
+				},
+				Spec: clusterv1alpha1.ClusterClaimSpec{
+					Value: "https://abc.com",
+				},
+			},
+			{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: clusterclaim.ClaimOCMKubeVersion,
+				},
+				Spec: clusterv1alpha1.ClusterClaimSpec{
+					Value: "v1.20.0",
+				},
+			},
+		},
 	}
-	code := m.Run()
-	t.Stop()
-	os.Exit(code)
+}
+
+func NewClusterInfoReconciler() *ClusterInfoReconciler {
+	fakeKubeClient := kubefake.NewSimpleClientset(
+		newNode(), newAgentIngress(), newMonitoringSecret(), newAgentService())
+	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
+	fakeClusterClient := clusterfake.NewSimpleClientset(newClusterClaimList())
+	return &ClusterInfoReconciler{
+		Log:           tlog.NullLogger{},
+		KubeClient:    fakeKubeClient,
+		ClusterClient: fakeClusterClient,
+		RouteV1Client: fakeRouteV1Client,
+		AgentAddress:  "127.0.0.1:8000",
+		AgentIngress:  "kube-system/foundation-ingress-testcluster-agent",
+		AgentRoute:    "AgentRoute",
+		AgentService:  "kube-system/agent",
+	}
+}
+
+func NewFailedClusterInfoReconciler() *ClusterInfoReconciler {
+	fakeKubeClient := kubefake.NewSimpleClientset(
+		newNode(), newMonitoringSecret())
+	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
+	fakeClusterClient := clusterfake.NewSimpleClientset()
+	return &ClusterInfoReconciler{
+		Log:           tlog.NullLogger{},
+		KubeClient:    fakeKubeClient,
+		ClusterClient: fakeClusterClient,
+		RouteV1Client: fakeRouteV1Client,
+		AgentAddress:  "127.0.0.1:8000",
+		AgentIngress:  "kube-system/foundation-ingress-testcluster-agent",
+		AgentRoute:    "AgentRoute",
+		AgentService:  "kube-system/agent",
+	}
 }
 
 func TestClusterInfoReconcile(t *testing.T) {
@@ -206,22 +239,11 @@ func TestClusterInfoReconcile(t *testing.T) {
 		t.Errorf("failed get updated clusterinfo ")
 	}
 
+	assert.Equal(t, updatedClusterInfo.Status.Version, "v1.20.0")
+	assert.Equal(t, updatedClusterInfo.Status.ConsoleURL, "https://abc.com")
+
 	if meta.IsStatusConditionFalse(updatedClusterInfo.Status.Conditions, clusterv1beta1.ManagedClusterInfoSynced) {
 		t.Errorf("failed to update synced condtion")
-	}
-}
-func NewClusterInfoReconciler() *ClusterInfoReconciler {
-	fakeKubeClient := kubefake.NewSimpleClientset(
-		kubeNode, kubeEndpoints, ocpConsole, agentIngress, kubeMonitoringSecret, agentService)
-	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
-	return &ClusterInfoReconciler{
-		Log:           tlog.NullLogger{},
-		KubeClient:    fakeKubeClient,
-		RouteV1Client: fakeRouteV1Client,
-		AgentAddress:  "127.0.0.1:8000",
-		AgentIngress:  "kube-system/foundation-ingress-testcluster-agent",
-		AgentRoute:    "AgentRoute",
-		AgentService:  "kube-system/agent",
 	}
 }
 
@@ -263,57 +285,42 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 	}
 }
 
-func NewFailedClusterInfoReconciler() *ClusterInfoReconciler {
-	fakeKubeClient := kubefake.NewSimpleClientset(
-		kubeNode, ocpConsole, kubeMonitoringSecret)
-	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
-	return &ClusterInfoReconciler{
-		Log:           tlog.NullLogger{},
-		KubeClient:    fakeKubeClient,
-		RouteV1Client: fakeRouteV1Client,
-		AgentAddress:  "127.0.0.1:8000",
-		AgentIngress:  "kube-system/foundation-ingress-testcluster-agent",
-		AgentRoute:    "AgentRoute",
-		AgentService:  "kube-system/agent",
+func TestGetNodeList(t *testing.T) {
+	tests := []struct {
+		name             string
+		expectNoteStatus []clusterv1beta1.NodeStatus
+		expectError      error
+	}{
+		{
+			name: "get node status",
+			expectNoteStatus: []clusterv1beta1.NodeStatus{
+				{
+					Name: "node1",
+					Labels: map[string]string{
+						"node-role.kubernetes.io/worker": "",
+					},
+					Capacity: map[clusterv1beta1.ResourceName]resource.Quantity{
+						clusterv1beta1.ResourceCPU:    {},
+						clusterv1beta1.ResourceMemory: {},
+					},
+					Conditions: []clusterv1beta1.NodeCondition{
+						{
+							Type: corev1.NodeReady,
+						},
+					},
+				}},
+			expectError: nil,
+		},
 	}
-}
-
-func TestClusterInfoReconciler_getMasterAddresses(t *testing.T) {
-	cir := NewClusterInfoReconciler()
-	endpointaddr, endpointport, clusterurl := cir.getMasterAddresses()
-	if len(endpointaddr) < 1 || len(endpointport) < 1 {
-		t.Errorf("Failed to get clusterinfo. endpointaddr:%v, endpointport:%v, clusterurl:%v", endpointaddr, endpointport, clusterurl)
-	}
-	cir.KubeClient.CoreV1().ConfigMaps("openshift-console").Delete(context.TODO(), "console-config", metav1.DeleteOptions{})
-	endpointaddr, endpointport, clusterurl = cir.getMasterAddresses()
-	if len(endpointaddr) < 1 || len(endpointport) < 1 {
-		t.Errorf("Failed to get clusterinfo. endpointaddr:%v, endpointport:%v, clusterurl:%v", endpointaddr, endpointport, clusterurl)
-	}
-
-	coreEndpointAddr, coreEndpointPort, err := cir.readAgentConfig()
-	if err != nil {
-		t.Errorf("Failed to read agent config. coreEndpoindAddr:%v, coreEndpointPort:%v, err:%v", coreEndpointAddr, coreEndpointPort, err)
-	}
-
-	err = cir.setEndpointAddressFromService(coreEndpointAddr, coreEndpointPort)
-	if err != nil {
-		t.Errorf("Failed to read agent config. coreEndpoindAddr:%v, coreEndpointPort:%v, err:%v", coreEndpointAddr, coreEndpointPort, err)
-	}
-	err = cir.setEndpointAddressFromRoute(coreEndpointAddr)
-	if err == nil {
-		t.Errorf("set endpoint should have error")
-	}
-	version := cir.getVersion()
-	if version == "" {
-		t.Errorf("Failed to get version")
-	}
-	_, err = cir.getNodeList()
-	if err != nil {
-		t.Errorf("Failed to get nodelist, err: %v", err)
-	}
-	_, _, err = cir.getDistributionInfoAndClusterID()
-	if err != nil {
-		t.Errorf("Failed to get distributeinfo, err: %v", err)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cir := NewClusterInfoReconciler()
+			nodeList, err := cir.getNodeList()
+			assert.Equal(t, err, test.expectError)
+			assert.Equal(t, len(nodeList), len(test.expectNoteStatus))
+			assert.Equal(t, nodeList[0].Name, test.expectNoteStatus[0].Name)
+			assert.Equal(t, len(nodeList[0].Labels), len(test.expectNoteStatus[0].Labels))
+		})
 	}
 }
 
@@ -505,7 +512,6 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 	tests := []struct {
 		name                 string
 		dynamicClient        dynamic.Interface
-		expectVersion        string
 		expectDesiredVersion string
 		expectUpgradeFail    bool
 		expectError          string
@@ -513,7 +519,6 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 		{
 			name:                 "OCP4.x",
 			dynamicClient:        dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x", clusterVersions)),
-			expectVersion:        "4.5.11",
 			expectDesiredVersion: "4.5.11",
 			expectUpgradeFail:    false,
 			expectError:          "",
@@ -521,13 +526,11 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 		{
 			name:          "OCP3.x",
 			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("3", "")),
-			expectVersion: "3",
 			expectError:   "",
 		},
 		{
 			name:                 "UpgradeFail",
 			dynamicClient:        dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x", clusterVersionsFail)),
-			expectVersion:        "4.5.3",
 			expectDesiredVersion: "4.5.11",
 			expectUpgradeFail:    true,
 			expectError:          "",
@@ -537,355 +540,14 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cir.ManagedClusterDynamicClient = test.dynamicClient
-			info, _, err := cir.getOCPDistributionInfo()
+			info, err := cir.getOCPDistributionInfo()
 			if err != nil {
 				assert.Equal(t, err.Error(), test.expectError)
 			}
-			assert.Equal(t, info.Version, test.expectVersion)
 			if test.expectDesiredVersion != "" {
 				assert.Equal(t, info.DesiredVersion, test.expectDesiredVersion)
 			}
 			assert.Equal(t, info.UpgradeFailed, test.expectUpgradeFail)
-		})
-	}
-}
-
-func NewClusterInfoReconcilerWithNodes(cloudVendorType clusterv1beta1.CloudVendorType,
-	kubeVendorType clusterv1beta1.KubeVendorType) *ClusterInfoReconciler {
-	node := &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "node1",
-		},
-	}
-
-	switch cloudVendorType {
-	case clusterv1beta1.CloudVendorAWS:
-		node.Spec.ProviderID = "aws:///us-east-1a/i-07bacee3f60562daa"
-	case clusterv1beta1.CloudVendorAzure:
-		node.Spec.ProviderID = "azure:///subscriptions/03e5f0ef-0741-442a-bc1b-ba34ceb3f63f/resourceGroups/yzwaz-rlpjx-rg/providers/Microsoft.Compute/virtualMachines/yzwaz-rlpjx-master-0"
-	case clusterv1beta1.CloudVendorGoogle:
-		node.Spec.ProviderID = "gce:///abc"
-	case clusterv1beta1.CloudVendorIBM:
-		node.Spec.ProviderID = "ibm:///abc"
-	case clusterv1beta1.CloudVendorVSphere:
-		node.Spec.ProviderID = "vsphere://421a27ac-bb12-f6e6-48cb-f2aa74e56156"
-	case clusterv1beta1.CloudVendorOpenStack:
-		node.Spec.ProviderID = "openstack:///dda1f31a-3dfb-435a-9e1d-16149a8dd628"
-	case clusterv1beta1.CloudVendorIBMZ:
-		node.Status.NodeInfo.Architecture = "s390x"
-	case clusterv1beta1.CloudVendorIBMP:
-		node.Status.NodeInfo.Architecture = "ppc64le"
-	}
-
-	fakeKubeClient := kubefake.NewSimpleClientset(node)
-	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
-
-	switch kubeVendorType {
-	case clusterv1beta1.KubeVendorOSD:
-		project := metav1.APIResource{
-			Name:         "projects",
-			SingularName: "project",
-			Namespaced:   false,
-			Kind:         "Project",
-		}
-		managed := metav1.APIResource{
-			Name:         "subjectpermissions",
-			SingularName: "subjectpermission",
-			Namespaced:   true,
-			Kind:         "SubjectPermission",
-		}
-		projectResource := &metav1.APIResourceList{
-			GroupVersion: "project.openshift.io/v1",
-			APIResources: []metav1.APIResource{project},
-		}
-		managedResource := &metav1.APIResourceList{
-			GroupVersion: "managed.openshift.io/v1alpha1",
-			APIResources: []metav1.APIResource{managed},
-		}
-
-		fakeKubeClient.Resources = append(fakeKubeClient.Resources, projectResource, managedResource)
-	}
-
-	return &ClusterInfoReconciler{
-		Log:           tlog.NullLogger{},
-		KubeClient:    fakeKubeClient,
-		RouteV1Client: fakeRouteV1Client,
-		AgentAddress:  "127.0.0.1:8000",
-		AgentIngress:  "kube-system/foundation-ingress-testcluster-agent",
-		AgentRoute:    "AgentRoute",
-		AgentService:  "kube-system/agent",
-	}
-}
-
-func TestGetVendor(t *testing.T) {
-	tests := []struct {
-		name                  string
-		clusterInfoReconciler *ClusterInfoReconciler
-		gitVersion            string
-		isOpenShift           bool
-		expectCloudVendor     clusterv1beta1.CloudVendorType
-		expectKubeVendor      clusterv1beta1.KubeVendorType
-	}{
-		{
-			name:                  "aws-openshift",
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorAWS, ""),
-			gitVersion:            "v1.18.3+2fbd7c7",
-			isOpenShift:           true,
-			expectCloudVendor:     clusterv1beta1.CloudVendorAWS,
-			expectKubeVendor:      clusterv1beta1.KubeVendorOpenShift,
-		},
-		{
-			name:                  "azure",
-			gitVersion:            "v1.18.3+aks",
-			isOpenShift:           false,
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorAzure, ""),
-			expectCloudVendor:     clusterv1beta1.CloudVendorAzure,
-			expectKubeVendor:      clusterv1beta1.KubeVendorAKS,
-		},
-		{
-			name:                  "google",
-			gitVersion:            "v1.18.3+gke",
-			isOpenShift:           false,
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorGoogle, ""),
-			expectCloudVendor:     clusterv1beta1.CloudVendorGoogle,
-			expectKubeVendor:      clusterv1beta1.KubeVendorGKE,
-		},
-		{
-			name:                  "IBM",
-			gitVersion:            "v1.18.3+icp",
-			isOpenShift:           false,
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorIBM, ""),
-			expectCloudVendor:     clusterv1beta1.CloudVendorIBM,
-			expectKubeVendor:      clusterv1beta1.KubeVendorICP,
-		},
-		{
-			name:                  "IBMP",
-			gitVersion:            "v1.18.3",
-			isOpenShift:           true,
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorIBMP, ""),
-			expectCloudVendor:     clusterv1beta1.CloudVendorIBMP,
-			expectKubeVendor:      clusterv1beta1.KubeVendorOpenShift,
-		},
-		{
-			name:                  "IBMZ",
-			gitVersion:            "v1.18.3",
-			isOpenShift:           true,
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorIBMZ, ""),
-			expectCloudVendor:     clusterv1beta1.CloudVendorIBMZ,
-			expectKubeVendor:      clusterv1beta1.KubeVendorOpenShift,
-		},
-		{
-			name:                  "vsphere",
-			gitVersion:            "v1.18.3+2fbd7c7",
-			isOpenShift:           true,
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorVSphere, ""),
-			expectCloudVendor:     clusterv1beta1.CloudVendorVSphere,
-			expectKubeVendor:      clusterv1beta1.KubeVendorOpenShift,
-		},
-		{
-			name:                  "openstack",
-			gitVersion:            "v1.18.3+2fbd7c7",
-			isOpenShift:           true,
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorOpenStack, ""),
-			expectCloudVendor:     clusterv1beta1.CloudVendorOpenStack,
-			expectKubeVendor:      clusterv1beta1.KubeVendorOpenShift,
-		},
-		{
-			name:                  "aws-osd",
-			gitVersion:            "v1.18.3+2fbd7c7",
-			isOpenShift:           true,
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorAWS, clusterv1beta1.KubeVendorOSD),
-			expectCloudVendor:     clusterv1beta1.CloudVendorAWS,
-			expectKubeVendor:      clusterv1beta1.KubeVendorOSD,
-		},
-		{
-			name:                  "others",
-			gitVersion:            "v1.18.3+2fbd7c7",
-			isOpenShift:           false,
-			clusterInfoReconciler: NewClusterInfoReconcilerWithNodes(clusterv1beta1.CloudVendorOther, ""),
-			expectCloudVendor:     clusterv1beta1.CloudVendorOther,
-			expectKubeVendor:      clusterv1beta1.KubeVendorOther,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			kubeVendor, cloudVendor := test.clusterInfoReconciler.getVendor(test.gitVersion, test.isOpenShift)
-			assert.Equal(t, test.expectCloudVendor, cloudVendor)
-			assert.Equal(t, test.expectKubeVendor, kubeVendor)
-		})
-	}
-}
-
-func NewOCPClusterInfoReconciler() *ClusterInfoReconciler {
-	fakeKubeClient := kubefake.NewSimpleClientset(
-		kubeNode, ocpConsole, kubeMonitoringSecret)
-	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
-
-	project := metav1.APIResource{
-		Name:         "projects",
-		SingularName: "project",
-		Namespaced:   false,
-		Kind:         "Project",
-	}
-	ocpResource := &metav1.APIResourceList{
-		GroupVersion: "project.openshift.io/v1",
-		APIResources: []metav1.APIResource{project},
-	}
-	fakeKubeClient.Resources = append(fakeKubeClient.Resources, ocpResource)
-	return &ClusterInfoReconciler{
-		Log:           tlog.NullLogger{},
-		KubeClient:    fakeKubeClient,
-		RouteV1Client: fakeRouteV1Client,
-		AgentAddress:  "127.0.0.1:8000",
-		AgentIngress:  "kube-system/foundation-ingress-testcluster-agent",
-		AgentRoute:    "AgentRoute",
-		AgentService:  "kube-system/agent",
-	}
-}
-
-const (
-	awsOCPInfraConfig = `{
-    "apiVersion": "config.openshift.io/v1",
-    "kind": "Infrastructure",
-    "metadata": {
-        "name": "cluster"
-    },
-    "spec": {
-        "cloudConfig": {
-        "name": ""
-        },
-        "platformSpec": {
-        "aws": {},
-        "type": "AWS"
-        }
-    },
-    "status": {
-        "apiServerInternalURI": "https://api-int.osd-test.wu67.s1.devshift.org:6443",
-        "apiServerURL": "https://api.osd-test.wu67.s1.devshift.org:6443",
-        "etcdDiscoveryDomain": "osd-test.wu67.s1.devshift.org",
-        "infrastructureName": "ocp-aws",
-        "platform": "AWS",
-        "platformStatus": {
-        "aws": {
-            "region": "region-aws"
-        },
-        "type": "AWS"
-        } 
-    }
-}`
-
-	gcpInfraConfig = `{
-    "apiVersion": "config.openshift.io/v1",
-    "kind": "Infrastructure",
-    "metadata": {
-        "name": "cluster"
-    },
-    "spec": {
-        "cloudConfig": {
-            "name": ""
-        },
-        "platformSpec": {
-            "gcp": {},
-            "type": "GCP"
-        }
-    },
-    "status": {
-        "apiServerInternalURI": "https://api-int.osd-test.wu67.s1.devshift.org:6443",
-        "apiServerURL": "https://api.osd-test.wu67.s1.devshift.org:6443",
-        "etcdDiscoveryDomain": "osd-test.wu67.s1.devshift.org",
-        "infrastructureName": "ocp-gcp",
-        "platform": "GCP",
-        "platformStatus": {
-            "gcp": {
-                "region": "region-gcp"
-            },
-            "type": "GCP"
-        }
-    }
-}`
-)
-
-func newInfraConfig(platformType string) *unstructured.Unstructured {
-	obj := unstructured.Unstructured{}
-	switch platformType {
-	case AWSPlatformType:
-		obj.UnmarshalJSON([]byte(awsOCPInfraConfig))
-	case GCPPlatformType:
-		obj.UnmarshalJSON([]byte(gcpInfraConfig))
-	}
-
-	return &obj
-}
-
-func TestGetRegion(t *testing.T) {
-	tests := []struct {
-		name                  string
-		clusterInfoReconciler *ClusterInfoReconciler
-		dynamicClient         dynamic.Interface
-		expectRegion          string
-	}{
-		{
-			name:                  "aws OCP",
-			clusterInfoReconciler: NewOCPClusterInfoReconciler(),
-			dynamicClient:         dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newInfraConfig(AWSPlatformType)),
-			expectRegion:          "region-aws",
-		},
-		{
-			name:                  "GCP",
-			clusterInfoReconciler: NewOCPClusterInfoReconciler(),
-			dynamicClient:         dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newInfraConfig(GCPPlatformType)),
-			expectRegion:          "region-gcp",
-		},
-		{
-			name:                  "Non-OCP",
-			clusterInfoReconciler: NewClusterInfoReconciler(),
-			dynamicClient:         dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-			expectRegion:          "",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			test.clusterInfoReconciler.ManagedClusterDynamicClient = test.dynamicClient
-			region := test.clusterInfoReconciler.getClusterRegion()
-			assert.Equal(t, test.expectRegion, region)
-		})
-	}
-}
-
-func TestGetInfraConfig(t *testing.T) {
-	tests := []struct {
-		name                  string
-		clusterInfoReconciler *ClusterInfoReconciler
-		dynamicClient         dynamic.Interface
-		expectInfra           string
-	}{
-		{
-			name:                  "aws OCP",
-			clusterInfoReconciler: NewOCPClusterInfoReconciler(),
-			dynamicClient:         dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newInfraConfig(AWSPlatformType)),
-			expectInfra:           "{\"infraName\":\"ocp-aws\"}",
-		},
-		{
-			name:                  "GCP",
-			clusterInfoReconciler: NewOCPClusterInfoReconciler(),
-			dynamicClient:         dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newInfraConfig(GCPPlatformType)),
-			expectInfra:           "{\"infraName\":\"ocp-gcp\"}",
-		},
-		{
-			name:                  "Non-OCP",
-			clusterInfoReconciler: NewClusterInfoReconciler(),
-			dynamicClient:         dynamicfake.NewSimpleDynamicClient(runtime.NewScheme()),
-			expectInfra:           "",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			test.clusterInfoReconciler.ManagedClusterDynamicClient = test.dynamicClient
-			infraName := test.clusterInfoReconciler.getInfraConfig()
-			assert.Equal(t, test.expectInfra, infraName)
 		})
 	}
 }
