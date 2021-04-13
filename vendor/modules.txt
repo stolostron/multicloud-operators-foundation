@@ -203,7 +203,7 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/open-cluster-management/api v0.0.0-20201126023000-353dd8370f4d
+# github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f
 ## explicit
 github.com/open-cluster-management/api/addon/v1alpha1
 github.com/open-cluster-management/api/client/addon/clientset/versioned
@@ -228,7 +228,7 @@ github.com/open-cluster-management/api/cluster/v1alpha1
 # github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 github.com/openshift/api/config/v1
 github.com/openshift/api/route/v1
-# github.com/openshift/build-machinery-go v0.0.0-20200917070002-f171684f77ab
+# github.com/openshift/build-machinery-go v0.0.0-20210115170933-e575b44a7a94
 ## explicit
 github.com/openshift/build-machinery-go
 github.com/openshift/build-machinery-go/make
