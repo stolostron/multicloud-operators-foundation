@@ -20,13 +20,13 @@ var _ = ginkgo.Describe("Testing Lease", func() {
 		ginkgo.It("should get/update lease successfully in cluster", func() {
 			var firstLeaseTime *metav1.MicroTime
 			// Creat managedclusteraddon apis
-			addon := &addonv1alpha1.ManagedClusterAddOn{
+			var addon = &addonv1alpha1.ManagedClusterAddOn{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "work-manager",
 					Namespace: managedClusterName,
-					Annotations: map[string]string{
-						"addon.open-cluster-management.io/installNamespace": podNamespace,
-					},
+				},
+				Spec: addonv1alpha1.ManagedClusterAddOnSpec{
+					InstallNamespace: podNamespace,
 				},
 			}
 			_, err := addonClient.AddonV1alpha1().ManagedClusterAddOns(managedClusterName).Create(context.Background(), addon, metav1.CreateOptions{})
