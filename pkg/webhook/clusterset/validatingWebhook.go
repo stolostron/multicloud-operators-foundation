@@ -127,7 +127,7 @@ func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.Ad
 			return status
 		}
 
-		if clusterDeployment.Spec.ClusterPoolRef != nil && clusterDeployment.Spec.ClusterPoolRef.ClaimName != "" {
+		if clusterDeployment.Spec.ClusterPoolRef != nil {
 			return status
 		}
 	default:
