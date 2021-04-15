@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
@@ -102,13 +103,17 @@ func ApplyClusterRoleBinding(ctx context.Context, client client.Client, required
 }
 
 //managedcluster admin role
-func GenerateClusterRoleName(clusterName string) string {
-	return "open-cluster-management:admin:" + clusterName
+func GenerateClusterRoleName(clusterName, role string) string {
+	return fmt.Sprintf("open-cluster-management:%s:%s", role, clusterName)
+}
+
+func GenerateClustersetClusterroleName(clustersetName, role string) string {
+	return fmt.Sprintf("open-cluster-management:managedclusterset:%s:%s", role, clustersetName)
 }
 
 //clusterset clusterrolebinding
 func GenerateClusterRoleBindingName(clusterName string) string {
-	return "open-cluster-management:clusterset:managedcluster:" + clusterName
+	return fmt.Sprintf("open-cluster-management:clusterset:managedcluster:%s", clusterName)
 }
 
 //Delete cluster role
@@ -148,5 +153,5 @@ func ApplyClusterRole(kubeClient kubernetes.Interface, clusterRoleName string, r
 }
 
 func BuildClusterRoleName(objName, rule string) string {
-	return "open-cluster-management:" + rule + ":" + objName
+	return fmt.Sprintf("open-cluster-management:%s:%s", rule, objName)
 }

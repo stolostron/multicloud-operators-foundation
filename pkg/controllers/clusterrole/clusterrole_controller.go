@@ -77,12 +77,12 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			if klog.V(4) {
 				klog.Infof("deleting ManagedClusterRole %v", cluster.Name)
 			}
-			err := utils.DeleteClusterRole(r.kubeClient, utils.BuildClusterRoleName(cluster.Name, "admin"))
+			err := utils.DeleteClusterRole(r.kubeClient, utils.GenerateClusterRoleName(cluster.Name, "admin"))
 			if err != nil {
 				klog.Warningf("will reconcile since failed to delete clusterrole %v : %v", cluster.Name, err)
 				return reconcile.Result{}, err
 			}
-			err = utils.DeleteClusterRole(r.kubeClient, utils.BuildClusterRoleName(cluster.Name, "view"))
+			err = utils.DeleteClusterRole(r.kubeClient, utils.GenerateClusterRoleName(cluster.Name, "view"))
 			if err != nil {
 				klog.Warningf("will reconcile since failed to delete clusterrole %v : %v", cluster.Name, err)
 				return reconcile.Result{}, err
@@ -112,13 +112,13 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	//add clusterrole
 	adminRules := buildAdminRoleRules(cluster.Name)
-	err = utils.ApplyClusterRole(r.kubeClient, utils.BuildClusterRoleName(cluster.Name, "admin"), adminRules)
+	err = utils.ApplyClusterRole(r.kubeClient, utils.GenerateClusterRoleName(cluster.Name, "admin"), adminRules)
 	if err != nil {
 		klog.Warningf("will reconcile since failed to create/update clusterrole %v, %v", cluster.Name, err)
 		return ctrl.Result{}, err
 	}
 	viewRules := buildViewRoleRules(cluster.Name)
-	err = utils.ApplyClusterRole(r.kubeClient, utils.BuildClusterRoleName(cluster.Name, "view"), viewRules)
+	err = utils.ApplyClusterRole(r.kubeClient, utils.GenerateClusterRoleName(cluster.Name, "view"), viewRules)
 	if err != nil {
 		klog.Warningf("will reconcile since failed to create/update clusterrole %v, %v", cluster.Name, err)
 		return ctrl.Result{}, err

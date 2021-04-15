@@ -155,8 +155,8 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			gomega.Eventually(func() (interface{}, error) {
-				//clusterset-admin clusterrole should be auto created
-				adminClustersetRole := utils.BuildClusterRoleName(clusterset.GetName(), "clusterset-admin")
+				//admin clusterrole should be auto created
+				adminClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "admin")
 				_, err = util.GetClusterResource(dynamicClient, clusterRoleGVR, adminClustersetRole)
 				if err != nil {
 					return false, nil
@@ -165,8 +165,8 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 
 			gomega.Eventually(func() (interface{}, error) {
-				//clusterset-view clusterrole should be auto created
-				viewClustersetRole := utils.BuildClusterRoleName(clusterset.GetName(), "clusterset-view")
+				//view clusterrole should be auto created
+				viewClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "view")
 				_, err = util.GetClusterResource(dynamicClient, clusterRoleGVR, viewClustersetRole)
 				if err != nil {
 					return false, nil
@@ -179,8 +179,8 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			gomega.Eventually(func() (interface{}, error) {
-				//clusterset-admin clusterrole should be auto deleted
-				adminClustersetRole := utils.BuildClusterRoleName(clusterset.GetName(), "clusterset-admin")
+				//admin clusterrole should be auto deleted
+				adminClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "admin")
 				_, err = util.GetClusterResource(dynamicClient, clusterRoleGVR, adminClustersetRole)
 				if err != nil {
 					return false, nil
@@ -189,8 +189,8 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeFalse())
 
 			gomega.Eventually(func() (interface{}, error) {
-				//clusterset-view clusterrole should be auto deleted
-				viewClustersetRole := utils.BuildClusterRoleName(clusterset.GetName(), "clusterset-view")
+				//view clusterrole should be auto deleted
+				viewClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "view")
 				_, err = util.GetClusterResource(dynamicClient, clusterRoleGVR, viewClustersetRole)
 				if err != nil {
 					return false, nil

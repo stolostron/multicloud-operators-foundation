@@ -13,6 +13,7 @@ import (
 var managedclusterGroup = "cluster.open-cluster-management.io"
 var hiveGroup = "hive.openshift.io"
 var managedClusterViewGroup = "clusterview.open-cluster-management.io"
+var registerGroup = "register.open-cluster-management.io"
 
 // buildAdminRoleRules builds the clustesetadminroles
 func buildAdminRoleRules(clustersetName string) []rbacv1.PolicyRule {
@@ -35,6 +36,12 @@ func buildAdminRoleRules(clustersetName string) []rbacv1.PolicyRule {
 		clusterrbac.NewRule("create").
 			Groups(managedclusterGroup).
 			Resources("managedclusters").
+			RuleOrDie(),
+		//TODO
+		// We will restrict the update permission only for authenticated clusterset in another pr
+		clusterrbac.NewRule("update").
+			Groups(registerGroup).
+			Resources("managedclusters/accept").
 			RuleOrDie(),
 		clusterrbac.NewRule("get", "list", "watch").
 			Groups(managedClusterViewGroup).

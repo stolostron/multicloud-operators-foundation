@@ -131,7 +131,7 @@ func newAdminRoleObjs() []runtime.Object {
 	return []runtime.Object{
 		&rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: utils.BuildClusterRoleName(ManagedClusterName, "admin"),
+				Name: utils.GenerateClusterRoleName(ManagedClusterName, "admin"),
 			},
 			Rules: nil,
 		},
