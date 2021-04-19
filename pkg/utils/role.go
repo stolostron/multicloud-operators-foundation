@@ -158,10 +158,6 @@ func ApplyClusterRole(kubeClient kubernetes.Interface, clusterRoleName string, r
 	return nil
 }
 
-func BuildClusterRoleName(objName, rule string) string {
-	return "open-cluster-management:" + rule + ":" + objName
-}
-
 func IsManagedClusterClusterrolebinding(clusterrolebindingName, role string) bool {
 	requiredName := GenerateClustersetClusterRoleBindingName("", role)
 	return strings.HasPrefix(clusterrolebindingName, requiredName)

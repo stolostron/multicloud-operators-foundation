@@ -3,7 +3,7 @@
 // (C) Copyright IBM Corporation 2016, 2019 All Rights Reserved
 // US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
 
-package clusterrole
+package clustersetmapper
 
 import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"

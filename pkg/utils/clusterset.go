@@ -1,9 +1,6 @@
 package utils
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/cache"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
@@ -11,7 +8,7 @@ import (
 )
 
 const (
-	ClusterSetLabel string = "clusterset.cluster.open-cluster-management.io"
+	ClusterSetLabel string = "cluster.open-cluster-management.io/clusterset"
 )
 
 // GenerateObjectSubjectMap generate the map which key is object and value is subjects, which means these users/groups in subjects has permission for this object.
@@ -76,33 +73,4 @@ func GenerateClustersetSubjects(cache *cache.AuthCache) map[string][]rbacv1.Subj
 	}
 
 	return clustersetToSubjects
-}
-
-// getResourceNamespaceName input should be "<ResourceType>/<Namespace>/<Name>" and return (resourceType, Namespace, Name)
-func getResourceNamespaceName(namespacedName string) (string, string, string) {
-	splitNamespacedName := strings.Split(namespacedName, "/")
-	if len(splitNamespacedName) != 3 {
-		return "", "", ""
-	}
-	return splitNamespacedName[0], splitNamespacedName[1], splitNamespacedName[2]
-}
-
-func ConvertToClusterSetNamespaceMap(clustersetToObjects *helpers.ClusterSetMapper) (*helpers.ClusterSetMapper, []error) {
-	errs := []error{}
-
-	setToObjMap := clustersetToObjects.GetAllClusterSetToObjects()
-	if len(setToObjMap) == 0 {
-		return clustersetToObjects, errs
-	}
-	returnMap := helpers.NewClusterSetMapper()
-	for clusterset, objs := range setToObjMap {
-		for obj := range objs {
-			_, ns, _ := getResourceNamespaceName(obj)
-			if ns == "" {
-				errs = append(errs, fmt.Errorf("failed to get namespace from %s", obj))
-			}
-			returnMap.AddObjectInClusterSet(ns, clusterset)
-		}
-	}
-	return returnMap, errs
 }

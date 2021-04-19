@@ -44,6 +44,15 @@ func (c *ClusterSetMapper) DeleteClusterSet(clusterSetName string) {
 	return
 }
 
+func (c *ClusterSetMapper) CopyClusterSetMapper(requiredMapper *ClusterSetMapper) {
+	for set := range c.GetAllClusterSetToObjects() {
+		c.DeleteClusterSet(set)
+	}
+	for requiredSet, requiredObjs := range requiredMapper.GetAllClusterSetToObjects() {
+		c.UpdateClusterSetByObjects(requiredSet, requiredObjs)
+	}
+}
+
 //DeleteObjectInClusterSet will delete cluster in all clusterset mapping
 func (c *ClusterSetMapper) DeleteObjectInClusterSet(objectName string) {
 	if objectName == "" {

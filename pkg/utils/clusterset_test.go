@@ -106,39 +106,6 @@ func Test_GenerateObjectSubjectMap(t *testing.T) {
 	}
 }
 
-func Test_ConvertToClusterSetNamespaceMap(t *testing.T) {
-	tests := []struct {
-		name string
-		cto  map[string]sets.String
-		want map[string]sets.String
-	}{
-		{
-			name: "no clusters:",
-			cto:  map[string]sets.String{},
-			want: map[string]sets.String{},
-		},
-		{
-			name: "claim ns:",
-			cto: map[string]sets.String{
-				"cs1": sets.NewString("clustercalims/ns1/cc1", "clustercalims/ns2/cc2"),
-			},
-			want: map[string]sets.String{
-				"cs1": sets.NewString("ns1", "ns2"),
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			clustersetToObjectsMapper := generateClustersetToObjects(tt.cto)
-			want := generateClustersetToObjects(tt.want)
-
-			if got, _ := ConvertToClusterSetNamespaceMap(clustersetToObjectsMapper); !reflect.DeepEqual(got, want) {
-				t.Errorf("ConvertToClusterSetNamespaceMap() = %v, want %v", got, want)
-			}
-		})
-	}
-}
-
 func generateClustersetToObjects(ms map[string]sets.String) *helpers.ClusterSetMapper {
 	clustersetToClusters := helpers.NewClusterSetMapper()
 	for s, c := range ms {

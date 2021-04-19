@@ -191,7 +191,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 
 			gomega.Eventually(func() (interface{}, error) {
 				//clusterset-admin clusterrole should be auto created
-				adminClustersetRole := utils.BuildClusterRoleName(clusterset.GetName(), "clusterset-admin")
+				adminClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "admin")
 				_, err = util.GetClusterResource(dynamicClient, util.ClusterRoleGVR, adminClustersetRole)
 				if err != nil {
 					return false, nil
@@ -201,7 +201,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 
 			gomega.Eventually(func() (interface{}, error) {
 				//clusterset-view clusterrole should be auto created
-				viewClustersetRole := utils.BuildClusterRoleName(clusterset.GetName(), "clusterset-view")
+				viewClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "view")
 				_, err = util.GetClusterResource(dynamicClient, util.ClusterRoleGVR, viewClustersetRole)
 				if err != nil {
 					return false, nil
@@ -215,7 +215,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 
 			gomega.Eventually(func() (interface{}, error) {
 				//clusterset-admin clusterrole should be auto deleted
-				adminClustersetRole := utils.BuildClusterRoleName(clusterset.GetName(), "clusterset-admin")
+				adminClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "admin")
 				_, err = util.GetClusterResource(dynamicClient, util.ClusterRoleGVR, adminClustersetRole)
 				if err != nil {
 					return false, nil
@@ -225,7 +225,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 
 			gomega.Eventually(func() (interface{}, error) {
 				//clusterset-view clusterrole should be auto deleted
-				viewClustersetRole := utils.BuildClusterRoleName(clusterset.GetName(), "clusterset-view")
+				viewClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "view")
 				_, err = util.GetClusterResource(dynamicClient, util.ClusterRoleGVR, viewClustersetRole)
 				if err != nil {
 					return false, nil

@@ -22,17 +22,17 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//This controller apply clusterset related clusterrolebinding based on clustersetToObjects and clustersetAdminToSubject map
+//This controller apply clusterset related clusterrolebinding based on clustersetToNamespace and clustersetAdminToSubject map
 type Reconciler struct {
-	client               client.Client
-	scheme               *runtime.Scheme
-	clusterSetCache      *cache.ClusterSetCache
-	clustersetToObjects  *helpers.ClusterSetMapper
-	clustersetToClusters *helpers.ClusterSetMapper
+	client                client.Client
+	scheme                *runtime.Scheme
+	clusterSetCache       *cache.ClusterSetCache
+	clustersetToNamespace *helpers.ClusterSetMapper
+	clustersetToClusters  *helpers.ClusterSetMapper
 }
 
-func SetupWithManager(mgr manager.Manager, clusterSetCache *cache.ClusterSetCache, clustersetToObjects *helpers.ClusterSetMapper, clustersetToClusters *helpers.ClusterSetMapper) error {
-	if err := add(mgr, newReconciler(mgr, clusterSetCache, clustersetToObjects, clustersetToClusters)); err != nil {
+func SetupWithManager(mgr manager.Manager, clusterSetCache *cache.ClusterSetCache, clustersetToNamespace *helpers.ClusterSetMapper, clustersetToClusters *helpers.ClusterSetMapper) error {
+	if err := add(mgr, newReconciler(mgr, clusterSetCache, clustersetToNamespace, clustersetToClusters)); err != nil {
 		klog.Errorf("Failed to create clusterset rolebinding controller, %v", err)
 		return err
 	}
@@ -40,13 +40,13 @@ func SetupWithManager(mgr manager.Manager, clusterSetCache *cache.ClusterSetCach
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, clusterSetCache *cache.ClusterSetCache, clustersetToObjects *helpers.ClusterSetMapper, clustersetToClusters *helpers.ClusterSetMapper) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, clusterSetCache *cache.ClusterSetCache, clustersetToNamespace *helpers.ClusterSetMapper, clustersetToClusters *helpers.ClusterSetMapper) reconcile.Reconciler {
 	return &Reconciler{
-		client:               mgr.GetClient(),
-		scheme:               mgr.GetScheme(),
-		clusterSetCache:      clusterSetCache,
-		clustersetToObjects:  clustersetToObjects,
-		clustersetToClusters: clustersetToClusters,
+		client:                mgr.GetClient(),
+		scheme:                mgr.GetScheme(),
+		clusterSetCache:       clusterSetCache,
+		clustersetToNamespace: clustersetToNamespace,
+		clustersetToClusters:  clustersetToClusters,
 	}
 }
 
@@ -66,32 +66,29 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-//This function sycn the rolebinding in namespace which in r.clustersetToObjects and r.clustersetToClusters
+//This function sycn the rolebinding in namespace which in r.clustersetToNamespace and r.clustersetToClusters
 func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	//reconcile every 10s
 	reconcile := reconcile.Result{RequeueAfter: time.Duration(10) * time.Second}
 
 	ctx := context.Background()
-	//clustersetToObjects contain clusterset to all namespace resources, like clusterdeployment,clusterpool, clusterclaim
-	// we need to convert this map to clusterset to namespace.
-	clustersetToNamespace, nsErrs := utils.ConvertToClusterSetNamespaceMap(r.clustersetToObjects)
 
 	//union the clusterset to namespace and clusterset to cluster(it's same as managedcluster namespace).
-	//so we can use unionClustersetToObjects to generate role bindings.
-	unionClustersetToObjects := clustersetToNamespace.UnionObjectsInClusterSet(r.clustersetToClusters)
-
+	//so we can use unionclustersetToNamespace to generate role bindings.
+	unionclustersetToNamespace := r.clustersetToNamespace.UnionObjectsInClusterSet(r.clustersetToClusters)
+	klog.Errorf("######admin:%v", unionclustersetToNamespace.GetAllClusterSetToObjects())
 	clustersetToAdminSubjects := utils.GenerateClustersetSubjects(r.clusterSetCache.AdminCache)
 	clustersetToViewSubjects := utils.GenerateClustersetSubjects(r.clusterSetCache.ViewCache)
 
-	adminErrs := r.syncRoleBinding(ctx, unionClustersetToObjects, clustersetToAdminSubjects, "admin")
-	viewErrs := r.syncRoleBinding(ctx, unionClustersetToObjects, clustersetToViewSubjects, "view")
+	adminErrs := r.syncRoleBinding(ctx, unionclustersetToNamespace, clustersetToAdminSubjects, "admin")
+	viewErrs := r.syncRoleBinding(ctx, unionclustersetToNamespace, clustersetToViewSubjects, "view")
 
-	errs := utils.AppendErrors(adminErrs, viewErrs, nsErrs)
+	errs := append(adminErrs, viewErrs...)
 	return reconcile, utils.NewMultiLineAggregate(errs)
 }
 
-func (r *Reconciler) syncRoleBinding(ctx context.Context, clustersetToObjects *helpers.ClusterSetMapper, clustersetToSubject map[string][]rbacv1.Subject, role string) []error {
-	namespaceToSubject := utils.GenerateObjectSubjectMap(clustersetToObjects, clustersetToSubject)
+func (r *Reconciler) syncRoleBinding(ctx context.Context, clustersetToNamespace *helpers.ClusterSetMapper, clustersetToSubject map[string][]rbacv1.Subject, role string) []error {
+	namespaceToSubject := utils.GenerateObjectSubjectMap(clustersetToNamespace, clustersetToSubject)
 	//apply all disired clusterrolebinding
 	errs := []error{}
 	for namespace, subjects := range namespaceToSubject {

@@ -75,7 +75,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	adminErrs := r.syncManagedClusterClusterroleBinding(ctx, clustersetToAdminSubjects, "admin")
 	viewErrs := r.syncManagedClusterClusterroleBinding(ctx, clustersetToViewSubjects, "view")
 
-	errs := utils.AppendErrors(adminErrs, viewErrs)
+	errs := append(adminErrs, viewErrs...)
 	return reconcile, utils.NewMultiLineAggregate(errs)
 }
 
