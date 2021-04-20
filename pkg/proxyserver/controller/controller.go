@@ -228,7 +228,7 @@ func (c *ProxyServiceInfoController) generateServiceInfo(cm *corev1.ConfigMap) (
 			TLSClientConfig: rest.TLSClientConfig{
 				CertData: secret.Data["tls.crt"],
 				KeyData:  secret.Data["tls.key"],
-				CAData:   secret.Data["ca.crt"],
+				// CAData:   secret.Data["ca.crt"],
 			},
 		},
 	}, nil
