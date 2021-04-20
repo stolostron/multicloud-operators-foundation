@@ -6,6 +6,7 @@ import (
 	clusterinformerv1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1"
 	clusterv1lister "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -38,6 +39,7 @@ func NewClusterCache(clusterInformer clusterinformerv1.ManagedClusterInformer,
 		"cluster.open-cluster-management.io", "managedclusters",
 		clusterInformer.Informer(),
 		clusterCache.ListResources,
+		utils.GetViewResourceFromClusterRole,
 	)
 	clusterCache.cache = authCache
 
