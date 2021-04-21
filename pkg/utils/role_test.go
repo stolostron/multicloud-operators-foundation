@@ -5,15 +5,13 @@ import (
 	"reflect"
 	"testing"
 
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"k8s.io/client-go/kubernetes"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
 
 func TestMergesubjects(t *testing.T) {
@@ -46,36 +44,6 @@ func createPolicyRule(groups, verbs, res, resnames []string) *rbacv1.PolicyRule 
 		Verbs:         verbs,
 		Resources:     res,
 		ResourceNames: resnames,
-	}
-}
-
-func TestGetClustersetInRules(t *testing.T) {
-	policyr1 := createPolicyRule([]string{"*"}, []string{"*"}, []string{"*"}, []string{"*"})
-	policyr2 := createPolicyRule([]string{clusterv1alpha1.GroupName}, []string{"*"}, []string{"*"}, []string{"*"})
-	policyr3 := createPolicyRule([]string{clusterv1alpha1.GroupName}, []string{"*"}, []string{"*"}, []string{"res1", "res2"})
-	policyr4 := createPolicyRule([]string{clusterv1alpha1.GroupName}, []string{"create"}, []string{"managedclustersets/bind"}, []string{"res1", "res2"})
-
-	type args struct {
-		rules []rbacv1.PolicyRule
-	}
-	tests := []struct {
-		name string
-		args args
-		want sets.String
-	}{
-		{"test1", args{rules: []rbacv1.PolicyRule{}}, sets.NewString()},
-		{"test2", args{rules: []rbacv1.PolicyRule{*policyr1}}, sets.NewString("*")},
-		{"test3", args{rules: []rbacv1.PolicyRule{*policyr2}}, sets.NewString("*")},
-		{"test4", args{rules: []rbacv1.PolicyRule{*policyr3}}, sets.NewString("res1", "res2")},
-		{"test5", args{rules: []rbacv1.PolicyRule{*policyr4}}, sets.NewString("res1", "res2")},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			res := GetClustersetInRules(tt.args.rules)
-			if !res.Equal(tt.want) {
-				t.Errorf("Mergesubjects() = %v, want %v", res, tt.want)
-			}
-		})
 	}
 }
 
@@ -126,31 +94,29 @@ func TestApplyClusterRoleBinding(t *testing.T) {
 	rb2 := createClusterrolebinding("crb1", "r2", labels, []rbacv1.Subject{})
 
 	objs = append(objs, rb1)
-	client := fake.NewFakeClient(objs...)
-	req := rb1
-	err := ApplyClusterRoleBinding(ctx, client, req)
+	client := k8sfake.NewSimpleClientset(objs...)
+
+	err := ApplyClusterRoleBinding(ctx, client, rb1)
 	if err != nil {
 		t.Errorf("Error to apply clusterolebinding. Error:%v", err)
 	}
-	applied := verifyApply(ctx, client, req)
+	applied := verifyApply(ctx, client, rb1)
 	if !applied {
 		t.Errorf("Error to apply clusterolebinding.")
 	}
 
-	req = rb2
-	err = ApplyClusterRoleBinding(ctx, client, req)
+	err = ApplyClusterRoleBinding(ctx, client, rb2)
 	if err != nil {
 		t.Errorf("Error to apply clusterolebinding. Error:%v", err)
 	}
-	applied = verifyApply(ctx, client, req)
+	applied = verifyApply(ctx, client, rb2)
 	if !applied {
 		t.Errorf("Error to apply clusterolebinding.")
 	}
 }
 
-func verifyApply(ctx context.Context, client client.Client, required *rbacv1.ClusterRoleBinding) bool {
-	existing := &rbacv1.ClusterRoleBinding{}
-	err := client.Get(ctx, types.NamespacedName{Name: required.Name}, existing)
+func verifyApply(ctx context.Context, client kubernetes.Interface, required *rbacv1.ClusterRoleBinding) bool {
+	existing, err := client.RbacV1().ClusterRoleBindings().Get(ctx, required.Name, metav1.GetOptions{})
 	if err != nil {
 		return false
 	}
@@ -163,10 +129,51 @@ func verifyApply(ctx context.Context, client client.Client, required *rbacv1.Clu
 	return true
 }
 
-func TestBuildClusterRoleName(t *testing.T) {
-	roleName := BuildClusterRoleName("obj", "admin")
-	if roleName != "open-cluster-management:admin:obj" {
-		t.Errorf("Failed to generate clusterroleName: %v", roleName)
+func TestIsManagedClusterClusterrolebinding(t *testing.T) {
+	type args struct {
+		rolebindingName string
+		role            string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"test1", args{rolebindingName: "not:hanlde", role: "admin"}, false},
+		{"test2", args{rolebindingName: "open-cluster-management:managedclusterset:admin:managedcluster:managedcluster1", role: "admin"}, true},
+		{"test3", args{rolebindingName: "open-cluster-management:managedclusterset:view:managedcluster:managedcluster1", role: "false"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res := IsManagedClusterClusterrolebinding(tt.args.rolebindingName, tt.args.role)
+			if res != tt.want {
+				t.Errorf("Failed to test IsManagedClusterClusterrolebinding, rolebinding name: %v, role: %v, want: %v", tt.args.rolebindingName, tt.args.role, tt.want)
+			}
+		})
+	}
+}
+
+func TestContainsSubject(t *testing.T) {
+	type args struct {
+		rolebindingName string
+		role            string
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{"test1", args{rolebindingName: "not:hanlde", role: "admin"}, false},
+		{"test2", args{rolebindingName: "open-cluster-management:managedclusterset:admin:managedcluster:managedcluster1", role: "admin"}, true},
+		{"test3", args{rolebindingName: "open-cluster-management:managedclusterset:view:managedcluster:managedcluster1", role: "false"}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			res := IsManagedClusterClusterrolebinding(tt.args.rolebindingName, tt.args.role)
+			if res != tt.want {
+				t.Errorf("Failed to test IsManagedClusterClusterrolebinding, rolebinding name: %v, role: %v, want: %v", tt.args.rolebindingName, tt.args.role, tt.want)
+			}
+		})
 	}
 }
 

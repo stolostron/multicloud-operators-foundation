@@ -197,30 +197,6 @@ const ManagedClusterSetRandomTemplate = `{
   }
 }`
 
-const ClusterRoleTemplate = `{
-  "apiVersion": "rbac.authorization.k8s.io/v1",
-  "kind": "ClusterRole",
-  "metadata": {
-    "name": "clustersetrole1"
-  },
-  "rules": [
-    {
-        "apiGroups": [
-            "cluster.open-cluster-management.io"
-        ],
-        "resourceNames": [
-            "clusterset1"
-        ],
-        "resources": [
-            "managedclustersets/bind"
-        ],
-        "verbs": [
-            "create"
-        ]
-    }
- ]
-}`
-
 const ClusterRoleBindingTemplate = `{
   "apiVersion": "rbac.authorization.k8s.io/v1",
     "kind": "ClusterRoleBinding",
@@ -230,13 +206,13 @@ const ClusterRoleBindingTemplate = `{
     "roleRef": {
         "apiGroup": "rbac.authorization.k8s.io",
         "kind": "ClusterRole",
-        "name": "clustersetrole1"
+        "name": "open-cluster-management:managedclusterset:admin:clusterset1"
     },
     "subjects": [
         {
-            "kind": "ServiceAccount",
-            "name": "sa1",
-            "namespace": "default"
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "User",
+            "name": "user1"
         }
     ]
 }`

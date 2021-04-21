@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"k8s.io/client-go/kubernetes"
@@ -23,4 +24,8 @@ func BuildKubeClient(kubeConfigPath string) (*kubernetes.Clientset, error) {
 		return nil, err
 	}
 	return kubernetes.NewForConfig(hubRestConfig)
+}
+
+func ResourceNamespacedName(resourceType, namespace, name string) string {
+	return fmt.Sprintf("%s/%s/%s", resourceType, namespace, name)
 }

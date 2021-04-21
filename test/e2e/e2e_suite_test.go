@@ -8,6 +8,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 
+	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 
 	addonv1alpha1client "github.com/open-cluster-management/api/client/addon/clientset/versioned"
@@ -34,6 +35,7 @@ var (
 	addonClient            addonv1alpha1client.Interface
 	apiRegistrationClient  *apiregistrationclient.ApiregistrationV1Client
 	managedClusterName     string
+	managedClustersetName  string
 	fakeManagedClusterName string
 )
 
@@ -78,5 +80,38 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Eventually(func() error {
 		return util.CheckFoundationPodsReady()
 	}, 60*time.Second, 2*time.Second).Should(gomega.Succeed())
+
+	clusterset, err := util.LoadResourceFromJSON(util.ManagedClusterSetTemplate)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+	// create ManagedClusterSet to real cluster
+	_, err = util.ApplyClusterResource(dynamicClient, util.ManagedClusterSetGVR, clusterset)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", util.ManagedClusterSetGVR.Resource)
+
+	//set ManagedClusterset for ManagedCluster
+	clustersetlabel := map[string]string{
+		clustersetutils.ClusterSetLabel: clusterset.GetName(),
+	}
+	managedClustersetName = clusterset.GetName()
+	gomega.Eventually(func() error {
+		managedCluster, err := util.GetClusterResource(dynamicClient, util.ManagedClusterGVR, managedClusterName)
+		if err != nil {
+			return err
+		}
+		err = util.AddLabels(managedCluster, clustersetlabel)
+		if err != nil {
+			return err
+		}
+		_, err = util.UpdateClusterResource(dynamicClient, util.ManagedClusterGVR, managedCluster)
+		return err
+	}, eventuallyTimeout, eventuallyInterval).Should(gomega.Succeed())
+
+	//create clusterrolebinding
+	clusterrolebinding, err := util.LoadResourceFromJSON(util.ClusterRoleBindingTemplate)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+	// create clusterRoleBinding to real cluster
+	_, err = util.ApplyClusterResource(dynamicClient, util.ClusterRoleBindingGVR, clusterrolebinding)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", util.ClusterRoleBindingGVR.Resource)
 
 })

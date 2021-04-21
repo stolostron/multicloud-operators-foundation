@@ -114,3 +114,119 @@ func TestStrings(t *testing.T) {
 		t.Errorf("failed to remove string from slice")
 	}
 }
+
+func TestSyncMapFiled(t *testing.T) {
+	var modified = false
+	type args struct {
+		modified  *bool
+		existing  map[string]string
+		required  map[string]string
+		syncFiled string
+	}
+	tests := []struct {
+		name         string
+		args         args
+		wantModified bool
+		wantExisting map[string]string
+	}{
+		{
+			name: "label in existing but not in required, should delete it",
+			args: args{
+				modified:  &modified,
+				required:  map[string]string{"label1": "va1"},
+				existing:  map[string]string{"sync": "va1", "label2": "va2"},
+				syncFiled: "sync",
+			},
+			wantModified: true,
+			wantExisting: map[string]string{"label2": "va2"},
+		},
+		{
+			name: "label in existing and in required, should sync it",
+			args: args{
+				modified:  &modified,
+				required:  map[string]string{"sync": "va1", "label2": "va2"},
+				existing:  map[string]string{"sync": "va2", "label1": "va1"},
+				syncFiled: "sync",
+			},
+			wantModified: true,
+			wantExisting: map[string]string{"sync": "va1", "label1": "va1"},
+		},
+		{
+			name: "label in existing same as in required, should not sync it",
+			args: args{
+				modified:  &modified,
+				required:  map[string]string{"sync": "va1", "label2": "va2"},
+				existing:  map[string]string{"sync": "va1", "label1": "va1"},
+				syncFiled: "sync",
+			},
+			wantModified: false,
+			wantExisting: map[string]string{"sync": "va1", "label1": "va1"},
+		},
+		{
+			name: "label not in existing and in required, should sync it",
+			args: args{
+				modified:  &modified,
+				required:  map[string]string{"sync": "va1", "label2": "va2"},
+				existing:  map[string]string{"label1": "va1"},
+				syncFiled: "sync",
+			},
+			wantModified: true,
+			wantExisting: map[string]string{"sync": "va1", "label1": "va1"},
+		},
+		{
+			name: "required is nil map, sync label do not in existing",
+			args: args{
+				modified:  &modified,
+				required:  nil,
+				existing:  map[string]string{"label1": "va1"},
+				syncFiled: "sync",
+			},
+			wantModified: false,
+			wantExisting: map[string]string{"label1": "va1"},
+		},
+		{
+			name: "required is nil map, sync label in existing",
+			args: args{
+				modified:  &modified,
+				required:  nil,
+				existing:  map[string]string{"sync": "va1"},
+				syncFiled: "sync",
+			},
+			wantModified: true,
+			wantExisting: map[string]string{},
+		},
+		{
+			name: "existing is nil map, sync label in required",
+			args: args{
+				modified:  &modified,
+				required:  map[string]string{"sync": "va1"},
+				existing:  nil,
+				syncFiled: "sync",
+			},
+			wantModified: true,
+			wantExisting: map[string]string{"sync": "va1"},
+		},
+		{
+			name: "existing is nil map, sync label not in required",
+			args: args{
+				modified:  &modified,
+				required:  map[string]string{"label1": "va1"},
+				existing:  nil,
+				syncFiled: "sync",
+			},
+			wantModified: false,
+			wantExisting: map[string]string{},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			SyncMapFiled(tt.args.modified, &tt.args.existing, tt.args.required, tt.args.syncFiled)
+			if tt.wantModified != *tt.args.modified {
+				t.Errorf("case: %v, failed to sync map, want wantModified:%v, actual:%v", tt.name, tt.wantModified, *tt.args.modified)
+			}
+			if !reflect.DeepEqual(tt.wantExisting, tt.args.existing) {
+				t.Errorf("case: %v, failed to sync map, want wantExisting:%v, actualExisting:%v", tt.name, tt.wantExisting, tt.args.existing)
+			}
+		})
+	}
+}

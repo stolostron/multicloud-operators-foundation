@@ -118,3 +118,37 @@ func RemoveString(slice []string, s string) (result []string) {
 	}
 	return
 }
+
+// SyncMapFiled sync the "syncFiledKey" label filed of required map.
+func SyncMapFiled(modified *bool, existing *map[string]string, required map[string]string, syncFiledKey string) {
+	*modified = false
+	if *existing == nil {
+		*existing = map[string]string{}
+	}
+
+	// value found in existing
+	if _, ok := (*existing)[syncFiledKey]; ok {
+		// value not found in required -> it should be removed from existing
+		if required == nil || len(required[syncFiledKey]) == 0 {
+			delete(*existing, syncFiledKey)
+			*modified = true
+			return
+		}
+
+		// value found in required
+		if (*existing)[syncFiledKey] != required[syncFiledKey] {
+			(*existing)[syncFiledKey] = required[syncFiledKey]
+			*modified = true
+			return
+		}
+		return
+	}
+
+	// value do not in existing, but in required
+	if required != nil && len(required[syncFiledKey]) != 0 {
+		(*existing)[syncFiledKey] = required[syncFiledKey]
+		*modified = true
+		return
+	}
+
+}

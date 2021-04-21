@@ -111,14 +111,17 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	//add clusterrole
-	adminRules := buildAdminRoleRules(cluster.Name)
-	err = utils.ApplyClusterRole(r.kubeClient, utils.GenerateClusterRoleName(cluster.Name, "admin"), adminRules)
+	adminRoleName := utils.GenerateClusterRoleName(cluster.Name, "admin")
+	adminRole := buildAdminRole(cluster.Name, adminRoleName)
+	err = utils.ApplyClusterRole(r.kubeClient, adminRole)
 	if err != nil {
 		klog.Warningf("will reconcile since failed to create/update clusterrole %v, %v", cluster.Name, err)
 		return ctrl.Result{}, err
 	}
-	viewRules := buildViewRoleRules(cluster.Name)
-	err = utils.ApplyClusterRole(r.kubeClient, utils.GenerateClusterRoleName(cluster.Name, "view"), viewRules)
+
+	viewRoleName := utils.GenerateClusterRoleName(cluster.Name, "view")
+	viewRole := buildViewRole(cluster.Name, viewRoleName)
+	err = utils.ApplyClusterRole(r.kubeClient, viewRole)
 	if err != nil {
 		klog.Warningf("will reconcile since failed to create/update clusterrole %v, %v", cluster.Name, err)
 		return ctrl.Result{}, err

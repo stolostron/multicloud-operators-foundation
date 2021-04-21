@@ -6,6 +6,8 @@ resources:
 - resources/crds/hive.openshift.io_syncsets.yaml
 - resources/crds/hive.openshift.io_clusterdeployments.yaml
 - resources/crds/hiveinternal.openshift.io_clustersyncs.yaml
+- resources/crds/hive.openshift.io_clusterclaims.yaml
+- resources/crds/hive.openshift.io_clusterpools.yaml
 - resources/clusterrole.yaml
 - resources/proxyserver-apiservice.yaml
 - resources/proxyserver-service.yaml

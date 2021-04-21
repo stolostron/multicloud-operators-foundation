@@ -8,36 +8,48 @@ package clusterrole
 import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"
 	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var managedclusterGroup = "cluster.open-cluster-management.io"
 var managedClusterViewGroup = "clusterview.open-cluster-management.io"
 
 // buildAdminRoleRules builds the clusteadminroles
-func buildAdminRoleRules(clusterName string) []rbacv1.PolicyRule {
-	return []rbacv1.PolicyRule{
-		clusterrbac.NewRule("create", "get", "list", "watch", "update", "patch", "delete").
-			Groups(managedclusterGroup).
-			Resources("managedclusters").
-			Names(clusterName).
-			RuleOrDie(),
-		clusterrbac.NewRule("get", "list", "watch").
-			Groups(managedClusterViewGroup).
-			Resources("managedclusters").
-			RuleOrDie(),
+func buildAdminRole(clusterName, clusteroleName string) *rbacv1.ClusterRole {
+	return &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: clusteroleName,
+		},
+		Rules: []rbacv1.PolicyRule{
+			clusterrbac.NewRule("create", "get", "list", "watch", "update", "patch", "delete").
+				Groups(managedclusterGroup).
+				Resources("managedclusters").
+				Names(clusterName).
+				RuleOrDie(),
+			clusterrbac.NewRule("get", "list", "watch").
+				Groups(managedClusterViewGroup).
+				Resources("managedclusters").
+				RuleOrDie(),
+		},
 	}
+
 }
 
 // buildViewRoleRules builds the clusteviewroles
-func buildViewRoleRules(clusterName string) []rbacv1.PolicyRule {
-	return []rbacv1.PolicyRule{
-		clusterrbac.NewRule("get", "list", "watch").
-			Groups(managedclusterGroup).
-			Resources("managedclusters").
-			Names(clusterName).RuleOrDie(),
-		clusterrbac.NewRule("get", "list", "watch").
-			Groups(managedClusterViewGroup).
-			Resources("managedclusters").
-			RuleOrDie(),
+func buildViewRole(clusterName, clusteroleName string) *rbacv1.ClusterRole {
+	return &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: clusteroleName,
+		},
+		Rules: []rbacv1.PolicyRule{
+			clusterrbac.NewRule("get", "list", "watch").
+				Groups(managedclusterGroup).
+				Resources("managedclusters").
+				Names(clusterName).RuleOrDie(),
+			clusterrbac.NewRule("get", "list", "watch").
+				Groups(managedClusterViewGroup).
+				Resources("managedclusters").
+				RuleOrDie(),
+		},
 	}
 }
