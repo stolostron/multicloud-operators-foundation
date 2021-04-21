@@ -12,7 +12,7 @@ import (
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
 
-func newConfigMap(namespace, name, subResource, secret string) *corev1.ConfigMap {
+func newConfigMap(namespace, name, subResource, secret, caConfigMap string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		TypeMeta: v1.TypeMeta{},
 		ObjectMeta: v1.ObjectMeta{
@@ -29,6 +29,7 @@ func newConfigMap(namespace, name, subResource, secret string) *corev1.ConfigMap
 			"sub-resource": subResource,
 			"use-id":       "true",
 			"secret":       secret,
+			"caConfigMap":  caConfigMap,
 		},
 	}
 }
@@ -47,6 +48,19 @@ func newSecret(namespace, name string) *corev1.Secret {
 		},
 		StringData: nil,
 		Type:       "",
+	}
+}
+
+func newCaConfigMap(namespace, name string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		TypeMeta: v1.TypeMeta{},
+		ObjectMeta: v1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Data: map[string]string{
+			"service-ca.crt": "abc",
+		},
 	}
 }
 
@@ -103,11 +117,13 @@ func (c *testContent) checkResult(configMap *corev1.ConfigMap) {
 
 func TestAddOptions(t *testing.T) {
 	secret1 := newSecret("default", "finding-ca")
-	configMap1 := newConfigMap("default", "test1", "finding", "default/finding-ca")
+	caConfigMap1 := newCaConfigMap("default", "finding-ca-crt")
+	configMap1 := newConfigMap("default", "test1", "finding", "default/finding-ca", "default/finding-ca-crt")
 	c := newTestContent(t)
 	c.configmapLister = append(c.configmapLister, configMap1)
 	c.objects = append(c.objects, configMap1)
 	c.objects = append(c.objects, secret1)
+	c.objects = append(c.objects, caConfigMap1)
 
 	c.runController()
 	c.runWork(configMap1)
@@ -118,16 +134,19 @@ func TestAddOptions(t *testing.T) {
 func TestUpdateOptions(t *testing.T) {
 	secret1 := newSecret("kube-system", "search-ca")
 	secret2 := newSecret("default", "search-ca")
-	configMap1 := newConfigMap("kube-system", "test2", "search", "kube-system/search-ca")
+	caConfigMap1 := newCaConfigMap("kube-system", "search-ca-crt")
+	caConfigMap2 := newCaConfigMap("default", "search-ca-crt")
+	configMap1 := newConfigMap("kube-system", "test2", "search", "kube-system/search-ca", "kube-system/search-ca-crt")
 	c := newTestContent(t)
 	c.configmapLister = append(c.configmapLister, configMap1)
 	c.objects = append(c.objects, configMap1)
 	c.objects = append(c.objects, secret1, secret2)
+	c.objects = append(c.objects, caConfigMap1, caConfigMap2)
 
 	c.runController()
 	c.runWork(configMap1)
 
-	configMap1 = newConfigMap("kube-system", "test2", "search", "default/search-ca")
+	configMap1 = newConfigMap("kube-system", "test2", "search", "default/search-ca", "default/search-ca-crt")
 	c.runWork(configMap1)
 
 	close(c.stopCh)
@@ -135,11 +154,13 @@ func TestUpdateOptions(t *testing.T) {
 
 func TestDeleteOptions(t *testing.T) {
 	secret1 := newSecret("default", "finding-ca")
-	configMap1 := newConfigMap("default", "test1", "finding", "default/finding-ca")
+	caConfigMap1 := newCaConfigMap("default", "finding-ca-crt")
+	configMap1 := newConfigMap("default", "test1", "finding", "default/finding-ca", "default/finding-ca-crt")
 	c := newTestContent(t)
 	c.configmapLister = append(c.configmapLister, configMap1)
 	c.objects = append(c.objects, configMap1)
 	c.objects = append(c.objects, secret1)
+	c.objects = append(c.objects, caConfigMap1)
 
 	c.runController()
 	c.runWork(configMap1)

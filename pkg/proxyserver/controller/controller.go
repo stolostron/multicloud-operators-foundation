@@ -229,6 +229,10 @@ func (c *ProxyServiceInfoController) generateServiceInfo(cm *corev1.ConfigMap) (
 		return nil, fmt.Errorf("failed to get caConfigMap in configmap %s/%s, %v", cm.Namespace, cm.Name, err)
 	}
 
+	if _, ok := caConfigmap.Data["service-ca.crt"]; !ok {
+		return nil, fmt.Errorf("failed to get service-ca.crt key in caConfigmap %s/%s", caConfigMapNamespace, caConfigMapName)
+
+	}
 	return &getter.ProxyServiceInfo{
 		Name:             cm.Namespace + "/" + cm.Name,
 		SubResource:      strings.Trim(cm.Data["sub-resource"], "/"),
