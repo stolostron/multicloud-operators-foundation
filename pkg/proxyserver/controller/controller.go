@@ -179,7 +179,7 @@ func (c *ProxyServiceInfoController) syncHandler(key string) error {
 	return nil
 }
 
-var optionsKey = []string{"service", "port", "path", "sub-resource", "secret"}
+var optionsKey = []string{"service", "port", "path", "sub-resource", "secret", "caConfigMap"}
 
 func (c *ProxyServiceInfoController) generateServiceInfo(cm *corev1.ConfigMap) (*getter.ProxyServiceInfo, error) {
 	for _, key := range optionsKey {
@@ -216,6 +216,19 @@ func (c *ProxyServiceInfoController) generateServiceInfo(cm *corev1.ConfigMap) (
 		return nil, fmt.Errorf("failed to get secret in configmap %s/%s, %v", cm.Namespace, cm.Name, err)
 	}
 
+	caConfigMapNamespace, caConfigMapName, err := cache.SplitMetaNamespaceKey(cm.Data["caConfigMap"])
+
+	if err != nil {
+		return nil, fmt.Errorf("the caConfigMap format is wrong in configmap %s/%s, %v", cm.Namespace, cm.Name, err)
+	}
+	if caConfigMapNamespace == "" {
+		caConfigMapNamespace = serviceNamespace
+	}
+	caConfigmap, err := c.client.CoreV1().ConfigMaps(caConfigMapNamespace).Get(context.TODO(), caConfigMapName, metav1.GetOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get configmap in configmap %s/%s, %v", cm.Namespace, cm.Name, err)
+	}
+
 	return &getter.ProxyServiceInfo{
 		Name:             cm.Namespace + "/" + cm.Name,
 		SubResource:      strings.Trim(cm.Data["sub-resource"], "/"),
@@ -228,7 +241,7 @@ func (c *ProxyServiceInfoController) generateServiceInfo(cm *corev1.ConfigMap) (
 			TLSClientConfig: rest.TLSClientConfig{
 				CertData: secret.Data["tls.crt"],
 				KeyData:  secret.Data["tls.key"],
-				// CAData:   secret.Data["ca.crt"],
+				CAData:   []byte(caConfigmap.Data["service-ca.crt"]),
 			},
 		},
 	}, nil
