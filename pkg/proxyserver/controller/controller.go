@@ -226,7 +226,7 @@ func (c *ProxyServiceInfoController) generateServiceInfo(cm *corev1.ConfigMap) (
 	}
 	caConfigmap, err := c.client.CoreV1().ConfigMaps(caConfigMapNamespace).Get(context.TODO(), caConfigMapName, metav1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get configmap in configmap %s/%s, %v", cm.Namespace, cm.Name, err)
+		return nil, fmt.Errorf("failed to get caConfigMap in configmap %s/%s, %v", cm.Namespace, cm.Name, err)
 	}
 
 	return &getter.ProxyServiceInfo{
