@@ -2,15 +2,17 @@ package api
 
 import (
 	"context"
+	"time"
+
 	clusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/cache"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/cache"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/log"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/managedcluster"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/managedclusterset"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/proxy"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/client-go/informers"
-	"time"
 
 	apisclusterview "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview"
 	clusterviewv1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1"
@@ -82,6 +84,7 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 		clusterInformer.Cluster().V1alpha1().ManagedClusterSets(),
 		informerFactory.Rbac().V1().ClusterRoles(),
 		informerFactory.Rbac().V1().ClusterRoleBindings(),
+		utils.GetViewResourceFromClusterRole,
 	)
 
 	v1alpha1storage := map[string]rest.Storage{

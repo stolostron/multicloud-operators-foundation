@@ -1,6 +1,9 @@
 package cache
 
 import (
+	"testing"
+	"time"
+
 	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	clusterv1informers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
@@ -12,8 +15,6 @@ import (
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
-	"testing"
-	"time"
 )
 
 var (
