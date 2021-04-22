@@ -28,6 +28,7 @@ data:
   sub-resource: "/searchdata"
   use-id: "true"
   secret: "kube-system/search-secret"
+  caConfigMap: "kube-system/search-caCrt-configmap"
 ```
 
 **data:**
@@ -37,8 +38,8 @@ data:
 * `path`: The path for agents to send requests.
 * `sub-resource`: The resource of requests from agents.
 * `use-id`: If true, the path of requests includes cluster name as ID. If false, there is no ID in the path.
-* `secret`: The secret with CA information to access the backend service. Format is `namespace/<secret-name>`.
-
+* `secret`: The secret with signed serving certificate and key pair information to access the backend service. Format is `namespace/<secret-name>`.
+* `caConfigMap`: The configmap with CA certificate information to access the backend service. Format is `namespace/<configMap-name>`.
 ## clusterstatus/log
 
 Proxy Server provides sub resource under `clusterstatus/log` for clients to get logs of container on managed clusters.
