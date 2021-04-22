@@ -29,14 +29,17 @@ type ClusterInfoStatus struct {
 	Version string `json:"version,omitempty"`
 
 	// KubeVendor describes the kubernetes provider of the managed cluster.
+	// Deprecated in release 2.3 and will be removed in the future. Use clusterClaim platform.open-cluster-management.io instead.
 	// +optional
 	KubeVendor KubeVendorType `json:"kubeVendor,omitempty"`
 
 	// CloudVendor describes the cloud provider for the managed cluster.
+	// Deprecated in release 2.3 and will be removed in the future. Use clusterClaim product.open-cluster-management.io instead.
 	// +optional
 	CloudVendor CloudVendorType `json:"cloudVendor,omitempty"`
 
-	// ClusterID is the identifier of managed cluster
+	// ClusterID is the identifier of managed cluster.
+	// Deprecated in release 2.3 and will be removed in the future. Use clusterClaim id.openshift.io instead.
 	// +optional
 	ClusterID string `json:"clusterID,omitempty"`
 
@@ -44,7 +47,8 @@ type ClusterInfoStatus struct {
 	// +optional
 	DistributionInfo DistributionInfo `json:"distributionInfo,omitempty"`
 
-	// ConsoleURL shows the url of console in managed cluster
+	// ConsoleURL shows the url of console in managed cluster.
+	// Deprecated in release 2.3 and will be removed in the future. Use clusterClaim consoleurl.cluster.open-cluster-management.io instead.
 	// +optional
 	ConsoleURL string `json:"consoleURL,omitempty"`
 
@@ -112,16 +116,84 @@ type DistributionInfo struct {
 	OCP OCPDistributionInfo `json:"ocp,omitempty"`
 }
 
+// OCPVersionRelease represents an OpenShift release image and associated metadata.
+// The original definition is from https://github.com/openshift/api/blob/master/config/v1/types_cluster_version.go
+type OCPVersionRelease struct {
+	// version is a semantic versioning identifying the update version. When this
+	// field is part of spec, version is optional if image is specified.
+	Version string `json:"version"`
+
+	// image is a container image location that contains the update. When this
+	// field is part of spec, image is optional if version is specified and the
+	// availableUpdates field contains a matching version.
+	Image string `json:"image"`
+
+	// url contains information about this release. This URL is set by
+	// the 'url' metadata property on a release or the metadata returned by
+	// the update API and should be displayed as a link in user
+	// interfaces. The URL field may not be set for test or nightly
+	// releases.
+	URL string `json:"url,omitempty"`
+
+	// channels is the set of Cincinnati channels to which the release
+	// currently belongs.
+	Channels []string `json:"channels,omitempty"`
+}
+
+// OCPVersionUpdateHistory is a single attempted update to the cluster.
+// the original definition is from https://github.com/openshift/api/blob/master/config/v1/types_cluster_version.go
+type OCPVersionUpdateHistory struct {
+	// state reflects whether the update was fully applied. The Partial state
+	// indicates the update is not fully applied, while the Completed state
+	// indicates the update was successfully rolled out at least once (all
+	// parts of the update successfully applied).
+	State string `json:"state"`
+
+	// version is a semantic versioning identifying the update version. If the
+	// requested image does not define a version, or if a failure occurs
+	// retrieving the image, this value may be empty.
+	Version string `json:"version"`
+
+	// image is a container image location that contains the update. This value
+	// is always populated.
+	Image string `json:"image"`
+
+	// verified indicates whether the provided update was properly verified
+	// before it was installed. If this is false the cluster may not be trusted.
+	Verified bool `json:"verified"`
+}
+
 // OCPDistributionInfo defines the distribution information of OCP managed cluster
 type OCPDistributionInfo struct {
-	// Version is the distribution version of OCP
+	// Version is the current version of the OCP cluster.
+	// Deprecated in release 2.3 and will be removed in the future. Use clusterClaim version.openshift.io instead.
 	Version string `json:"version,omitempty"`
-	// availableUpdates contains the list of update versions that are appropriate for the manage cluster.
+
+	// AvailableUpdates contains the list of update versions that are appropriate for the manage cluster.
+	// Deprecated in release 2.3 and will be removed in the future. Use VersionAvailableUpdates instead.
 	AvailableUpdates []string `json:"availableUpdates,omitempty"`
-	// Desiredversion represents the desired version of the ocp cluster
+
+	// DesiredVersion is the version that the cluster is reconciling towards
 	DesiredVersion string `json:"desiredVersion,omitempty"`
-	// UpgradeFailed indicate whether upgrade of the manage cluster is failed
+
+	// UpgradeFailed indicates whether upgrade of the manage cluster is failed.
+	// This is true if the status of Failing condition is True and the version is different with desiredVersion in clusterVersion
 	UpgradeFailed bool `json:"upgradeFailed,omitempty"`
+
+	// VersionAvailableUpdates contains the list of updates that are appropriate
+	// for this cluster. This list may be empty if no updates are recommended,
+	// if the update service is unavailable, or if an invalid channel has
+	// been specified.
+	VersionAvailableUpdates []OCPVersionRelease `json:"versionAvailableUpdates,omitempty"`
+
+	// VersionHistory contains a list of the most recent versions applied to the cluster.
+	// This value may be empty during cluster startup, and then will be updated
+	// when a new update is being applied. The newest update is first in the
+	// list and it is ordered by recency. Updates in the history have state
+	// Completed if the rollout completed - if an update was failing or halfway
+	// applied the state will be Partial. Only a limited amount of update history
+	// is preserved.
+	VersionHistory []OCPVersionUpdateHistory `json:"versionHistory,omitempty"`
 }
 
 // DistributionType is type of distribution
@@ -139,7 +211,7 @@ type KubeVendorType string
 const (
 	// KubeVendorOpenShift OpenShift
 	KubeVendorOpenShift KubeVendorType = "OpenShift"
-	// KubeVendorAKS Azure Kuberentes Service
+	// KubeVendorAKS Azure Kubernetes Service
 	KubeVendorAKS KubeVendorType = "AKS"
 	// KubeVendorEKS Elastic Kubernetes Service
 	KubeVendorEKS KubeVendorType = "EKS"

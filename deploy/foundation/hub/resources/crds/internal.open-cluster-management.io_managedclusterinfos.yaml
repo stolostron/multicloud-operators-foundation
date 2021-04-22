@@ -44,10 +44,10 @@ spec:
             description: Status represents the desired status of the Cluster
             properties:
               cloudVendor:
-                description: CloudVendor describes the cloud provider for the managed cluster.
+                description: CloudVendor describes the cloud provider for the managed cluster. Deprecated in release 2.3 and will be removed in the future. Use clusterClaim product.open-cluster-management.io instead.
                 type: string
               clusterID:
-                description: ClusterID is the identifier of managed cluster
+                description: ClusterID is the identifier of managed cluster. Deprecated in release 2.3 and will be removed in the future. Use clusterClaim id.openshift.io instead.
                 type: string
               conditions:
                 description: Conditions contains condition information for a managed cluster
@@ -94,7 +94,7 @@ spec:
                   type: object
                 type: array
               consoleURL:
-                description: ConsoleURL shows the url of console in managed cluster
+                description: ConsoleURL shows the url of console in managed cluster. Deprecated in release 2.3 and will be removed in the future. Use clusterClaim consoleurl.cluster.open-cluster-management.io instead.
                 type: string
               distributionInfo:
                 description: DistributionInfo is the information about distribution of managed cluster
@@ -103,26 +103,74 @@ spec:
                     description: OCP is the distribution information of OCP managed cluster, is matched when the Type is OCP.
                     properties:
                       availableUpdates:
-                        description: availableUpdates contains the list of update versions that are appropriate for the manage cluster.
+                        description: AvailableUpdates contains the list of update versions that are appropriate for the manage cluster. Deprecated in release 2.3 and will be removed in the future. Use VersionAvailableUpdates instead.
                         items:
                           type: string
                         type: array
                       desiredVersion:
-                        description: Desiredversion represents the desired version of the ocp cluster
+                        description: DesiredVersion is the version that the cluster is reconciling towards
                         type: string
                       upgradeFailed:
-                        description: UpgradeFailed indicate whether upgrade of the manage cluster is failed
+                        description: UpgradeFailed indicates whether upgrade of the manage cluster is failed. This is true if the status of Failing condition is True and the version is different with desiredVersion in clusterVersion
                         type: boolean
                       version:
-                        description: Version is the distribution version of OCP
+                        description: Version is the current version of the OCP cluster. Deprecated in release 2.3 and will be removed in the future. Use clusterClaim version.openshift.io instead.
                         type: string
+                      versionAvailableUpdates:
+                        description: VersionAvailableUpdates contains the list of updates that are appropriate for this cluster. This list may be empty if no updates are recommended, if the update service is unavailable, or if an invalid channel has been specified.
+                        items:
+                          description: OCPVersionRelease represents an OpenShift release image and associated metadata. The original definition is from https://github.com/openshift/api/blob/master/config/v1/types_cluster_version.go
+                          properties:
+                            channels:
+                              description: channels is the set of Cincinnati channels to which the release currently belongs.
+                              items:
+                                type: string
+                              type: array
+                            image:
+                              description: image is a container image location that contains the update. When this field is part of spec, image is optional if version is specified and the availableUpdates field contains a matching version.
+                              type: string
+                            url:
+                              description: url contains information about this release. This URL is set by the 'url' metadata property on a release or the metadata returned by the update API and should be displayed as a link in user interfaces. The URL field may not be set for test or nightly releases.
+                              type: string
+                            version:
+                              description: version is a semantic versioning identifying the update version. When this field is part of spec, version is optional if image is specified.
+                              type: string
+                          required:
+                          - image
+                          - version
+                          type: object
+                        type: array
+                      versionHistory:
+                        description: VersionHistory contains a list of the most recent versions applied to the cluster. This value may be empty during cluster startup, and then will be updated when a new update is being applied. The newest update is first in the list and it is ordered by recency. Updates in the history have state Completed if the rollout completed - if an update was failing or halfway applied the state will be Partial. Only a limited amount of update history is preserved.
+                        items:
+                          description: OCPVersionUpdateHistory is a single attempted update to the cluster. the original definition is from https://github.com/openshift/api/blob/master/config/v1/types_cluster_version.go
+                          properties:
+                            image:
+                              description: image is a container image location that contains the update. This value is always populated.
+                              type: string
+                            state:
+                              description: state reflects whether the update was fully applied. The Partial state indicates the update is not fully applied, while the Completed state indicates the update was successfully rolled out at least once (all parts of the update successfully applied).
+                              type: string
+                            verified:
+                              description: verified indicates whether the provided update was properly verified before it was installed. If this is false the cluster may not be trusted.
+                              type: boolean
+                            version:
+                              description: version is a semantic versioning identifying the update version. If the requested image does not define a version, or if a failure occurs retrieving the image, this value may be empty.
+                              type: string
+                          required:
+                          - image
+                          - state
+                          - verified
+                          - version
+                          type: object
+                        type: array
                     type: object
                   type:
                     description: Type is the distribution type of managed cluster, is OCP currently
                     type: string
                 type: object
               kubeVendor:
-                description: KubeVendor describes the kubernetes provider of the managed cluster.
+                description: KubeVendor describes the kubernetes provider of the managed cluster. Deprecated in release 2.3 and will be removed in the future. Use clusterClaim platform.open-cluster-management.io instead.
                 type: string
               loggingEndpoint:
                 description: LoggingEndpoint shows the endpoint to connect to logging server of managed cluster

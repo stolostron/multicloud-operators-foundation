@@ -195,20 +195,20 @@ func (c *ClusterClaimer) getOCPVersion() (version, clusterID string, err error) 
 
 	historyItems, _, err := unstructured.NestedSlice(obj.Object, "status", "history")
 	if err != nil {
-		klog.Errorf("failed to get OCP cluster version in history of status: %v", err)
+		klog.Errorf("failed to get history in clusterVersion: %v", err)
 		return "", "", err
 	}
 
 	for _, historyItem := range historyItems {
 		state, _, err := unstructured.NestedString(historyItem.(map[string]interface{}), "state")
 		if err != nil {
-			klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
+			klog.Errorf("failed to get the state of history in clusterVersion: %v", err)
 			continue
 		}
 		if state == "Completed" {
 			version, _, err = unstructured.NestedString(historyItem.(map[string]interface{}), "version")
 			if err != nil {
-				klog.Errorf("failed to get OCP cluster version in latest history of status: %v", err)
+				klog.Errorf("failed to version of Completed state of history in ClusterVersion: %v", err)
 			}
 			break
 		}
