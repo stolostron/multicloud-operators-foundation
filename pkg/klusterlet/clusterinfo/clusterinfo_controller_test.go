@@ -338,46 +338,132 @@ const (
   },
  "status": {
 	"availableUpdates": [
-	  {
-		"force": false,
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:95cfe9273aecb9a0070176210477491c347f8e69e41759063642edf8bb8aceb6",
-                "version": "4.5.14"
-	  },
-	  {
-		"force": false,
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:adb5ef06c54ff75ca9033f222ac5e57f2fd82e49bdd84f737d460ae542c8af60",
-		"version": "4.5.16"
-	  },
-	  {
-		"force": false,
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:8d104847fc2371a983f7cb01c7c0a3ab35b7381d6bf7ce355d9b32a08c0031f0",
-		"version": "4.5.13"
-	  },
-	  {
-		"force": false,
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:6dde1b3ad6bec35364b2b89172cfea0459df75c99a4031f6f7b2a94eb9b166cf",
-		"version": "4.5.17"
-	  },
-	  {
-		"force": false,
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:bae5510f19324d8e9c313aaba767e93c3a311902f5358fe2569e380544d9113e",
-		"version": "4.5.19"
-	  },
-	  {
-		"force": false,
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:1df294ebe5b84f0eeceaa85b2162862c390143f5e84cda5acc22cc4529273c4c",
-		"version": "4.5.15"
-	  },
-	  {
- 	 	"force": false,
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:72e3a1029884c70c584a0cadc00c36ee10764182425262fb23f77f32732ef366",
-		"version": "4.5.18"
-	  },
-	  {
-		"force": false,
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:78b878986d2d0af6037d637aa63e7b6f80fc8f17d0f0d5b077ac6aca83f792a0",
-		"version": "4.5.20"
-	  }
+	{
+		"channels": [
+			"candidate-4.6",
+			"candidate-4.7",
+			"eus-4.6",
+			"fast-4.6",
+			"fast-4.7",
+			"stable-4.6",
+			"stable-4.7"
+		],
+		"image": "quay.io/openshift-release-dev/ocp-release@sha256:3e855ad88f46ad1b7f56c312f078ca6adaba623c5d4b360143f9f82d2f349741",
+		"url": "https://access.redhat.com/errata/RHBA-2021:0308",
+		"version": "4.6.16"
+	},
+	{
+		"channels": [
+			"candidate-4.6",
+			"candidate-4.7",
+			"eus-4.6",
+			"fast-4.6",
+			"fast-4.7",
+			"stable-4.6",
+			"stable-4.7"
+		],
+		"image": "quay.io/openshift-release-dev/ocp-release@sha256:5c3618ab914eb66267b7c552a9b51c3018c3a8f8acf08ce1ff7ae4bfdd3a82bd",
+		"url": "https://access.redhat.com/errata/RHSA-2021:0037",
+		"version": "4.6.12"
+	},
+	{
+		"channels": [
+			"candidate-4.6",
+			"candidate-4.7",
+			"eus-4.6",
+			"fast-4.6",
+			"fast-4.7",
+			"stable-4.6",
+			"stable-4.7"
+		],
+		"image": "quay.io/openshift-release-dev/ocp-release@sha256:08ef16270e643a001454410b22864db6246d782298be267688a4433d83f404f4",
+		"url": "https://access.redhat.com/errata/RHBA-2021:0510",
+		"version": "4.6.18"
+	},
+	{
+		"channels": [
+			"candidate-4.6",
+			"candidate-4.7",
+			"eus-4.6",
+			"fast-4.6",
+			"fast-4.7",
+			"stable-4.6",
+			"stable-4.7"
+		],
+		"image": "quay.io/openshift-release-dev/ocp-release@sha256:a7b23f38d1e5be975a6b516739689673011bdfa59a7158dc6ca36cefae169c18",
+		"url": "https://access.redhat.com/errata/RHSA-2021:0424",
+		"version": "4.6.17"
+	},
+	{
+		"channels": [
+			"candidate-4.6",
+			"candidate-4.7",
+			"eus-4.6",
+			"fast-4.6",
+			"fast-4.7",
+			"stable-4.6",
+			"stable-4.7"
+		],
+		"image": "quay.io/openshift-release-dev/ocp-release@sha256:ac5bbe391f9f5db07b8a710cfda1aee80f6eb3bf37a3c44a5b89763957d8d5ad",
+		"url": "https://access.redhat.com/errata/RHBA-2021:0674",
+		"version": "4.6.20"
+	},
+	{
+		"channels": [
+			"candidate-4.6",
+			"candidate-4.7",
+			"eus-4.6",
+			"fast-4.6",
+			"fast-4.7",
+			"stable-4.6",
+			"stable-4.7"
+		],
+		"image": "quay.io/openshift-release-dev/ocp-release@sha256:47df4bfe1cfd6d63dd2e880f00075ed1d37f997fd54884ed823ded9f5d96abfc",
+		"url": "https://access.redhat.com/errata/RHBA-2021:0634",
+		"version": "4.6.19"
+	},
+	{
+		"channels": [
+			"candidate-4.6",
+			"candidate-4.7",
+			"eus-4.6",
+			"fast-4.6",
+			"fast-4.7",
+			"stable-4.6",
+			"stable-4.7"
+		],
+		"image": "quay.io/openshift-release-dev/ocp-release@sha256:b70f550e3fa94af2f7d60a3437ec0275194db36f2dc49991da2336fe21e2824c",
+		"url": "https://access.redhat.com/errata/RHBA-2021:0235",
+		"version": "4.6.15"
+	},
+	{
+		"channels": [
+			"candidate-4.6",
+			"candidate-4.7",
+			"eus-4.6",
+			"fast-4.6",
+			"fast-4.7",
+			"stable-4.6",
+			"stable-4.7"
+		],
+		"image": "quay.io/openshift-release-dev/ocp-release@sha256:8a9e40df2a19db4cc51dc8624d54163bef6e88b7d88cc0f577652ba25466e338",
+		"url": "https://access.redhat.com/errata/RHBA-2021:0171",
+		"version": "4.6.13"
+	},
+	{
+		"channels": [
+			"candidate-4.6",
+			"candidate-4.7",
+			"eus-4.6",
+			"fast-4.6",
+			"fast-4.7",
+			"stable-4.6",
+			"stable-4.7"
+		],
+		"image": "quay.io/openshift-release-dev/ocp-release@sha256:6ae80e777c206b7314732aff542be105db892bf0e114a6757cb9e34662b8f891",
+		"url": "https://access.redhat.com/errata/RHBA-2021:0753",
+		"version": "4.6.21"
+	}
 	],
 	"conditions": [
 	  {
@@ -404,9 +490,18 @@ const (
 	  }
 	],
 	"desired": {
-	  "force": false,
-	  "image": "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
-	  "version": "4.5.11"
+	  "channels": [
+		"candidate-4.6",
+		"candidate-4.7",
+		"eus-4.6",
+		"fast-4.6",
+		"fast-4.7",
+		"stable-4.6",
+		"stable-4.7"
+	  ],
+	  "image": "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+	  "url": "https://access.redhat.com/errata/RHSA-2020:5259",
+	  "version": "4.6.8"
 	},
  	"history": [
 	  {
@@ -510,18 +605,24 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 	cir := NewClusterInfoReconciler()
 
 	tests := []struct {
-		name                 string
-		dynamicClient        dynamic.Interface
-		expectDesiredVersion string
-		expectUpgradeFail    bool
-		expectError          string
+		name                      string
+		dynamicClient             dynamic.Interface
+		expectDesiredVersion      string
+		expectUpgradeFail         bool
+		expectAvailableUpdatesLen int
+		expectChannelAndURL       bool
+		expectHistoryLen          int
+		expectError               string
 	}{
 		{
-			name:                 "OCP4.x",
-			dynamicClient:        dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x", clusterVersions)),
-			expectDesiredVersion: "4.5.11",
-			expectUpgradeFail:    false,
-			expectError:          "",
+			name:                      "OCP4.x",
+			dynamicClient:             dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x", clusterVersions)),
+			expectDesiredVersion:      "4.6.8",
+			expectUpgradeFail:         false,
+			expectAvailableUpdatesLen: 9,
+			expectChannelAndURL:       true,
+			expectHistoryLen:          1,
+			expectError:               "",
 		},
 		{
 			name:          "OCP3.x",
@@ -529,11 +630,14 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 			expectError:   "",
 		},
 		{
-			name:                 "UpgradeFail",
-			dynamicClient:        dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x", clusterVersionsFail)),
-			expectDesiredVersion: "4.5.11",
-			expectUpgradeFail:    true,
-			expectError:          "",
+			name:                      "UpgradeFail",
+			dynamicClient:             dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x", clusterVersionsFail)),
+			expectDesiredVersion:      "4.5.11",
+			expectUpgradeFail:         true,
+			expectAvailableUpdatesLen: 1,
+			expectChannelAndURL:       false,
+			expectHistoryLen:          1,
+			expectError:               "",
 		},
 	}
 
@@ -544,10 +648,33 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 			if err != nil {
 				assert.Equal(t, err.Error(), test.expectError)
 			}
-			if test.expectDesiredVersion != "" {
-				assert.Equal(t, info.DesiredVersion, test.expectDesiredVersion)
-			}
+
+			assert.Equal(t, info.DesiredVersion, test.expectDesiredVersion)
 			assert.Equal(t, info.UpgradeFailed, test.expectUpgradeFail)
+			assert.Equal(t, len(info.VersionAvailableUpdates), test.expectAvailableUpdatesLen)
+			if len(info.VersionAvailableUpdates) != 0 {
+				for _, update := range info.VersionAvailableUpdates {
+					assert.NotEqual(t, update.Version, "")
+					assert.NotEqual(t, update.Image, "")
+					if test.expectChannelAndURL {
+						assert.NotEqual(t, update.URL, "")
+						assert.NotEqual(t, len(update.Channels), 0)
+					} else {
+						assert.Equal(t, update.URL, "")
+						assert.Equal(t, len(update.Channels), 0)
+					}
+
+				}
+			}
+			assert.Equal(t, len(info.VersionHistory), test.expectHistoryLen)
+			if len(info.VersionHistory) != 0 {
+				for _, history := range info.VersionHistory {
+					assert.NotEqual(t, history.Version, "")
+					assert.NotEqual(t, history.Image, "")
+					assert.Equal(t, history.State, "Completed")
+					assert.Equal(t, history.Verified, false)
+				}
+			}
 		})
 	}
 }
