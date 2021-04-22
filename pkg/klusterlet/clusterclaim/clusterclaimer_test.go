@@ -229,6 +229,8 @@ func newNode(platform string) *corev1.Node {
 		node.Spec.ProviderID = "vsphere://421a27ac-bb12-f6e6-48cb-f2aa74e56156"
 	case PlatformOpenStack:
 		node.Spec.ProviderID = "openstack:///dda1f31a-3dfb-435a-9e1d-16149a8dd628"
+	case PlatformBareMetal:
+		node.Spec.ProviderID = "baremetalhost:///openshift-machine-api/openshift-worker-0-0"
 	case PlatformIBMZ:
 		node.Status.NodeInfo.Architecture = "s390x"
 	case PlatformIBMP:
@@ -598,6 +600,14 @@ func TestGetKubeVersionPlatformProduct(t *testing.T) {
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, []runtime.Object{newNode(PlatformOpenStack)}),
 			expectKubeVersion: "v0.0.0-master+$Format:%h$",
 			expectPlatform:    PlatformOpenStack,
+			expectProduct:     ProductOpenShift,
+			expectErr:         nil,
+		},
+		{
+			name:              "is OCP on BareMetal",
+			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, []runtime.Object{newNode(PlatformBareMetal)}),
+			expectKubeVersion: "v0.0.0-master+$Format:%h$",
+			expectPlatform:    PlatformBareMetal,
 			expectProduct:     ProductOpenShift,
 			expectErr:         nil,
 		},

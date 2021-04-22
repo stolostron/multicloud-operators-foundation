@@ -175,6 +175,8 @@ const (
 	CloudVendorVSphere CloudVendorType = "VSphere"
 	// CloudVendorOpenStack OpenStack
 	CloudVendorOpenStack CloudVendorType = "OpenStack"
+	// CloudVendorBareMetal BareMetal
+	CloudVendorBareMetal CloudVendorType = "BareMetal"
 	// CloudVendorOther other (unable to auto detect)
 	CloudVendorOther CloudVendorType = "Other"
 )

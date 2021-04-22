@@ -39,6 +39,7 @@ const (
 	PlatformIBMZ      = "IBMZPlatform"
 	PlatformOpenStack = "OpenStack"
 	PlatformVSphere   = "VSphere"
+	PlatformBareMetal = "BareMetal"
 	// PlatformOther other (unable to auto detect)
 	PlatformOther = "Other"
 )
@@ -431,6 +432,8 @@ func (c *ClusterClaimer) getKubeVersionPlatformProduct() (kubeVersion, platform,
 		platform = PlatformVSphere
 	case strings.Contains(providerID, "openstack"):
 		platform = PlatformOpenStack
+	case strings.Contains(providerID, "baremetal"):
+		platform = PlatformBareMetal
 	}
 
 	return kubeVersion, platform, product, nil
