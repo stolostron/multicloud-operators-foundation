@@ -54,8 +54,14 @@ SOURCE_GIT_TAG ?=$(shell git describe --long --tags --abbrev=7 --match 'v[0-9]*'
 SOURCE_GIT_COMMIT ?=$(shell git rev-parse --short "HEAD^{commit}" 2>/dev/null)
 SOURCE_GIT_TREE_STATE ?=$(shell ( ( [ ! -d ".git/" ] || git diff --quiet ) && echo 'clean' ) || echo 'dirty')
 
+# OS_GIT_VERSION is populated by ART
+# If building out of the ART pipeline, fallback to SOURCE_GIT_TAG
+ifndef OS_GIT_VERSION
+	OS_GIT_VERSION = $(SOURCE_GIT_TAG)
+endif
+
 define version-ldflags
--X $(1).versionFromGit="$(SOURCE_GIT_TAG)" \
+-X $(1).versionFromGit="$(OS_GIT_VERSION)" \
 -X $(1).commitFromGit="$(SOURCE_GIT_COMMIT)" \
 -X $(1).gitTreeState="$(SOURCE_GIT_TREE_STATE)" \
 -X $(1).buildDate="$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')"

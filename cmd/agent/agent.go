@@ -5,8 +5,8 @@ package main
 import (
 	"context"
 	"os"
-	"time"
 
+	"github.com/open-cluster-management/addon-framework/pkg/lease"
 	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/agent/app"
@@ -17,13 +17,13 @@ import (
 	actionctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/action"
 	clusterclaimctl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	clusterinfoctl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterinfo"
-	leasectrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/lease"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/resourcecollector"
 	viewctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/view"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/util/wait"
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -104,6 +104,20 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 		setupLog.Error(err, "Unable to create managed cluster cluster clientset.")
 		os.Exit(1)
 	}
+	managedClusterHubClient, err := clusterclientset.NewForConfig(hubConfig)
+	if err != nil {
+		setupLog.Error(err, "Unable to create managed cluster hub clientset.")
+		os.Exit(1)
+	}
+
+	componentNamespace := o.ComponentNamespace
+	if len(componentNamespace) == 0 {
+		componentNamespace, err = utils.GetComponentNamespace()
+		if err != nil {
+			setupLog.Error(err, "Failed to get pod namespace")
+			os.Exit(1)
+		}
+	}
 
 	mgr, err := ctrl.NewManager(hubConfig, ctrl.Options{
 		Scheme:             scheme,
@@ -118,14 +132,6 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 
 	go app.ServeHealthProbes(stopCh, ":8000")
 
-	leaseReconciler := leasectrl.LeaseReconciler{
-		KubeClient:           managedClusterKubeClient,
-		LeaseName:            AddonName,
-		LeaseDurationSeconds: int32(o.LeaseDurationSeconds),
-	}
-
-	go wait.JitterUntilWithContext(context.TODO(), leaseReconciler.Reconcile, time.Duration(o.LeaseDurationSeconds)*time.Second, leaseUpdateJitterFactor, true)
-
 	run := func(ctx context.Context) {
 		// run agent server
 		agent, err := app.AgentServerRun(o, managedClusterClient)
@@ -138,6 +144,12 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 		discoveryClient := cacheddiscovery.NewMemCacheClient(managedClusterClient.Discovery())
 		mapper := restutils.NewMapper(discoveryClient, stopCh)
 		mapper.Run()
+
+		resourceCollector := resourcecollector.NewCollector(managedClusterKubeClient, managedClusterHubClient, o.ClusterName, componentNamespace)
+		go resourceCollector.Start(context.TODO())
+
+		leaseUpdater := lease.NewLeaseUpdater(managedClusterKubeClient, AddonName, componentNamespace)
+		go leaseUpdater.Start(context.TODO())
 
 		// Add controller into manager
 		actionReconciler := actionctrl.NewActionReconciler(
