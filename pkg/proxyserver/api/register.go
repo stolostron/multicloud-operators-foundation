@@ -70,6 +70,7 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 		clusterInformer.Cluster().V1().ManagedClusters(),
 		informerFactory.Rbac().V1().ClusterRoles(),
 		informerFactory.Rbac().V1().ClusterRoleBindings(),
+		utils.GetViewResourceFromClusterRole,
 	)
 
 	v1storage := map[string]rest.Storage{

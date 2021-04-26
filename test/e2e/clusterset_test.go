@@ -3,121 +3,97 @@ package e2e
 import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-var clusterSetGVR = schema.GroupVersionResource{
-	Group:    "cluster.open-cluster-management.io",
-	Version:  "v1alpha1",
-	Resource: "managedclustersets",
-}
-var clusterRoleGVR = schema.GroupVersionResource{
-	Group:    "rbac.authorization.k8s.io",
-	Version:  "v1",
-	Resource: "clusterroles",
-}
-var clusterRoleBindingGVR = schema.GroupVersionResource{
-	Group:    "rbac.authorization.k8s.io",
-	Version:  "v1",
-	Resource: "clusterrolebindings",
-}
 var updatedSubject = rbacv1.Subject{
-	APIGroup:  "rbac.authorization.k8s.io",
-	Kind:      "User",
-	Namespace: "ns2",
-	Name:      "n2",
+	APIGroup: "rbac.authorization.k8s.io",
+	Kind:     "User",
+	Name:     "n2",
 }
+
+var (
+	roleBindingName        string
+	clusterroleBindingName string
+)
 
 var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 
-	var (
-		clusterset         *unstructured.Unstructured
-		clusterrole        *unstructured.Unstructured
-		clusterrolebinding *unstructured.Unstructured
-		err                error
-	)
-	ginkgo.BeforeEach(func() {
-		// load object from json util
-		clusterset, err = util.LoadResourceFromJSON(util.ManagedClusterSetTemplate)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	ginkgo.Context("Clusterset admin/view clusterrole auto create/delete.", func() {
+		ginkgo.It("Clusterset admin/view clusterrole auto create/delete successfully", func() {
+			clusterset, err := util.CreateManagedClusterSet(dynamicClient)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		// create ManagedClusterSet to real cluster
-		clusterset, err = util.ApplyClusterResource(dynamicClient, clusterSetGVR, clusterset)
-		//clusterset, err = util.CreateResource(dynamicClient, clusterSetGVR, clusterset)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", clusterSetGVR.Resource)
+			gomega.Eventually(func() bool {
+				//clusterset-admin clusterrole should be auto created
+				adminClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "admin")
+				exist, err := util.HasClusterResource(dynamicClient, util.ClusterRoleGVR, adminClustersetRole)
+				if err != nil {
+					return false
+				}
+				return exist
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 
-		//set ManagedClusterset for ManagedCluster
-		clustersetlabel := map[string]string{
-			clustersetmapper.ClusterSetLabel: clusterset.GetName(),
-		}
-		gomega.Eventually(func() error {
-			managedCluster, err := util.GetClusterResource(dynamicClient, util.ManagedClusterGVR, "cluster1")
-			if err != nil {
-				return err
-			}
-			err = util.AddLabels(managedCluster, clustersetlabel)
-			if err != nil {
-				return err
-			}
-			_, err = util.UpdateClusterResource(dynamicClient, util.ManagedClusterGVR, managedCluster)
-			return err
-		}, eventuallyTimeout, eventuallyInterval).Should(gomega.Succeed())
+			gomega.Eventually(func() bool {
+				//clusterset-view clusterrole should be auto created
+				viewClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "view")
+				exist, err := util.HasClusterResource(dynamicClient, util.ClusterRoleGVR, viewClustersetRole)
+				if err != nil {
+					return false
+				}
+				return exist
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 
-		// create clusterrole
-		clusterrole, err = util.LoadResourceFromJSON(util.ClusterRoleTemplate)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			//delete clusterset
+			err = util.DeleteClusterResource(dynamicClient, util.ManagedClusterSetGVR, clusterset.GetName())
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		// create clusterRole to real cluster
-		clusterrole, err = util.ApplyClusterResource(dynamicClient, clusterRoleGVR, clusterrole)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", clusterRoleGVR.Resource)
+			gomega.Eventually(func() bool {
+				//clusterset-admin clusterrole should be auto deleted
+				adminClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "admin")
+				exist, err := util.HasClusterResource(dynamicClient, util.ClusterRoleGVR, adminClustersetRole)
+				if err != nil {
+					return false
+				}
+				return exist
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeFalse())
 
-		//create clusterrolebinding
-		clusterrolebinding, err = util.LoadResourceFromJSON(util.ClusterRoleBindingTemplate)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-		// create clusterRoleBinding to real cluster
-		clusterrolebinding, err = util.ApplyClusterResource(dynamicClient, clusterRoleBindingGVR, clusterrolebinding)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", clusterRoleBindingGVR.Resource)
-
-	})
-	ginkgo.AfterEach(func() {
-		//clean up clusterset
-		err := util.DeleteClusterResource(dynamicClient, clusterSetGVR, clusterset.GetName())
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-		//clean up clusterrole
-		err = util.DeleteClusterResource(dynamicClient, clusterRoleGVR, clusterrole.GetName())
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-		//clean up clusterrolebinding
-		err = util.DeleteClusterResource(dynamicClient, clusterRoleBindingGVR, clusterrolebinding.GetName())
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Eventually(func() bool {
+				//clusterset-view clusterrole should be auto deleted
+				viewClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "view")
+				exist, err := util.HasClusterResource(dynamicClient, util.ClusterRoleGVR, viewClustersetRole)
+				if err != nil {
+					return false
+				}
+				return exist
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeFalse())
+		})
 	})
 
-	ginkgo.Context("Clusterrolebinding auto create/update/delete.", func() {
-
+	ginkgo.Context("Managedcluster Clusterrolebinding auto create/update.", func() {
 		ginkgo.It("clusterrolebinding should be auto updated successfully", func() {
-			gomega.Eventually(func() (interface{}, error) {
-				clusterroleBindingName := utils.GenerateClusterRoleBindingName("cluster1")
-				return util.HasClusterResource(dynamicClient, clusterRoleBindingGVR, clusterroleBindingName)
+			gomega.Eventually(func() bool {
+				clusterroleBindingName = utils.GenerateClustersetClusterRoleBindingName(managedClusterName, "admin")
+				exist, err := util.HasClusterResource(dynamicClient, util.ClusterRoleBindingGVR, clusterroleBindingName)
+				if err != nil {
+					return false
+				}
+				return exist
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 
 			//update clusterrolebinding subject, and generated clusterrolebinding will be auto updated
-			clusterrolebinding, err = util.LoadResourceFromJSON(util.ClusterRoleBindingTemplate)
+			clusterrolebinding, err := util.LoadResourceFromJSON(util.ClusterRoleBindingTemplate)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			err = util.SetSubjects(clusterrolebinding, updatedSubject)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-			clusterrolebinding, err = util.UpdateClusterResource(dynamicClient, clusterRoleBindingGVR, clusterrolebinding)
+			_, err = util.UpdateClusterResource(dynamicClient, util.ClusterRoleBindingGVR, clusterrolebinding)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			gomega.Eventually(func() (interface{}, error) {
-				clusterroleBindingName := utils.GenerateClusterRoleBindingName("cluster1")
-				generatedClusterrolebinding, err := util.GetClusterResource(dynamicClient, clusterRoleBindingGVR, clusterroleBindingName)
+			gomega.Eventually(func() bool {
+				generatedClusterrolebinding, err := util.GetClusterResource(dynamicClient, util.ClusterRoleBindingGVR, clusterroleBindingName)
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 				subjects, _, err := unstructured.NestedSlice(generatedClusterrolebinding.Object, "subjects")
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -125,77 +101,94 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				for _, subject := range subjects {
 					subjectValue, _ := subject.(map[string]interface{})
 					if subjectValue["kind"] == updatedSubject.Kind &&
-						subjectValue["name"] == updatedSubject.Name &&
-						subjectValue["namespace"] == updatedSubject.Namespace {
-						return true, nil
+						subjectValue["name"] == updatedSubject.Name {
+						return true
 					}
 				}
-				return false, nil
+				return false
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 		})
 
-		ginkgo.It("clusterrolebinding should be auto deleted successfully", func() {
-			gomega.Eventually(func() (interface{}, error) {
-				clusterroleBindingName := utils.GenerateClusterRoleBindingName("cluster1")
-				return util.HasClusterResource(dynamicClient, clusterRoleBindingGVR, clusterroleBindingName)
+	})
+
+	ginkgo.Context("ManagedCluster namespace rolebinding auto create/update.", func() {
+		ginkgo.It("ManagedCluster namespace rolebinding should be auto created successfully", func() {
+			gomega.Eventually(func() bool {
+				roleBindingName = utils.GenerateClustersetResourceRoleBindingName("admin")
+				exist, err := util.HasResource(dynamicClient, util.RoleBindingGVR, managedClusterName, roleBindingName)
+				if err != nil {
+					return false
+				}
+				return exist
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			//update clusterrolebinding subject, and generated rrolebinding will be auto updated
+			clusterrolebinding, err := util.LoadResourceFromJSON(util.ClusterRoleBindingTemplate)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			err = util.SetSubjects(clusterrolebinding, updatedSubject)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			_, err = util.UpdateClusterResource(dynamicClient, util.ClusterRoleBindingGVR, clusterrolebinding)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			gomega.Eventually(func() bool {
+				generatedRolebinding, err := util.GetResource(dynamicClient, util.RoleBindingGVR, managedClusterName, roleBindingName)
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				subjects, _, err := unstructured.NestedSlice(generatedRolebinding.Object, "subjects")
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+				for _, subject := range subjects {
+					subjectValue, _ := subject.(map[string]interface{})
+					if subjectValue["kind"] == updatedSubject.Kind &&
+						subjectValue["name"] == updatedSubject.Name {
+						return true
+					}
+				}
+				return false
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+		})
+	})
+
+	ginkgo.Context("Delete ManagedClusterset, managedcluster clusterrolebinding and namespace rolebinding should be auto deleted successfully", func() {
+		ginkgo.It("Delete ManagedClusterset, managedcluster clusterrolebinding and namespace rolebinding should be auto deleted successfully", func() {
+			//managedcluster clusterrolebinding exist
+			gomega.Eventually(func() bool {
+				exist, err := util.HasClusterResource(dynamicClient, util.ClusterRoleBindingGVR, clusterroleBindingName)
+				if err != nil {
+					return false
+				}
+				return exist
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			//managedcluster namespace rolebinding exist
+			gomega.Eventually(func() bool {
+				exist, err := util.HasResource(dynamicClient, util.RoleBindingGVR, managedClusterName, roleBindingName)
+				if err != nil {
+					return false
+				}
+				return exist
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 
 			//Delete clusterset, clusterrolebinding should be auto deleted
-			err := util.DeleteClusterResource(dynamicClient, clusterSetGVR, clusterset.GetName())
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-			gomega.Eventually(func() (interface{}, error) {
-				clusterroleBindingName := utils.GenerateClusterRoleBindingName("cluster1")
-				return util.HasClusterResource(dynamicClient, clusterRoleBindingGVR, clusterroleBindingName)
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeFalse())
-		})
-	})
-	ginkgo.Context("Clusterset admin/view clusterrole auto create/delete.", func() {
-		ginkgo.It("Clusterset admin/view clusterrole auto create/delete successfully", func() {
-			clusterset, err := util.CreateManagedClusterSet(dynamicClient)
+			err := util.DeleteClusterResource(dynamicClient, util.ManagedClusterSetGVR, managedClustersetName)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			gomega.Eventually(func() (interface{}, error) {
-				//admin clusterrole should be auto created
-				adminClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "admin")
-				_, err = util.GetClusterResource(dynamicClient, clusterRoleGVR, adminClustersetRole)
+			//managedcluster namespace rolebinding deleted
+			gomega.Eventually(func() bool {
+				exist, err := util.HasResource(dynamicClient, util.RoleBindingGVR, managedClusterName, roleBindingName)
 				if err != nil {
-					return false, nil
+					return false
 				}
-				return true, nil
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
-
-			gomega.Eventually(func() (interface{}, error) {
-				//view clusterrole should be auto created
-				viewClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "view")
-				_, err = util.GetClusterResource(dynamicClient, clusterRoleGVR, viewClustersetRole)
-				if err != nil {
-					return false, nil
-				}
-				return true, nil
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
-
-			//delete clusterset
-			err = util.DeleteClusterResource(dynamicClient, clusterSetGVR, clusterset.GetName())
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			gomega.Eventually(func() (interface{}, error) {
-				//admin clusterrole should be auto deleted
-				adminClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "admin")
-				_, err = util.GetClusterResource(dynamicClient, clusterRoleGVR, adminClustersetRole)
-				if err != nil {
-					return false, nil
-				}
-				return true, nil
+				return exist
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeFalse())
 
-			gomega.Eventually(func() (interface{}, error) {
-				//view clusterrole should be auto deleted
-				viewClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "view")
-				_, err = util.GetClusterResource(dynamicClient, clusterRoleGVR, viewClustersetRole)
+			//managedcluster cluster rolebinding deleted
+			gomega.Eventually(func() bool {
+				exist, err := util.HasResource(dynamicClient, util.RoleBindingGVR, "", roleBindingName)
 				if err != nil {
-					return false, nil
+					return false
 				}
-				return true, nil
+				return exist
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeFalse())
 		})
 	})

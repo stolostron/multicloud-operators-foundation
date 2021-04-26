@@ -65,6 +65,11 @@ var ClusterRoleBindingGVR = schema.GroupVersionResource{
 	Version:  "v1",
 	Resource: "clusterrolebindings",
 }
+var RoleBindingGVR = schema.GroupVersionResource{
+	Group:    "rbac.authorization.k8s.io",
+	Version:  "v1",
+	Resource: "rolebindings",
+}
 
 func getKubeConfigFile() (string, error) {
 	kubeConfigFile := os.Getenv(kubeConfigFileEnv)
