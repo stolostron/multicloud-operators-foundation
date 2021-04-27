@@ -182,19 +182,23 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 		klog.Errorf("unable to setup gc reconciler: %v", err)
 		return err
 	}
+	go func() {
+		<-mgr.Elected()
+		go clusterInformers.Start(stopCh)
+		go kubeInfomers.Start(stopCh)
 
-	go clusterInformers.Start(stopCh)
-	go kubeInfomers.Start(stopCh)
+		go clusterSetViewCache.Run(5 * time.Second)
+		go clusterSetAdminCache.Run(5 * time.Second)
+		go clusterrolebindingSync.Run(5 * time.Second)
+		go rolebindingSync.Run(5 * time.Second)
+	}()
 
-	go clusterSetViewCache.Run(5 * time.Second)
-	go clusterSetAdminCache.Run(5 * time.Second)
-	go clusterrolebindingSync.Run(5 * time.Second)
-	go rolebindingSync.Run(5 * time.Second)
 	// Start manager
 	if err := mgr.Start(stopCh); err != nil {
 		klog.Errorf("Controller-runtime manager exited non-zero, %v", err)
 		return err
 	}
+
 	return nil
 }
 
