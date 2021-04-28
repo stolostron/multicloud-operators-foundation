@@ -95,7 +95,7 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if isModified {
 		err = r.client.Update(ctx, clusterdeployment, &client.UpdateOptions{})
 		if err != nil {
-			klog.Errorf("Can not update clusterdeployment label: %+v", clusterdeployment.Name)
+			klog.Errorf("Can not update clusterdeployment label. clusterdeployment: %v, error:%v", clusterdeployment.Name, err)
 			return ctrl.Result{}, err
 		}
 	}
