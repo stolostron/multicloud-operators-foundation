@@ -5,9 +5,11 @@ import (
 	stdlog "log"
 	"os"
 	"testing"
+	"time"
 
 	tlog "github.com/go-logr/logr/testing"
 	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
+	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	routev1Fake "github.com/openshift/client-go/route/clientset/versioned/fake"
@@ -17,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/scheme"
 
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
@@ -34,11 +37,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var clusterInfoNamespace = "cn1"
-var clusterInfoName = "c1"
+var clusterName = "c1"
 var clusterc1Request = reconcile.Request{
 	NamespacedName: types.NamespacedName{
-		Name: clusterInfoName, Namespace: clusterInfoNamespace}}
+		Name: clusterName, Namespace: clusterName}}
 
 var cfg *rest.Config
 
@@ -148,26 +150,22 @@ func newAgentService() *corev1.Service {
 	}
 }
 
-func newClusterClaimList() *clusterv1alpha1.ClusterClaimList {
-	return &clusterv1alpha1.ClusterClaimList{
-		TypeMeta: metav1.TypeMeta{},
-		ListMeta: metav1.ListMeta{},
-		Items: []clusterv1alpha1.ClusterClaim{
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: clusterclaim.ClaimOCMConsoleURL,
-				},
-				Spec: clusterv1alpha1.ClusterClaimSpec{
-					Value: "https://abc.com",
-				},
+func newClusterClaimList() []runtime.Object {
+	return []runtime.Object{
+		&clusterv1alpha1.ClusterClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: clusterclaim.ClaimOCMConsoleURL,
 			},
-			{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: clusterclaim.ClaimOCMKubeVersion,
-				},
-				Spec: clusterv1alpha1.ClusterClaimSpec{
-					Value: "v1.20.0",
-				},
+			Spec: clusterv1alpha1.ClusterClaimSpec{
+				Value: "https://abc.com",
+			},
+		},
+		&clusterv1alpha1.ClusterClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: clusterclaim.ClaimOCMKubeVersion,
+			},
+			Spec: clusterv1alpha1.ClusterClaimSpec{
+				Value: "v1.20.0",
 			},
 		},
 	}
@@ -177,11 +175,21 @@ func NewClusterInfoReconciler() *ClusterInfoReconciler {
 	fakeKubeClient := kubefake.NewSimpleClientset(
 		newNode(), newAgentIngress(), newMonitoringSecret(), newAgentService())
 	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
-	fakeClusterClient := clusterfake.NewSimpleClientset(newClusterClaimList())
+	fakeClusterClient := clusterfake.NewSimpleClientset(newClusterClaimList()...)
+	informerFactory := informers.NewSharedInformerFactory(fakeKubeClient, 10*time.Minute)
+	clusterInformerFactory := clusterinformers.NewSharedInformerFactory(fakeClusterClient, 10*time.Minute)
+	store := informerFactory.Core().V1().Nodes().Informer().GetStore()
+	store.Add(newNode())
+	clusterStore := clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Informer().GetStore()
+	for _, item := range newClusterClaimList() {
+		clusterStore.Add(item)
+	}
 	return &ClusterInfoReconciler{
 		Log:           tlog.NullLogger{},
 		KubeClient:    fakeKubeClient,
-		ClusterClient: fakeClusterClient,
+		ClusterName:   clusterName,
+		NodeLister:    informerFactory.Core().V1().Nodes().Lister(),
+		ClaimLister:   clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
 		RouteV1Client: fakeRouteV1Client,
 		AgentAddress:  "127.0.0.1:8000",
 		AgentIngress:  "kube-system/foundation-ingress-testcluster-agent",
@@ -195,10 +203,16 @@ func NewFailedClusterInfoReconciler() *ClusterInfoReconciler {
 		newNode(), newMonitoringSecret())
 	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
 	fakeClusterClient := clusterfake.NewSimpleClientset()
+	informerFactory := informers.NewSharedInformerFactory(fakeKubeClient, 10*time.Minute)
+	clusterInformerFactory := clusterinformers.NewSharedInformerFactory(fakeClusterClient, 10*time.Minute)
+	store := informerFactory.Core().V1().Nodes().Informer().GetStore()
+	store.Add(newNode())
 	return &ClusterInfoReconciler{
 		Log:           tlog.NullLogger{},
 		KubeClient:    fakeKubeClient,
-		ClusterClient: fakeClusterClient,
+		ClusterName:   clusterName,
+		NodeLister:    informerFactory.Core().V1().Nodes().Lister(),
+		ClaimLister:   clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
 		RouteV1Client: fakeRouteV1Client,
 		AgentAddress:  "127.0.0.1:8000",
 		AgentIngress:  "kube-system/foundation-ingress-testcluster-agent",
@@ -213,8 +227,8 @@ func TestClusterInfoReconcile(t *testing.T) {
 	now := metav1.Now()
 	clusterInfo := &clusterv1beta1.ManagedClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              clusterInfoName,
-			Namespace:         clusterInfoNamespace,
+			Name:              clusterName,
+			Namespace:         clusterName,
 			CreationTimestamp: now,
 		},
 	}
@@ -255,8 +269,8 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 	now := metav1.Now()
 	clusterInfo := &clusterv1beta1.ManagedClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:              clusterInfoName,
-			Namespace:         clusterInfoNamespace,
+			Name:              clusterName,
+			Namespace:         clusterName,
 			CreationTimestamp: now,
 		},
 	}

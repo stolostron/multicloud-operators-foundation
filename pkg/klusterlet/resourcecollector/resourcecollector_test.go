@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"testing"
+	"time"
 
 	"net/http"
 	"net/http/httptest"
@@ -19,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/informers"
 	fakekube "k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
 	certutil "k8s.io/client-go/util/cert"
@@ -36,6 +38,7 @@ func TestReconcile(t *testing.T) {
 	cases := []struct {
 		name                   string
 		resources              []runtime.Object
+		existingCapacity       clusterapiv1.ResourceList
 		prometheusData         model.Vector
 		validateClusterActions func(t *testing.T, actions []clienttesting.Action)
 		validateKubeActions    func(t *testing.T, actions []clienttesting.Action)
@@ -43,24 +46,65 @@ func TestReconcile(t *testing.T) {
 		{
 			name:      "missing configmap",
 			resources: []runtime.Object{},
+			existingCapacity: clusterapiv1.ResourceList{
+				"cpu_worker": *resource.NewQuantity(0, resource.DecimalSI),
+			},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get", "create")
 			},
-			validateClusterActions: assertNoActions,
-			prometheusData:         model.Vector{},
+			validateClusterActions: func(t *testing.T, actions []clienttesting.Action) {
+				assertActions(t, actions, "get")
+			},
+			prometheusData: model.Vector{},
+		},
+		{
+			name:             "missing configmap having node",
+			resources:        []runtime.Object{newNode("node1", 1, true)},
+			existingCapacity: clusterapiv1.ResourceList{},
+			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
+				assertActions(t, actions, "get", "create")
+			},
+			validateClusterActions: func(t *testing.T, actions []clienttesting.Action) {
+				assertActions(t, actions, "get", "update")
+				cluster := actions[1].(clienttesting.UpdateAction).GetObject().(*clusterapiv1.ManagedCluster)
+				if !cluster.Status.Capacity[resourceCPUWorker].Equal(*resource.NewQuantity(1, resource.DecimalSI)) {
+					t.Errorf("Expect cpu worker capcity is not correct")
+				}
+			},
+			prometheusData: model.Vector{},
+		},
+		{
+			name:             "no updates with same capacity",
+			resources:        []runtime.Object{newNode("node1", 1, true)},
+			existingCapacity: clusterapiv1.ResourceList{"cpu_worker": *resource.NewQuantity(1, resource.DecimalSI)},
+			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
+				assertActions(t, actions, "get", "create")
+			},
+			validateClusterActions: func(t *testing.T, actions []clienttesting.Action) {
+				assertActions(t, actions, "get")
+			},
+			prometheusData: model.Vector{},
 		},
 		{
 			name:      "missing ca",
 			resources: []runtime.Object{newConfigmap("")},
+			existingCapacity: clusterapiv1.ResourceList{
+				"cpu_worker": *resource.NewQuantity(0, resource.DecimalSI),
+			},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get")
 			},
-			validateClusterActions: assertNoActions,
-			prometheusData:         model.Vector{},
+			validateClusterActions: func(t *testing.T, actions []clienttesting.Action) {
+				assertActions(t, actions, "get")
+			},
+			prometheusData: model.Vector{},
 		},
 		{
 			name:      "missing node metrics",
 			resources: []runtime.Object{newConfigmap(string(ca))},
+			existingCapacity: clusterapiv1.ResourceList{
+				"cpu_worker": *resource.NewQuantity(0, resource.DecimalSI),
+			},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get")
 			},
@@ -72,8 +116,11 @@ func TestReconcile(t *testing.T) {
 		{
 			name:      "missing node",
 			resources: []runtime.Object{newConfigmap(string(ca))},
+			existingCapacity: clusterapiv1.ResourceList{
+				"cpu_worker": *resource.NewQuantity(0, resource.DecimalSI),
+			},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
-				assertActions(t, actions, "get", "get", "get")
+				assertActions(t, actions, "get")
 			},
 			prometheusData: model.Vector{
 				&model.Sample{
@@ -88,10 +135,11 @@ func TestReconcile(t *testing.T) {
 			},
 		},
 		{
-			name:      "update status",
-			resources: []runtime.Object{newConfigmap(string(ca)), newNode("node1", 1, true)},
+			name:             "update status",
+			resources:        []runtime.Object{newConfigmap(string(ca)), newNode("node1", 1, true)},
+			existingCapacity: clusterapiv1.ResourceList{},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
-				assertActions(t, actions, "get", "get", "get")
+				assertActions(t, actions, "get")
 			},
 			prometheusData: model.Vector{
 				&model.Sample{
@@ -103,13 +151,24 @@ func TestReconcile(t *testing.T) {
 			},
 			validateClusterActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get", "update")
+				cluster := actions[1].(clienttesting.UpdateAction).GetObject().(*clusterapiv1.ManagedCluster)
+				if !cluster.Status.Capacity[resourceCPUWorker].Equal(*resource.NewQuantity(1, resource.DecimalSI)) {
+					t.Errorf("Expect cpu worker capcity is not correct")
+				}
+				if !cluster.Status.Capacity[resourceSocket].Equal(*resource.NewQuantity(1, resource.DecimalSI)) {
+					t.Errorf("Expect socket capcity is not correct")
+				}
+				if !cluster.Status.Capacity[resourceSocketWorker].Equal(*resource.NewQuantity(1, resource.DecimalSI)) {
+					t.Errorf("Expect worker socket capcity is not correct")
+				}
 			},
 		},
 		{
-			name:      "update status with worker/master",
-			resources: []runtime.Object{newConfigmap(string(ca)), newNode("node1", 2, true), newNode("node2", 1, false)},
+			name:             "update status with worker/master",
+			resources:        []runtime.Object{newConfigmap(string(ca)), newNode("node1", 2, true), newNode("node2", 1, false)},
+			existingCapacity: clusterapiv1.ResourceList{},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
-				assertActions(t, actions, "get", "get", "get", "get", "get")
+				assertActions(t, actions, "get")
 			},
 			prometheusData: model.Vector{
 				&model.Sample{
@@ -128,10 +187,42 @@ func TestReconcile(t *testing.T) {
 			validateClusterActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get", "update")
 				cluster := actions[1].(clienttesting.UpdateAction).GetObject().(*clusterapiv1.ManagedCluster)
+				if !cluster.Status.Capacity[resourceCPUWorker].Equal(*resource.NewQuantity(2, resource.DecimalSI)) {
+					t.Errorf("Expect cpu worker capcity is not correct")
+				}
 				if !cluster.Status.Capacity[resourceSocket].Equal(*resource.NewQuantity(3, resource.DecimalSI)) {
 					t.Errorf("Expect socket capcity is not correct")
 				}
 				if !cluster.Status.Capacity[resourceSocketWorker].Equal(*resource.NewQuantity(2, resource.DecimalSI)) {
+					t.Errorf("Expect worker socket capcity is not correct")
+				}
+			},
+		},
+		{
+			name:             "update status with nil apcity",
+			resources:        []runtime.Object{newConfigmap(string(ca)), newNode("node1", 1, true)},
+			existingCapacity: nil,
+			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
+				assertActions(t, actions, "get")
+			},
+			prometheusData: model.Vector{
+				&model.Sample{
+					Value: 1,
+					Metric: model.Metric{
+						"node": "node1",
+					},
+				},
+			},
+			validateClusterActions: func(t *testing.T, actions []clienttesting.Action) {
+				assertActions(t, actions, "get", "update")
+				cluster := actions[1].(clienttesting.UpdateAction).GetObject().(*clusterapiv1.ManagedCluster)
+				if !cluster.Status.Capacity[resourceCPUWorker].Equal(*resource.NewQuantity(1, resource.DecimalSI)) {
+					t.Errorf("Expect cpu worker capcity is not correct")
+				}
+				if !cluster.Status.Capacity[resourceSocket].Equal(*resource.NewQuantity(1, resource.DecimalSI)) {
+					t.Errorf("Expect socket capcity is not correct")
+				}
+				if !cluster.Status.Capacity[resourceSocketWorker].Equal(*resource.NewQuantity(1, resource.DecimalSI)) {
 					t.Errorf("Expect worker socket capcity is not correct")
 				}
 			},
@@ -146,12 +237,21 @@ func TestReconcile(t *testing.T) {
 					Name: "cluster1",
 				},
 				Status: clusterapiv1.ManagedClusterStatus{
-					Capacity: clusterapiv1.ResourceList{},
+					Capacity: c.existingCapacity,
 				},
 			}
+			infomerFactory := informers.NewSharedInformerFactory(fakekubeClient, 10*time.Minute)
 			handler.val = c.prometheusData
 			fakeclusterClient := fakecluster.NewSimpleClientset(cluster)
+
+			store := infomerFactory.Core().V1().Nodes().Informer().GetStore()
+			for _, obj := range c.resources {
+				if _, ok := obj.(*corev1.Node); ok {
+					store.Add(obj)
+				}
+			}
 			ctrl := &resourceCollector{
+				nodeLister:         infomerFactory.Core().V1().Nodes().Lister(),
 				kubeClient:         fakekubeClient,
 				clusterClient:      fakeclusterClient,
 				clusterName:        "cluster1",

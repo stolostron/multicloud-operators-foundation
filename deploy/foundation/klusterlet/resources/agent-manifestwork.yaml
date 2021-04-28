@@ -81,7 +81,7 @@ spec:
             containers:
             - name: foundation-agent
               image: foundation-agent
-              imagePullPolicy: Always
+              imagePullPolicy: IfNotPresent
               args:
                 - "/agent"
                 - "--hub-kubeconfig=/var/run/hub/kubeconfig"

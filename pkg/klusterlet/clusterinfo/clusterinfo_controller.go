@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"time"
 
-	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
+	clusterv1alpha1informer "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
+	clusterv1alpha1lister "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 
 	"github.com/go-logr/logr"
@@ -20,15 +20,25 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/dynamic"
+	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
+	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/util/workqueue"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // ClusterInfoReconciler reconciles a ManagedClusterInfo object
@@ -37,8 +47,11 @@ type ClusterInfoReconciler struct {
 	Log                         logr.Logger
 	Scheme                      *runtime.Scheme
 	KubeClient                  kubernetes.Interface
+	NodeInformer                coreinformers.NodeInformer
+	NodeLister                  corev1lister.NodeLister
+	ClaimInformer               clusterv1alpha1informer.ClusterClaimInformer
+	ClaimLister                 clusterv1alpha1lister.ClusterClaimLister
 	ManagedClusterDynamicClient dynamic.Interface
-	ClusterClient               clusterclientset.Interface
 	RouteV1Client               routev1.Interface
 	ClusterName                 string
 	MasterAddresses             string
@@ -53,8 +66,9 @@ type ClusterInfoReconciler struct {
 func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ManagedClusterInfo", req.NamespacedName)
 
+	request := types.NamespacedName{Namespace: r.ClusterName, Name: r.ClusterName}
 	clusterInfo := &clusterv1beta1.ManagedClusterInfo{}
-	err := r.Get(ctx, req.NamespacedName, clusterInfo)
+	err := r.Get(ctx, request, clusterInfo)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -89,12 +103,12 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		newStatus.NodeList = nodeList
 	}
 
-	claims, err := r.ClusterClient.ClusterV1alpha1().ClusterClaims().List(context.TODO(), metav1.ListOptions{})
+	claims, err := r.ClaimLister.List(labels.Everything())
 	if err != nil {
 		log.Error(err, "Failed to list claims.")
 		errs = append(errs, fmt.Errorf("failed to list clusterClaims error:%v ", err))
 	}
-	for _, claim := range claims.Items {
+	for _, claim := range claims {
 		value := claim.Spec.Value
 		switch claim.Name {
 		case clusterclaim.ClaimOCMConsoleURL:
@@ -157,7 +171,7 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	r.RefreshAgentServer(clusterInfo)
 
-	return ctrl.Result{RequeueAfter: 60 * time.Minute}, nil
+	return ctrl.Result{}, nil
 }
 
 func (r *ClusterInfoReconciler) readAgentConfig() (*corev1.EndpointAddress, *corev1.EndpointPort, error) {
@@ -330,11 +344,11 @@ const (
 
 func (r *ClusterInfoReconciler) getNodeList() ([]clusterv1beta1.NodeStatus, error) {
 	var nodeList []clusterv1beta1.NodeStatus
-	nodes, err := r.KubeClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	nodes, err := r.NodeLister.List(labels.Everything())
 	if err != nil {
 		return nil, err
 	}
-	for _, node := range nodes.Items {
+	for _, node := range nodes {
 		nodeStatus := clusterv1beta1.NodeStatus{
 			Name:       node.Name,
 			Labels:     map[string]string{},
@@ -521,7 +535,64 @@ func (r *ClusterInfoReconciler) RefreshAgentServer(clusterInfo *clusterv1beta1.M
 }
 
 func (r *ClusterInfoReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	claimSource := clusterclaim.NewClusterClaimSource(r.ClaimInformer)
+	nodeSource := &nodeSource{nodeInformer: r.NodeInformer.Informer()}
 	return ctrl.NewControllerManagedBy(mgr).
+		Watches(claimSource, &clusterclaim.ClusterClaimEventHandler{}).
+		Watches(nodeSource, &nodeEventHandler{}).
 		For(&clusterv1beta1.ManagedClusterInfo{}).
 		Complete(r)
+}
+
+// nodeSource is the event source of nodes on managed cluster.
+type nodeSource struct {
+	nodeInformer cache.SharedIndexInformer
+}
+
+var _ source.SyncingSource = &nodeSource{}
+
+func (s *nodeSource) Start(ctx context.Context, handler handler.EventHandler, queue workqueue.RateLimitingInterface,
+	predicates ...predicate.Predicate) error {
+	// all predicates are ignored
+	s.nodeInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			handler.Create(event.CreateEvent{}, queue)
+		},
+		UpdateFunc: func(oldObj, newObj interface{}) {
+			handler.Update(event.UpdateEvent{}, queue)
+		},
+		DeleteFunc: func(obj interface{}) {
+			handler.Delete(event.DeleteEvent{}, queue)
+		},
+	})
+
+	return nil
+}
+
+func (s *nodeSource) WaitForSync(ctx context.Context) error {
+	if ok := cache.WaitForCacheSync(ctx.Done(), s.nodeInformer.HasSynced); !ok {
+		return fmt.Errorf("Never achieved initial sync")
+	}
+	return nil
+}
+
+// nodeEventHandler maps any event to an empty request
+type nodeEventHandler struct{}
+
+var _ handler.EventHandler = &nodeEventHandler{}
+
+func (e *nodeEventHandler) Create(evt event.CreateEvent, q workqueue.RateLimitingInterface) {
+	q.Add(reconcile.Request{})
+}
+
+func (e *nodeEventHandler) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
+	q.Add(reconcile.Request{})
+}
+
+func (e *nodeEventHandler) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
+	q.Add(reconcile.Request{})
+}
+
+func (e *nodeEventHandler) Generic(evt event.GenericEvent, q workqueue.RateLimitingInterface) {
+	q.Add(reconcile.Request{})
 }
