@@ -24,7 +24,7 @@ import (
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	cacheddiscovery "k8s.io/client-go/discovery/cached"
+
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -33,6 +33,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/leaderelection"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	ctrlruntimelog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
@@ -108,6 +109,11 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 		os.Exit(1)
 	}
 
+	restMapper, err := apiutil.NewDynamicRESTMapper(managedClusterConfig, apiutil.WithLazyDiscovery)
+	if err != nil {
+		setupLog.Error(err, "Unable to create restmapper.")
+		os.Exit(1)
+	}
 	mgr, err := ctrl.NewManager(hubConfig, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: o.MetricsAddr,
@@ -139,18 +145,13 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 			os.Exit(1)
 		}
 
-		// run mapper
-		discoveryClient := cacheddiscovery.NewMemCacheClient(managedClusterClient.Discovery())
-		mapper := restutils.NewMapper(discoveryClient, stopCh)
-		mapper.Run()
-
 		// Add controller into manager
 		actionReconciler := actionctrl.NewActionReconciler(
 			mgr.GetClient(),
 			ctrl.Log.WithName("controllers").WithName("ManagedClusterAction"),
 			mgr.GetScheme(),
 			managedClusterDynamicClient,
-			restutils.NewKubeControl(mapper, managedClusterConfig),
+			restutils.NewKubeControl(restMapper, managedClusterConfig),
 			o.EnableImpersonation,
 		)
 		viewReconciler := &viewctrl.ViewReconciler{
@@ -158,7 +159,7 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 			Log:                         ctrl.Log.WithName("controllers").WithName("ManagedClusterView"),
 			Scheme:                      mgr.GetScheme(),
 			ManagedClusterDynamicClient: managedClusterDynamicClient,
-			Mapper:                      mapper,
+			Mapper:                      restMapper,
 		}
 
 		clusterInfoReconciler := clusterinfoctl.ClusterInfoReconciler{
