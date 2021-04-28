@@ -40,10 +40,10 @@ func TestControllerReconcile(t *testing.T) {
 	SetupTestReconcile(ar)
 	ar.SetupWithManager(mgr)
 
-	stopMgr, mgrStopped := StartTestManager(mgr, g)
+	cancel, mgrStopped := StartTestManager(mgr, g)
 
 	defer func() {
-		close(stopMgr)
+		cancel()
 		mgrStopped.Wait()
 	}()
 

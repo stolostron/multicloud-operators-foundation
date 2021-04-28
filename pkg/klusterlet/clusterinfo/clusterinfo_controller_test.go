@@ -2,6 +2,10 @@ package controllers
 
 import (
 	"context"
+	stdlog "log"
+	"os"
+	"testing"
+
 	tlog "github.com/go-logr/logr/testing"
 	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
@@ -14,9 +18,6 @@ import (
 	"k8s.io/client-go/dynamic"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes/scheme"
-	stdlog "log"
-	"os"
-	"testing"
 
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
@@ -207,6 +208,7 @@ func NewFailedClusterInfoReconciler() *ClusterInfoReconciler {
 }
 
 func TestClusterInfoReconcile(t *testing.T) {
+	ctx := context.Background()
 	// Create new cluster
 	now := metav1.Now()
 	clusterInfo := &clusterv1beta1.ManagedClusterInfo{
@@ -228,7 +230,7 @@ func TestClusterInfoReconcile(t *testing.T) {
 	fr.Client = c
 	fr.Agent = agent.NewAgent("c1", fr.KubeClient)
 
-	_, err := fr.Reconcile(clusterc1Request)
+	_, err := fr.Reconcile(ctx, clusterc1Request)
 	if err != nil {
 		t.Errorf("Failed to run reconcile cluster. error: %v", err)
 	}
@@ -248,6 +250,7 @@ func TestClusterInfoReconcile(t *testing.T) {
 }
 
 func TestFailedClusterInfoReconcile(t *testing.T) {
+	ctx := context.Background()
 	// Create new cluster
 	now := metav1.Now()
 	clusterInfo := &clusterv1beta1.ManagedClusterInfo{
@@ -269,7 +272,7 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 	fr.Client = c
 	fr.Agent = agent.NewAgent("c1", fr.KubeClient)
 
-	_, err := fr.Reconcile(clusterc1Request)
+	_, err := fr.Reconcile(ctx, clusterc1Request)
 	if err != nil {
 		t.Errorf("Failed to run reconcile cluster. error: %v", err)
 	}

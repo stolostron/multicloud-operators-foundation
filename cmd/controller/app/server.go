@@ -3,6 +3,7 @@
 package app
 
 import (
+	"context"
 	"io/ioutil"
 	"path"
 	"time"
@@ -32,8 +33,8 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/gc"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
-	hiveinternalv1alpha1 "github.com/openshift/hive/pkg/apis/hiveinternal/v1alpha1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	hiveinternalv1alpha1 "github.com/openshift/hive/apis/hiveinternal/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -59,7 +60,7 @@ func init() {
 	_ = clusterv1alaph1.Install(scheme)
 }
 
-func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
+func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 
 	//clusterset to cluster map
 	clusterSetClusterMapper := helpers.NewClusterSetMapper()
@@ -184,8 +185,8 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 	}
 	go func() {
 		<-mgr.Elected()
-		go clusterInformers.Start(stopCh)
-		go kubeInfomers.Start(stopCh)
+		go clusterInformers.Start(ctx.Done())
+		go kubeInfomers.Start(ctx.Done())
 
 		go clusterSetViewCache.Run(5 * time.Second)
 		go clusterSetAdminCache.Run(5 * time.Second)
@@ -194,7 +195,7 @@ func Run(o *options.ControllerRunOptions, stopCh <-chan struct{}) error {
 	}()
 
 	// Start manager
-	if err := mgr.Start(stopCh); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		klog.Errorf("Controller-runtime manager exited non-zero, %v", err)
 		return err
 	}

@@ -63,11 +63,11 @@ func main() {
 	o := options.NewAgentOptions()
 	o.AddFlags(pflag.CommandLine)
 
-	stopCh := signals.SetupSignalHandler()
-	startManager(o, stopCh)
+	ctx := signals.SetupSignalHandler()
+	startManager(o, ctx)
 }
 
-func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
+func startManager(o *options.AgentOptions, ctx context.Context) {
 	hubConfig, err := clientcmd.BuildConfigFromFlags("", o.HubKubeConfig)
 	if err != nil {
 		setupLog.Error(err, "Unable to get hub kube config.")
@@ -130,7 +130,7 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 		os.Exit(1)
 	}
 
-	go app.ServeHealthProbes(stopCh, ":8000")
+	go app.ServeHealthProbes(ctx.Done(), ":8000")
 
 	run := func(ctx context.Context) {
 		// run agent server
@@ -142,7 +142,7 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 
 		// run mapper
 		discoveryClient := cacheddiscovery.NewMemCacheClient(managedClusterClient.Discovery())
-		mapper := restutils.NewMapper(discoveryClient, stopCh)
+		mapper := restutils.NewMapper(discoveryClient, ctx.Done())
 		mapper.Run()
 
 		resourceCollector := resourcecollector.NewCollector(managedClusterKubeClient, managedClusterHubClient, o.ClusterName, componentNamespace)
@@ -218,7 +218,7 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 		}
 
 		setupLog.Info("starting manager")
-		if err := mgr.Start(stopCh); err != nil {
+		if err := mgr.Start(ctx); err != nil {
 			setupLog.Error(err, "problem running manager")
 			os.Exit(1)
 		}

@@ -32,8 +32,7 @@ const (
 	DefaultUpdateInterval = 30 * time.Second
 )
 
-func (r *ViewReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *ViewReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ManagedClusterView", req.NamespacedName)
 	updateInterval := DefaultUpdateInterval
 	managedClusterView := &viewv1beta1.ManagedClusterView{}

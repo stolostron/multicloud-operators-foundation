@@ -26,8 +26,8 @@ func main() {
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
-	stopCh := signals.SetupSignalHandler()
-	if err := app.Run(s, stopCh); err != nil {
+	ctx := signals.SetupSignalHandler()
+	if err := app.Run(s, ctx); err != nil {
 		fmt.Fprintf(os.Stderr, "%v\n", err)
 		os.Exit(1)
 	}

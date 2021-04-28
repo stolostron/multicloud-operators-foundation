@@ -9,8 +9,8 @@ import (
 
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
 	bmaerrors "github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory/errors"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
-	hiveinternalv1alpha1 "github.com/openshift/hive/pkg/apis/hiveinternal/v1alpha1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	hiveinternalv1alpha1 "github.com/openshift/hive/apis/hiveinternal/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -54,6 +54,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestReconcile(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name              string
 		existingObjs      []runtime.Object
@@ -132,7 +133,7 @@ func TestReconcile(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
-			res, err := rbma.Reconcile(test.req)
+			res, err := rbma.Reconcile(ctx, test.req)
 			validateErrorAndStatusConditions(t, err, test.expectedErrorType, nil, nil)
 
 			if test.requeue {
@@ -145,6 +146,7 @@ func TestReconcile(t *testing.T) {
 }
 
 func TestCheckAssetSecret(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name               string
 		existingObjs       []runtime.Object
@@ -175,13 +177,14 @@ func TestCheckAssetSecret(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
-			err := rbma.checkAssetSecret(test.bma)
+			err := rbma.checkAssetSecret(ctx, test.bma)
 			validateErrorAndStatusConditions(t, err, test.expectedErrorType, test.expectedConditions, test.bma)
 		})
 	}
 }
 
 func TestEnsureLabels(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name              string
 		existingObjs      []runtime.Object
@@ -202,13 +205,14 @@ func TestEnsureLabels(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
-			err := rbma.ensureLabels(test.bma)
+			err := rbma.ensureLabels(ctx, test.bma)
 			validateErrorAndStatusConditions(t, err, test.expectedErrorType, nil, test.bma)
 		})
 	}
 }
 
 func TestCheckClusterDeployment(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name               string
 		existingObjs       []runtime.Object
@@ -249,13 +253,14 @@ func TestCheckClusterDeployment(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
-			err := rbma.checkClusterDeployment(test.bma)
+			err := rbma.checkClusterDeployment(ctx, test.bma)
 			validateErrorAndStatusConditions(t, err, test.expectedErrorType, test.expectedConditions, test.bma)
 		})
 	}
 }
 
 func TestEnsureHiveSyncSet(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name               string
 		existingObjs       []runtime.Object
@@ -309,7 +314,7 @@ func TestEnsureHiveSyncSet(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
-			err := rbma.ensureHiveSyncSet(test.bma)
+			err := rbma.ensureHiveSyncSet(ctx, test.bma)
 			validateErrorAndStatusConditions(t, err, nil, test.expectedConditions, test.bma)
 
 			syncSet := &hivev1.SyncSet{}
@@ -331,6 +336,7 @@ func TestEnsureHiveSyncSet(t *testing.T) {
 }
 
 func TestCheckClusterSync(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name               string
 		existingObjs       []runtime.Object
@@ -373,13 +379,14 @@ func TestCheckClusterSync(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
-			assert.Equal(t, test.returnValue, rbma.checkHiveClusterSync(test.bma))
+			assert.Equal(t, test.returnValue, rbma.checkHiveClusterSync(ctx, test.bma))
 			validateErrorAndStatusConditions(t, nil, nil, test.expectedConditions, test.bma)
 		})
 	}
 }
 
 func TestDeleteSyncSet(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name         string
 		existingObjs []runtime.Object
@@ -399,7 +406,7 @@ func TestDeleteSyncSet(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
-			_, err := rbma.deleteSyncSet(test.bma)
+			_, err := rbma.deleteSyncSet(ctx, test.bma)
 			validateErrorAndStatusConditions(t, err, nil, nil, test.bma)
 		})
 	}

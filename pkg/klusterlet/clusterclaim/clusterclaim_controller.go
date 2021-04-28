@@ -33,12 +33,12 @@ type ClusterClaimReconciler struct {
 	ClusterClient     clusterclientset.Interface
 }
 
-func (r *ClusterClaimReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	err := r.syncClaims()
+func (r *ClusterClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	err := r.syncClaims(ctx)
 	return ctrl.Result{}, err
 }
 
-func (r *ClusterClaimReconciler) syncClaims() error {
+func (r *ClusterClaimReconciler) syncClaims(ctx context.Context) error {
 	r.Log.V(4).Info("Sync cluster claims")
 	claims, err := r.ListClusterClaims()
 	if err != nil {
@@ -47,18 +47,18 @@ func (r *ClusterClaimReconciler) syncClaims() error {
 
 	errs := []error{}
 	for _, claim := range claims {
-		if err := r.createOrUpdate(claim); err != nil {
+		if err := r.createOrUpdate(ctx, claim); err != nil {
 			errs = append(errs, err)
 		}
 	}
 	return utils.NewMultiLineAggregate(errs)
 }
 
-func (r *ClusterClaimReconciler) createOrUpdate(newClaim *clusterv1alpha1.ClusterClaim) error {
-	oldClaim, err := r.ClusterClient.ClusterV1alpha1().ClusterClaims().Get(context.Background(), newClaim.Name, metav1.GetOptions{})
+func (r *ClusterClaimReconciler) createOrUpdate(ctx context.Context, newClaim *clusterv1alpha1.ClusterClaim) error {
+	oldClaim, err := r.ClusterClient.ClusterV1alpha1().ClusterClaims().Get(ctx, newClaim.Name, metav1.GetOptions{})
 	switch {
 	case errors.IsNotFound(err):
-		_, err := r.ClusterClient.ClusterV1alpha1().ClusterClaims().Create(context.Background(), newClaim, metav1.CreateOptions{})
+		_, err := r.ClusterClient.ClusterV1alpha1().ClusterClaims().Create(ctx, newClaim, metav1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("unable to create ClusterClaim: %v, %w", newClaim, err)
 		}
@@ -66,7 +66,7 @@ func (r *ClusterClaimReconciler) createOrUpdate(newClaim *clusterv1alpha1.Cluste
 		return fmt.Errorf("unable to get ClusterClaim %q: %w", newClaim.Name, err)
 	case !reflect.DeepEqual(oldClaim.Spec, newClaim.Spec):
 		oldClaim.Spec = newClaim.Spec
-		_, err := r.ClusterClient.ClusterV1alpha1().ClusterClaims().Update(context.Background(), oldClaim, metav1.UpdateOptions{})
+		_, err := r.ClusterClient.ClusterV1alpha1().ClusterClaims().Update(ctx, oldClaim, metav1.UpdateOptions{})
 		if err != nil {
 			return fmt.Errorf("unable to update ClusterClaim %q: %w", oldClaim.Name, err)
 		}
@@ -75,8 +75,9 @@ func (r *ClusterClaimReconciler) createOrUpdate(newClaim *clusterv1alpha1.Cluste
 }
 
 func (r *ClusterClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	ctx := context.Background()
 	// create or update the claims before controller starts
-	if err := r.syncClaims(); err != nil {
+	if err := r.syncClaims(ctx); err != nil {
 		return err
 	}
 
@@ -110,7 +111,7 @@ type clusterClaimSource struct {
 
 var _ source.SyncingSource = &clusterClaimSource{}
 
-func (s *clusterClaimSource) Start(handler handler.EventHandler, queue workqueue.RateLimitingInterface,
+func (s *clusterClaimSource) Start(ctx context.Context, handler handler.EventHandler, queue workqueue.RateLimitingInterface,
 	predicates ...predicate.Predicate) error {
 	// all predicates are ignored
 	s.claimInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -128,10 +129,10 @@ func (s *clusterClaimSource) Start(handler handler.EventHandler, queue workqueue
 	return nil
 }
 
-func (s *clusterClaimSource) WaitForSync(stop <-chan struct{}) error {
-	go s.informerFactory.Start(stop)
+func (s *clusterClaimSource) WaitForSync(ctx context.Context) error {
+	go s.informerFactory.Start(ctx.Done())
 
-	if ok := cache.WaitForCacheSync(stop, s.claimInformer.HasSynced); !ok {
+	if ok := cache.WaitForCacheSync(ctx.Done(), s.claimInformer.HasSynced); !ok {
 		return fmt.Errorf("Never achieved initial sync")
 	}
 	return nil

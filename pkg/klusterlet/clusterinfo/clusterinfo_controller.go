@@ -3,11 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
-	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	"net"
 	"strings"
 	"time"
+
+	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 
 	"github.com/go-logr/logr"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
@@ -49,8 +50,7 @@ type ClusterInfoReconciler struct {
 	Agent                       *agent.Agent
 }
 
-func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := r.Log.WithValues("ManagedClusterInfo", req.NamespacedName)
 
 	clusterInfo := &clusterv1beta1.ManagedClusterInfo{}

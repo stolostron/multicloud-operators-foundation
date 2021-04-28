@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -25,6 +25,7 @@ func newTestCDReconciler(existingObjs []runtime.Object) (*ReconcileClusterDeploy
 }
 
 func TestCDReconcile(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name              string
 		existingObjs      []runtime.Object
@@ -121,7 +122,7 @@ func TestCDReconcile(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			rbma, client := newTestCDReconciler(test.existingObjs)
-			_, err := rbma.Reconcile(test.req)
+			_, err := rbma.Reconcile(ctx, test.req)
 			validateErrorAndStatusConditions(t, err, test.expectedErrorType, nil, nil)
 			cd := &hivev1.ClusterDeployment{}
 			err = client.Get(context.TODO(), types.NamespacedName{

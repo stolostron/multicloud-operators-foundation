@@ -6,7 +6,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
 
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
@@ -61,8 +61,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	clusterdeployment := &hivev1.ClusterDeployment{}
 	klog.V(5).Infof("reconcile: %+v", req)
 	err := r.client.Get(ctx, req.NamespacedName, clusterdeployment)

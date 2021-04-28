@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -158,6 +159,7 @@ func validateErrorAndStatusConditions(t *testing.T, err, expectedErrorType error
 }
 
 func TestReconcile(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name              string
 		existingObjs      []runtime.Object
@@ -218,7 +220,7 @@ func TestReconcile(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			svrc := newTestReconciler(test.existingObjs)
-			res, err := svrc.Reconcile(test.req)
+			res, err := svrc.Reconcile(ctx, test.req)
 			validateErrorAndStatusConditions(t, err, test.expectedErrorType, nil, nil)
 
 			if test.requeue {

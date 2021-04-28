@@ -74,8 +74,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	cluster := &clusterv1.ManagedCluster{}
 
 	err := r.client.Get(ctx, types.NamespacedName{Name: req.Name}, cluster)
