@@ -113,7 +113,6 @@ func (r *resourceCollector) reconcile(ctx context.Context) {
 	capacity[resourceCPUWorker] = cpuWorkerCapacity
 
 	capacity = r.updateCapcityByPrometheus(ctx, capacity)
-
 	if apiequality.Semantic.DeepEqual(capacity, cluster.Status.Capacity) {
 		return
 	}

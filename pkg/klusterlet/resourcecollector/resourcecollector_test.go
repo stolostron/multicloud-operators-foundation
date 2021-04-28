@@ -100,6 +100,18 @@ func TestReconcile(t *testing.T) {
 			prometheusData: model.Vector{},
 		},
 		{
+			name:             "no updates with same capacity",
+			resources:        []runtime.Object{newNode("node1", 1, true)},
+			existingCapacity: clusterapiv1.ResourceList{"cpu_worker": *resource.NewQuantity(1, resource.DecimalSI)},
+			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
+				assertActions(t, actions, "get", "create")
+			},
+			validateClusterActions: func(t *testing.T, actions []clienttesting.Action) {
+				assertActions(t, actions, "get")
+			},
+			prometheusData: model.Vector{},
+		},
+		{
 			name:      "missing node metrics",
 			resources: []runtime.Object{newConfigmap(string(ca))},
 			existingCapacity: clusterapiv1.ResourceList{
