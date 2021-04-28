@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-logr/logr"
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
-	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
+	restutil "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,7 +25,7 @@ type ViewReconciler struct {
 	Log                         logr.Logger
 	Scheme                      *runtime.Scheme
 	ManagedClusterDynamicClient dynamic.Interface
-	Mapper                      *restutils.Mapper
+	Mapper                      meta.RESTMapper
 }
 
 const (
@@ -101,7 +101,7 @@ func (r *ViewReconciler) queryResource(managedClusterView *viewv1beta1.ManagedCl
 
 	if scope.Resource == "" {
 		gvk := schema.GroupVersionKind{Group: scope.Group, Kind: scope.Kind, Version: scope.Version}
-		mapper, err := r.Mapper.MappingForGVK(gvk)
+		mapper, err := r.Mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
 			meta.SetStatusCondition(&managedClusterView.Status.Conditions, metav1.Condition{
 				Type:    viewv1beta1.ConditionViewProcessing,
@@ -113,7 +113,7 @@ func (r *ViewReconciler) queryResource(managedClusterView *viewv1beta1.ManagedCl
 		}
 		gvr = mapper.Resource
 	} else {
-		mapping, err := r.Mapper.MappingFor(scope.Resource)
+		mapping, err := restutil.MappingFor(r.Mapper, scope.Resource)
 		if err != nil {
 			meta.SetStatusCondition(&managedClusterView.Status.Conditions, metav1.Condition{
 				Type:    viewv1beta1.ConditionViewProcessing,
