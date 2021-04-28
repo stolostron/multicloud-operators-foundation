@@ -27,6 +27,7 @@ type AgentOptions struct {
 	EnableLeaderElection bool
 	EnableImpersonation  bool
 	InSecure             bool
+	ComponentNamespace   string
 }
 
 func NewAgentOptions() *AgentOptions {
@@ -86,6 +87,8 @@ func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.ClientCAFile, "client-ca-file", o.ClientCAFile, ""+
 		"If set, any request presenting a client certificate signed by one of the authorities in the client-ca-file "+
 		"is authenticated with an identity corresponding to the CommonName of the client certificate.")
+	fs.StringVar(&o.ComponentNamespace, "", o.ComponentNamespace, ""+
+		"Namespace of the agent running If not set, use the value in /var/run/secrets/kubernetes.io/serviceaccount/namespace")
 
 	flag.InitFlags()
 }
