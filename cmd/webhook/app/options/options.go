@@ -11,17 +11,19 @@ import (
 
 // Config contains the server (the webhook) cert and key.
 type Options struct {
-	CertFile       string
-	KeyFile        string
-	KubeConfigFile string
+	CertFile                          string
+	KeyFile                           string
+	KubeConfigFile                    string
+	EnableManagedClustersetValidating bool
 }
 
 // NewOptions constructs a new set of default options for webhook.
 func NewOptions() *Options {
 	return &Options{
-		KubeConfigFile: "",
-		CertFile:       "",
-		KeyFile:        "",
+		KubeConfigFile:                    "",
+		CertFile:                          "",
+		KeyFile:                           "",
+		EnableManagedClustersetValidating: false,
 	}
 }
 
@@ -33,6 +35,8 @@ func (c *Options) AddFlags(fs *pflag.FlagSet) {
 		"File containing the default x509 private key matching --tls-cert-file.")
 	fs.StringVar(&c.KubeConfigFile, "kube-config-file", c.KubeConfigFile, ""+
 		"Kube configuration file")
+	fs.BoolVar(&c.EnableManagedClustersetValidating, "enable-managedclusterset-validating", c.EnableManagedClustersetValidating,
+		"enable managedclusterset validating")
 }
 
 func ConfigTLS(o *Options) *tls.Config {

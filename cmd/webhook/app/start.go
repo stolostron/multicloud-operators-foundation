@@ -2,10 +2,11 @@ package app
 
 import (
 	"fmt"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/clusterset"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/useridentity"
 	"net/http"
 	"time"
+
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/clusterset"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/useridentity"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
 	"k8s.io/client-go/informers"
@@ -39,6 +40,7 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 
 	validatingAh := &clusterset.AdmissionHandler{
 		KubeClient: kubeClientSet,
+		Enable:     opts.EnableManagedClustersetValidating,
 	}
 
 	go informerFactory.Start(stopCh)
@@ -49,6 +51,7 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 	}
 
 	http.HandleFunc("/mutating", mutatingAh.ServeMutateResource)
+
 	http.HandleFunc("/validating", validatingAh.ServerValidateResource)
 
 	server := &http.Server{
