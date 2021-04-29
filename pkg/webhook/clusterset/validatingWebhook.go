@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	"io"
 	"io/ioutil"
+	"net/http"
+
+	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
+	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	v1 "k8s.io/api/admission/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -15,11 +17,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
-	"net/http"
 )
 
 type AdmissionHandler struct {
 	KubeClient kubernetes.Interface
+	Enable     bool
 }
 
 // toAdmissionResponse is a helper function to create an AdmissionResponse
@@ -111,6 +113,10 @@ const (
 func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.AdmissionResponse {
 	status := &v1.AdmissionResponse{
 		Allowed: true,
+	}
+	//TODO need improve later, may be in installer part to enable/disable it.
+	if !a.Enable {
+		return status
 	}
 	switch request.Resource {
 	case managedClustersGVR, clusterPoolsGVR:

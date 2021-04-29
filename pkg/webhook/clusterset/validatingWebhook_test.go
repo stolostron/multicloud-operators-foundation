@@ -1,14 +1,15 @@
 package clusterset
 
 import (
+	"reflect"
+	"testing"
+
 	v1 "k8s.io/api/admission/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
-	"reflect"
-	"testing"
 )
 
 const (
@@ -203,7 +204,7 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 				},
 			)
 
-			admissionHandler := &AdmissionHandler{KubeClient: kubeClient}
+			admissionHandler := &AdmissionHandler{KubeClient: kubeClient, Enable: true}
 
 			actualResponse := admissionHandler.validateResource(c.request)
 
