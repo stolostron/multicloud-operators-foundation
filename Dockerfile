@@ -1,4 +1,4 @@
-FROM docker.io/openshift/origin-release:golang-1.15 AS builder
+FROM registry.ci.openshift.org/open-cluster-management/builder:go1.16-linux AS builder
 WORKDIR /go/src/github.com/open-cluster-management/multicloud-operators-foundation
 COPY . .
 ENV GO_PACKAGE github.com/open-cluster-management/multicloud-operators-foundation

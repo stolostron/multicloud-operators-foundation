@@ -1,6 +1,6 @@
 module github.com/open-cluster-management/multicloud-operators-foundation
 
-go 1.15
+go 1.16
 
 replace k8s.io/client-go => k8s.io/client-go v0.20.0
 
