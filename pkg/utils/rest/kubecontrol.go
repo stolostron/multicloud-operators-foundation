@@ -51,18 +51,54 @@ type KubeControlInterface interface {
 }
 
 type KubeControl struct {
-	mapper        *Mapper
+	mapper        meta.RESTMapper
 	config        *rest.Config
 	dynamicClient dynamic.Interface
 }
 
-func NewKubeControl(mapper *Mapper, config *rest.Config) *KubeControl {
+func NewKubeControl(mapper meta.RESTMapper, config *rest.Config) *KubeControl {
 	dynamicClient := dynamic.NewForConfigOrDie(config)
 	return &KubeControl{
 		mapper:        mapper,
 		dynamicClient: dynamicClient,
 		config:        config,
 	}
+}
+
+func MappingFor(mapper meta.RESTMapper, resourceOrKindArg string) (*meta.RESTMapping, error) {
+	fullySpecifiedGVR, groupResource := schema.ParseResourceArg(resourceOrKindArg)
+	gvk := schema.GroupVersionKind{}
+	if fullySpecifiedGVR != nil {
+		gvk, _ = mapper.KindFor(*fullySpecifiedGVR)
+	}
+	if gvk.Empty() {
+		gvk, _ = mapper.KindFor(groupResource.WithVersion(""))
+	}
+	if !gvk.Empty() {
+		return mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	}
+
+	fullySpecifiedGVK, groupKind := schema.ParseKindArg(resourceOrKindArg)
+	if fullySpecifiedGVK == nil {
+		gvk = groupKind.WithVersion("")
+		fullySpecifiedGVK = &gvk
+	}
+
+	if !fullySpecifiedGVK.Empty() {
+		if mapping, err := mapper.RESTMapping(fullySpecifiedGVK.GroupKind(), fullySpecifiedGVK.Version); err == nil {
+			return mapping, nil
+		}
+	}
+
+	mapping, err := mapper.RESTMapping(groupKind, gvk.Version)
+	if err != nil {
+		// if we error out here, it is because we could not match a resource or a kind
+		// for the given argument. To maintain consistency with previous behavior,
+		// announce that a resource type could not be found.
+		return nil, fmt.Errorf("the server doesn't have a resource type %q", groupResource.Resource)
+	}
+
+	return mapping, nil
 }
 
 func (r *KubeControl) Impersonate(userID string, userGroups []string) KubeControlInterface {
@@ -104,7 +140,7 @@ func (r *KubeControl) Create(
 	}
 	gvk := obj.GroupVersionKind()
 
-	mapping, err := r.mapper.MappingForGVK(gvk)
+	mapping, err := r.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 	if err != nil {
 		return nil, err
 	}
@@ -132,12 +168,12 @@ func (r *KubeControl) Get(
 	var err error
 
 	if resource == "" {
-		mapping, err = r.mapper.MappingForGVK(*gvk)
+		mapping, err = r.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		mapping, err = r.mapper.MappingFor(resource)
+		mapping, err = MappingFor(r.mapper, resource)
 		if err != nil {
 			return nil, err
 		}
@@ -149,7 +185,7 @@ func (r *KubeControl) Get(
 // List resources
 func (r *KubeControl) List(
 	resource, namespace string, options *metav1.ListOptions, serverPrint bool) (runtime.Object, error) {
-	mapping, err := r.mapper.MappingFor(resource)
+	mapping, err := MappingFor(r.mapper, resource)
 	if err != nil {
 		return nil, err
 	}
@@ -167,12 +203,12 @@ func (r *KubeControl) Delete(gvk *schema.GroupVersionKind, resource, namespace, 
 	var err error
 
 	if resource != "" {
-		mapping, err = r.mapper.MappingFor(resource)
+		mapping, err = MappingFor(r.mapper, resource)
 		if err != nil {
 			return err
 		}
 	} else {
-		mapping, err = r.mapper.MappingForGVK(*gvk)
+		mapping, err = r.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 		if err != nil {
 			return err
 		}
@@ -187,7 +223,7 @@ func (r *KubeControl) Delete(gvk *schema.GroupVersionKind, resource, namespace, 
 
 func (r *KubeControl) Patch(
 	namespace, name string, gvk schema.GroupVersionKind, pt types.PatchType, data []byte) (runtime.Object, error) {
-	mapping, err := r.mapper.MappingForGVK(gvk)
+	mapping, err := r.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 	if err != nil {
 		return nil, err
 	}
@@ -203,7 +239,7 @@ func (r *KubeControl) Replace(namespace string, overwrite bool, raw runtime.RawE
 	}
 	gvk := obj.GroupVersionKind()
 
-	mapping, err := r.mapper.MappingForGVK(gvk)
+	mapping, err := r.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +249,7 @@ func (r *KubeControl) Replace(namespace string, overwrite bool, raw runtime.RawE
 }
 
 func (r *KubeControl) KindFor(resource schema.GroupVersionResource) (schema.GroupVersionKind, error) {
-	return r.mapper.Mapper().KindFor(resource)
+	return r.mapper.KindFor(resource)
 }
 
 func GeneratePatch(object runtime.Object, raw, originalRaw runtime.RawExtension) ([]byte, error) {

@@ -26,7 +26,6 @@ import (
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
-	cacheddiscovery "k8s.io/client-go/discovery/cached"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -36,6 +35,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/leaderelection"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	ctrlruntimelog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
@@ -107,6 +107,12 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		os.Exit(1)
 	}
 
+	restMapper, err := apiutil.NewDynamicRESTMapper(managedClusterConfig, apiutil.WithLazyDiscovery)
+	if err != nil {
+		setupLog.Error(err, "Unable to create restmapper.")
+		os.Exit(1)
+	}
+
 	componentNamespace := o.ComponentNamespace
 	if len(componentNamespace) == 0 {
 		componentNamespace, err = utils.GetComponentNamespace()
@@ -137,11 +143,6 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			os.Exit(1)
 		}
 
-		// run mapper
-		discoveryClient := cacheddiscovery.NewMemCacheClient(managedClusterKubeClient.Discovery())
-		mapper := restutils.NewMapper(discoveryClient, ctx.Done())
-		mapper.Run()
-
 		kubeInformerFactory := informers.NewSharedInformerFactory(managedClusterKubeClient, 10*time.Minute)
 		clusterInformerFactory := clusterinformers.NewSharedInformerFactory(managedClusterClusterClient, 10*time.Minute)
 
@@ -162,7 +163,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			ctrl.Log.WithName("controllers").WithName("ManagedClusterAction"),
 			mgr.GetScheme(),
 			managedClusterDynamicClient,
-			restutils.NewKubeControl(mapper, managedClusterConfig),
+			restutils.NewKubeControl(restMapper, managedClusterConfig),
 			o.EnableImpersonation,
 		)
 		viewReconciler := &viewctrl.ViewReconciler{
@@ -170,7 +171,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			Log:                         ctrl.Log.WithName("controllers").WithName("ManagedClusterView"),
 			Scheme:                      mgr.GetScheme(),
 			ManagedClusterDynamicClient: managedClusterDynamicClient,
-			Mapper:                      mapper,
+			Mapper:                      restMapper,
 		}
 
 		clusterInfoReconciler := clusterinfoctl.ClusterInfoReconciler{

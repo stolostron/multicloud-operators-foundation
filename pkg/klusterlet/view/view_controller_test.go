@@ -9,7 +9,6 @@ import (
 
 	tlog "github.com/go-logr/logr/testing"
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
-	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -136,7 +135,7 @@ func newTestReconciler(existingObjs []runtime.Object) *ViewReconciler {
 		Log:                         tlog.NullLogger{},
 		Scheme:                      scheme,
 		ManagedClusterDynamicClient: dynamicfake.NewSimpleDynamicClient(scheme, newUnstructured()),
-		Mapper:                      restutils.NewFakeMapper(resources),
+		Mapper:                      newFakeRestMapper(resources),
 	}
 
 	return viewReconciler
@@ -347,7 +346,7 @@ func TestQueryResource(t *testing.T) {
 					},
 				},
 			},
-			expectedErrorType: fmt.Errorf("the server doesn't have a resource type \"Deployment\""),
+			expectedErrorType: fmt.Errorf("no matches for kind \"Deployment\" in version \"core/v1\""),
 			expectedConditions: []metav1.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
@@ -410,4 +409,8 @@ func TestQueryResource(t *testing.T) {
 			validateErrorAndStatusConditions(t, err, test.expectedErrorType, test.expectedConditions, test.managedClusterView)
 		})
 	}
+}
+
+func newFakeRestMapper(resources []*restmapper.APIGroupResources) meta.RESTMapper {
+	return restmapper.NewDiscoveryRESTMapper(resources)
 }

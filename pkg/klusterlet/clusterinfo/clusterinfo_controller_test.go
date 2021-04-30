@@ -186,9 +186,9 @@ func NewClusterInfoReconciler() *ClusterInfoReconciler {
 	}
 	return &ClusterInfoReconciler{
 		Log:           tlog.NullLogger{},
+		NodeLister:    informerFactory.Core().V1().Nodes().Lister(),
 		KubeClient:    fakeKubeClient,
 		ClusterName:   clusterName,
-		NodeLister:    informerFactory.Core().V1().Nodes().Lister(),
 		ClaimLister:   clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
 		RouteV1Client: fakeRouteV1Client,
 		AgentAddress:  "127.0.0.1:8000",
@@ -209,9 +209,9 @@ func NewFailedClusterInfoReconciler() *ClusterInfoReconciler {
 	store.Add(newNode())
 	return &ClusterInfoReconciler{
 		Log:           tlog.NullLogger{},
+		NodeLister:    informerFactory.Core().V1().Nodes().Lister(),
 		KubeClient:    fakeKubeClient,
 		ClusterName:   clusterName,
-		NodeLister:    informerFactory.Core().V1().Nodes().Lister(),
 		ClaimLister:   clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
 		RouteV1Client: fakeRouteV1Client,
 		AgentAddress:  "127.0.0.1:8000",
