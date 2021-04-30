@@ -9,7 +9,8 @@ import (
 	"net/http"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
+
 	v1 "k8s.io/api/admission/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"

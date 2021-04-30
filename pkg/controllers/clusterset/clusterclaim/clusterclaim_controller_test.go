@@ -14,7 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 )
 
 var (
@@ -54,7 +54,7 @@ func newTestReconciler(clusterpoolObjs []runtime.Object, clusterclaimObjs []runt
 }
 
 func TestReconcile(t *testing.T) {
-
+	ctx := context.Background()
 	tests := []struct {
 		name             string
 		clusterClaimObjs []runtime.Object
@@ -134,7 +134,7 @@ func TestReconcile(t *testing.T) {
 
 	for _, test := range tests {
 		r := newTestReconciler(test.clusterPools, test.clusterClaimObjs)
-		r.Reconcile(test.req)
+		r.Reconcile(ctx, test.req)
 		validateResult(t, r, test.name, test.req, test.expectedlabel)
 	}
 }

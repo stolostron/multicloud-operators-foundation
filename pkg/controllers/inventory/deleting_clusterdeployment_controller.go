@@ -5,7 +5,7 @@ import (
 
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -41,9 +41,9 @@ func addCDReconciler(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	err = c.Watch(
 		&source.Kind{Type: &inventoryv1alpha1.BareMetalAsset{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(func(a handler.MapObject) []reconcile.Request {
-				bma, ok := a.Object.(*inventoryv1alpha1.BareMetalAsset)
+		handler.EnqueueRequestsFromMapFunc(
+			handler.MapFunc(func(a client.Object) []reconcile.Request {
+				bma, ok := a.(*inventoryv1alpha1.BareMetalAsset)
 				if !ok {
 					// not a Deployment, returning empty
 					klog.Error("bma handler received bma object")
@@ -60,7 +60,7 @@ func addCDReconciler(mgr manager.Manager, r reconcile.Reconciler) error {
 				}
 				return requests
 			}),
-		})
+		))
 
 	return nil
 }
@@ -73,11 +73,11 @@ type ReconcileClusterDeployment struct {
 	scheme *runtime.Scheme
 }
 
-func (r *ReconcileClusterDeployment) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileClusterDeployment) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	klog.Info("Reconciling ClusterDeployment")
 	// Fetch the BareMetalAsset instance
 	instance := &hivev1.ClusterDeployment{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	err := r.client.Get(ctx, request.NamespacedName, instance)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -90,11 +90,11 @@ func (r *ReconcileClusterDeployment) Reconcile(request reconcile.Request) (recon
 	}
 
 	if !instance.GetDeletionTimestamp().IsZero() {
-		return reconcile.Result{}, r.removeClusterDeploymentFinalizer(instance)
+		return reconcile.Result{}, r.removeClusterDeploymentFinalizer(ctx, instance)
 	}
 
 	bmas := &inventoryv1alpha1.BareMetalAssetList{}
-	err = r.client.List(context.TODO(), bmas,
+	err = r.client.List(ctx, bmas,
 		client.MatchingLabels{
 			ClusterDeploymentNameLabel:      instance.Name,
 			ClusterDeploymentNamespaceLabel: instance.Namespace,
@@ -111,19 +111,19 @@ func (r *ReconcileClusterDeployment) Reconcile(request reconcile.Request) (recon
 	if !contains(instance.GetFinalizers(), BareMetalAssetFinalizer) {
 		klog.Info("Finalizer not found for BareMetalAsset. Adding finalizer")
 		instance.ObjectMeta.Finalizers = append(instance.ObjectMeta.Finalizers, BareMetalAssetFinalizer)
-		return reconcile.Result{}, r.client.Update(context.TODO(), instance)
+		return reconcile.Result{}, r.client.Update(ctx, instance)
 	}
 
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileClusterDeployment) removeClusterDeploymentFinalizer(instance *hivev1.ClusterDeployment) error {
+func (r *ReconcileClusterDeployment) removeClusterDeploymentFinalizer(ctx context.Context, instance *hivev1.ClusterDeployment) error {
 	if !contains(instance.GetFinalizers(), BareMetalAssetFinalizer) {
 		return nil
 	}
 
 	bmas := &inventoryv1alpha1.BareMetalAssetList{}
-	err := r.client.List(context.TODO(), bmas,
+	err := r.client.List(ctx, bmas,
 		client.MatchingLabels{
 			ClusterDeploymentNameLabel:      instance.Name,
 			ClusterDeploymentNamespaceLabel: instance.Namespace,
@@ -140,7 +140,7 @@ func (r *ReconcileClusterDeployment) removeClusterDeploymentFinalizer(instance *
 		}
 		bmaCopy.Spec.ClusterDeployment.Name = ""
 		bmaCopy.Spec.ClusterDeployment.Namespace = ""
-		err := r.client.Update(context.TODO(), bmaCopy)
+		err := r.client.Update(ctx, bmaCopy)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -151,5 +151,5 @@ func (r *ReconcileClusterDeployment) removeClusterDeploymentFinalizer(instance *
 	}
 
 	instance.ObjectMeta.Finalizers = remove(instance.ObjectMeta.Finalizers, BareMetalAssetFinalizer)
-	return r.client.Update(context.TODO(), instance)
+	return r.client.Update(ctx, instance)
 }

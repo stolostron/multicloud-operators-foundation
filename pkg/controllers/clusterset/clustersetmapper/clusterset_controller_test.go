@@ -10,7 +10,7 @@ import (
 	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/rest"
 
@@ -99,6 +99,7 @@ func newAdminRoleObjs() []runtime.Object {
 }
 
 func TestReconcile(t *testing.T) {
+	ctx := context.Background()
 	ms2 := map[string]sets.String{ManagedClusterSetName: sets.NewString(ManagedClusterName)}
 
 	ctc1 := generateClustersetToClusters(ms2)
@@ -213,7 +214,7 @@ func TestReconcile(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			r := newTestReconciler(test.existingObjs, test.existingRoleObjs, test.clusterSetClusterMapper, test.clusterSetNamespaceMapper)
-			r.Reconcile(test.req)
+			r.Reconcile(ctx, test.req)
 
 			clusterroleName := utils.GenerateClustersetClusterroleName(ManagedClusterSetName, "admin")
 			clusterrole, _ := r.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), clusterroleName, metav1.GetOptions{})

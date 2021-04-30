@@ -1,6 +1,7 @@
 package clusterrbac
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -67,6 +68,7 @@ func newTestReconciler(existingObjs, existingRoleOjb []runtime.Object) *Reconcil
 }
 
 func TestReconcile(t *testing.T) {
+	ctx := context.Background()
 	tests := []struct {
 		name              string
 		existingObjs      []runtime.Object
@@ -128,7 +130,7 @@ func TestReconcile(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			svrc := newTestReconciler(test.existingObjs, test.existingRoleOjbs)
-			res, err := svrc.Reconcile(test.req)
+			res, err := svrc.Reconcile(ctx, test.req)
 			validateError(t, err, test.expectedErrorType)
 			assert.Equal(t, res.Requeue, false)
 		})

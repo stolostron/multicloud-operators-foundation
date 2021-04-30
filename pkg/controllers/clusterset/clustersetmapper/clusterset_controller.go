@@ -9,7 +9,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
 
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -74,17 +74,19 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 	// Watch for changes to ClusterPool
 	err = c.Watch(
 		&source.Kind{Type: &hivev1.ClusterPool{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(func(a handler.MapObject) []reconcile.Request {
-				clusterPool, ok := a.Object.(*hivev1.ClusterPool)
+		handler.EnqueueRequestsFromMapFunc(
+			handler.MapFunc(func(a client.Object) []reconcile.Request {
+				clusterPool, ok := a.(*hivev1.ClusterPool)
 				if !ok {
 					klog.Error("clusterPool handler received non-clusterPool object")
 					return []reconcile.Request{}
 				}
 				requests := getRequiredClusterSet(clusterPool.Labels, clusterSetNamespaceMapper, clusterPool.Namespace)
 				return requests
-			}),
-		})
+			},
+			),
+		),
+	)
 	if err != nil {
 		return err
 	}
@@ -92,9 +94,9 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 	// Watch for changes to ClusterClaim
 	err = c.Watch(
 		&source.Kind{Type: &hivev1.ClusterClaim{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(func(a handler.MapObject) []reconcile.Request {
-				clusterClaim, ok := a.Object.(*hivev1.ClusterClaim)
+		handler.EnqueueRequestsFromMapFunc(
+			handler.MapFunc(func(a client.Object) []reconcile.Request {
+				clusterClaim, ok := a.(*hivev1.ClusterClaim)
 				if !ok {
 					klog.Error("clusterClaim handler received non-clusterClaim object")
 					return []reconcile.Request{}
@@ -102,7 +104,7 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 				requests := getRequiredClusterSet(clusterClaim.Labels, clusterSetNamespaceMapper, clusterClaim.Namespace)
 				return requests
 			}),
-		})
+		))
 	if err != nil {
 		return err
 	}
@@ -110,9 +112,9 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 	// Watch for changes to ClusterDeployment
 	err = c.Watch(
 		&source.Kind{Type: &hivev1.ClusterDeployment{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(func(a handler.MapObject) []reconcile.Request {
-				clusterDeployment, ok := a.Object.(*hivev1.ClusterDeployment)
+		handler.EnqueueRequestsFromMapFunc(
+			handler.MapFunc(func(a client.Object) []reconcile.Request {
+				clusterDeployment, ok := a.(*hivev1.ClusterDeployment)
 				if !ok {
 					klog.Error("clusterDeployment handler received non-clusterDeployment object")
 					return []reconcile.Request{}
@@ -120,7 +122,7 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 				requests := getRequiredClusterSet(clusterDeployment.Labels, clusterSetNamespaceMapper, clusterDeployment.Namespace)
 				return requests
 			}),
-		})
+		))
 	if err != nil {
 		return err
 	}
@@ -128,9 +130,9 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 	// Watch for changes to ManagedCluster
 	err = c.Watch(
 		&source.Kind{Type: &clusterv1.ManagedCluster{}},
-		&handler.EnqueueRequestsFromMapFunc{
-			ToRequests: handler.ToRequestsFunc(func(a handler.MapObject) []reconcile.Request {
-				managedCluster, ok := a.Object.(*clusterv1.ManagedCluster)
+		handler.EnqueueRequestsFromMapFunc(
+			handler.MapFunc(func(a client.Object) []reconcile.Request {
+				managedCluster, ok := a.(*clusterv1.ManagedCluster)
 				if !ok {
 					klog.Error("managedCluster handler received non-managedCluster object")
 					return []reconcile.Request{}
@@ -138,7 +140,7 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 				requests := getRequiredClusterSet(managedCluster.Labels, clusterSetClusterMapper, managedCluster.Name)
 				return requests
 			}),
-		})
+		))
 	if err != nil {
 		return err
 	}
@@ -174,9 +176,7 @@ func getRequiredClusterSet(labels map[string]string, clusterSetMapper *helpers.C
 	return requests
 }
 
-func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
-
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	clusterset := &clusterv1alpha1.ManagedClusterSet{}
 
 	err := r.client.Get(ctx, types.NamespacedName{Name: req.Name}, clusterset)

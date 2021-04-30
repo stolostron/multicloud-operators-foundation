@@ -21,12 +21,13 @@ func newClusterClaimReconciler(clusterClient clusterclientset.Interface, listFun
 }
 
 func TestCreateOrUpdate(t *testing.T) {
+	ctx := context.Background()
 	// create
 	clusterClient := clusterfake.NewSimpleClientset()
 	reconciler := newClusterClaimReconciler(clusterClient, nil)
 
 	claim1 := newClusterClaim("x", "y")
-	if err := reconciler.createOrUpdate(claim1); err != nil {
+	if err := reconciler.createOrUpdate(ctx, claim1); err != nil {
 		t.Errorf("Failed to create or update cluster claim: %v", err)
 	}
 
@@ -43,7 +44,7 @@ func TestCreateOrUpdate(t *testing.T) {
 	reconciler = newClusterClaimReconciler(clusterClient, nil)
 
 	claim1 = newClusterClaim("x", "z")
-	if err := reconciler.createOrUpdate(claim1); err != nil {
+	if err := reconciler.createOrUpdate(ctx, claim1); err != nil {
 		t.Errorf("Failed to create or update cluster claim: %v", err)
 	}
 
@@ -57,6 +58,7 @@ func TestCreateOrUpdate(t *testing.T) {
 }
 
 func TestSyncClaims(t *testing.T) {
+	ctx := context.Background()
 	expected := []*clusterv1alpha1.ClusterClaim{
 		newClusterClaim("x", "1"),
 		newClusterClaim("y", "2"),
@@ -68,7 +70,7 @@ func TestSyncClaims(t *testing.T) {
 		return expected, nil
 	})
 
-	if err := reconciler.syncClaims(); err != nil {
+	if err := reconciler.syncClaims(ctx); err != nil {
 		t.Errorf("Failed to sync cluster claims: %v", err)
 	}
 
