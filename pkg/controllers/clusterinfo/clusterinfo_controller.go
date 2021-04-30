@@ -30,23 +30,28 @@ const (
 	clusterFinalizerName = "managedclusterinfo.finalizers.open-cluster-management.io"
 )
 
-type Reconciler struct {
+type ClusterInfReconciler struct {
 	client client.Client
 	scheme *runtime.Scheme
 	caData []byte
 }
 
 func SetupWithManager(mgr manager.Manager, caData []byte) error {
-	if err := add(mgr, newReconciler(mgr, caData)); err != nil {
-		klog.Errorf("Failed to create ManagedClusterInfo controller, %v", err)
+	if err := add(mgr, newClusterInfoReconciler(mgr, caData)); err != nil {
+		return err
+	}
+	if err := add(mgr, newAutoDetectReconciler(mgr)); err != nil {
+		return err
+	}
+	if err := add(mgr, newCapacityReconciler(mgr)); err != nil {
 		return err
 	}
 	return nil
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, caData []byte) reconcile.Reconciler {
-	return &Reconciler{
+func newClusterInfoReconciler(mgr manager.Manager, caData []byte) reconcile.Reconciler {
+	return &ClusterInfReconciler{
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
 		caData: caData,
@@ -74,7 +79,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	return nil
 }
 
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ClusterInfReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	cluster := &clusterv1.ManagedCluster{}
 
 	err := r.client.Get(ctx, types.NamespacedName{Name: req.Name}, cluster)
@@ -86,43 +91,29 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		// The object is being deleted
 		if utils.ContainsString(cluster.GetFinalizers(), clusterFinalizerName) {
-			klog.Infof("deleting ManagedClusterInfo %v", cluster.Name)
-			err := r.deleteExternalResources(cluster.Name, cluster.Name)
+			err := r.deleteClusterInfo(cluster.Name)
 			if err != nil {
-				klog.Warningf("will reconcile since failed to delete ManagedClusterInfo %v : %v", cluster.Name, err)
 				return reconcile.Result{}, err
 			}
 
-			klog.Infof("removing ManagedClusterInfo Finalizer in ManagedCluster %v", cluster.Name)
 			cluster.ObjectMeta.Finalizers = utils.RemoveString(cluster.ObjectMeta.Finalizers, clusterFinalizerName)
-			if err := r.client.Update(context.TODO(), cluster); err != nil {
-				klog.Warningf("will reconcile since failed to remove Finalizer from ManagedCluster %v, %v", cluster.Name, err)
-				return reconcile.Result{}, err
-			}
+			return reconcile.Result{}, r.client.Update(context.TODO(), cluster)
 		}
 
 		return reconcile.Result{}, nil
 	}
 
 	if !utils.ContainsString(cluster.GetFinalizers(), clusterFinalizerName) {
-		klog.Infof("adding ManagedClusterInfo Finalizer to ManagedCluster %v", cluster.Name)
 		cluster.ObjectMeta.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterFinalizerName)
-		if err := r.client.Update(context.TODO(), cluster); err != nil {
-			klog.Warningf("will reconcile since failed to add finalizer to ManagedCluster %v, %v", cluster.Name, err)
-			return reconcile.Result{}, err
-		}
+		return reconcile.Result{}, r.client.Update(context.TODO(), cluster)
 	}
 
 	clusterInfo := &clusterinfov1beta1.ManagedClusterInfo{}
 	err = r.client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Name}, clusterInfo)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			if err := r.client.Create(ctx, r.newClusterInfoByManagedCluster(cluster)); err != nil {
-				klog.Warningf("will reconcile since failed to create ManagedClusterInfo %v, %v", cluster.Name, err)
-				return ctrl.Result{}, err
-			}
-			return ctrl.Result{Requeue: true}, nil
-		}
+	switch {
+	case errors.IsNotFound(err):
+		return ctrl.Result{}, r.client.Create(ctx, r.newClusterInfoByManagedCluster(cluster))
+	case err != nil:
 		return ctrl.Result{}, err
 	}
 
@@ -135,11 +126,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		clusterInfo.Spec.MasterEndpoint != endpoint {
 		clusterInfo.Spec.LoggingCA = r.caData
 		clusterInfo.Spec.MasterEndpoint = endpoint
-		err = r.client.Update(ctx, clusterInfo)
-		if err != nil {
-			klog.Warningf("will reconcile since failed to update ManagedClusterInfo %v, %v", cluster.Name, err)
-			return ctrl.Result{}, err
-		}
+		return ctrl.Result{}, r.client.Update(ctx, clusterInfo)
 	}
 
 	// TODO: the conditions of managed cluster need to be deprecated.
@@ -160,21 +147,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-func (r *Reconciler) deleteExternalResources(name, namespace string) error {
+func (r *ClusterInfReconciler) deleteClusterInfo(name string) error {
 	err := r.client.Delete(context.Background(), &clusterinfov1beta1.ManagedClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: namespace,
+			Namespace: name,
 		},
 	})
-	if err != nil {
-		return client.IgnoreNotFound(err)
-	}
-
-	return nil
+	return client.IgnoreNotFound(err)
 }
 
-func (r *Reconciler) newClusterInfoByManagedCluster(cluster *clusterv1.ManagedCluster) *clusterinfov1beta1.ManagedClusterInfo {
+func (r *ClusterInfReconciler) newClusterInfoByManagedCluster(cluster *clusterv1.ManagedCluster) *clusterinfov1beta1.ManagedClusterInfo {
 	endpoint := ""
 	if len(cluster.Spec.ManagedClusterClientConfigs) != 0 {
 		endpoint = cluster.Spec.ManagedClusterClientConfigs[0].URL

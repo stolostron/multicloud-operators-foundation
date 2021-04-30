@@ -19,7 +19,7 @@ import (
 	actionctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/action"
 	clusterclaimctl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	clusterinfoctl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterinfo"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/resourcecollector"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/nodecollector"
 	viewctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/view"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
@@ -101,11 +101,6 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		setupLog.Error(err, "Unable to create managed cluster cluster clientset.")
 		os.Exit(1)
 	}
-	managedClusterHubClient, err := clusterclientset.NewForConfig(hubConfig)
-	if err != nil {
-		setupLog.Error(err, "Unable to create managed cluster hub clientset.")
-		os.Exit(1)
-	}
 
 	restMapper, err := apiutil.NewDynamicRESTMapper(managedClusterConfig, apiutil.WithLazyDiscovery)
 	if err != nil {
@@ -146,10 +141,10 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		kubeInformerFactory := informers.NewSharedInformerFactory(managedClusterKubeClient, 10*time.Minute)
 		clusterInformerFactory := clusterinformers.NewSharedInformerFactory(managedClusterClusterClient, 10*time.Minute)
 
-		resourceCollector := resourcecollector.NewCollector(
+		resourceCollector := nodecollector.NewCollector(
 			kubeInformerFactory.Core().V1().Nodes(),
 			managedClusterKubeClient,
-			managedClusterHubClient,
+			mgr.GetClient(),
 			o.ClusterName,
 			componentNamespace)
 		go resourceCollector.Start(ctx)

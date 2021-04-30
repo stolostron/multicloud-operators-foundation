@@ -17,7 +17,6 @@ import (
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/cache"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/autodetect"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterinfo"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrole"
@@ -142,11 +141,6 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 
 	if err = clusterinfo.SetupWithManager(mgr, caData); err != nil {
 		klog.Errorf("unable to setup clusterInfo reconciler: %v", err)
-		return err
-	}
-
-	if err = autodetect.SetupWithManager(mgr); err != nil {
-		klog.Errorf("unable to setup auto detect reconciler: %v", err)
 		return err
 	}
 

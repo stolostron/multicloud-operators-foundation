@@ -1,4 +1,4 @@
-package autodetect
+package clusterinfo
 
 import (
 	"context"
@@ -6,15 +6,11 @@ import (
 
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"k8s.io/apimachinery/pkg/runtime"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -29,61 +25,37 @@ const (
 	AutoDetect       = "auto-detect"
 )
 
-type Reconciler struct {
+// AutoDetectReconciler auto detects platform related labels and sync to managedcluster
+type AutoDetectReconciler struct {
 	client client.Client
 	scheme *runtime.Scheme
 }
 
-func SetupWithManager(mgr manager.Manager) error {
-	if err := add(mgr, newReconciler(mgr)); err != nil {
-		klog.Errorf("Failed to create auto-detect controller, %v", err)
-		return err
-	}
-	return nil
-}
-
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &Reconciler{
+// newAutoDetectReconciler returns a new reconcile.Reconciler
+func newAutoDetectReconciler(mgr manager.Manager) reconcile.Reconciler {
+	return &AutoDetectReconciler{
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
 	}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	// Create a new controller
-	c, err := controller.New("autodetect-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
-	err = c.Watch(&source.Kind{Type: &clusterv1.ManagedCluster{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	err = c.Watch(&source.Kind{Type: &clusterinfov1beta1.ManagedClusterInfo{}}, &handler.EnqueueRequestForObject{})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *AutoDetectReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	cluster := &clusterv1.ManagedCluster{}
 	err := r.client.Get(ctx, types.NamespacedName{Name: req.Name}, cluster)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	if !cluster.GetDeletionTimestamp().IsZero() {
+		return reconcile.Result{}, nil
+	}
+
 	clusterInfo := &clusterinfov1beta1.ManagedClusterInfo{}
 	err = r.client.Get(ctx, types.NamespacedName{Name: cluster.Name, Namespace: cluster.Name}, clusterInfo)
-	if err != nil {
-		if errors.IsNotFound(err) {
-			return ctrl.Result{Requeue: true}, nil
-		}
+	switch {
+	case errors.IsNotFound(err):
+		return ctrl.Result{}, nil
+	case err != nil:
 		return ctrl.Result{}, err
 	}
 

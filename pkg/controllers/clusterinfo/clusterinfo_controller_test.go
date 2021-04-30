@@ -116,8 +116,8 @@ func validateError(t *testing.T, err, expectedErrorType error) {
 	}
 }
 
-func newTestReconciler(existingObjs []runtime.Object) *Reconciler {
-	return &Reconciler{
+func newTestClusterInfoReconciler(existingObjs []runtime.Object) *ClusterInfReconciler {
+	return &ClusterInfReconciler{
 		client: fake.NewFakeClientWithScheme(scheme, existingObjs...),
 		scheme: scheme,
 		caData: []byte{},
@@ -143,7 +143,7 @@ func TestReconcile(t *testing.T) {
 			},
 		},
 		{
-			name: "ManagedClusterHasFinalizerWithoutClusterInfo",
+			name: "TerminatingManagedClusterHasFinalizerWithoutClusterInfo",
 			existingObjs: []runtime.Object{
 				&clusterv1.ManagedCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -170,6 +170,9 @@ func TestReconcile(t *testing.T) {
 				&clusterv1.ManagedCluster{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: ManagedClusterName,
+						Finalizers: []string{
+							clusterFinalizerName,
+						},
 					},
 					Spec: clusterv1.ManagedClusterSpec{
 						ManagedClusterClientConfigs: []clusterv1.ClientConfig{
@@ -187,7 +190,7 @@ func TestReconcile(t *testing.T) {
 					Name: ManagedClusterName,
 				},
 			},
-			requeue: true,
+			requeue: false,
 		},
 		{
 			name: "ManagedClusterNoFinalizerWithClusterInfo",
@@ -223,7 +226,7 @@ func TestReconcile(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			svrc := newTestReconciler(test.existingObjs)
+			svrc := newTestClusterInfoReconciler(test.existingObjs)
 			res, err := svrc.Reconcile(ctx, test.req)
 			validateError(t, err, test.expectedErrorType)
 			if test.requeue {

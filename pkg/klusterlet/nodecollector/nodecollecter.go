@@ -1,4 +1,4 @@
-package resourcecollector
+package nodecollector
 
 import (
 	"context"
@@ -7,10 +7,11 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
-	clusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterapiv1 "github.com/open-cluster-management/api/cluster/v1"
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	prometheusapi "github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	prometheusconfig "github.com/prometheus/common/config"
@@ -21,12 +22,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/wait"
 	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 const (
@@ -40,6 +43,13 @@ const (
 	defaultServer                                  = "https://prometheus-k8s.openshift-monitoring.svc:9091"
 	defaultTokenFile                               = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 	caConfigMapName                                = "ocm-controller-metrics-ca"
+
+	// LabelNodeRolePrefix is a label prefix for node roles
+	// It's copied over to here until it's merged in core: https://github.com/kubernetes/kubernetes/pull/39112
+	LabelNodeRolePrefix = "node-role.kubernetes.io/"
+
+	// NodeLabelRole specifies the role of a node
+	NodeLabelRole = "kubernetes.io/role"
 )
 
 // LeaseUpdater is to update lease with certain period
@@ -57,7 +67,7 @@ type resourceCollector struct {
 	nodeLister         corev1lister.NodeLister
 	nodeSynced         cache.InformerSynced
 	kubeClient         kubernetes.Interface
-	clusterClient      clusterclient.Interface
+	client             client.Client
 	clusterName        string
 	caData             []byte
 	tokenFile          string
@@ -68,12 +78,12 @@ type resourceCollector struct {
 func NewCollector(
 	nodeInformer corev1informers.NodeInformer,
 	kubeClient kubernetes.Interface,
-	clusterClient clusterclient.Interface, clusterName, componentNamespace string) Collector {
+	client client.Client, clusterName, componentNamespace string) Collector {
 	return &resourceCollector{
 		nodeLister:         nodeInformer.Lister(),
 		nodeSynced:         nodeInformer.Informer().HasSynced,
 		kubeClient:         kubeClient,
-		clusterClient:      clusterClient,
+		client:             client,
 		clusterName:        clusterName,
 		server:             defaultServer,
 		tokenFile:          defaultTokenFile,
@@ -90,41 +100,30 @@ func (r *resourceCollector) Start(ctx context.Context) {
 }
 
 func (r *resourceCollector) reconcile(ctx context.Context) {
-	cluster, err := r.clusterClient.ClusterV1().ManagedClusters().Get(ctx, r.clusterName, metav1.GetOptions{})
+	clusterinfo := &clusterv1beta1.ManagedClusterInfo{}
+	err := r.client.Get(ctx, types.NamespacedName{Namespace: r.clusterName, Name: r.clusterName}, clusterinfo)
 	if err != nil {
 		klog.Errorf("Failed to get cluster: %v", err)
 	}
-	capacity := cluster.DeepCopy().Status.Capacity
-	if capacity == nil {
-		capacity = clusterapiv1.ResourceList{}
-	}
 
-	// get cpu_worker from node list
-	nodes, err := r.nodeLister.List(labels.Everything())
+	nodeList, err := r.getNodeList()
 	if err != nil {
 		klog.Errorf("Failed to get nodes: %v", err)
 	}
-	cpuWorkerCapacity := *resource.NewQuantity(int64(0), resource.DecimalSI)
-	for _, node := range nodes {
-		if isWorker(node) {
-			cpuWorkerCapacity.Add(*node.Status.Capacity.Cpu())
-		}
-	}
-	capacity[resourceCPUWorker] = cpuWorkerCapacity
 
-	capacity = r.updateCapcityByPrometheus(ctx, capacity)
-	if apiequality.Semantic.DeepEqual(capacity, cluster.Status.Capacity) {
+	nodeList = r.updateCapcityByPrometheus(ctx, nodeList)
+	if apiequality.Semantic.DeepEqual(nodeList, clusterinfo.Status.NodeList) {
 		return
 	}
 
-	cluster.Status.Capacity = capacity
-	_, err = r.clusterClient.ClusterV1().ManagedClusters().UpdateStatus(ctx, cluster, metav1.UpdateOptions{})
+	clusterinfo.Status.NodeList = nodeList
+	err = r.client.Status().Update(ctx, clusterinfo)
 	if err != nil {
 		klog.Errorf("failed to update cluster resources: %v", err)
 	}
 }
 
-func (r *resourceCollector) updateCapcityByPrometheus(ctx context.Context, capacity clusterapiv1.ResourceList) clusterapiv1.ResourceList {
+func (r *resourceCollector) updateCapcityByPrometheus(ctx context.Context, nodes []clusterv1beta1.NodeStatus) []clusterv1beta1.NodeStatus {
 	// get sockert/core from prometheus
 	caData, err := r.getPrometheusCA(ctx)
 	if err != nil {
@@ -132,34 +131,35 @@ func (r *resourceCollector) updateCapcityByPrometheus(ctx context.Context, capac
 	}
 	if len(caData) == 0 {
 		klog.Errorf("CA data does not exist")
-		return capacity
+		return nodes
 	}
 
 	apiClient, err := r.newPrometheusClient(caData)
 	if err != nil {
 		klog.Errorf("Failed to create prometheus client: %v", err)
-		return capacity
+		return nodes
 	}
 
-	totalCore, workerCore, err := r.queryResource(ctx, apiClient, "machine_cpu_cores")
-	switch {
-	case err != nil:
+	cores, err := r.queryResource(ctx, apiClient, "machine_cpu_cores")
+	if err != nil {
 		klog.Errorf("failed to query resource: %v", err)
-	case totalCore != nil:
-		capacity[resourceCore] = *totalCore
-		capacity[resourceCoreWorker] = *workerCore
 	}
 
-	totalSocket, workerSocket, err := r.queryResource(ctx, apiClient, "machine_cpu_sockets")
-	switch {
-	case err != nil:
+	sockets, err := r.queryResource(ctx, apiClient, "machine_cpu_sockets")
+	if err != nil {
 		klog.Errorf("failed to query resource: %v", err)
-	case totalSocket != nil:
-		capacity[resourceSocket] = *totalSocket
-		capacity[resourceSocketWorker] = *workerSocket
 	}
 
-	return capacity
+	for index := range nodes {
+		if capacity, ok := cores[nodes[index].Name]; ok {
+			nodes[index].Capacity[resourceCore] = *capacity
+		}
+		if capacity, ok := sockets[nodes[index].Name]; ok {
+			nodes[index].Capacity[resourceSocket] = *capacity
+		}
+	}
+
+	return nodes
 }
 
 func (r *resourceCollector) getPrometheusCA(ctx context.Context) ([]byte, error) {
@@ -195,11 +195,11 @@ func (r *resourceCollector) getPrometheusCA(ctx context.Context) ([]byte, error)
 	return r.caData, nil
 }
 
-func (r *resourceCollector) queryResource(ctx context.Context, client prometheusv1.API, name string) (*resource.Quantity, *resource.Quantity, error) {
-	results := []queryResult{}
+func (r *resourceCollector) queryResource(ctx context.Context, client prometheusv1.API, name string) (map[string]*resource.Quantity, error) {
+	results := map[string]*resource.Quantity{}
 	result, warnings, err := client.Query(ctx, name, time.Now())
 	if err != nil {
-		return nil, nil, err
+		return results, err
 	}
 
 	if len(warnings) != 0 {
@@ -207,38 +207,19 @@ func (r *resourceCollector) queryResource(ctx context.Context, client prometheus
 	}
 
 	if result.Type() != prometheusmodel.ValVector {
-		return nil, nil, fmt.Errorf("the returrn data type is not correct: %v", result.Type())
+		return results, fmt.Errorf("the returrn data type is not correct: %v", result.Type())
 	}
 
 	vector := result.(prometheusmodel.Vector)
 	if len(vector) == 0 {
-		return nil, nil, nil
+		return results, nil
 	}
 	for _, v := range vector {
-		res := queryResult{val: v.Value}
 		nodeName := v.Metric["node"]
-		node, err := r.nodeLister.Get(string(nodeName))
-		if err != nil {
-			klog.Errorf("failed to get node: %v", err)
-			continue
-		}
-		res.isWorker = isWorker(node)
-		results = append(results, res)
+		results[string(nodeName)] = resource.NewQuantity(int64(v.Value), resource.DecimalSI)
 	}
 
-	var total, worker prometheusmodel.SampleValue
-	for _, res := range results {
-		total = total + res.val
-		if res.isWorker {
-			worker = worker + res.val
-		}
-	}
-
-	if total == 0 {
-		return nil, nil, nil
-	}
-
-	return resource.NewQuantity(int64(total), resource.DecimalSI), resource.NewQuantity(int64(worker), resource.DecimalSI), nil
+	return results, nil
 }
 
 func (r *resourceCollector) newPrometheusClient(caData []byte) (prometheusv1.API, error) {
@@ -275,14 +256,56 @@ func (r *resourceCollector) newPrometheusClient(caData []byte) (prometheusv1.API
 	return prometheusv1.NewAPI(client), nil
 }
 
-func isWorker(node *corev1.Node) bool {
-	if node.Labels == nil {
-		return false
+func (r *resourceCollector) getNodeList() ([]clusterv1beta1.NodeStatus, error) {
+	var nodeList []clusterv1beta1.NodeStatus
+	nodes, err := r.nodeLister.List(labels.Everything())
+	if err != nil {
+		return nil, err
 	}
+	for _, node := range nodes {
+		nodeStatus := clusterv1beta1.NodeStatus{
+			Name:       node.Name,
+			Labels:     map[string]string{},
+			Capacity:   clusterv1beta1.ResourceList{},
+			Conditions: []clusterv1beta1.NodeCondition{},
+		}
 
-	if _, ok := node.Labels["node-role.kubernetes.io/worker"]; ok {
-		return true
+		// The roles are determined by looking for:
+		// * a node-role.kubernetes.io/<role>="" label
+		// * a kubernetes.io/role="<role>" label
+		for k, v := range node.Labels {
+			switch k {
+			case NodeLabelRole, corev1.LabelFailureDomainBetaRegion, corev1.LabelFailureDomainBetaZone, corev1.LabelInstanceType, corev1.LabelInstanceTypeStable:
+				nodeStatus.Labels[k] = v
+			}
+			if strings.HasPrefix(k, LabelNodeRolePrefix) {
+				nodeStatus.Labels[k] = v
+			}
+		}
+
+		// append capacity of cpu and memory
+		for k, v := range node.Status.Capacity {
+			switch {
+			case k == corev1.ResourceCPU:
+				nodeStatus.Capacity[clusterv1beta1.ResourceCPU] = v
+			case k == corev1.ResourceMemory:
+				nodeStatus.Capacity[clusterv1beta1.ResourceMemory] = v
+			}
+		}
+
+		// append condition of NodeReady
+		readyCondition := clusterv1beta1.NodeCondition{
+			Type: corev1.NodeReady,
+		}
+		for _, condition := range node.Status.Conditions {
+			if condition.Type == corev1.NodeReady {
+				readyCondition.Status = condition.Status
+				break
+			}
+		}
+		nodeStatus.Conditions = append(nodeStatus.Conditions, readyCondition)
+
+		nodeList = append(nodeList, nodeStatus)
 	}
-
-	return false
+	return nodeList, nil
 }
