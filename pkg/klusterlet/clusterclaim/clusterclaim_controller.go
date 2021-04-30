@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/go-logr/logr"
 	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
+	clusterv1alpha1informer "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -31,6 +30,7 @@ type ClusterClaimReconciler struct {
 	Log               logr.Logger
 	ListClusterClaims ListClusterClaimsFunc
 	ClusterClient     clusterclientset.Interface
+	ClusterInfomers   clusterv1alpha1informer.ClusterClaimInformer
 }
 
 func (r *ClusterClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -87,26 +87,23 @@ func (r *ClusterClaimReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return err
 	}
 
-	source := newClusterClaimSource(r.ClusterClient)
-	if err := c.Watch(source, &clusterClaimEventHandler{}); err != nil {
+	source := NewClusterClaimSource(r.ClusterInfomers)
+	if err := c.Watch(source, &ClusterClaimEventHandler{}); err != nil {
 		return err
 	}
 	return nil
 }
 
 // newClusterClaimSource returns an event source for cluster claims
-func newClusterClaimSource(clusterClient clusterclientset.Interface) source.Source {
-	informerFactory := clusterinformers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
+func NewClusterClaimSource(clusterInfomers clusterv1alpha1informer.ClusterClaimInformer) source.Source {
 	return &clusterClaimSource{
-		informerFactory: informerFactory,
-		claimInformer:   informerFactory.Cluster().V1alpha1().ClusterClaims().Informer(),
+		claimInformer: clusterInfomers.Informer(),
 	}
 }
 
 // clusterClaimSource is the event source of cluster claims on managed cluster.
 type clusterClaimSource struct {
-	informerFactory clusterinformers.SharedInformerFactory
-	claimInformer   cache.SharedIndexInformer
+	claimInformer cache.SharedIndexInformer
 }
 
 var _ source.SyncingSource = &clusterClaimSource{}
@@ -130,31 +127,29 @@ func (s *clusterClaimSource) Start(ctx context.Context, handler handler.EventHan
 }
 
 func (s *clusterClaimSource) WaitForSync(ctx context.Context) error {
-	go s.informerFactory.Start(ctx.Done())
-
 	if ok := cache.WaitForCacheSync(ctx.Done(), s.claimInformer.HasSynced); !ok {
 		return fmt.Errorf("Never achieved initial sync")
 	}
 	return nil
 }
 
-// clusterClaimEventHandler maps any event to an empty request
-type clusterClaimEventHandler struct{}
+// ClusterClaimEventHandler maps any event to an empty request
+type ClusterClaimEventHandler struct{}
 
-var _ handler.EventHandler = &clusterClaimEventHandler{}
+var _ handler.EventHandler = &ClusterClaimEventHandler{}
 
-func (e *clusterClaimEventHandler) Create(evt event.CreateEvent, q workqueue.RateLimitingInterface) {
+func (e *ClusterClaimEventHandler) Create(evt event.CreateEvent, q workqueue.RateLimitingInterface) {
 	q.Add(reconcile.Request{})
 }
 
-func (e *clusterClaimEventHandler) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
+func (e *ClusterClaimEventHandler) Update(evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
 	q.Add(reconcile.Request{})
 }
 
-func (e *clusterClaimEventHandler) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
+func (e *ClusterClaimEventHandler) Delete(evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
 	q.Add(reconcile.Request{})
 }
 
-func (e *clusterClaimEventHandler) Generic(evt event.GenericEvent, q workqueue.RateLimitingInterface) {
+func (e *ClusterClaimEventHandler) Generic(evt event.GenericEvent, q workqueue.RateLimitingInterface) {
 	q.Add(reconcile.Request{})
 }

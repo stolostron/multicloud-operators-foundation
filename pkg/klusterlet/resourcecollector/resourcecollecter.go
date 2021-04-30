@@ -20,8 +20,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/wait"
+	corev1informers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
+	corev1lister "k8s.io/client-go/listers/core/v1"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 )
 
@@ -32,6 +36,7 @@ const (
 	resourceSocket       clusterapiv1.ResourceName = "socket"
 	resourceCoreWorker   clusterapiv1.ResourceName = "core_worker"
 	resourceSocketWorker clusterapiv1.ResourceName = "socket_worker"
+	resourceCPUWorker    clusterapiv1.ResourceName = "cpu_worker"
 	defaultServer                                  = "https://prometheus-k8s.openshift-monitoring.svc:9091"
 	defaultTokenFile                               = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 	caConfigMapName                                = "ocm-controller-metrics-ca"
@@ -49,6 +54,8 @@ type queryResult struct {
 }
 
 type resourceCollector struct {
+	nodeLister         corev1lister.NodeLister
+	nodeSynced         cache.InformerSynced
 	kubeClient         kubernetes.Interface
 	clusterClient      clusterclient.Interface
 	clusterName        string
@@ -58,8 +65,13 @@ type resourceCollector struct {
 	componentNamespace string
 }
 
-func NewCollector(kubeClient kubernetes.Interface, clusterClient clusterclient.Interface, clusterName, componentNamespace string) Collector {
+func NewCollector(
+	nodeInformer corev1informers.NodeInformer,
+	kubeClient kubernetes.Interface,
+	clusterClient clusterclient.Interface, clusterName, componentNamespace string) Collector {
 	return &resourceCollector{
+		nodeLister:         nodeInformer.Lister(),
+		nodeSynced:         nodeInformer.Informer().HasSynced,
 		kubeClient:         kubeClient,
 		clusterClient:      clusterClient,
 		clusterName:        clusterName,
@@ -70,30 +82,66 @@ func NewCollector(kubeClient kubernetes.Interface, clusterClient clusterclient.I
 }
 
 func (r *resourceCollector) Start(ctx context.Context) {
+	if !cache.WaitForCacheSync(ctx.Done(), r.nodeSynced) {
+		klog.Errorf("Failed to sync node cache")
+		return
+	}
 	wait.JitterUntilWithContext(context.TODO(), r.reconcile, time.Duration(updateInterval)*time.Second, updateJitterFactor, true)
 }
 
 func (r *resourceCollector) reconcile(ctx context.Context) {
+	cluster, err := r.clusterClient.ClusterV1().ManagedClusters().Get(ctx, r.clusterName, metav1.GetOptions{})
+	if err != nil {
+		klog.Errorf("Failed to get cluster: %v", err)
+	}
+	capacity := cluster.DeepCopy().Status.Capacity
+	if capacity == nil {
+		capacity = clusterapiv1.ResourceList{}
+	}
+
+	// get cpu_worker from node list
+	nodes, err := r.nodeLister.List(labels.Everything())
+	if err != nil {
+		klog.Errorf("Failed to get nodes: %v", err)
+	}
+	cpuWorkerCapacity := *resource.NewQuantity(int64(0), resource.DecimalSI)
+	for _, node := range nodes {
+		if isWorker(node) {
+			cpuWorkerCapacity.Add(*node.Status.Capacity.Cpu())
+		}
+	}
+	capacity[resourceCPUWorker] = cpuWorkerCapacity
+
+	capacity = r.updateCapcityByPrometheus(ctx, capacity)
+
+	if apiequality.Semantic.DeepEqual(capacity, cluster.Status.Capacity) {
+		return
+	}
+
+	cluster.Status.Capacity = capacity
+	_, err = r.clusterClient.ClusterV1().ManagedClusters().UpdateStatus(ctx, cluster, metav1.UpdateOptions{})
+	if err != nil {
+		klog.Errorf("failed to update cluster resources: %v", err)
+	}
+}
+
+func (r *resourceCollector) updateCapcityByPrometheus(ctx context.Context, capacity clusterapiv1.ResourceList) clusterapiv1.ResourceList {
+	// get sockert/core from prometheus
 	caData, err := r.getPrometheusCA(ctx)
 	if err != nil {
 		klog.Errorf("failed to get ca: %v", err)
 	}
 	if len(caData) == 0 {
 		klog.Errorf("CA data does not exist")
-		return
+		return capacity
 	}
 
 	apiClient, err := r.newPrometheusClient(caData)
 	if err != nil {
 		klog.Errorf("Failed to create prometheus client: %v", err)
-		return
+		return capacity
 	}
 
-	cluster, err := r.clusterClient.ClusterV1().ManagedClusters().Get(ctx, r.clusterName, metav1.GetOptions{})
-	if err != nil {
-		klog.Errorf("Failed to get cluster: %v", err)
-	}
-	capacity := cluster.DeepCopy().Status.Capacity
 	totalCore, workerCore, err := r.queryResource(ctx, apiClient, "machine_cpu_cores")
 	switch {
 	case err != nil:
@@ -112,15 +160,7 @@ func (r *resourceCollector) reconcile(ctx context.Context) {
 		capacity[resourceSocketWorker] = *workerSocket
 	}
 
-	if apiequality.Semantic.DeepEqual(capacity, cluster.Status.Capacity) {
-		return
-	}
-
-	cluster.Status.Capacity = capacity
-	_, err = r.clusterClient.ClusterV1().ManagedClusters().UpdateStatus(ctx, cluster, metav1.UpdateOptions{})
-	if err != nil {
-		klog.Errorf("failed to update cluster resources")
-	}
+	return capacity
 }
 
 func (r *resourceCollector) getPrometheusCA(ctx context.Context) ([]byte, error) {
@@ -177,12 +217,13 @@ func (r *resourceCollector) queryResource(ctx context.Context, client prometheus
 	}
 	for _, v := range vector {
 		res := queryResult{val: v.Value}
-		isWorker, err := r.isWorker(ctx, v.Metric)
+		nodeName := v.Metric["node"]
+		node, err := r.nodeLister.Get(string(nodeName))
 		if err != nil {
 			klog.Errorf("failed to get node: %v", err)
 			continue
 		}
-		res.isWorker = isWorker
+		res.isWorker = isWorker(node)
 		results = append(results, res)
 	}
 
@@ -199,24 +240,6 @@ func (r *resourceCollector) queryResource(ctx context.Context, client prometheus
 	}
 
 	return resource.NewQuantity(int64(total), resource.DecimalSI), resource.NewQuantity(int64(worker), resource.DecimalSI), nil
-}
-
-func (r *resourceCollector) isWorker(ctx context.Context, metric prometheusmodel.Metric) (bool, error) {
-	nodeName := metric["node"]
-	node, err := r.kubeClient.CoreV1().Nodes().Get(ctx, string(nodeName), metav1.GetOptions{})
-	if err != nil {
-		return false, err
-	}
-
-	if node.Labels == nil {
-		return false, nil
-	}
-
-	if _, ok := node.Labels["node-role.kubernetes.io/worker"]; ok {
-		return true, nil
-	}
-
-	return false, nil
 }
 
 func (r *resourceCollector) newPrometheusClient(caData []byte) (prometheusv1.API, error) {
@@ -251,4 +274,16 @@ func (r *resourceCollector) newPrometheusClient(caData []byte) (prometheusv1.API
 	}
 
 	return prometheusv1.NewAPI(client), nil
+}
+
+func isWorker(node *corev1.Node) bool {
+	if node.Labels == nil {
+		return false
+	}
+
+	if _, ok := node.Labels["node-role.kubernetes.io/worker"]; ok {
+		return true
+	}
+
+	return false
 }
