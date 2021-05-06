@@ -26,7 +26,6 @@ import (
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	extensionv1beta1 "k8s.io/api/extensions/v1beta1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -53,31 +52,6 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	t.Stop()
 	os.Exit(code)
-}
-
-func newNode() *corev1.Node {
-	return &corev1.Node{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "node1",
-			Labels: map[string]string{
-				"kubernetes.io/arch":             "amd64",
-				"kubernetes.io/os":               "linux",
-				"node-role.kubernetes.io/worker": "",
-				"node.openshift.io/os_id":        "rhcos",
-			},
-		},
-		Status: corev1.NodeStatus{
-			Capacity: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.Quantity{},
-				corev1.ResourceMemory: resource.Quantity{},
-			},
-			Conditions: []corev1.NodeCondition{
-				{
-					Type: corev1.NodeReady,
-				},
-			},
-		},
-	}
 }
 
 func newMonitoringSecret() *corev1.Secret {
@@ -173,13 +147,11 @@ func newClusterClaimList() []runtime.Object {
 
 func NewClusterInfoReconciler() *ClusterInfoReconciler {
 	fakeKubeClient := kubefake.NewSimpleClientset(
-		newNode(), newAgentIngress(), newMonitoringSecret(), newAgentService())
+		newAgentIngress(), newMonitoringSecret(), newAgentService())
 	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
 	fakeClusterClient := clusterfake.NewSimpleClientset(newClusterClaimList()...)
 	informerFactory := informers.NewSharedInformerFactory(fakeKubeClient, 10*time.Minute)
 	clusterInformerFactory := clusterinformers.NewSharedInformerFactory(fakeClusterClient, 10*time.Minute)
-	store := informerFactory.Core().V1().Nodes().Informer().GetStore()
-	store.Add(newNode())
 	clusterStore := clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Informer().GetStore()
 	for _, item := range newClusterClaimList() {
 		clusterStore.Add(item)
@@ -199,14 +171,11 @@ func NewClusterInfoReconciler() *ClusterInfoReconciler {
 }
 
 func NewFailedClusterInfoReconciler() *ClusterInfoReconciler {
-	fakeKubeClient := kubefake.NewSimpleClientset(
-		newNode(), newMonitoringSecret())
+	fakeKubeClient := kubefake.NewSimpleClientset(newMonitoringSecret())
 	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
 	fakeClusterClient := clusterfake.NewSimpleClientset()
 	informerFactory := informers.NewSharedInformerFactory(fakeKubeClient, 10*time.Minute)
 	clusterInformerFactory := clusterinformers.NewSharedInformerFactory(fakeClusterClient, 10*time.Minute)
-	store := informerFactory.Core().V1().Nodes().Informer().GetStore()
-	store.Add(newNode())
 	return &ClusterInfoReconciler{
 		Log:           tlog.NullLogger{},
 		NodeLister:    informerFactory.Core().V1().Nodes().Lister(),
@@ -299,45 +268,6 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 
 	if meta.IsStatusConditionTrue(updatedClusterInfo.Status.Conditions, clusterv1beta1.ManagedClusterInfoSynced) {
 		t.Errorf("failed to update synced condtion")
-	}
-}
-
-func TestGetNodeList(t *testing.T) {
-	tests := []struct {
-		name             string
-		expectNoteStatus []clusterv1beta1.NodeStatus
-		expectError      error
-	}{
-		{
-			name: "get node status",
-			expectNoteStatus: []clusterv1beta1.NodeStatus{
-				{
-					Name: "node1",
-					Labels: map[string]string{
-						"node-role.kubernetes.io/worker": "",
-					},
-					Capacity: map[clusterv1beta1.ResourceName]resource.Quantity{
-						clusterv1beta1.ResourceCPU:    {},
-						clusterv1beta1.ResourceMemory: {},
-					},
-					Conditions: []clusterv1beta1.NodeCondition{
-						{
-							Type: corev1.NodeReady,
-						},
-					},
-				}},
-			expectError: nil,
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			cir := NewClusterInfoReconciler()
-			nodeList, err := cir.getNodeList()
-			assert.Equal(t, err, test.expectError)
-			assert.Equal(t, len(nodeList), len(test.expectNoteStatus))
-			assert.Equal(t, nodeList[0].Name, test.expectNoteStatus[0].Name)
-			assert.Equal(t, len(nodeList[0].Labels), len(test.expectNoteStatus[0].Labels))
-		})
 	}
 }
 

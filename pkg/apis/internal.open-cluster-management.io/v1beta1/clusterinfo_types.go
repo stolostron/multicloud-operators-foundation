@@ -1,6 +1,7 @@
 package v1beta1
 
 import (
+	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -84,19 +85,16 @@ type NodeStatus struct {
 	Conditions []NodeCondition `json:"conditions,omitempty"`
 }
 
-// ResourceName is the name identifying various resources in a ResourceList.
-type ResourceName string
-
 const (
 	// CPU, in cores. (500m = .5 cores)
-	ResourceCPU ResourceName = "cpu"
+	ResourceCPU clusterv1.ResourceName = "cpu"
 	// Memory, in bytes. (500Gi = 500GiB = 500 * 1024 * 1024 * 1024)
-	ResourceMemory ResourceName = "memory"
+	ResourceMemory clusterv1.ResourceName = "memory"
 )
 
 // ResourceList defines a map for the quantity of different resources, the definition
 // matches the ResourceList defined in k8s.io/api/core/v1
-type ResourceList map[ResourceName]resource.Quantity
+type ResourceList map[clusterv1.ResourceName]resource.Quantity
 
 type NodeCondition struct {
 	// Type of node condition.

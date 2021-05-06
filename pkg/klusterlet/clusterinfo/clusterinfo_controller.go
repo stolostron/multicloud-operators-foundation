@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"strings"
 
 	clusterv1alpha1informer "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
 	clusterv1alpha1lister "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1"
@@ -92,15 +91,6 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	if err != nil {
 		log.Error(err, "Failed to get distribution info")
 		errs = append(errs, fmt.Errorf("failed to get distribution info, error:%v ", err))
-	}
-
-	// Get nodeList
-	nodeList, err := r.getNodeList()
-	if err != nil {
-		log.Error(err, "Failed to get nodes status")
-		errs = append(errs, fmt.Errorf("failed to get nodes status, error:%v ", err))
-	} else {
-		newStatus.NodeList = nodeList
 	}
 
 	claims, err := r.ClaimLister.List(labels.Everything())
@@ -325,73 +315,6 @@ func (r *ClusterInfoReconciler) getKubeVendor(product string) (kubeVendor cluste
 		kubeVendor = clusterv1beta1.KubeVendorOther
 	}
 	return
-}
-
-const (
-	// LabelNodeRolePrefix is a label prefix for node roles
-	// It's copied over to here until it's merged in core: https://github.com/kubernetes/kubernetes/pull/39112
-	LabelNodeRolePrefix = "node-role.kubernetes.io/"
-
-	// NodeLabelRole specifies the role of a node
-	NodeLabelRole = "kubernetes.io/role"
-
-	// copied from k8s.io/api/core/v1/well_known_label.go
-	LabelZoneFailureDomain  = "failure-domain.beta.kubernetes.io/zone"
-	LabelZoneRegion         = "failure-domain.beta.kubernetes.io/region"
-	LabelInstanceType       = "beta.kubernetes.io/instance-type"
-	LabelInstanceTypeStable = "node.kubernetes.io/instance-type"
-)
-
-func (r *ClusterInfoReconciler) getNodeList() ([]clusterv1beta1.NodeStatus, error) {
-	var nodeList []clusterv1beta1.NodeStatus
-	nodes, err := r.NodeLister.List(labels.Everything())
-	if err != nil {
-		return nil, err
-	}
-	for _, node := range nodes {
-		nodeStatus := clusterv1beta1.NodeStatus{
-			Name:       node.Name,
-			Labels:     map[string]string{},
-			Capacity:   clusterv1beta1.ResourceList{},
-			Conditions: []clusterv1beta1.NodeCondition{},
-		}
-
-		// The roles are determined by looking for:
-		// * a node-role.kubernetes.io/<role>="" label
-		// * a kubernetes.io/role="<role>" label
-		for k, v := range node.Labels {
-			if strings.HasPrefix(k, LabelNodeRolePrefix) || k == NodeLabelRole ||
-				k == LabelZoneFailureDomain || k == LabelZoneRegion ||
-				k == LabelInstanceType || k == LabelInstanceTypeStable {
-				nodeStatus.Labels[k] = v
-			}
-		}
-
-		// append capacity of cpu and memory
-		for k, v := range node.Status.Capacity {
-			switch {
-			case k == corev1.ResourceCPU:
-				nodeStatus.Capacity[clusterv1beta1.ResourceCPU] = v
-			case k == corev1.ResourceMemory:
-				nodeStatus.Capacity[clusterv1beta1.ResourceMemory] = v
-			}
-		}
-
-		// append condition of NodeReady
-		readyCondition := clusterv1beta1.NodeCondition{
-			Type: corev1.NodeReady,
-		}
-		for _, condition := range node.Status.Conditions {
-			if condition.Type == corev1.NodeReady {
-				readyCondition.Status = condition.Status
-				break
-			}
-		}
-		nodeStatus.Conditions = append(nodeStatus.Conditions, readyCondition)
-
-		nodeList = append(nodeList, nodeStatus)
-	}
-	return nodeList, nil
 }
 
 func (r *ClusterInfoReconciler) isOpenshift() bool {

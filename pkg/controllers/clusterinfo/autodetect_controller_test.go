@@ -1,133 +1,32 @@
-package autodetect
+package clusterinfo
 
 import (
 	"context"
-	stdlog "log"
-	"os"
-	"path/filepath"
 	"reflect"
-	"sync"
 	"testing"
-	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/onsi/gomega"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	cliScheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"k8s.io/klog"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-var (
-	c      client.Client
-	cfg    *rest.Config
-	scheme = runtime.NewScheme()
-)
-
-const (
-	ManagedClusterName = "foo"
-)
-
-func TestMain(m *testing.M) {
-	t := &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "deploy", "foundation", "hub", "resources", "crds")},
-	}
-
-	clusterv1.AddToScheme(cliScheme.Scheme)
-	clusterv1beta1.AddToScheme(cliScheme.Scheme)
-
-	var err error
-	if cfg, err = t.Start(); err != nil {
-		stdlog.Fatal(err)
-	}
-
-	// AddToSchemes may be used to add all resources defined in the project to a Scheme
-	var AddToSchemes runtime.SchemeBuilder
-	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, clusterv1.Install, clusterv1beta1.AddToScheme)
-
-	if err := AddToSchemes.AddToScheme(scheme); err != nil {
-		klog.Errorf("Failed adding apis to scheme, %v", err)
-		os.Exit(1)
-	}
-
-	if err := clusterv1beta1.AddToScheme(scheme); err != nil {
-		klog.Errorf("Failed adding cluster info to scheme, %v", err)
-		os.Exit(1)
-	}
-	if err := clusterv1.Install(scheme); err != nil {
-		klog.Errorf("Failed adding cluster to scheme, %v", err)
-		os.Exit(1)
-	}
-
-	exitVal := m.Run()
-	os.Exit(exitVal)
-}
-
-// StartTestManager adds recFn
-func StartTestManager(mgr manager.Manager, g *gomega.GomegaWithT) (context.CancelFunc, *sync.WaitGroup) {
-	ctx, cancel := context.WithCancel(context.Background())
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		g.Expect(mgr.Start(ctx)).NotTo(gomega.HaveOccurred())
-	}()
-
-	return cancel, wg
-}
-
-func TestControllerReconcile(t *testing.T) {
-	g := gomega.NewGomegaWithT(t)
-
-	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
-	// channel when it is finished.
-	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
-	g.Expect(err).NotTo(gomega.HaveOccurred())
-
-	c = mgr.GetClient()
-
-	SetupWithManager(mgr)
-
-	cancel, mgrStopped := StartTestManager(mgr, g)
-
-	defer func() {
-		cancel()
-		mgrStopped.Wait()
-	}()
-
-	time.Sleep(time.Second * 1)
-}
-
-func validateError(t *testing.T, err, expectedErrorType error) {
-	if expectedErrorType != nil {
-		assert.EqualError(t, err, expectedErrorType.Error())
-	} else {
-		assert.NoError(t, err)
-	}
-}
-
-func newTestReconciler(existingObjs []runtime.Object) (*Reconciler, client.Client) {
+func newTestAutoDetectReconciler(existingObjs []runtime.Object) (*AutoDetectReconciler, client.Client) {
 	client := fake.NewFakeClientWithScheme(scheme, existingObjs...)
-	return &Reconciler{
+	return &AutoDetectReconciler{
 		client: client,
 		scheme: scheme,
 	}, client
 }
 
-func TestReconcile(t *testing.T) {
+func TestAutoDetectReconcile(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name              string
@@ -167,7 +66,7 @@ func TestReconcile(t *testing.T) {
 				},
 			},
 			expectedErrorType: nil,
-			requeue:           true,
+			requeue:           false,
 		},
 		{
 			name: "UpdateManagedClusterLabels",
@@ -207,7 +106,7 @@ func TestReconcile(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			svrc, _ := newTestReconciler(test.existingObjs)
+			svrc, _ := newTestAutoDetectReconciler(test.existingObjs)
 			res, err := svrc.Reconcile(ctx, test.req)
 			validateError(t, err, test.expectedErrorType)
 			if test.requeue {
@@ -298,7 +197,7 @@ func TestOSDVendor(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			ctx := context.Background()
-			svrc, client := newTestReconciler(test.existingObjs)
+			svrc, client := newTestAutoDetectReconciler(test.existingObjs)
 			_, err := svrc.Reconcile(ctx, test.req)
 			validateError(t, err, test.expectedErrorType)
 			cluster := &clusterv1.ManagedCluster{}
