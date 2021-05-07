@@ -17,11 +17,9 @@ import (
 )
 
 const (
-	resourceCore         clusterv1.ResourceName = "core"
 	resourceSocket       clusterv1.ResourceName = "socket"
 	resourceCoreWorker   clusterv1.ResourceName = "core_worker"
 	resourceSocketWorker clusterv1.ResourceName = "socket_worker"
-	resourceCPUWorker    clusterv1.ResourceName = "cpu_worker"
 )
 
 type CapacityReconciler struct {
@@ -62,25 +60,16 @@ func (r *CapacityReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	}
 
 	nodes := clusterInfo.Status.NodeList
-	cpuWorkerCapacity := *resource.NewQuantity(int64(0), resource.DecimalSI)
-	socketTotalCapacity := *resource.NewQuantity(int64(0), resource.DecimalSI)
 	socketWorkerCapacity := *resource.NewQuantity(int64(0), resource.DecimalSI)
-	coreTotalCapacity := *resource.NewQuantity(int64(0), resource.DecimalSI)
 	coreWorkerCapacity := *resource.NewQuantity(int64(0), resource.DecimalSI)
 	for _, node := range nodes {
-		socketTotalCapacity.Add(node.Capacity[resourceSocket])
-		coreTotalCapacity.Add(node.Capacity[resourceCore])
 		if isWorker(node) {
-			cpuWorkerCapacity.Add(node.Capacity[clusterv1.ResourceCPU])
+			coreWorkerCapacity.Add(node.Capacity[clusterv1.ResourceCPU])
 			socketWorkerCapacity.Add(node.Capacity[resourceSocket])
-			coreWorkerCapacity.Add(node.Capacity[resourceCore])
 		}
 	}
-	capacity[resourceCPUWorker] = cpuWorkerCapacity
 	capacity[resourceSocketWorker] = socketWorkerCapacity
 	capacity[resourceCoreWorker] = coreWorkerCapacity
-	capacity[resourceSocket] = socketTotalCapacity
-	capacity[resourceCore] = coreTotalCapacity
 
 	if apiequality.Semantic.DeepEqual(capacity, cluster.Status.Capacity) {
 		return ctrl.Result{}, nil

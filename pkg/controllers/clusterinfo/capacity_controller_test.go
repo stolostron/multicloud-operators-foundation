@@ -54,13 +54,13 @@ func TestCapacityReconcile(t *testing.T) {
 			name:               "UpdateManagedClusterCapacity",
 			existingCluster:    newCluster(ManagedClusterName, map[clusterv1.ResourceName]int64{"cpu": 1}),
 			existinClusterInfo: newClusterInfo(ManagedClusterName, map[string]bool{"node1": false}, 2),
-			expectedCapacity:   newCapacity(map[clusterv1.ResourceName]int64{"cpu": 1, "cpu_worker": 0, "socket": 2, "socket_worker": 0, "core": 2, "core_worker": 0}),
+			expectedCapacity:   newCapacity(map[clusterv1.ResourceName]int64{"cpu": 1, "socket_worker": 0, "core_worker": 0}),
 		},
 		{
 			name:               "UpdateManagedClusterCapacityWithWorker",
 			existingCluster:    newCluster(ManagedClusterName, map[clusterv1.ResourceName]int64{"cpu": 1}),
 			existinClusterInfo: newClusterInfo(ManagedClusterName, map[string]bool{"node1": false, "node2": true}, 2),
-			expectedCapacity:   newCapacity(map[clusterv1.ResourceName]int64{"cpu": 1, "cpu_worker": 2, "socket": 4, "socket_worker": 2, "core": 4, "core_worker": 2}),
+			expectedCapacity:   newCapacity(map[clusterv1.ResourceName]int64{"cpu": 1, "socket_worker": 2, "core_worker": 2}),
 		},
 	}
 
@@ -113,7 +113,6 @@ func newClusterInfo(name string, resources map[string]bool, val int64) *clusterv
 			Capacity: clusterv1beta1.ResourceList{
 				"cpu":    *resource.NewQuantity(val, resource.DecimalSI),
 				"socket": *resource.NewQuantity(val, resource.DecimalSI),
-				"core":   *resource.NewQuantity(val, resource.DecimalSI),
 			},
 		}
 		if isworker {
