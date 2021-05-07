@@ -140,20 +140,12 @@ func (r *resourceCollector) updateCapcityByPrometheus(ctx context.Context, nodes
 		return nodes
 	}
 
-	cores, err := r.queryResource(ctx, apiClient, "machine_cpu_cores")
-	if err != nil {
-		klog.Errorf("failed to query resource: %v", err)
-	}
-
 	sockets, err := r.queryResource(ctx, apiClient, "machine_cpu_sockets")
 	if err != nil {
 		klog.Errorf("failed to query resource: %v", err)
 	}
 
 	for index := range nodes {
-		if capacity, ok := cores[nodes[index].Name]; ok {
-			nodes[index].Capacity[resourceCore] = *capacity
-		}
 		if capacity, ok := sockets[nodes[index].Name]; ok {
 			nodes[index].Capacity[resourceSocket] = *capacity
 		}

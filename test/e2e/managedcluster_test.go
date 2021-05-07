@@ -19,8 +19,8 @@ var _ = ginkgo.Describe("Testing ManagedCluster", func() {
 				}
 
 				capacity := cluster.Status.Capacity
-				if _, ok := capacity["cpu_worker"]; !ok {
-					return fmt.Errorf("Expect cpu_worker to be set, but got %v", capacity)
+				if _, ok := capacity["core_worker"]; !ok {
+					return fmt.Errorf("Expect core_worker to be set, but got %v", capacity)
 				}
 				return nil
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())

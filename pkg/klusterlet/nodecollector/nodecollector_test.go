@@ -149,7 +149,7 @@ func TestReconcile(t *testing.T) {
 				},
 			},
 			expectedNodeList: []clusterv1beta1.NodeStatus{
-				newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1, "core": 1, "socket": 1}, true),
+				newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1, "socket": 1}, true),
 			},
 		},
 		{
@@ -174,8 +174,8 @@ func TestReconcile(t *testing.T) {
 				},
 			},
 			expectedNodeList: []clusterv1beta1.NodeStatus{
-				newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 2, "core": 2, "socket": 2}, true),
-				newResourceStatus("node2", map[clusterapiv1.ResourceName]int64{"cpu": 1, "core": 1, "socket": 1}, false),
+				newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 2, "socket": 2}, true),
+				newResourceStatus("node2", map[clusterapiv1.ResourceName]int64{"cpu": 1, "socket": 1}, false),
 			},
 		},
 	}
