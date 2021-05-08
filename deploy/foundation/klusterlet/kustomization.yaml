@@ -1,6 +1,7 @@
 resources:
-- resources/cluster-namespace.yaml
 - resources/agent-manifestwork.yaml
+
+namespace: cluster1
 
 images:
 - name: foundation-agent

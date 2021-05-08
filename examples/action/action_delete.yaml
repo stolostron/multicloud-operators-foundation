@@ -1,4 +1,4 @@
-# This work is used to create nginx deployment to clusters cluster0
+# This action is used to delete nginx deployment in cluster1
 apiVersion: action.open-cluster-management.io/v1beta1
 kind: ManagedClusterAction
 metadata:

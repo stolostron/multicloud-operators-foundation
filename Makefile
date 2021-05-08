@@ -23,6 +23,7 @@ IMAGE ?= multicloud-manager
 IMAGE_REGISTRY ?= quay.io/open-cluster-management
 IMAGE_TAG ?= latest
 FOUNDATION_IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
+MANAGED_CLUSTER_NAME ?= cluster1
 
 GIT_HOST ?= github.com/open-cluster-management
 BASE_DIR := $(shell basename $(PWD))
@@ -67,8 +68,15 @@ deploy-foundation-hub: ensure-kustomize
 deploy-foundation-agent: ensure-kustomize
 	cp deploy/foundation/klusterlet/kustomization.yaml deploy/foundation/klusterlet/kustomization.yaml.tmp
 	cd deploy/foundation/klusterlet && ../../../$(KUSTOMIZE) edit set image foundation-agent=$(FOUNDATION_IMAGE_NAME)
+	cd deploy/foundation/klusterlet && ../../../$(KUSTOMIZE) edit set namespace $(MANAGED_CLUSTER_NAME)
 	$(KUSTOMIZE) build deploy/foundation/klusterlet | $(KUBECTL) apply -f -
 	mv deploy/foundation/klusterlet/kustomization.yaml.tmp deploy/foundation/klusterlet/kustomization.yaml
+
+clean-foundation-hub:
+	$(KUBECTL) delete -k deploy/foundation/hub
+
+clean-foundation-agent:
+	$(KUBECTL) delete -k deploy/foundation/klusterlet
 
 build-e2e:
 	go test -c ./test/e2e
