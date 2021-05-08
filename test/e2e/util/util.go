@@ -520,6 +520,19 @@ func GetConditionTypeFromStatus(obj *unstructured.Unstructured, typeName string)
 	return false
 }
 
+func CheckNodeList(obj *unstructured.Unstructured) error {
+	nodeList, found, err := unstructured.NestedSlice(obj.Object, "status", "nodeList")
+	if err != nil || !found {
+		return fmt.Errorf("failed to get nodeList. found:%v, err:%v", found, err)
+	}
+
+	if len(nodeList) == 0 {
+		return fmt.Errorf("expect items in node list")
+	}
+
+	return nil
+}
+
 func CheckDistributionInfo(obj *unstructured.Unstructured) error {
 	distributionInfo, found, err := unstructured.NestedMap(obj.Object, "status", "distributionInfo")
 	if err != nil || !found {

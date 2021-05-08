@@ -73,7 +73,7 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	}
 
 	// Update cluster info status here.
-	newStatus := clusterv1beta1.ClusterInfoStatus{}
+	newStatus := clusterInfo.DeepCopy().Status
 	var errs []error
 
 	// Config Agent endpoint
@@ -125,38 +125,25 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		Message: "Managed cluster info is synced",
 	}
 	if len(errs) > 0 {
-		newSyncedCondition.Status = metav1.ConditionFalse
-		newSyncedCondition.Reason = clusterv1beta1.ReasonManagedClusterInfoSyncedFailed
-		applyErrors := errors.NewAggregate(errs)
-		newSyncedCondition.Message = applyErrors.Error()
-	}
-
-	needUpdate := false
-	oldStatus := clusterInfo.Status.DeepCopy()
-	oldSyncedCondition := meta.FindStatusCondition(oldStatus.Conditions, clusterv1beta1.ManagedClusterInfoSynced)
-	if oldSyncedCondition != nil {
-		oldSyncedCondition.LastTransitionTime = metav1.Time{}
-		if !equality.Semantic.DeepEqual(newSyncedCondition, *oldSyncedCondition) {
-			needUpdate = true
+		newSyncedCondition = metav1.Condition{
+			Type:    clusterv1beta1.ManagedClusterInfoSynced,
+			Status:  metav1.ConditionFalse,
+			Reason:  clusterv1beta1.ReasonManagedClusterInfoSyncedFailed,
+			Message: errors.NewAggregate(errs).Error(),
 		}
-	} else {
-		needUpdate = true
 	}
 
-	oldStatus.Conditions = []metav1.Condition{}
-	if !equality.Semantic.DeepEqual(newStatus, *oldStatus) {
-		needUpdate = true
+	meta.SetStatusCondition(&newStatus.Conditions, newSyncedCondition)
+
+	if equality.Semantic.DeepEqual(newStatus, clusterInfo.Status) {
+		return ctrl.Result{}, nil
 	}
 
-	if needUpdate {
-		newStatus.Conditions = clusterInfo.Status.Conditions
-		meta.SetStatusCondition(&newStatus.Conditions, newSyncedCondition)
-		clusterInfo.Status = newStatus
-		err = r.Client.Status().Update(ctx, clusterInfo)
-		if err != nil {
-			log.Error(err, "Failed to update status")
-			return ctrl.Result{}, err
-		}
+	clusterInfo.Status = newStatus
+	err = r.Client.Status().Update(ctx, clusterInfo)
+	if err != nil {
+		log.Error(err, "Failed to update status")
+		return ctrl.Result{}, err
 	}
 
 	r.RefreshAgentServer(clusterInfo)
