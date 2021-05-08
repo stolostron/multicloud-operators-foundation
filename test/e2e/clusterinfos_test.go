@@ -27,6 +27,17 @@ var _ = ginkgo.Describe("Testing ManagedClusterInfo", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 		})
 
+		ginkgo.It("should have node list reported successfully in cluster", func() {
+			gomega.Eventually(func() error {
+				managedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, managedClusterName, managedClusterName)
+				if err != nil {
+					return err
+				}
+				// check the ManagedClusterInfo status
+				return util.CheckNodeList(managedClusterInfo)
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		})
+
 		ginkgo.It("should have a valid condition", func() {
 			gomega.Eventually(func() bool {
 				managedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, managedClusterName, managedClusterName)
