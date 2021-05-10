@@ -12,46 +12,23 @@ Check the [CONTRIBUTING Doc](CONTRIBUTING.md) for how to contribute to the repo.
 
 This is a guide on how to build and deploy open-cluster-management Foundation from code.
 
-### Setup
-
-Create a directory `$GOPATH/src/github.com/open-cluster-management`, and clone the code into the directory. Since the build process will use (eventually installing) some `golang` tools, makes sure you have `$GOPATH/bin` added to your `$PATH`. 
-
-Populate the vendor directory. If necessary, set environment variable `GO111MODULE=on`.
-
-```sh
-go mod vendor
-```
-
-### Build
+### Build images
 
 Run the following after cloning/pulling/making a change.
 
 ```sh
-make build
+make images
 ```
 
-make build will build all the binaries in the current directory.
+`make images` will build a new image named `quay.io/open-cluster-management/multicloud-manager:latest`.
 
 ### Prerequisites
 
-Need to install ManagedCluster before deploy open-cluster-management Foundation.
+Need to install **Cluster Manager** and **Klusterlet** before deploy Foundation components. The installation instruction is [here](https://open-cluster-management.io). 
 
-1. Install Cluster Manager on Hub cluster.
-
-    ```sh
-    make deploy-hub
-    ```
-
-2. Install Klusterlet On Managed cluster.
-
-    1. Copy `kubeconfig` of Hub to `~/.kubconfig`.
-    2. Install Klusterlet.
-
-        ```sh
-        make deploy-klusterlet
-        ```
-
-3. Approve CSR on Hub cluster.
+Need to approve and accept the managed clusters registered to the Hub.
+ 
+* Approve CSR on Hub cluster.
 
     ```sh
     MANAGED_CLUSTER=$(kubectl get managedclusters | grep cluster | awk '{print $1}')
@@ -59,24 +36,25 @@ Need to install ManagedCluster before deploy open-cluster-management Foundation.
     kubectl certificate approve "${CSR_NAME}"
     ```
 
-4. Accept Managed Cluster on Hub.
+* Accept Managed Cluster on Hub.
 
     ```sh
     MANAGED_CLUSTER=$(kubectl get managedclusters | grep cluster | awk '{print $1}')
     kubectl patch managedclusters $MANAGED_CLUSTER  --type merge --patch '{"spec":{"hubAcceptsClient":true}}'
     ```
 
-### Deploy open-cluster-management Foundation from the quay.io
+### Deploy Foundation
 
-1. Deploy hub components on hub cluster.
+1. Deploy foundation hub components on hub cluster.
 
     ```sh
     make deploy-foundation-hub
     ```
 
-2. Deploy klusterlet components on managed cluster.
-
+2. Deploy foundation agent components to the managed cluster from the hub cluster.
+   
     ```sh
+    export MANAGED_CLUSTER_NAME=<your managed cluster name, default is cluster1>
     make deploy-foundation-agent
     ```
 

@@ -2,7 +2,6 @@ apiVersion: work.open-cluster-management.io/v1
 kind: ManifestWork
 metadata:
   name: deploy-foundation-agent
-  namespace: cluster1
 spec:
   workload:
     manifests:
