@@ -331,6 +331,10 @@ func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDist
 		return ocpDistributionInfo, client.IgnoreNotFound(err)
 	}
 
+	ocpDistributionInfo.Channel, _, err = unstructured.NestedString(obj.Object, "spec", "channel")
+	if err != nil {
+		klog.Errorf("failed to get OCP channel in clusterVersion: %v", err)
+	}
 	ocpDistributionInfo.DesiredVersion, _, err = unstructured.NestedString(obj.Object, "status", "desired", "version")
 	if err != nil {
 		klog.Errorf("failed to get OCP desired version in clusterVersion: %v", err)
