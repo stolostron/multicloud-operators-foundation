@@ -207,8 +207,13 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/open-cluster-management/addon-framework v0.0.0-20210423114544-8e08479e80b6
+# github.com/open-cluster-management/addon-framework v0.0.0-20210506065618-51dcadda8be6
 ## explicit
+github.com/open-cluster-management/addon-framework/pkg/addonmanager
+github.com/open-cluster-management/addon-framework/pkg/addonmanager/controllers/agentdeploy
+github.com/open-cluster-management/addon-framework/pkg/addonmanager/controllers/certificate
+github.com/open-cluster-management/addon-framework/pkg/addonmanager/controllers/registration
+github.com/open-cluster-management/addon-framework/pkg/agent
 github.com/open-cluster-management/addon-framework/pkg/lease
 # github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f
 ## explicit
@@ -216,6 +221,11 @@ github.com/open-cluster-management/api/addon/v1alpha1
 github.com/open-cluster-management/api/client/addon/clientset/versioned
 github.com/open-cluster-management/api/client/addon/clientset/versioned/scheme
 github.com/open-cluster-management/api/client/addon/clientset/versioned/typed/addon/v1alpha1
+github.com/open-cluster-management/api/client/addon/informers/externalversions
+github.com/open-cluster-management/api/client/addon/informers/externalversions/addon
+github.com/open-cluster-management/api/client/addon/informers/externalversions/addon/v1alpha1
+github.com/open-cluster-management/api/client/addon/informers/externalversions/internalinterfaces
+github.com/open-cluster-management/api/client/addon/listers/addon/v1alpha1
 github.com/open-cluster-management/api/client/cluster/clientset/versioned
 github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake
 github.com/open-cluster-management/api/client/cluster/clientset/versioned/scheme
@@ -230,10 +240,20 @@ github.com/open-cluster-management/api/client/cluster/informers/externalversions
 github.com/open-cluster-management/api/client/cluster/informers/externalversions/internalinterfaces
 github.com/open-cluster-management/api/client/cluster/listers/cluster/v1
 github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1
+github.com/open-cluster-management/api/client/work/clientset/versioned
+github.com/open-cluster-management/api/client/work/clientset/versioned/scheme
+github.com/open-cluster-management/api/client/work/clientset/versioned/typed/work/v1
+github.com/open-cluster-management/api/client/work/informers/externalversions
+github.com/open-cluster-management/api/client/work/informers/externalversions/internalinterfaces
+github.com/open-cluster-management/api/client/work/informers/externalversions/work
+github.com/open-cluster-management/api/client/work/informers/externalversions/work/v1
+github.com/open-cluster-management/api/client/work/listers/work/v1
 github.com/open-cluster-management/api/cluster/v1
 github.com/open-cluster-management/api/cluster/v1alpha1
+github.com/open-cluster-management/api/work/v1
 # github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 github.com/openshift/api/config/v1
+github.com/openshift/api/operator/v1
 github.com/openshift/api/route/v1
 # github.com/openshift/build-machinery-go v0.0.0-20210209125900-0da259a2c359
 ## explicit
@@ -277,6 +297,9 @@ github.com/openshift/hive/apis/scheme
 # github.com/openshift/library-go v0.0.0-20210330121802-ebbc677c82a5 => github.com/openshift/library-go v0.0.0-20200918101923-1e4c94603efe
 ## explicit
 github.com/openshift/library-go/pkg/authorization/authorizationutil
+github.com/openshift/library-go/pkg/controller/factory
+github.com/openshift/library-go/pkg/operator/events
+github.com/openshift/library-go/pkg/operator/v1helpers
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
@@ -303,6 +326,8 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
+# github.com/robfig/cron v1.2.0
+github.com/robfig/cron
 # github.com/sirupsen/logrus v1.6.0
 github.com/sirupsen/logrus
 # github.com/smartystreets/assertions v1.0.1

@@ -68,6 +68,18 @@ metadata:
     - apiGroups: ["coordination.k8s.io"]
       resources: ["leases"]
       verbs: ["get", "create", "update"]
+    - apiGroups: ["work.open-cluster-management.io"]
+      resources: ["manifestworks"]
+      verbs: ["create", "update", "get", "list", "watch", "delete", "deletecollection", "patch"]
+    - apiGroups: ["addon.open-cluster-management.io"]
+      resources: ["managedclusteraddons/finalizers"]
+      verbs: ["update"]
+    - apiGroups: ["addon.open-cluster-management.io"]
+      resources: ["managedclusteraddons", "clustermanagementaddons"]
+      verbs: ["get", "list", "watch"]
+    - apiGroups: ["addon.open-cluster-management.io"]
+      resources: ["managedclusteraddons/status"]
+      verbs: ["update", "patch"]
       
 
 ---

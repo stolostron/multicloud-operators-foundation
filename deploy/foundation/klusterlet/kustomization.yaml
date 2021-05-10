@@ -1,5 +1,6 @@
 resources:
 - resources/agent-manifestwork.yaml
+- resources/agent-addon.yaml
 
 namespace: cluster1
 

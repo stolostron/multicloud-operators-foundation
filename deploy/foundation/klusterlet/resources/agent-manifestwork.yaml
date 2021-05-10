@@ -76,7 +76,7 @@ spec:
             volumes:
             - name: hub-config
               secret:
-                secretName: hub-kubeconfig-secret
+                secretName: work-manager-hub-kubeconfig
             containers:
             - name: foundation-agent
               image: foundation-agent

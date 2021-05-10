@@ -1312,8 +1312,8 @@ github.com/onsi/gomega v1.9.0/go.mod h1:Ho0h+IUsWyvy1OpqCwxlQ/21gkhVunqlU8fDGcoT
 github.com/onsi/gomega v1.10.1/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1ybHNo=
 github.com/onsi/gomega v1.10.2 h1:aY/nuoWlKJud2J6U0E3NWsjlg+0GtwXxgEqthRdzlcs=
 github.com/onsi/gomega v1.10.2/go.mod h1:iN09h71vgCQne3DLsj+A5owkum+a2tYe+TOCB1ybHNo=
-github.com/open-cluster-management/addon-framework v0.0.0-20210423114544-8e08479e80b6 h1:J8cd1JyscCgVRxPKRiT3wh2um91XBJguqSaX9vE7kJI=
-github.com/open-cluster-management/addon-framework v0.0.0-20210423114544-8e08479e80b6/go.mod h1:mcpd6pc0j/L+WLFwV2MXHVMr+86ri2iUdTK2M8RHJ7U=
+github.com/open-cluster-management/addon-framework v0.0.0-20210506065618-51dcadda8be6 h1:7ki7tZSLsMWaQYgzX4qZn3xOphTgsO2ONm1J1tcm81Y=
+github.com/open-cluster-management/addon-framework v0.0.0-20210506065618-51dcadda8be6/go.mod h1:mcpd6pc0j/L+WLFwV2MXHVMr+86ri2iUdTK2M8RHJ7U=
 github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f h1:s6z3k0jV0ccoYDPJWMSqVNevO1UoQLYb8f7dYFALSNk=
 github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f/go.mod h1:ot+A1DWq+v1IV+e1S7nhIteYAmNByFgtazvzpoeAfRQ=
 github.com/opencontainers/go-digest v0.0.0-20170106003457-a6d0ee40d420/go.mod h1:cMLVZDEM3+U2I4VmLI6N8jQYUd2OVphdqWwCJHrFt2s=
@@ -1527,6 +1527,7 @@ github.com/remyoudompheng/bigfft v0.0.0-20170806203942-52369c62f446/go.mod h1:uY
 github.com/rickb777/date v1.12.5-0.20200422084442-6300e543c4d9/go.mod h1:L8WrssTzvgYw34/Ppa0JpJfI7KKXZ2cVGI6Djt0brUU=
 github.com/rickb777/plural v1.2.0/go.mod h1:UdpyWFCGbo3mvK3f/PfZOAOrkjzJlYN/sD46XNWJ+Es=
 github.com/robfig/cron v0.0.0-20170526150127-736158dc09e1/go.mod h1:JGuDeoQd7Z6yL4zQhZ3OPEVHB7fL6Ka6skscFHfmt2k=
+github.com/robfig/cron v1.2.0 h1:ZjScXvvxeQ63Dbyxy76Fj3AT3Ut0aKsyd2/tl3DTMuQ=
 github.com/robfig/cron v1.2.0/go.mod h1:JGuDeoQd7Z6yL4zQhZ3OPEVHB7fL6Ka6skscFHfmt2k=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=
 github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6LYCDYWNEvQ=

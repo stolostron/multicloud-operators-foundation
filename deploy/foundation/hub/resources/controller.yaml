@@ -22,7 +22,7 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
           - "/controller"
-          - "--enable-rbac=true"
+          - "--enable-addon-registration=true"
         livenessProbe:
           httpGet:
             path: /healthz
