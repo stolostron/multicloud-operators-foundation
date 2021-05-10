@@ -107,6 +107,9 @@ spec:
                         items:
                           type: string
                         type: array
+                      channel:
+                        description: Channel is an identifier for explicitly requesting that a non-default set of updates be applied to this cluster. The default channel will be contain stable updates that are appropriate for production clusters.
+                        type: string
                       desiredVersion:
                         description: DesiredVersion is the version that the cluster is reconciling towards
                         type: string

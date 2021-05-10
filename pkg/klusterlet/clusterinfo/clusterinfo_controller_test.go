@@ -554,6 +554,7 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 	tests := []struct {
 		name                      string
 		dynamicClient             dynamic.Interface
+		expectChannel             string
 		expectDesiredVersion      string
 		expectUpgradeFail         bool
 		expectAvailableUpdatesLen int
@@ -564,6 +565,7 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 		{
 			name:                      "OCP4.x",
 			dynamicClient:             dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x", clusterVersions)),
+			expectChannel:             "stable-4.5",
 			expectDesiredVersion:      "4.6.8",
 			expectUpgradeFail:         false,
 			expectAvailableUpdatesLen: 9,
@@ -579,6 +581,7 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 		{
 			name:                      "UpgradeFail",
 			dynamicClient:             dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x", clusterVersionsFail)),
+			expectChannel:             "stable-4.5",
 			expectDesiredVersion:      "4.5.11",
 			expectUpgradeFail:         true,
 			expectAvailableUpdatesLen: 1,
@@ -596,6 +599,7 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 				assert.Equal(t, err.Error(), test.expectError)
 			}
 
+			assert.Equal(t, info.Channel, test.expectChannel)
 			assert.Equal(t, info.DesiredVersion, test.expectDesiredVersion)
 			assert.Equal(t, info.UpgradeFailed, test.expectUpgradeFail)
 			assert.Equal(t, len(info.VersionAvailableUpdates), test.expectAvailableUpdatesLen)

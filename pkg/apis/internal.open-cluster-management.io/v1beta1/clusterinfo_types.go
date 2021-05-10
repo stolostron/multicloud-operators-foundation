@@ -178,6 +178,11 @@ type OCPDistributionInfo struct {
 	// This is true if the status of Failing condition is True and the version is different with desiredVersion in clusterVersion
 	UpgradeFailed bool `json:"upgradeFailed,omitempty"`
 
+	// Channel is an identifier for explicitly requesting that a non-default
+	// set of updates be applied to this cluster. The default channel will be
+	// contain stable updates that are appropriate for production clusters.
+	Channel string `json:"channel,omitempty"`
+
 	// VersionAvailableUpdates contains the list of updates that are appropriate
 	// for this cluster. This list may be empty if no updates are recommended,
 	// if the update service is unavailable, or if an invalid channel has
