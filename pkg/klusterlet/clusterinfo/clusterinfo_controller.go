@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"net"
 
 	clusterv1alpha1informer "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
@@ -18,13 +19,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/dynamic"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	corev1lister "k8s.io/client-go/listers/core/v1"
@@ -43,23 +41,23 @@ import (
 // ClusterInfoReconciler reconciles a ManagedClusterInfo object
 type ClusterInfoReconciler struct {
 	client.Client
-	Log                         logr.Logger
-	Scheme                      *runtime.Scheme
-	KubeClient                  kubernetes.Interface
-	NodeInformer                coreinformers.NodeInformer
-	NodeLister                  corev1lister.NodeLister
-	ClaimInformer               clusterv1alpha1informer.ClusterClaimInformer
-	ClaimLister                 clusterv1alpha1lister.ClusterClaimLister
-	ManagedClusterDynamicClient dynamic.Interface
-	RouteV1Client               routev1.Interface
-	ClusterName                 string
-	MasterAddresses             string
-	AgentAddress                string
-	AgentIngress                string
-	AgentRoute                  string
-	AgentService                string
-	AgentPort                   int32
-	Agent                       *agent.Agent
+	Log             logr.Logger
+	Scheme          *runtime.Scheme
+	KubeClient      kubernetes.Interface
+	NodeInformer    coreinformers.NodeInformer
+	NodeLister      corev1lister.NodeLister
+	ClaimInformer   clusterv1alpha1informer.ClusterClaimInformer
+	ClaimLister     clusterv1alpha1lister.ClusterClaimLister
+	RouteV1Client   routev1.Interface
+	ConfigV1Client  openshiftclientset.Interface
+	ClusterName     string
+	MasterAddresses string
+	AgentAddress    string
+	AgentIngress    string
+	AgentRoute      string
+	AgentService    string
+	AgentPort       int32
+	Agent           *agent.Agent
 }
 
 func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -318,49 +316,21 @@ func (r *ClusterInfoReconciler) isOpenshift() bool {
 	return false
 }
 
-var ocpVersionGVR = schema.GroupVersionResource{
-	Group:    "config.openshift.io",
-	Version:  "v1",
-	Resource: "clusterversions",
-}
-
 func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDistributionInfo, error) {
 	ocpDistributionInfo := clusterv1beta1.OCPDistributionInfo{}
-	obj, err := r.ManagedClusterDynamicClient.Resource(ocpVersionGVR).Get(context.TODO(), "version", metav1.GetOptions{})
+	clusterVersion, err := r.ConfigV1Client.ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
 	if err != nil {
 		return ocpDistributionInfo, client.IgnoreNotFound(err)
 	}
-
-	ocpDistributionInfo.Channel, _, err = unstructured.NestedString(obj.Object, "spec", "channel")
-	if err != nil {
-		klog.Errorf("failed to get OCP channel in clusterVersion: %v", err)
-	}
-	ocpDistributionInfo.DesiredVersion, _, err = unstructured.NestedString(obj.Object, "status", "desired", "version")
-	if err != nil {
-		klog.Errorf("failed to get OCP desired version in clusterVersion: %v", err)
-	}
-	availableUpdates, _, err := unstructured.NestedSlice(obj.Object, "status", "availableUpdates")
-	if err != nil {
-		klog.Errorf("failed to get OCP availableUpdates in clusterVersion: %v", err)
-	}
+	ocpDistributionInfo.Channel = clusterVersion.Spec.Channel
+	ocpDistributionInfo.DesiredVersion = clusterVersion.Status.Desired.Version
+	availableUpdates := clusterVersion.Status.AvailableUpdates
 	for _, update := range availableUpdates {
 		versionUpdate := clusterv1beta1.OCPVersionRelease{}
-		versionUpdate.Version, _, err = unstructured.NestedString(update.(map[string]interface{}), "version")
-		if err != nil {
-			klog.Errorf("failed to get version in availableUpdates of clusterVersion: %v", err)
-		}
-		versionUpdate.Image, _, err = unstructured.NestedString(update.(map[string]interface{}), "image")
-		if err != nil {
-			klog.Errorf("failed to get image in availableUpdates of clusterVersion: %v", err)
-		}
-		versionUpdate.URL, _, err = unstructured.NestedString(update.(map[string]interface{}), "url")
-		if err != nil {
-			klog.Errorf("failed to get url in availableUpdates of clusterVersion: %v", err)
-		}
-		versionUpdate.Channels, _, err = unstructured.NestedStringSlice(update.(map[string]interface{}), "channels")
-		if err != nil {
-			klog.Errorf("failed to get url in availableUpdates of clusterVersion: %v", err)
-		}
+		versionUpdate.Version = update.Version
+		versionUpdate.Image = update.Image
+		versionUpdate.URL = string(update.URL)
+		versionUpdate.Channels = update.Channels
 		if versionUpdate.Version != "" {
 			// ocpDistributionInfo.AvailableUpdates is deprecated in release 2.3 and will be removed in the future.
 			// Use VersionAvailableUpdates instead.
@@ -369,50 +339,22 @@ func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDist
 		}
 
 	}
-
-	historyItems, _, err := unstructured.NestedSlice(obj.Object, "status", "history")
-	if err != nil {
-		klog.Errorf("failed to get history in clusterVersion: %v", err)
-	}
+	historyItems := clusterVersion.Status.History
 	for _, historyItem := range historyItems {
 		history := clusterv1beta1.OCPVersionUpdateHistory{}
-		history.State, _, err = unstructured.NestedString(historyItem.(map[string]interface{}), "state")
-		if err != nil {
-			klog.Errorf("failed to get the state of history in clusterVersion: %v", err)
-		}
-		history.Image, _, err = unstructured.NestedString(historyItem.(map[string]interface{}), "image")
-		if err != nil {
-			klog.Errorf("failed to get the image of history in clusterVersion: %v", err)
-		}
-		history.Version, _, err = unstructured.NestedString(historyItem.(map[string]interface{}), "version")
-		if err != nil {
-			klog.Errorf("failed to get the version of history in clusterVersion: %v", err)
-		}
-		history.Verified, _, err = unstructured.NestedBool(historyItem.(map[string]interface{}), "verified")
-		if err != nil {
-			klog.Errorf("failed to get the verified of history in clusterVersion: %v", err)
-		}
+		history.State = string(historyItem.State)
+		history.Image = historyItem.Image
+		history.Version = historyItem.Version
+		history.Verified = historyItem.Verified
 		ocpDistributionInfo.VersionHistory = append(ocpDistributionInfo.VersionHistory, history)
 	}
 
 	ocpDistributionInfo.UpgradeFailed = false
-	conditions, _, err := unstructured.NestedSlice(obj.Object, "status", "conditions")
-	if err != nil {
-		klog.Errorf("failed to get conditions in clusterVersion: %v", err)
-	}
+	conditions := clusterVersion.Status.Conditions
+
 	for _, condition := range conditions {
-		conditiontype, _, err := unstructured.NestedString(condition.(map[string]interface{}), "type")
-		if err != nil {
-			klog.Errorf("failed to get the condition type in clusterVersion: %v", err)
-			continue
-		}
-		if conditiontype == "Failing" {
-			conditionstatus, _, err := unstructured.NestedString(condition.(map[string]interface{}), "status")
-			if err != nil {
-				klog.Errorf("failed to get the status of Failing condition in clusterVersion : %v", err)
-				continue
-			}
-			if conditionstatus == "True" && ocpDistributionInfo.DesiredVersion != ocpDistributionInfo.Version {
+		if condition.Type == "Failing" {
+			if condition.Status == "True" && ocpDistributionInfo.DesiredVersion != ocpDistributionInfo.Version {
 				ocpDistributionInfo.UpgradeFailed = true
 			}
 			break

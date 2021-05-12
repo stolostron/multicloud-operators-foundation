@@ -1,104 +1,152 @@
 package clusterclaim
 
 import (
+	apiconfigv1 "github.com/openshift/api/config/v1"
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
+	configfake "github.com/openshift/client-go/config/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
-	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/kubernetes"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	"testing"
 )
 
-const (
-	clusterVersions = `{
-  "apiVersion": "config.openshift.io/v1",
-  "kind": "ClusterVersion",
-  "metadata": {
-	"name": "version"
-  },
-  "spec": {
-    "channel": "stable-4.5",
-    "clusterID": "ffd989a0-8391-426d-98ac-86ae6d051433"
-  },
- "status": {
- 	"history": [
-	  {
-	 	"completionTime": "2020-09-30T09:00:07Z",
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
-		"startedTime": "2020-09-30T08:36:46Z",
-		"state": "Completed",
-		"verified": false,
-		"version": "4.5.11"
-	  }
-	],
-	"observedGeneration": 1,
-	"versionHash": "4lK_pl-YbSw="
-  }
-}`
-	awsOCPInfraConfig = `{
-    "apiVersion": "config.openshift.io/v1",
-    "kind": "Infrastructure",
-    "metadata": {
-        "name": "cluster"
-    },
-    "spec": {
-        "cloudConfig": {
-        "name": ""
-        },
-        "platformSpec": {
-        "aws": {},
-        "type": "AWS"
-        }
-    },
-    "status": {
-        "apiServerInternalURI": "https://api-int.osd-test.wu67.s1.devshift.org:6443",
-        "apiServerURL": "https://api.osd-test.wu67.s1.devshift.org:6443",
-        "etcdDiscoveryDomain": "osd-test.wu67.s1.devshift.org",
-        "infrastructureName": "ocp-aws",
-        "platform": "AWS",
-        "platformStatus": {
-        "aws": {
-            "region": "region-aws"
-        },
-        "type": "AWS"
-        } 
-    }
-}`
+func newClusterVersion() *apiconfigv1.ClusterVersion {
+	return &apiconfigv1.ClusterVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "version",
+		},
+		Spec: apiconfigv1.ClusterVersionSpec{
+			ClusterID: "ffd989a0-8391-426d-98ac-86ae6d051433",
+			Upstream:  "https://api.openshift.com/api/upgrades_info/v1/graph",
+			Channel:   "stable-4.5",
+		},
+		Status: apiconfigv1.ClusterVersionStatus{
+			ObservedGeneration: 1,
+			VersionHash:        "4lK_pl-YbSw=",
+			Desired: apiconfigv1.Release{
+				Channels: []string{
+					"candidate-4.6",
+					"candidate-4.7",
+					"eus-4.6",
+					"fast-4.6",
+					"fast-4.7",
+					"stable-4.6",
+					"stable-4.7",
+				},
+				Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+				URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+				Version: "4.6.8",
+			},
+			History: []apiconfigv1.UpdateHistory{
+				{
+					Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+					State:    "Completed",
+					Verified: false,
+					Version:  "4.5.11",
+				},
+			},
+			AvailableUpdates: []apiconfigv1.Release{
+				{
+					Channels: []string{
+						"candidate-4.6",
+						"candidate-4.7",
+						"eus-4.6",
+						"fast-4.6",
+						"fast-4.7",
+						"stable-4.6",
+						"stable-4.7",
+					},
+					Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+					URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+					Version: "4.6.8",
+				},
+			},
+			Conditions: []apiconfigv1.ClusterOperatorStatusCondition{
+				{
+					Type:   "Failing",
+					Status: "False",
+				},
+			},
+		},
+	}
+}
 
-	gcpInfraConfig = `{
-    "apiVersion": "config.openshift.io/v1",
-    "kind": "Infrastructure",
-    "metadata": {
-        "name": "cluster"
-    },
-    "spec": {
-        "cloudConfig": {
-            "name": ""
-        },
-        "platformSpec": {
-            "gcp": {},
-            "type": "GCP"
-        }
-    },
-    "status": {
-        "apiServerInternalURI": "https://api-int.osd-test.wu67.s1.devshift.org:6443",
-        "apiServerURL": "https://api.osd-test.wu67.s1.devshift.org:6443",
-        "etcdDiscoveryDomain": "osd-test.wu67.s1.devshift.org",
-        "infrastructureName": "ocp-gcp",
-        "platform": "GCP",
-        "platformStatus": {
-            "gcp": {
-                "region": "region-gcp"
-            },
-            "type": "GCP"
-        }
-    }
-}`
-)
+func newAWSInfrastructure() *apiconfigv1.Infrastructure {
+	return &apiconfigv1.Infrastructure{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster",
+		},
+		Spec: apiconfigv1.InfrastructureSpec{
+			CloudConfig: apiconfigv1.ConfigMapFileReference{},
+			PlatformSpec: apiconfigv1.PlatformSpec{
+				Type: "AWS",
+				AWS:  &apiconfigv1.AWSPlatformSpec{},
+			},
+		},
+		Status: apiconfigv1.InfrastructureStatus{
+			InfrastructureName: "ocp-aws",
+			Platform:           "AWS",
+			PlatformStatus: &apiconfigv1.PlatformStatus{
+				Type: "AWS",
+				AWS: &apiconfigv1.AWSPlatformStatus{
+					Region: "region-aws",
+				},
+			},
+			EtcdDiscoveryDomain:  "osd-test.wu67.s1.devshift.org",
+			APIServerURL:         "https://api.osd-test.wu67.s1.devshift.org:6443",
+			APIServerInternalURL: "https://api-int.osd-test.wu67.s1.devshift.org:6443",
+		},
+	}
+}
+
+func newGCPInfrastructure() *apiconfigv1.Infrastructure {
+	return &apiconfigv1.Infrastructure{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster",
+		},
+		Spec: apiconfigv1.InfrastructureSpec{
+			CloudConfig: apiconfigv1.ConfigMapFileReference{},
+			PlatformSpec: apiconfigv1.PlatformSpec{
+				Type: "GCP",
+				GCP:  &apiconfigv1.GCPPlatformSpec{},
+			},
+		},
+		Status: apiconfigv1.InfrastructureStatus{
+			InfrastructureName: "ocp-gcp",
+			Platform:           "GCP",
+			PlatformStatus: &apiconfigv1.PlatformStatus{
+				Type: "GCP",
+				GCP: &apiconfigv1.GCPPlatformStatus{
+					Region: "region-gcp",
+				},
+			},
+			EtcdDiscoveryDomain:  "osd-test.wu67.s1.devshift.org",
+			APIServerURL:         "https://api.osd-test.wu67.s1.devshift.org:6443",
+			APIServerInternalURL: "https://api-int.osd-test.wu67.s1.devshift.org:6443",
+		},
+	}
+}
+
+func newConfigV1Client(version string, platformType string) openshiftclientset.Interface {
+	clusterVersion := &apiconfigv1.ClusterVersion{}
+	if version == "4.x" {
+		clusterVersion = newClusterVersion()
+	}
+
+	infrastructure := &apiconfigv1.Infrastructure{}
+	switch platformType {
+	case PlatformAWS:
+		infrastructure = newAWSInfrastructure()
+	case PlatformGCP:
+		infrastructure = newGCPInfrastructure()
+	}
+
+	return configfake.NewSimpleClientset(clusterVersion, infrastructure)
+}
 
 func projectAPIResource() *metav1.APIResourceList {
 	project := metav1.APIResource{
@@ -131,38 +179,6 @@ func newFakeKubeClient(resources []*metav1.APIResourceList, objects []runtime.Ob
 	fakeKubeClient.Resources = append(fakeKubeClient.Resources, resources...)
 	fakeKubeClient.Discovery().ServerVersion()
 	return fakeKubeClient
-}
-
-func newClusterVersions(version string) *unstructured.Unstructured {
-	if version == "3" {
-		return &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"apiVersion": "test/v1",
-				"kind":       "test",
-				"metadata": map[string]interface{}{
-					"name": "test",
-				},
-			},
-		}
-	}
-	if version == "4.x" {
-		obj := unstructured.Unstructured{}
-		obj.UnmarshalJSON([]byte(clusterVersions))
-		return &obj
-	}
-	return nil
-}
-
-func newInfraConfig(platformType string) *unstructured.Unstructured {
-	obj := unstructured.Unstructured{}
-	switch platformType {
-	case PlatformAWS:
-		obj.UnmarshalJSON([]byte(awsOCPInfraConfig))
-	case PlatformGCP:
-		obj.UnmarshalJSON([]byte(gcpInfraConfig))
-	}
-
-	return &obj
 }
 
 func newConfigmapConsoleConfig() *corev1.ConfigMap {
@@ -239,19 +255,19 @@ func newNode(platform string) *corev1.Node {
 
 func TestClusterClaimerList(t *testing.T) {
 	tests := []struct {
-		name          string
-		clusterName   string
-		kubeClient    kubernetes.Interface
-		dynamicClient dynamic.Interface
-		expectClaims  map[string]string
-		expectErr     error
+		name           string
+		clusterName    string
+		kubeClient     kubernetes.Interface
+		configV1Client openshiftclientset.Interface
+		expectClaims   map[string]string
+		expectErr      error
 	}{
 		{
 			name:        "claims of OCP on AWS",
 			clusterName: "clusterAWS",
 			kubeClient: newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()},
 				[]runtime.Object{newNode(PlatformAWS), newConfigmapConsoleConfig()}),
-			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x"), newInfraConfig(PlatformAWS)),
+			configV1Client: newConfigV1Client("4.x", PlatformAWS),
 			expectClaims: map[string]string{
 				ClaimK8sID:                   "clusterAWS",
 				ClaimOpenshiftVersion:        "4.5.11",
@@ -270,7 +286,7 @@ func TestClusterClaimerList(t *testing.T) {
 			clusterName: "clusterOSDGCP",
 			kubeClient: newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource(), managedAPIResource()},
 				[]runtime.Object{newNode(PlatformGCP), newConfigmapConsoleConfig()}),
-			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x"), newInfraConfig(PlatformGCP)),
+			configV1Client: newConfigV1Client("4.x", PlatformGCP),
 			expectClaims: map[string]string{
 				ClaimK8sID:                   "clusterOSDGCP",
 				ClaimOpenshiftVersion:        "4.5.11",
@@ -300,7 +316,9 @@ func TestClusterClaimerList(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			clusterClaimer := ClusterClaimer{ClusterName: test.clusterName, KubeClient: test.kubeClient, DynamicClient: test.dynamicClient}
+			clusterClaimer := ClusterClaimer{ClusterName: test.clusterName,
+				KubeClient:     test.kubeClient,
+				ConfigV1Client: test.configV1Client}
 			claims, err := clusterClaimer.List()
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, len(claims), len(test.expectClaims))
@@ -374,7 +392,7 @@ func TestGetOCPVersion(t *testing.T) {
 	tests := []struct {
 		name            string
 		kubeClient      kubernetes.Interface
-		dynamicClient   dynamic.Interface
+		configV1Client  openshiftclientset.Interface
 		expectVersion   string
 		expectClusterID string
 		expectErr       error
@@ -382,7 +400,7 @@ func TestGetOCPVersion(t *testing.T) {
 		{
 			name:            "is OCP 3.x",
 			kubeClient:      newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, nil),
-			dynamicClient:   dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("3")),
+			configV1Client:  newConfigV1Client("3", ""),
 			expectVersion:   "3",
 			expectClusterID: "",
 			expectErr:       nil,
@@ -390,7 +408,7 @@ func TestGetOCPVersion(t *testing.T) {
 		{
 			name:            "is OCP 4.x",
 			kubeClient:      newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, nil),
-			dynamicClient:   dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x")),
+			configV1Client:  newConfigV1Client("4.x", ""),
 			expectVersion:   "4.5.11",
 			expectClusterID: "ffd989a0-8391-426d-98ac-86ae6d051433",
 			expectErr:       nil,
@@ -406,7 +424,7 @@ func TestGetOCPVersion(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, DynamicClient: test.dynamicClient}
+			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, ConfigV1Client: test.configV1Client}
 			version, clusterID, err := clusterClaimer.getOCPVersion()
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, test.expectVersion, version)
@@ -419,21 +437,21 @@ func TestGetInfraConfig(t *testing.T) {
 	tests := []struct {
 		name              string
 		kubeClient        kubernetes.Interface
-		dynamicClient     dynamic.Interface
+		configV1Client    openshiftclientset.Interface
 		expectInfraConfig string
 		expectErr         error
 	}{
 		{
 			name:              "OCP on AWS",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, nil),
-			dynamicClient:     dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newInfraConfig(PlatformAWS)),
+			configV1Client:    newConfigV1Client("", PlatformAWS),
 			expectInfraConfig: "{\"infraName\":\"ocp-aws\"}",
 			expectErr:         nil,
 		},
 		{
 			name:              "OCP on GCP",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, nil),
-			dynamicClient:     dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newInfraConfig(PlatformGCP)),
+			configV1Client:    newConfigV1Client("", PlatformGCP),
 			expectInfraConfig: "{\"infraName\":\"ocp-gcp\"}",
 			expectErr:         nil,
 		},
@@ -447,7 +465,7 @@ func TestGetInfraConfig(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, DynamicClient: test.dynamicClient}
+			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, ConfigV1Client: test.configV1Client}
 			infraConfig, err := clusterClaimer.getInfraConfig()
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, test.expectInfraConfig, infraConfig)
@@ -457,25 +475,25 @@ func TestGetInfraConfig(t *testing.T) {
 
 func TestGetClusterRegion(t *testing.T) {
 	tests := []struct {
-		name          string
-		kubeClient    kubernetes.Interface
-		dynamicClient dynamic.Interface
-		expectRegion  string
-		expectErr     error
+		name           string
+		kubeClient     kubernetes.Interface
+		configV1Client openshiftclientset.Interface
+		expectRegion   string
+		expectErr      error
 	}{
 		{
-			name:          "OCP on AWS",
-			kubeClient:    newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, nil),
-			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newInfraConfig(PlatformAWS)),
-			expectRegion:  "region-aws",
-			expectErr:     nil,
+			name:           "OCP on AWS",
+			kubeClient:     newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, nil),
+			configV1Client: newConfigV1Client("", PlatformAWS),
+			expectRegion:   "region-aws",
+			expectErr:      nil,
 		},
 		{
-			name:          "OCP on GCP",
-			kubeClient:    newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, nil),
-			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newInfraConfig(PlatformGCP)),
-			expectRegion:  "region-gcp",
-			expectErr:     nil,
+			name:           "OCP on GCP",
+			kubeClient:     newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, nil),
+			configV1Client: newConfigV1Client("", PlatformGCP),
+			expectRegion:   "region-gcp",
+			expectErr:      nil,
 		},
 		{
 			name:         "is not OCP",
@@ -487,7 +505,7 @@ func TestGetClusterRegion(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, DynamicClient: test.dynamicClient}
+			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, ConfigV1Client: test.configV1Client}
 			region, err := clusterClaimer.getClusterRegion()
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, test.expectRegion, region)

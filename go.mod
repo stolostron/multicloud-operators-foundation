@@ -17,6 +17,7 @@ replace (
 	github.com/kubevirt/terraform-provider-kubevirt => github.com/nirarg/terraform-provider-kubevirt v0.0.0-20201222125919-101cee051ed3
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20200715132148-0f91f62a41fe
 	github.com/metal3-io/cluster-api-provider-baremetal => github.com/openshift/cluster-api-provider-baremetal v0.0.0-20190821174549-a2a477909c1d
+	github.com/openshift/api => github.com/openshift/api v0.0.0-20200827090112-c05698d102cf
 	github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20210415080537-ea6f0a2dd76c
 	github.com/terraform-providers/terraform-provider-aws => github.com/openshift/terraform-provider-aws v1.60.1-0.20200630224953-76d1fb4e5699
 	github.com/terraform-providers/terraform-provider-azurerm => github.com/openshift/terraform-provider-azurerm v1.40.1-0.20200707062554-97ea089cc12a
@@ -47,6 +48,7 @@ require (
 	github.com/onsi/gomega v1.10.2
 	github.com/open-cluster-management/addon-framework v0.0.0-20210423114544-8e08479e80b6
 	github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f
+	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 	github.com/openshift/build-machinery-go v0.0.0-20210209125900-0da259a2c359
 	github.com/openshift/client-go v0.0.0-20201020074620-f8fd44879f7c
 	github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca
