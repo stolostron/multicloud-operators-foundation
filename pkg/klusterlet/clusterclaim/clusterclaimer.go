@@ -5,12 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"strconv"
@@ -56,9 +54,9 @@ const (
 )
 
 type ClusterClaimer struct {
-	ClusterName   string
-	KubeClient    kubernetes.Interface
-	DynamicClient dynamic.Interface
+	ClusterName    string
+	KubeClient     kubernetes.Interface
+	ConfigV1Client openshiftclientset.Interface
 }
 
 func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
@@ -162,12 +160,6 @@ func (c *ClusterClaimer) isOpenshiftDedicated() bool {
 	return hasProject && hasManaged
 }
 
-var ocpVersionGVR = schema.GroupVersionResource{
-	Group:    "config.openshift.io",
-	Version:  "v1",
-	Resource: "clusterversions",
-}
-
 const (
 	OCP3Version = "3"
 )
@@ -177,7 +169,7 @@ func (c *ClusterClaimer) getOCPVersion() (version, clusterID string, err error) 
 		return "", "", nil
 	}
 
-	obj, err := c.DynamicClient.Resource(ocpVersionGVR).Get(context.TODO(), "version", metav1.GetOptions{})
+	clusterVersion, err := c.ConfigV1Client.ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			version = OCP3Version
@@ -187,40 +179,16 @@ func (c *ClusterClaimer) getOCPVersion() (version, clusterID string, err error) 
 		return "", "", err
 	}
 
-	clusterID, _, err = unstructured.NestedString(obj.Object, "spec", "clusterID")
-	if err != nil {
-		klog.Errorf("failed to get OCP clusterID in spec: %v", err)
-		return "", "", err
-	}
-
-	historyItems, _, err := unstructured.NestedSlice(obj.Object, "status", "history")
-	if err != nil {
-		klog.Errorf("failed to get history in clusterVersion: %v", err)
-		return "", "", err
-	}
-
+	clusterID = string(clusterVersion.Spec.ClusterID)
+	historyItems := clusterVersion.Status.History
 	for _, historyItem := range historyItems {
-		state, _, err := unstructured.NestedString(historyItem.(map[string]interface{}), "state")
-		if err != nil {
-			klog.Errorf("failed to get the state of history in clusterVersion: %v", err)
-			continue
-		}
-		if state == "Completed" {
-			version, _, err = unstructured.NestedString(historyItem.(map[string]interface{}), "version")
-			if err != nil {
-				klog.Errorf("failed to version of Completed state of history in ClusterVersion: %v", err)
-			}
+		if historyItem.State == "Completed" {
+			version = historyItem.Version
 			break
 		}
 	}
 
 	return version, clusterID, nil
-}
-
-var ocpInfrGVR = schema.GroupVersionResource{
-	Group:    "config.openshift.io",
-	Version:  "v1",
-	Resource: "infrastructures",
 }
 
 type InfraConfig struct {
@@ -232,17 +200,14 @@ func (c *ClusterClaimer) getInfraConfig() (string, error) {
 		return "", nil
 	}
 
-	obj, err := c.DynamicClient.Resource(ocpInfrGVR).Get(context.TODO(), "cluster", metav1.GetOptions{})
+	infrastructure, err := c.ConfigV1Client.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		klog.Errorf("failed to get OCP infrastructures.config.openshift.io/cluster: %v", err)
 		return "", err
 	}
 
-	infraConfig := InfraConfig{}
-	infraConfig.InfraName, _, err = unstructured.NestedString(obj.Object, "status", "infrastructureName")
-	if err != nil {
-		klog.Errorf("failed to get OCP infrastructure Name in status of infrastructures.config.openshift.io/cluster: %v", err)
-		return "", err
+	infraConfig := InfraConfig{
+		InfraName: infrastructure.Status.InfrastructureName,
 	}
 
 	infraConfigRaw, err := json.Marshal(infraConfig)
@@ -258,33 +223,20 @@ func (c *ClusterClaimer) getClusterRegion() (string, error) {
 
 	switch {
 	case c.isOpenShift():
-		obj, err := c.DynamicClient.Resource(ocpInfrGVR).Get(context.TODO(), "cluster", metav1.GetOptions{})
+		infrastructure, err := c.ConfigV1Client.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
 		if err != nil {
 			klog.Errorf("failed to get OCP infrastructures.config.openshift.io/cluster: %v", err)
 			return "", err
 		}
-
-		platformType, _, err := unstructured.NestedString(obj.Object, "status", "platform")
-		if err != nil {
-			klog.Errorf("failed to get OCP platform type in status of infrastructures.config.openshift.io/cluster: %v", err)
-			return "", err
-		}
+		platformType := infrastructure.Status.PlatformStatus.Type
 
 		// only ocp on aws and gcp has region definition
 		// refer to https://github.com/openshift/api/blob/master/config/v1/types_infrastructure.go
 		switch platformType {
 		case PlatformAWS:
-			region, _, err = unstructured.NestedString(obj.Object, "status", "platformStatus", "aws", "region")
-			if err != nil {
-				klog.Errorf("failed to get OCP region in status of infrastructures.config.openshift.io/cluster: %v", err)
-				return "", err
-			}
+			region = infrastructure.Status.PlatformStatus.AWS.Region
 		case PlatformGCP:
-			region, _, err = unstructured.NestedString(obj.Object, "status", "platformStatus", "gcp", "region")
-			if err != nil {
-				klog.Errorf("failed to get OCP region in status of infrastructures.config.openshift.io/cluster: %v", err)
-				return "", err
-			}
+			region = infrastructure.Status.PlatformStatus.GCP.Region
 		}
 	}
 

@@ -64,7 +64,13 @@ for i in {1..7}; do
 done
 
 CSR_NAME=$($KUBECTL get csr |grep cluster1 | grep Pending |awk '{print $1}')
-$KUBECTL certificate approve "${CSR_NAME}"
+
+if [ $KUBECTL == oc ]; then
+  $KUBECTL adm certificate approve "${CSR_NAME}"
+else
+  $KUBECTL certificate approve "${CSR_NAME}"
+fi
+
 $KUBECTL patch managedclusters cluster1  --type merge --patch '{"spec":{"hubAcceptsClient":true}}'
 
 for i in {1..7}; do

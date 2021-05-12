@@ -2,6 +2,9 @@ package controllers
 
 import (
 	"context"
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
+
+	apiconfigv1 "github.com/openshift/api/config/v1"
 	stdlog "log"
 	"os"
 	"testing"
@@ -10,26 +13,23 @@ import (
 	tlog "github.com/go-logr/logr/testing"
 	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
 	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
-	routev1Fake "github.com/openshift/client-go/route/clientset/versioned/fake"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/client-go/dynamic"
-	dynamicfake "k8s.io/client-go/dynamic/fake"
-	"k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes/scheme"
-
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
+	configfake "github.com/openshift/client-go/config/clientset/versioned/fake"
+	routefake "github.com/openshift/client-go/route/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	extensionv1beta1 "k8s.io/api/extensions/v1beta1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/informers"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -148,7 +148,7 @@ func newClusterClaimList() []runtime.Object {
 func NewClusterInfoReconciler() *ClusterInfoReconciler {
 	fakeKubeClient := kubefake.NewSimpleClientset(
 		newAgentIngress(), newMonitoringSecret(), newAgentService())
-	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
+	fakeRouteV1Client := routefake.NewSimpleClientset()
 	fakeClusterClient := clusterfake.NewSimpleClientset(newClusterClaimList()...)
 	informerFactory := informers.NewSharedInformerFactory(fakeKubeClient, 10*time.Minute)
 	clusterInformerFactory := clusterinformers.NewSharedInformerFactory(fakeClusterClient, 10*time.Minute)
@@ -172,7 +172,7 @@ func NewClusterInfoReconciler() *ClusterInfoReconciler {
 
 func NewFailedClusterInfoReconciler() *ClusterInfoReconciler {
 	fakeKubeClient := kubefake.NewSimpleClientset(newMonitoringSecret())
-	fakeRouteV1Client := routev1Fake.NewSimpleClientset()
+	fakeRouteV1Client := routefake.NewSimpleClientset()
 	fakeClusterClient := clusterfake.NewSimpleClientset()
 	informerFactory := informers.NewSharedInformerFactory(fakeKubeClient, 10*time.Minute)
 	clusterInformerFactory := clusterinformers.NewSharedInformerFactory(fakeClusterClient, 10*time.Minute)
@@ -271,289 +271,11 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 	}
 }
 
-const (
-	clusterVersions = `{
-  "apiVersion": "config.openshift.io/v1",
-  "kind": "ClusterVersion",
-  "metadata": {
-	"name": "version"
-  },
-  "spec": {
-    "channel": "stable-4.5",
-    "clusterID": "ffd989a0-8391-426d-98ac-86ae6d051433",
-    "upstream": "https://api.openshift.com/api/upgrades_info/v1/graph"
-  },
- "status": {
-	"availableUpdates": [
-	{
-		"channels": [
-			"candidate-4.6",
-			"candidate-4.7",
-			"eus-4.6",
-			"fast-4.6",
-			"fast-4.7",
-			"stable-4.6",
-			"stable-4.7"
-		],
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:3e855ad88f46ad1b7f56c312f078ca6adaba623c5d4b360143f9f82d2f349741",
-		"url": "https://access.redhat.com/errata/RHBA-2021:0308",
-		"version": "4.6.16"
-	},
-	{
-		"channels": [
-			"candidate-4.6",
-			"candidate-4.7",
-			"eus-4.6",
-			"fast-4.6",
-			"fast-4.7",
-			"stable-4.6",
-			"stable-4.7"
-		],
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:5c3618ab914eb66267b7c552a9b51c3018c3a8f8acf08ce1ff7ae4bfdd3a82bd",
-		"url": "https://access.redhat.com/errata/RHSA-2021:0037",
-		"version": "4.6.12"
-	},
-	{
-		"channels": [
-			"candidate-4.6",
-			"candidate-4.7",
-			"eus-4.6",
-			"fast-4.6",
-			"fast-4.7",
-			"stable-4.6",
-			"stable-4.7"
-		],
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:08ef16270e643a001454410b22864db6246d782298be267688a4433d83f404f4",
-		"url": "https://access.redhat.com/errata/RHBA-2021:0510",
-		"version": "4.6.18"
-	},
-	{
-		"channels": [
-			"candidate-4.6",
-			"candidate-4.7",
-			"eus-4.6",
-			"fast-4.6",
-			"fast-4.7",
-			"stable-4.6",
-			"stable-4.7"
-		],
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:a7b23f38d1e5be975a6b516739689673011bdfa59a7158dc6ca36cefae169c18",
-		"url": "https://access.redhat.com/errata/RHSA-2021:0424",
-		"version": "4.6.17"
-	},
-	{
-		"channels": [
-			"candidate-4.6",
-			"candidate-4.7",
-			"eus-4.6",
-			"fast-4.6",
-			"fast-4.7",
-			"stable-4.6",
-			"stable-4.7"
-		],
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:ac5bbe391f9f5db07b8a710cfda1aee80f6eb3bf37a3c44a5b89763957d8d5ad",
-		"url": "https://access.redhat.com/errata/RHBA-2021:0674",
-		"version": "4.6.20"
-	},
-	{
-		"channels": [
-			"candidate-4.6",
-			"candidate-4.7",
-			"eus-4.6",
-			"fast-4.6",
-			"fast-4.7",
-			"stable-4.6",
-			"stable-4.7"
-		],
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:47df4bfe1cfd6d63dd2e880f00075ed1d37f997fd54884ed823ded9f5d96abfc",
-		"url": "https://access.redhat.com/errata/RHBA-2021:0634",
-		"version": "4.6.19"
-	},
-	{
-		"channels": [
-			"candidate-4.6",
-			"candidate-4.7",
-			"eus-4.6",
-			"fast-4.6",
-			"fast-4.7",
-			"stable-4.6",
-			"stable-4.7"
-		],
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:b70f550e3fa94af2f7d60a3437ec0275194db36f2dc49991da2336fe21e2824c",
-		"url": "https://access.redhat.com/errata/RHBA-2021:0235",
-		"version": "4.6.15"
-	},
-	{
-		"channels": [
-			"candidate-4.6",
-			"candidate-4.7",
-			"eus-4.6",
-			"fast-4.6",
-			"fast-4.7",
-			"stable-4.6",
-			"stable-4.7"
-		],
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:8a9e40df2a19db4cc51dc8624d54163bef6e88b7d88cc0f577652ba25466e338",
-		"url": "https://access.redhat.com/errata/RHBA-2021:0171",
-		"version": "4.6.13"
-	},
-	{
-		"channels": [
-			"candidate-4.6",
-			"candidate-4.7",
-			"eus-4.6",
-			"fast-4.6",
-			"fast-4.7",
-			"stable-4.6",
-			"stable-4.7"
-		],
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:6ae80e777c206b7314732aff542be105db892bf0e114a6757cb9e34662b8f891",
-		"url": "https://access.redhat.com/errata/RHBA-2021:0753",
-		"version": "4.6.21"
-	}
-	],
-	"conditions": [
-	  {
-		"lastTransitionTime": "2020-09-30T09:00:07Z",
-		"message": "Done applying 4.5.11",
-		"status": "True",
-		"type": "Available"
-	  },
-	  {
-		"lastTransitionTime": "2020-09-30T08:45:02Z",
-		"status": "False",
-		"type": "Failing"
-	  },
-	  {
-		"lastTransitionTime": "2020-09-30T09:00:07Z",
-		"message": "Cluster version is 4.5.11",
-		"status": "False",
-		"type": "Progressing"
-	  },
-	  {
-		"lastTransitionTime": "2020-10-06T13:50:43Z",
-		"status": "True",
-		"type": "RetrievedUpdates"
-	  }
-	],
-	"desired": {
-	  "channels": [
-		"candidate-4.6",
-		"candidate-4.7",
-		"eus-4.6",
-		"fast-4.6",
-		"fast-4.7",
-		"stable-4.6",
-		"stable-4.7"
-	  ],
-	  "image": "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
-	  "url": "https://access.redhat.com/errata/RHSA-2020:5259",
-	  "version": "4.6.8"
-	},
- 	"history": [
-	  {
-	 	"completionTime": "2020-09-30T09:00:07Z",
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
-		"startedTime": "2020-09-30T08:36:46Z",
-		"state": "Completed",
-		"verified": false,
-		"version": "4.5.11"
-	  }
-	],
-	"observedGeneration": 1,
-	"versionHash": "4lK_pl-YbSw="
-  }
-}`
-	clusterVersionsFail = `{
-  "apiVersion": "config.openshift.io/v1",
-  "kind": "ClusterVersion",
-  "metadata": {
-	"name": "version"
-  },
-  "spec": {
-    "channel": "stable-4.5",
-    "clusterID": "ffd989a0-8391-426d-98ac-86ae6d051433",
-    "upstream": "https://api.openshift.com/api/upgrades_info/v1/graph"
-  },
- "status": {
-	"availableUpdates": [
-	 {
-		"force": false,
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:78b878986d2d0af6037d637aa63e7b6f80fc8f17d0f0d5b077ac6aca83f792a0",
-		"version": "4.5.20"
-	  }
-	],
-	"conditions": [
-	  {
-		"lastTransitionTime": "2020-09-30T09:00:07Z",
-		"message": "Done applying 4.5.11",
-		"status": "True",
-		"type": "Available"
-	  },
-	  {
-		"lastTransitionTime": "2020-09-30T08:45:02Z",
-		"status": "True",
-		"type": "Failing"
-	  },
-	  {
-		"lastTransitionTime": "2020-09-30T09:00:07Z",
-		"message": "Cluster version is 4.5.11",
-		"status": "False",
-		"type": "Progressing"
-	  },
-	  {
-		"lastTransitionTime": "2020-10-06T13:50:43Z",
-		"status": "True",
-		"type": "RetrievedUpdates"
-	  }
-	],
-	"desired": {
-	  "force": false,
-	  "image": "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
-	  "version": "4.5.11"
-	},
- 	"history": [
-	  {
-	 	"completionTime": "2020-09-30T09:00:07Z",
-		"image": "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
-		"startedTime": "2020-09-30T08:36:46Z",
-		"state": "Completed",
-		"verified": false,
-		"version": "4.5.3"
-	  }
-	],
-	"observedGeneration": 1,
-	"versionHash": "4lK_pl-YbSw="
-  }
-}`
-)
-
-func newClusterVersions(version, clusterVersions string) *unstructured.Unstructured {
-	if version == "3" {
-		return &unstructured.Unstructured{
-			Object: map[string]interface{}{
-				"apiVersion": "test/v1",
-				"kind":       "test",
-				"metadata": map[string]interface{}{
-					"name": "test",
-				},
-			},
-		}
-	}
-	if version == "4.x" {
-		obj := unstructured.Unstructured{}
-		obj.UnmarshalJSON([]byte(clusterVersions))
-		return &obj
-	}
-	return nil
-}
-
 func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 	cir := NewClusterInfoReconciler()
-
 	tests := []struct {
 		name                      string
-		dynamicClient             dynamic.Interface
+		configV1Client            openshiftclientset.Interface
 		expectChannel             string
 		expectDesiredVersion      string
 		expectUpgradeFail         bool
@@ -564,27 +286,27 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 	}{
 		{
 			name:                      "OCP4.x",
-			dynamicClient:             dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x", clusterVersions)),
+			configV1Client:            newConfigV1Client("4.x", false),
 			expectChannel:             "stable-4.5",
 			expectDesiredVersion:      "4.6.8",
 			expectUpgradeFail:         false,
-			expectAvailableUpdatesLen: 9,
+			expectAvailableUpdatesLen: 2,
 			expectChannelAndURL:       true,
 			expectHistoryLen:          1,
 			expectError:               "",
 		},
 		{
-			name:          "OCP3.x",
-			dynamicClient: dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("3", "")),
-			expectError:   "",
+			name:           "OCP3.x",
+			configV1Client: newConfigV1Client("3", true),
+			expectError:    "",
 		},
 		{
 			name:                      "UpgradeFail",
-			dynamicClient:             dynamicfake.NewSimpleDynamicClient(runtime.NewScheme(), newClusterVersions("4.x", clusterVersionsFail)),
+			configV1Client:            newConfigV1Client("4.x", true),
 			expectChannel:             "stable-4.5",
-			expectDesiredVersion:      "4.5.11",
+			expectDesiredVersion:      "4.6.8",
 			expectUpgradeFail:         true,
-			expectAvailableUpdatesLen: 1,
+			expectAvailableUpdatesLen: 2,
 			expectChannelAndURL:       false,
 			expectHistoryLen:          1,
 			expectError:               "",
@@ -593,7 +315,7 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			cir.ManagedClusterDynamicClient = test.dynamicClient
+			cir.ConfigV1Client = test.configV1Client
 			info, err := cir.getOCPDistributionInfo()
 			if err != nil {
 				assert.Equal(t, err.Error(), test.expectError)
@@ -628,4 +350,148 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 			}
 		})
 	}
+}
+
+func newClusterVersion() *apiconfigv1.ClusterVersion {
+	return &apiconfigv1.ClusterVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "version",
+		},
+		Spec: apiconfigv1.ClusterVersionSpec{
+			ClusterID: "ffd989a0-8391-426d-98ac-86ae6d051433",
+			Upstream:  "https://api.openshift.com/api/upgrades_info/v1/graph",
+			Channel:   "stable-4.5",
+		},
+		Status: apiconfigv1.ClusterVersionStatus{
+			ObservedGeneration: 1,
+			VersionHash:        "4lK_pl-YbSw=",
+			Desired: apiconfigv1.Release{
+				Channels: []string{
+					"candidate-4.6",
+					"candidate-4.7",
+					"eus-4.6",
+					"fast-4.6",
+					"fast-4.7",
+					"stable-4.6",
+					"stable-4.7",
+				},
+				Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+				URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+				Version: "4.6.8",
+			},
+			History: []apiconfigv1.UpdateHistory{
+				{
+					Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+					State:    "Completed",
+					Verified: false,
+					Version:  "4.5.11",
+				},
+			},
+			AvailableUpdates: []apiconfigv1.Release{
+				{
+					Channels: []string{
+						"candidate-4.6",
+						"candidate-4.7",
+						"eus-4.6",
+						"fast-4.6",
+						"fast-4.7",
+						"stable-4.6",
+						"stable-4.7",
+					},
+					Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+					URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+					Version: "4.6.8",
+				},
+				{
+					Channels: []string{
+						"candidate-4.6",
+						"candidate-4.7",
+						"eus-4.6",
+						"fast-4.6",
+						"fast-4.7",
+						"stable-4.6",
+						"stable-4.7",
+					},
+					Image:   "quay.io/openshift-release-dev/ocp-release@sha256:3e855ad88f46ad1b7f56c312f078ca6adaba623c5d4b360143f9f82d2f349741",
+					URL:     "https://access.redhat.com/errata/RHBA-2021:0308",
+					Version: "4.6.16",
+				},
+			},
+			Conditions: []apiconfigv1.ClusterOperatorStatusCondition{
+				{
+					Type:   "Failing",
+					Status: "False",
+				},
+			},
+		},
+	}
+}
+
+func newFailingClusterVersion() *apiconfigv1.ClusterVersion {
+	return &apiconfigv1.ClusterVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "version",
+		},
+		Spec: apiconfigv1.ClusterVersionSpec{
+			ClusterID: "ffd989a0-8391-426d-98ac-86ae6d051433",
+			Upstream:  "https://api.openshift.com/api/upgrades_info/v1/graph",
+			Channel:   "stable-4.5",
+		},
+		Status: apiconfigv1.ClusterVersionStatus{
+			ObservedGeneration: 1,
+			VersionHash:        "4lK_pl-YbSw=",
+			Desired: apiconfigv1.Release{
+				Channels: []string{
+					"candidate-4.6",
+					"candidate-4.7",
+					"eus-4.6",
+					"fast-4.6",
+					"fast-4.7",
+					"stable-4.6",
+					"stable-4.7",
+				},
+				Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+				URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+				Version: "4.6.8",
+			},
+			History: []apiconfigv1.UpdateHistory{
+				{
+					Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+					State:    "Completed",
+					Verified: false,
+					Version:  "4.5.11",
+				},
+			},
+			AvailableUpdates: []apiconfigv1.Release{
+				{
+					Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+					Version: "4.6.8",
+				},
+				{
+					Image:   "quay.io/openshift-release-dev/ocp-release@sha256:3e855ad88f46ad1b7f56c312f078ca6adaba623c5d4b360143f9f82d2f349741",
+					Version: "4.6.16",
+				},
+			},
+			Conditions: []apiconfigv1.ClusterOperatorStatusCondition{
+				{
+					Type:   "Failing",
+					Status: "True",
+				},
+			},
+		},
+	}
+}
+
+func newConfigV1Client(version string, failingStatus bool) openshiftclientset.Interface {
+	clusterVersion := &apiconfigv1.ClusterVersion{}
+	if version == "4.x" {
+		if failingStatus {
+			clusterVersion = newFailingClusterVersion()
+		} else {
+			clusterVersion = newClusterVersion()
+		}
+
+	}
+
+	return configfake.NewSimpleClientset(clusterVersion)
 }

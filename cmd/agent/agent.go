@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"os"
 	"time"
 
@@ -96,6 +97,12 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		setupLog.Error(err, "New route client config error:")
 	}
 
+	openshiftClient, err := openshiftclientset.NewForConfig(managedClusterConfig)
+	if err != nil {
+		setupLog.Error(err, "Unable to create managed cluster openshift clientset.")
+		os.Exit(1)
+	}
+
 	managedClusterClusterClient, err := clusterclientset.NewForConfig(managedClusterConfig)
 	if err != nil {
 		setupLog.Error(err, "Unable to create managed cluster cluster clientset.")
@@ -170,29 +177,29 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		}
 
 		clusterInfoReconciler := clusterinfoctl.ClusterInfoReconciler{
-			Client:                      mgr.GetClient(),
-			Log:                         ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
-			Scheme:                      mgr.GetScheme(),
-			NodeLister:                  kubeInformerFactory.Core().V1().Nodes().Lister(),
-			NodeInformer:                kubeInformerFactory.Core().V1().Nodes(),
-			ClaimInformer:               clusterInformerFactory.Cluster().V1alpha1().ClusterClaims(),
-			ClaimLister:                 clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
-			KubeClient:                  managedClusterKubeClient,
-			ManagedClusterDynamicClient: managedClusterDynamicClient,
-			ClusterName:                 o.ClusterName,
-			AgentRoute:                  o.AgentRoute,
-			AgentAddress:                o.AgentAddress,
-			AgentIngress:                o.AgentIngress,
-			AgentPort:                   int32(o.AgentPort),
-			RouteV1Client:               routeV1Client,
-			Agent:                       agent,
-			AgentService:                o.AgentService,
+			Client:         mgr.GetClient(),
+			Log:            ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
+			Scheme:         mgr.GetScheme(),
+			NodeLister:     kubeInformerFactory.Core().V1().Nodes().Lister(),
+			NodeInformer:   kubeInformerFactory.Core().V1().Nodes(),
+			ClaimInformer:  clusterInformerFactory.Cluster().V1alpha1().ClusterClaims(),
+			ClaimLister:    clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
+			KubeClient:     managedClusterKubeClient,
+			ClusterName:    o.ClusterName,
+			AgentRoute:     o.AgentRoute,
+			AgentAddress:   o.AgentAddress,
+			AgentIngress:   o.AgentIngress,
+			AgentPort:      int32(o.AgentPort),
+			RouteV1Client:  routeV1Client,
+			ConfigV1Client: openshiftClient,
+			Agent:          agent,
+			AgentService:   o.AgentService,
 		}
 
 		clusterClaimer := clusterclaimctl.ClusterClaimer{
-			ClusterName:   o.ClusterName,
-			KubeClient:    managedClusterKubeClient,
-			DynamicClient: managedClusterDynamicClient,
+			ClusterName:    o.ClusterName,
+			KubeClient:     managedClusterKubeClient,
+			ConfigV1Client: openshiftClient,
 		}
 
 		clusterClaimReconciler := clusterclaimctl.ClusterClaimReconciler{
