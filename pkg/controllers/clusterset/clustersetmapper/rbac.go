@@ -47,8 +47,6 @@ func buildAdminRole(clustersetName, clusteroleName string) *rbacv1.ClusterRole {
 				Groups(managedclusterGroup).
 				Resources("managedclusters").
 				RuleOrDie(),
-			//TODO
-			// We will restrict the update permission only for authenticated clusterset in another pr
 			clusterrbac.NewRule("update").
 				Groups(registerGroup).
 				Resources("managedclusters/accept").

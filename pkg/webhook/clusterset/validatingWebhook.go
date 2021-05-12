@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
+	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 
@@ -115,25 +116,27 @@ func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.Ad
 	status := &v1.AdmissionResponse{
 		Allowed: true,
 	}
+	var needValidateSet = false
+	var err error
 	//TODO need improve later, may be in installer part to enable/disable it.
 	if !a.Enable {
 		return status
 	}
 	switch request.Resource {
-	case managedClustersGVR, clusterPoolsGVR:
+	case managedClustersGVR:
+		// if user want to update managedcluster spec.accepthubclient, we need to check if he has permission for clusterset.
+		needValidateSet, err = a.needUpdateAcceptHub(request)
+		if err != nil {
+			return generateFailureStatus(err.Error(), http.StatusBadRequest, metav1.StatusReasonBadRequest)
+		}
+	case clusterPoolsGVR:
 		break
 	case clusterDeploymentsGVR:
 		// ignore clusterDeployment created by clusterClaim
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		if err := json.Unmarshal(request.Object.Raw, clusterDeployment); err != nil {
-			status.Allowed = false
-			status.Result = &metav1.Status{
-				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-				Message: err.Error(),
-			}
-			return status
+			return generateFailureStatus(err.Error(), http.StatusBadRequest, metav1.StatusReasonBadRequest)
 		}
-
 		if clusterDeployment.Spec.ClusterPoolRef != nil {
 			return status
 		}
@@ -145,29 +148,40 @@ func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.Ad
 	case v1.Create:
 		return a.validateCreateRequest(request)
 	case v1.Update:
-		return a.validateUpdateRequest(request)
+		return a.validateUpdateRequest(request, needValidateSet)
 	}
 
 	return status
+}
+
+func (a *AdmissionHandler) needUpdateAcceptHub(request *v1.AdmissionRequest) (bool, error) {
+	if request.Operation != v1.Update {
+		return false, nil
+	}
+	managedCluster := &clusterv1.ManagedCluster{}
+	if err := json.Unmarshal(request.Object.Raw, managedCluster); err != nil {
+		return false, err
+	}
+	oldManagedCluster := &clusterv1.ManagedCluster{}
+	if err := json.Unmarshal(request.OldObject.Raw, oldManagedCluster); err != nil {
+		return false, err
+	}
+
+	if oldManagedCluster.Spec.HubAcceptsClient != managedCluster.Spec.HubAcceptsClient {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // validateCreateRequest validates:
 // 1. the user has managedClusterSet/join <managedClusterSet> permission to create resource with a <managedClusterSet> label.
 // 2. the user has managedClusterSet/join <all> permission to create resource without a managedClusterSet label.
 func (a *AdmissionHandler) validateCreateRequest(request *v1.AdmissionRequest) *v1.AdmissionResponse {
-	status := &v1.AdmissionResponse{
-		Allowed: true,
-	}
-
 	obj := unstructured.Unstructured{}
 	err := obj.UnmarshalJSON(request.Object.Raw)
 	if err != nil {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-			Message: err.Error(),
-		}
-		return status
+		return generateFailureStatus(err.Error(), http.StatusBadRequest, metav1.StatusReasonBadRequest)
 	}
 
 	labels := obj.GetLabels()
@@ -178,13 +192,23 @@ func (a *AdmissionHandler) validateCreateRequest(request *v1.AdmissionRequest) *
 
 	return a.allowUpdateClusterSet(request.UserInfo, clusterSetName)
 }
+func generateFailureStatus(msg string, code int32, reason metav1.StatusReason) *v1.AdmissionResponse {
+	return &v1.AdmissionResponse{
+		Allowed: false,
+		Result: &metav1.Status{
+			Status: metav1.StatusFailure, Code: code, Reason: reason,
+			Message: msg,
+		},
+	}
+}
 
 // validateUpdateRequest validates:
 // 1. allow if the managedClusterSet label is not changed.
 // 2. the user must have managedClusterSet/join <clusterSet-A/clusterSet-B> permission if update resource to change
 // the managedClusterSet label from clusterSet-A to clusterSet-B.
 // 3. the user must have managedClusterSet/join <all> permission if update resource to add/remove the managedClusterSet label.
-func (a *AdmissionHandler) validateUpdateRequest(request *v1.AdmissionRequest) *v1.AdmissionResponse {
+// needValidateSet means always need validate set permission.
+func (a *AdmissionHandler) validateUpdateRequest(request *v1.AdmissionRequest, needValidateSet bool) *v1.AdmissionResponse {
 	status := &v1.AdmissionResponse{
 		Allowed: true,
 	}
@@ -192,23 +216,13 @@ func (a *AdmissionHandler) validateUpdateRequest(request *v1.AdmissionRequest) *
 	oldObj := unstructured.Unstructured{}
 	err := oldObj.UnmarshalJSON(request.OldObject.Raw)
 	if err != nil {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-			Message: err.Error(),
-		}
-		return status
+		return generateFailureStatus(err.Error(), http.StatusBadRequest, metav1.StatusReasonBadRequest)
 	}
 
 	newObj := unstructured.Unstructured{}
 	err = newObj.UnmarshalJSON(request.Object.Raw)
 	if err != nil {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-			Message: err.Error(),
-		}
-		return status
+		return generateFailureStatus(err.Error(), http.StatusBadRequest, metav1.StatusReasonBadRequest)
 	}
 
 	oldLabels := oldObj.GetLabels()
@@ -222,15 +236,16 @@ func (a *AdmissionHandler) validateUpdateRequest(request *v1.AdmissionRequest) *
 		currentClusterSetName = newLabels[clusterSetLabel]
 	}
 
-	// allow if managedClusterSet label is not updated
-	if originalClusterSetName == currentClusterSetName {
+	// allow if managedClusterSet label is not updated and do not always need validate set permission
+	if originalClusterSetName == currentClusterSetName && !needValidateSet {
 		return status
 	}
-
-	if status := a.allowUpdateClusterSet(request.UserInfo, originalClusterSetName); !status.Allowed {
-		return status
+	if originalClusterSetName != currentClusterSetName {
+		status := a.allowUpdateClusterSet(request.UserInfo, originalClusterSetName)
+		if !status.Allowed {
+			return status
+		}
 	}
-
 	return a.allowUpdateClusterSet(request.UserInfo, currentClusterSetName)
 }
 
@@ -261,21 +276,12 @@ func (a *AdmissionHandler) allowUpdateClusterSet(userInfo authenticationv1.UserI
 	}
 	sar, err := a.KubeClient.AuthorizationV1().SubjectAccessReviews().Create(context.TODO(), sar, metav1.CreateOptions{})
 	if err != nil {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: metav1.StatusReasonForbidden,
-			Message: err.Error(),
-		}
-		return status
+		return generateFailureStatus(err.Error(), http.StatusForbidden, metav1.StatusReasonForbidden)
 	}
 
 	if !sar.Status.Allowed {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: metav1.StatusReasonForbidden,
-			Message: fmt.Sprintf("user %q cannot add/remove the resource to/from ManagedClusterSet %q", userInfo.Username, clusterSetName),
-		}
-		return status
+		msg := fmt.Sprintf("user %q cannot add/remove the resource to/from ManagedClusterSet %q", userInfo.Username, clusterSetName)
+		return generateFailureStatus(msg, http.StatusForbidden, metav1.StatusReasonForbidden)
 	}
 
 	status.Allowed = true
