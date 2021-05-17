@@ -323,7 +323,15 @@ func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDist
 		return ocpDistributionInfo, client.IgnoreNotFound(err)
 	}
 	ocpDistributionInfo.Channel = clusterVersion.Spec.Channel
+
+	// ocpDistributionInfo.DesiredVersion is deprecated in release 2.3 and will be remove in the feture.
+	// Use ocpDistributionInfo.Desired instead.
 	ocpDistributionInfo.DesiredVersion = clusterVersion.Status.Desired.Version
+	ocpDistributionInfo.Desired.Version = clusterVersion.Status.Desired.Version
+	ocpDistributionInfo.Desired.Image = clusterVersion.Status.Desired.Image
+	ocpDistributionInfo.Desired.URL = string(clusterVersion.Status.Desired.URL)
+	ocpDistributionInfo.Desired.Channels = clusterVersion.Status.Desired.Channels
+
 	availableUpdates := clusterVersion.Status.AvailableUpdates
 	for _, update := range availableUpdates {
 		versionUpdate := clusterv1beta1.OCPVersionRelease{}
