@@ -278,6 +278,7 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 		configV1Client            openshiftclientset.Interface
 		expectChannel             string
 		expectDesiredVersion      string
+		expectDesiredChannelLen   int
 		expectUpgradeFail         bool
 		expectAvailableUpdatesLen int
 		expectChannelAndURL       bool
@@ -289,6 +290,7 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 			configV1Client:            newConfigV1Client("4.x", false),
 			expectChannel:             "stable-4.5",
 			expectDesiredVersion:      "4.6.8",
+			expectDesiredChannelLen:   7,
 			expectUpgradeFail:         false,
 			expectAvailableUpdatesLen: 2,
 			expectChannelAndURL:       true,
@@ -304,6 +306,7 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 			name:                      "UpgradeFail",
 			configV1Client:            newConfigV1Client("4.x", true),
 			expectChannel:             "stable-4.5",
+			expectDesiredChannelLen:   7,
 			expectDesiredVersion:      "4.6.8",
 			expectUpgradeFail:         true,
 			expectAvailableUpdatesLen: 2,
@@ -323,6 +326,7 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 
 			assert.Equal(t, info.Channel, test.expectChannel)
 			assert.Equal(t, info.DesiredVersion, test.expectDesiredVersion)
+			assert.Equal(t, len(info.Desired.Channels), test.expectDesiredChannelLen)
 			assert.Equal(t, info.UpgradeFailed, test.expectUpgradeFail)
 			assert.Equal(t, len(info.VersionAvailableUpdates), test.expectAvailableUpdatesLen)
 			if len(info.VersionAvailableUpdates) != 0 {

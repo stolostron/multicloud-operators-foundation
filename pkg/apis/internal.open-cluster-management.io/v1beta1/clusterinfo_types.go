@@ -171,7 +171,8 @@ type OCPDistributionInfo struct {
 	// Deprecated in release 2.3 and will be removed in the future. Use VersionAvailableUpdates instead.
 	AvailableUpdates []string `json:"availableUpdates,omitempty"`
 
-	// DesiredVersion is the version that the cluster is reconciling towards
+	// DesiredVersion is the version that the cluster is reconciling towards.
+	// Deprecated in release 2.3 and will be removed in the future. User Desired instead.
 	DesiredVersion string `json:"desiredVersion,omitempty"`
 
 	// UpgradeFailed indicates whether upgrade of the manage cluster is failed.
@@ -182,6 +183,11 @@ type OCPDistributionInfo struct {
 	// set of updates be applied to this cluster. The default channel will be
 	// contain stable updates that are appropriate for production clusters.
 	Channel string `json:"channel,omitempty"`
+
+	// desired is the version that the cluster is reconciling towards.
+	// If the cluster is not yet fully initialized desired will be set
+	// with the information available, which may be an image or a tag.
+	Desired OCPVersionRelease `json:"desired,omitempty"`
 
 	// VersionAvailableUpdates contains the list of updates that are appropriate
 	// for this cluster. This list may be empty if no updates are recommended,

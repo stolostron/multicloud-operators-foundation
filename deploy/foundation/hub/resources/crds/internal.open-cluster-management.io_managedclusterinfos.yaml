@@ -110,8 +110,29 @@ spec:
                       channel:
                         description: Channel is an identifier for explicitly requesting that a non-default set of updates be applied to this cluster. The default channel will be contain stable updates that are appropriate for production clusters.
                         type: string
+                      desired:
+                        description: desired is the version that the cluster is reconciling towards. If the cluster is not yet fully initialized desired will be set with the information available, which may be an image or a tag.
+                        properties:
+                          channels:
+                            description: channels is the set of Cincinnati channels to which the release currently belongs.
+                            items:
+                              type: string
+                            type: array
+                          image:
+                            description: image is a container image location that contains the update. When this field is part of spec, image is optional if version is specified and the availableUpdates field contains a matching version.
+                            type: string
+                          url:
+                            description: url contains information about this release. This URL is set by the 'url' metadata property on a release or the metadata returned by the update API and should be displayed as a link in user interfaces. The URL field may not be set for test or nightly releases.
+                            type: string
+                          version:
+                            description: version is a semantic versioning identifying the update version. When this field is part of spec, version is optional if image is specified.
+                            type: string
+                        required:
+                        - image
+                        - version
+                        type: object
                       desiredVersion:
-                        description: DesiredVersion is the version that the cluster is reconciling towards
+                        description: DesiredVersion is the version that the cluster is reconciling towards. Deprecated in release 2.3 and will be removed in the future. User Desired instead.
                         type: string
                       upgradeFailed:
                         description: UpgradeFailed indicates whether upgrade of the manage cluster is failed. This is true if the status of Failing condition is True and the version is different with desiredVersion in clusterVersion
