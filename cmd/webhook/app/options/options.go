@@ -11,19 +11,21 @@ import (
 
 // Config contains the server (the webhook) cert and key.
 type Options struct {
-	CertFile                          string
-	KeyFile                           string
-	KubeConfigFile                    string
-	EnableManagedClustersetValidating bool
+	CertFile       string
+	KeyFile        string
+	KubeConfigFile string
+	QPS            float32
+	Burst          int
 }
 
 // NewOptions constructs a new set of default options for webhook.
 func NewOptions() *Options {
 	return &Options{
-		KubeConfigFile:                    "",
-		CertFile:                          "",
-		KeyFile:                           "",
-		EnableManagedClustersetValidating: false,
+		KubeConfigFile: "",
+		CertFile:       "",
+		KeyFile:        "",
+		QPS:            100.0,
+		Burst:          200,
 	}
 }
 
@@ -35,8 +37,10 @@ func (c *Options) AddFlags(fs *pflag.FlagSet) {
 		"File containing the default x509 private key matching --tls-cert-file.")
 	fs.StringVar(&c.KubeConfigFile, "kube-config-file", c.KubeConfigFile, ""+
 		"Kube configuration file")
-	fs.BoolVar(&c.EnableManagedClustersetValidating, "enable-managedclusterset-validating", c.EnableManagedClustersetValidating,
-		"enable managedclusterset validating")
+	fs.Float32Var(&c.QPS, "max-qps", c.QPS,
+		"Maximum QPS to the hub server from this webhook.")
+	fs.IntVar(&c.Burst, "max-burst", c.Burst,
+		"Maximum burst for throttle.")
 }
 
 func ConfigTLS(o *Options) *tls.Config {

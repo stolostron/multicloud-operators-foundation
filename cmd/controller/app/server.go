@@ -73,6 +73,9 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 
+	kubeConfig.QPS = o.QPS
+	kubeConfig.Burst = o.Burst
+
 	kubeClient, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
 		klog.Errorf("unable to create kube client: %v", err)
@@ -91,9 +94,6 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	if err != nil {
 		klog.Warningf("unable to get foundation agent server CA file: %v", err)
 	}
-
-	kubeConfig.QPS = o.QPS
-	kubeConfig.Burst = o.Burst
 
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
 		Scheme:                 scheme,
