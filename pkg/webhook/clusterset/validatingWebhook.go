@@ -22,7 +22,6 @@ import (
 
 type AdmissionHandler struct {
 	KubeClient kubernetes.Interface
-	Enable     bool
 }
 
 // toAdmissionResponse is a helper function to create an AdmissionResponse
@@ -114,10 +113,6 @@ const (
 func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.AdmissionResponse {
 	status := &v1.AdmissionResponse{
 		Allowed: true,
-	}
-	//TODO need improve later, may be in installer part to enable/disable it.
-	if !a.Enable {
-		return status
 	}
 	switch request.Resource {
 	case managedClustersGVR, clusterPoolsGVR:

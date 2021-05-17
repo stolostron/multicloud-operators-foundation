@@ -24,6 +24,8 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 		klog.Errorf("Error building kube config: %s", err.Error())
 		return err
 	}
+	kubeConfig.QPS = opts.QPS
+	kubeConfig.Burst = opts.Burst
 
 	kubeClientSet, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
@@ -40,7 +42,6 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 
 	validatingAh := &clusterset.AdmissionHandler{
 		KubeClient: kubeClientSet,
-		Enable:     opts.EnableManagedClustersetValidating,
 	}
 
 	go informerFactory.Start(stopCh)

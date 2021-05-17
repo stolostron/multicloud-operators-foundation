@@ -204,7 +204,7 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 				},
 			)
 
-			admissionHandler := &AdmissionHandler{KubeClient: kubeClient, Enable: true}
+			admissionHandler := &AdmissionHandler{KubeClient: kubeClient}
 
 			actualResponse := admissionHandler.validateResource(c.request)
 
