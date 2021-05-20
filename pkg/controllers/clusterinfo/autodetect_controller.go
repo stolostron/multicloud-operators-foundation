@@ -5,6 +5,8 @@ import (
 	"reflect"
 
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterclaims "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -23,6 +25,7 @@ const (
 	LabelClusterID   = "clusterID"
 	LabelManagedBy   = "managed-by"
 	AutoDetect       = "auto-detect"
+	OCPVersion       = "openshiftVersion"
 )
 
 // AutoDetectReconciler auto detects platform related labels and sync to managedcluster
@@ -83,6 +86,13 @@ func (r *AutoDetectReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	if clusterInfo.Status.ClusterID != "" && labels[LabelClusterID] != clusterInfo.Status.ClusterID {
 		labels[LabelClusterID] = clusterInfo.Status.ClusterID
 		needUpdate = true
+	}
+
+	for _, claim := range cluster.Status.ClusterClaims {
+		if claim.Name == clusterclaims.ClaimOpenshiftVersion && labels[OCPVersion] != claim.Value {
+			labels[OCPVersion] = claim.Value
+			needUpdate = true
+		}
 	}
 
 	if needUpdate {
