@@ -2,6 +2,7 @@ package inventory
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"testing"
 
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
@@ -129,9 +130,11 @@ func TestCDReconcile(t *testing.T) {
 				Name:      testName,
 				Namespace: testNamespace,
 			}, cd)
-			validateErrorAndStatusConditions(t, err, nil, nil, nil)
-			if len(cd.Finalizers) != len(test.expectedFinalizer) {
-				t.Errorf("finalizer is not correct, actual %v, expected %v", cd.Finalizers, test.expectedFinalizer)
+			if !errors.IsNotFound(err) {
+				validateErrorAndStatusConditions(t, err, nil, nil, nil)
+				if len(cd.Finalizers) != len(test.expectedFinalizer) {
+					t.Errorf("finalizer is not correct, actual %v, expected %v", cd.Finalizers, test.expectedFinalizer)
+				}
 			}
 		})
 	}

@@ -125,7 +125,7 @@ type Environment struct {
 	// located in the local environment. This field can be overridden by setting KUBEBUILDER_ASSETS.
 	BinaryAssetsDirectory string
 
-	// UseExisting indicates that this environments should use an
+	// UseExistingCluster indicates that this environments should use an
 	// existing kubeconfig, instead of trying to stand up a new control plane.
 	// This is useful in cases that need aggregated API servers and the like.
 	UseExistingCluster *bool
@@ -263,10 +263,17 @@ func (te *Environment) Start() (*rest.Config, error) {
 		}
 	}
 
+	// Call PrepWithoutInstalling to setup certificates first
+	// and have them available to patch CRD conversion webhook as well.
+	if err := te.WebhookInstallOptions.PrepWithoutInstalling(); err != nil {
+		return nil, err
+	}
+
 	log.V(1).Info("installing CRDs")
 	te.CRDInstallOptions.CRDs = mergeCRDs(te.CRDInstallOptions.CRDs, te.CRDs)
 	te.CRDInstallOptions.Paths = mergePaths(te.CRDInstallOptions.Paths, te.CRDDirectoryPaths)
 	te.CRDInstallOptions.ErrorIfPathMissing = te.ErrorIfCRDPathMissing
+	te.CRDInstallOptions.WebhookOptions = te.WebhookInstallOptions
 	crds, err := InstallCRDs(te.Config, te.CRDInstallOptions)
 	if err != nil {
 		return te.Config, err
@@ -274,9 +281,10 @@ func (te *Environment) Start() (*rest.Config, error) {
 	te.CRDs = crds
 
 	log.V(1).Info("installing webhooks")
-	err = te.WebhookInstallOptions.Install(te.Config)
-
-	return te.Config, err
+	if err := te.WebhookInstallOptions.Install(te.Config); err != nil {
+		return nil, err
+	}
+	return te.Config, nil
 }
 
 func (te *Environment) startControlPlane() error {

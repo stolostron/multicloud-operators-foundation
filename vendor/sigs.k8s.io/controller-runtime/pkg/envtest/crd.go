@@ -20,12 +20,16 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/base64"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
 
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	"k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -34,6 +38,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	k8syaml "k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/util/retry"
+	"k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 )
@@ -59,6 +65,13 @@ type CRDInstallOptions struct {
 	// uninstalled when terminating the test environment.
 	// Defaults to false.
 	CleanUpAfterUse bool
+
+	// WebhookOptions contains the conversion webhook information to install
+	// on the CRDs. This field is usually inherited by the EnvTest options.
+	//
+	// If you're passing this field manually, you need to make sure that
+	// the CA information and host port is filled in properly.
+	WebhookOptions WebhookInstallOptions
 }
 
 const defaultPollInterval = 100 * time.Millisecond
@@ -70,6 +83,10 @@ func InstallCRDs(config *rest.Config, options CRDInstallOptions) ([]client.Objec
 
 	// Read the CRD yamls into options.CRDs
 	if err := readCRDFiles(&options); err != nil {
+		return nil, err
+	}
+
+	if err := modifyConversionWebhooks(options.CRDs, options.WebhookOptions); err != nil {
 		return nil, err
 	}
 
@@ -266,8 +283,13 @@ func CreateCRDs(config *rest.Config, crds []client.Object) error {
 			return err
 		default:
 			log.V(1).Info("CRD already exists, updating", "crd", crd.GetName())
-			crd.SetResourceVersion(existingCrd.GetResourceVersion())
-			if err := cs.Update(context.TODO(), crd); err != nil {
+			if err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+				if err := cs.Get(context.TODO(), client.ObjectKey{Name: crd.GetName()}, existingCrd); err != nil {
+					return err
+				}
+				crd.SetResourceVersion(existingCrd.GetResourceVersion())
+				return cs.Update(context.TODO(), crd)
+			}); err != nil {
 				return err
 			}
 		}
@@ -332,6 +354,110 @@ func renderCRDs(options *CRDInstallOptions) ([]client.Object, error) {
 		res = append(res, obj)
 	}
 	return res, nil
+}
+
+func modifyConversionWebhooks(crds []client.Object, webhookOptions WebhookInstallOptions) error {
+	if len(webhookOptions.LocalServingCAData) == 0 {
+		return nil
+	}
+
+	// generate host port.
+	hostPort, err := webhookOptions.generateHostPort()
+	if err != nil {
+		return err
+	}
+	url := pointer.StringPtr(fmt.Sprintf("https://%s/convert", hostPort))
+
+	for _, crd := range crds {
+		switch c := crd.(type) {
+		case *apiextensionsv1beta1.CustomResourceDefinition:
+			// preserveUnknownFields defaults to true if `nil` in v1beta1.
+			if c.Spec.PreserveUnknownFields == nil || *c.Spec.PreserveUnknownFields {
+				continue
+			}
+			c.Spec.Conversion.Strategy = apiextensionsv1beta1.WebhookConverter
+			c.Spec.Conversion.WebhookClientConfig.Service = nil
+			c.Spec.Conversion.WebhookClientConfig = &apiextensionsv1beta1.WebhookClientConfig{
+				Service:  nil,
+				URL:      url,
+				CABundle: webhookOptions.LocalServingCAData,
+			}
+		case *apiextensionsv1.CustomResourceDefinition:
+			if c.Spec.PreserveUnknownFields {
+				continue
+			}
+			c.Spec.Conversion.Strategy = apiextensionsv1.WebhookConverter
+			c.Spec.Conversion.Webhook.ClientConfig.Service = nil
+			c.Spec.Conversion.Webhook.ClientConfig = &apiextensionsv1.WebhookClientConfig{
+				Service:  nil,
+				URL:      url,
+				CABundle: webhookOptions.LocalServingCAData,
+			}
+		case *unstructured.Unstructured:
+			webhookClientConfig := map[string]interface{}{
+				"url":      *url,
+				"caBundle": base64.StdEncoding.EncodeToString(webhookOptions.LocalServingCAData),
+			}
+
+			switch c.GroupVersionKind().Version {
+			case "v1beta1":
+				// preserveUnknownFields defaults to true if `nil` in v1beta1.
+				if preserve, found, _ := unstructured.NestedBool(c.Object, "spec", "preserveUnknownFields"); preserve || !found {
+					continue
+				}
+
+				// Set the strategy.
+				if err := unstructured.SetNestedField(
+					c.Object,
+					string(apiextensionsv1beta1.WebhookConverter),
+					"spec", "conversion", "strategy"); err != nil {
+					return err
+				}
+				// Set the conversion review versions.
+				if err := unstructured.SetNestedStringSlice(
+					c.Object,
+					[]string{"v1beta1"},
+					"spec", "conversion", "webhook", "clientConfig"); err != nil {
+					return err
+				}
+				// Set the client configuration.
+				if err := unstructured.SetNestedMap(
+					c.Object,
+					webhookClientConfig,
+					"spec", "conversion", "webhookClientConfig"); err != nil {
+					return err
+				}
+			case "v1":
+				if preserve, _, _ := unstructured.NestedBool(c.Object, "spec", "preserveUnknownFields"); preserve {
+					continue
+				}
+
+				// Set the strategy.
+				if err := unstructured.SetNestedField(
+					c.Object,
+					string(apiextensionsv1.WebhookConverter),
+					"spec", "conversion", "strategy"); err != nil {
+					return err
+				}
+				// Set the conversion review versions.
+				if err := unstructured.SetNestedStringSlice(
+					c.Object,
+					[]string{"v1", "v1beta1"},
+					"spec", "conversion", "webhook", "conversionReviewVersions"); err != nil {
+					return err
+				}
+				// Set the client configuration.
+				if err := unstructured.SetNestedMap(
+					c.Object,
+					webhookClientConfig,
+					"spec", "conversion", "webhook", "clientConfig"); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	return nil
 }
 
 // readCRDs reads the CRDs from files and Unmarshals them into structs

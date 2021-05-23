@@ -418,8 +418,9 @@ func newBMA() *inventoryv1alpha1.BareMetalAsset {
 			Kind: testBMHKind,
 		},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      testName,
-			Namespace: testNamespace,
+			Name:            testName,
+			Namespace:       testNamespace,
+			ResourceVersion: "0",
 		},
 		Spec: inventoryv1alpha1.BareMetalAssetSpec{
 			BMC: inventoryv1alpha1.BMCDetails{
