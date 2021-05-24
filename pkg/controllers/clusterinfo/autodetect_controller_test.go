@@ -11,6 +11,7 @@ import (
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterclaims "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -118,7 +119,7 @@ func TestAutoDetectReconcile(t *testing.T) {
 	}
 }
 
-func TestOSDVendor(t *testing.T) {
+func TestOSDVendorOcpVersion(t *testing.T) {
 	tests := []struct {
 		name              string
 		existingObjs      []runtime.Object
@@ -185,6 +186,39 @@ func TestOSDVendor(t *testing.T) {
 				},
 			},
 			expectedLabel:     map[string]string{LabelCloudVendor: "Azure", LabelKubeVendor: "OpenShift", LabelManagedBy: "platform"},
+			expectedErrorType: nil,
+			req: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: ManagedClusterName,
+				},
+			},
+		},
+		{
+			name: "UpdateManagedClusterLabelsOpenShiftVersion",
+			existingObjs: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: ManagedClusterName,
+					},
+					Spec: clusterv1.ManagedClusterSpec{},
+					Status: clusterv1.ManagedClusterStatus{
+						ClusterClaims: []clusterv1.ManagedClusterClaim{
+							{
+								Name:  clusterclaims.ClaimOpenshiftVersion,
+								Value: "4.6",
+							},
+						},
+					},
+				},
+				&clusterv1beta1.ManagedClusterInfo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      ManagedClusterName,
+						Namespace: ManagedClusterName,
+					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
+				},
+			},
+			expectedLabel:     map[string]string{OCPVersion: "4.6"},
 			expectedErrorType: nil,
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
