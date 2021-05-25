@@ -99,6 +99,7 @@ func newAWSInfrastructure() *apiconfigv1.Infrastructure {
 			EtcdDiscoveryDomain:  "osd-test.wu67.s1.devshift.org",
 			APIServerURL:         "https://api.osd-test.wu67.s1.devshift.org:6443",
 			APIServerInternalURL: "https://api-int.osd-test.wu67.s1.devshift.org:6443",
+			ControlPlaneTopology: apiconfigv1.HighlyAvailableTopologyMode,
 		},
 	}
 }
@@ -127,6 +128,7 @@ func newGCPInfrastructure() *apiconfigv1.Infrastructure {
 			EtcdDiscoveryDomain:  "osd-test.wu67.s1.devshift.org",
 			APIServerURL:         "https://api.osd-test.wu67.s1.devshift.org:6443",
 			APIServerInternalURL: "https://api-int.osd-test.wu67.s1.devshift.org:6443",
+			ControlPlaneTopology: apiconfigv1.SingleReplicaTopologyMode,
 		},
 	}
 }
@@ -135,6 +137,8 @@ func newConfigV1Client(version string, platformType string) openshiftclientset.I
 	clusterVersion := &apiconfigv1.ClusterVersion{}
 	if version == "4.x" {
 		clusterVersion = newClusterVersion()
+	} else {
+		return configfake.NewSimpleClientset(clusterVersion)
 	}
 
 	infrastructure := &apiconfigv1.Infrastructure{}
@@ -276,8 +280,9 @@ func TestClusterClaimerList(t *testing.T) {
 				ClaimOCMPlatform:             PlatformAWS,
 				ClaimOCMProduct:              ProductOpenShift,
 				ClaimOCMConsoleURL:           "https://console-openshift-console.apps.daliu-clu428.dev04.red-chesterfield.com",
-				ClaimOCMKubeVersion:          "v0.0.0-master+$Format:%h$",
+				ClaimOCMKubeVersion:          "v0.0.0-master+$Format:%H$",
 				ClaimOCMRegion:               "region-aws",
+				ClaimControlPlaneTopology:    "HighlyAvailable",
 			},
 			expectErr: nil,
 		},
@@ -295,20 +300,22 @@ func TestClusterClaimerList(t *testing.T) {
 				ClaimOCMPlatform:             PlatformGCP,
 				ClaimOCMProduct:              ProductOSD,
 				ClaimOCMConsoleURL:           "https://console-openshift-console.apps.daliu-clu428.dev04.red-chesterfield.com",
-				ClaimOCMKubeVersion:          "v0.0.0-master+$Format:%h$",
+				ClaimOCMKubeVersion:          "v0.0.0-master+$Format:%H$",
 				ClaimOCMRegion:               "region-gcp",
+				ClaimControlPlaneTopology:    "SingleReplica",
 			},
 			expectErr: nil,
 		},
 		{
-			name:        "claims of non-OCP",
-			clusterName: "clusterNonOCP",
-			kubeClient:  newFakeKubeClient(nil, []runtime.Object{newNode(PlatformGCP), newConfigmapConsoleConfig()}),
+			name:           "claims of non-OCP",
+			clusterName:    "clusterNonOCP",
+			kubeClient:     newFakeKubeClient(nil, []runtime.Object{newNode(PlatformGCP), newConfigmapConsoleConfig()}),
+			configV1Client: newConfigV1Client("3", ""),
 			expectClaims: map[string]string{
 				ClaimK8sID:          "clusterNonOCP",
 				ClaimOCMPlatform:    PlatformGCP,
 				ClaimOCMProduct:     ProductOther,
-				ClaimOCMKubeVersion: "v0.0.0-master+$Format:%h$",
+				ClaimOCMKubeVersion: "v0.0.0-master+$Format:%H$",
 			},
 			expectErr: nil,
 		},
@@ -444,14 +451,14 @@ func TestGetInfraConfig(t *testing.T) {
 		{
 			name:              "OCP on AWS",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, nil),
-			configV1Client:    newConfigV1Client("", PlatformAWS),
+			configV1Client:    newConfigV1Client("4.x", PlatformAWS),
 			expectInfraConfig: "{\"infraName\":\"ocp-aws\"}",
 			expectErr:         nil,
 		},
 		{
 			name:              "OCP on GCP",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, nil),
-			configV1Client:    newConfigV1Client("", PlatformGCP),
+			configV1Client:    newConfigV1Client("4.x", PlatformGCP),
 			expectInfraConfig: "{\"infraName\":\"ocp-gcp\"}",
 			expectErr:         nil,
 		},
@@ -484,14 +491,14 @@ func TestGetClusterRegion(t *testing.T) {
 		{
 			name:           "OCP on AWS",
 			kubeClient:     newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, nil),
-			configV1Client: newConfigV1Client("", PlatformAWS),
+			configV1Client: newConfigV1Client("4.x", PlatformAWS),
 			expectRegion:   "region-aws",
 			expectErr:      nil,
 		},
 		{
 			name:           "OCP on GCP",
 			kubeClient:     newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, nil),
-			configV1Client: newConfigV1Client("", PlatformGCP),
+			configV1Client: newConfigV1Client("4.x", PlatformGCP),
 			expectRegion:   "region-gcp",
 			expectErr:      nil,
 		},
@@ -566,7 +573,7 @@ func TestGetKubeVersionPlatformProduct(t *testing.T) {
 		{
 			name:              "is OCP on AWS",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, []runtime.Object{newNode(PlatformAWS)}),
-			expectKubeVersion: "v0.0.0-master+$Format:%h$",
+			expectKubeVersion: "v0.0.0-master+$Format:%H$",
 			expectPlatform:    PlatformAWS,
 			expectProduct:     ProductOpenShift,
 			expectErr:         nil,
@@ -574,7 +581,7 @@ func TestGetKubeVersionPlatformProduct(t *testing.T) {
 		{
 			name:              "is OCP on Azure",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, []runtime.Object{newNode(PlatformAzure)}),
-			expectKubeVersion: "v0.0.0-master+$Format:%h$",
+			expectKubeVersion: "v0.0.0-master+$Format:%H$",
 			expectPlatform:    PlatformAzure,
 			expectProduct:     ProductOpenShift,
 			expectErr:         nil,
@@ -582,7 +589,7 @@ func TestGetKubeVersionPlatformProduct(t *testing.T) {
 		{
 			name:              "is OCP on IBM",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, []runtime.Object{newNode(PlatformIBM)}),
-			expectKubeVersion: "v0.0.0-master+$Format:%h$",
+			expectKubeVersion: "v0.0.0-master+$Format:%H$",
 			expectPlatform:    PlatformIBM,
 			expectProduct:     ProductOpenShift,
 			expectErr:         nil,
@@ -590,7 +597,7 @@ func TestGetKubeVersionPlatformProduct(t *testing.T) {
 		{
 			name:              "is OCP on IBMZ",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, []runtime.Object{newNode(PlatformIBMZ)}),
-			expectKubeVersion: "v0.0.0-master+$Format:%h$",
+			expectKubeVersion: "v0.0.0-master+$Format:%H$",
 			expectPlatform:    PlatformIBMZ,
 			expectProduct:     ProductOpenShift,
 			expectErr:         nil,
@@ -598,7 +605,7 @@ func TestGetKubeVersionPlatformProduct(t *testing.T) {
 		{
 			name:              "is OCP on IBMP",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, []runtime.Object{newNode(PlatformIBMP)}),
-			expectKubeVersion: "v0.0.0-master+$Format:%h$",
+			expectKubeVersion: "v0.0.0-master+$Format:%H$",
 			expectPlatform:    PlatformIBMP,
 			expectProduct:     ProductOpenShift,
 			expectErr:         nil,
@@ -606,7 +613,7 @@ func TestGetKubeVersionPlatformProduct(t *testing.T) {
 		{
 			name:              "is OCP on GCP",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, []runtime.Object{newNode(PlatformGCP)}),
-			expectKubeVersion: "v0.0.0-master+$Format:%h$",
+			expectKubeVersion: "v0.0.0-master+$Format:%H$",
 			expectPlatform:    PlatformGCP,
 			expectProduct:     ProductOpenShift,
 			expectErr:         nil,
@@ -614,7 +621,7 @@ func TestGetKubeVersionPlatformProduct(t *testing.T) {
 		{
 			name:              "is OCP on Openstack",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, []runtime.Object{newNode(PlatformOpenStack)}),
-			expectKubeVersion: "v0.0.0-master+$Format:%h$",
+			expectKubeVersion: "v0.0.0-master+$Format:%H$",
 			expectPlatform:    PlatformOpenStack,
 			expectProduct:     ProductOpenShift,
 			expectErr:         nil,
@@ -622,7 +629,7 @@ func TestGetKubeVersionPlatformProduct(t *testing.T) {
 		{
 			name:              "is OCP on VSphere",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, []runtime.Object{newNode(PlatformVSphere)}),
-			expectKubeVersion: "v0.0.0-master+$Format:%h$",
+			expectKubeVersion: "v0.0.0-master+$Format:%H$",
 			expectPlatform:    PlatformVSphere,
 			expectProduct:     ProductOpenShift,
 			expectErr:         nil,
@@ -630,7 +637,7 @@ func TestGetKubeVersionPlatformProduct(t *testing.T) {
 		{
 			name:              "is OCP on VSphere",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, []runtime.Object{newNode(PlatformVSphere)}),
-			expectKubeVersion: "v0.0.0-master+$Format:%h$",
+			expectKubeVersion: "v0.0.0-master+$Format:%H$",
 			expectPlatform:    PlatformVSphere,
 			expectProduct:     ProductOpenShift,
 			expectErr:         nil,
@@ -638,7 +645,7 @@ func TestGetKubeVersionPlatformProduct(t *testing.T) {
 		{
 			name:              "is AKS",
 			kubeClient:        newFakeKubeClient(nil, []runtime.Object{newNode(PlatformAzure)}),
-			expectKubeVersion: "v0.0.0-master+$Format:%h$",
+			expectKubeVersion: "v0.0.0-master+$Format:%H$",
 			expectPlatform:    PlatformAzure,
 			expectProduct:     ProductAKS,
 			expectErr:         nil,
@@ -646,7 +653,7 @@ func TestGetKubeVersionPlatformProduct(t *testing.T) {
 		{
 			name:              "is OSD on AWS",
 			kubeClient:        newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource(), managedAPIResource()}, []runtime.Object{newNode(PlatformAWS)}),
-			expectKubeVersion: "v0.0.0-master+$Format:%h$",
+			expectKubeVersion: "v0.0.0-master+$Format:%H$",
 			expectPlatform:    PlatformAWS,
 			expectProduct:     ProductOSD,
 			expectErr:         nil,

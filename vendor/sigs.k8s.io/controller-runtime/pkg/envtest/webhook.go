@@ -67,6 +67,9 @@ type WebhookInstallOptions struct {
 	// CAData is the CA that can be used to trust the serving certificates in LocalServingCertDir.
 	LocalServingCAData []byte
 
+	// LocalServingHostExternalName is the hostname to use to reach the webhook server.
+	LocalServingHostExternalName string
+
 	// MaxTime is the max time to wait
 	MaxTime time.Duration
 
@@ -77,7 +80,10 @@ type WebhookInstallOptions struct {
 // ModifyWebhookDefinitions modifies webhook definitions by:
 // - applying CABundle based on the provided tinyca
 // - if webhook client config uses service spec, it's removed and replaced with direct url
-func (o *WebhookInstallOptions) ModifyWebhookDefinitions(caData []byte) error {
+func (o *WebhookInstallOptions) ModifyWebhookDefinitions() error {
+	caData := o.LocalServingCAData
+
+	// generate host port.
 	hostPort, err := o.generateHostPort()
 	if err != nil {
 		return err
@@ -137,13 +143,19 @@ func modifyWebhook(webhook map[string]interface{}, caData []byte, hostPort strin
 }
 
 func (o *WebhookInstallOptions) generateHostPort() (string, error) {
-	port, host, err := addr.Suggest()
-	if err != nil {
-		return "", fmt.Errorf("unable to grab random port for serving webhooks on: %v", err)
+	if o.LocalServingPort == 0 {
+		port, host, err := addr.Suggest(o.LocalServingHost)
+		if err != nil {
+			return "", fmt.Errorf("unable to grab random port for serving webhooks on: %v", err)
+		}
+		o.LocalServingPort = port
+		o.LocalServingHost = host
 	}
-	o.LocalServingPort = port
-	o.LocalServingHost = host
-	return net.JoinHostPort(host, fmt.Sprintf("%d", port)), nil
+	host := o.LocalServingHostExternalName
+	if host == "" {
+		host = o.LocalServingHost
+	}
+	return net.JoinHostPort(host, fmt.Sprintf("%d", o.LocalServingPort)), nil
 }
 
 // PrepWithoutInstalling does the setup parts of Install (populating host-port,
@@ -152,16 +164,14 @@ func (o *WebhookInstallOptions) generateHostPort() (string, error) {
 // controller-runtime, where we need a random host-port & caData for webhook
 // tests, but may be useful in similar scenarios.
 func (o *WebhookInstallOptions) PrepWithoutInstalling() error {
-	hookCA, err := o.setupCA()
-	if err != nil {
+	if err := o.setupCA(); err != nil {
 		return err
 	}
 	if err := parseWebhook(o); err != nil {
 		return err
 	}
 
-	err = o.ModifyWebhookDefinitions(hookCA)
-	if err != nil {
+	if err := o.ModifyWebhookDefinitions(); err != nil {
 		return err
 	}
 
@@ -170,8 +180,10 @@ func (o *WebhookInstallOptions) PrepWithoutInstalling() error {
 
 // Install installs specified webhooks to the API server
 func (o *WebhookInstallOptions) Install(config *rest.Config) error {
-	if err := o.PrepWithoutInstalling(); err != nil {
-		return err
+	if len(o.LocalServingCAData) == 0 {
+		if err := o.PrepWithoutInstalling(); err != nil {
+			return err
+		}
 	}
 
 	if err := createWebhooks(config, o.MutatingWebhooks, o.ValidatingWebhooks); err != nil {
@@ -260,37 +272,38 @@ func (p *webhookPoller) poll() (done bool, err error) {
 }
 
 // setupCA creates CA for testing and writes them to disk
-func (o *WebhookInstallOptions) setupCA() ([]byte, error) {
+func (o *WebhookInstallOptions) setupCA() error {
 	hookCA, err := integration.NewTinyCA()
 	if err != nil {
-		return nil, fmt.Errorf("unable to set up webhook CA: %v", err)
+		return fmt.Errorf("unable to set up webhook CA: %v", err)
 	}
 
-	hookCert, err := hookCA.NewServingCert()
+	names := []string{"localhost", o.LocalServingHost, o.LocalServingHostExternalName}
+	hookCert, err := hookCA.NewServingCert(names...)
 	if err != nil {
-		return nil, fmt.Errorf("unable to set up webhook serving certs: %v", err)
+		return fmt.Errorf("unable to set up webhook serving certs: %v", err)
 	}
 
 	localServingCertsDir, err := ioutil.TempDir("", "envtest-serving-certs-")
 	o.LocalServingCertDir = localServingCertsDir
 	if err != nil {
-		return nil, fmt.Errorf("unable to create directory for webhook serving certs: %v", err)
+		return fmt.Errorf("unable to create directory for webhook serving certs: %v", err)
 	}
 
 	certData, keyData, err := hookCert.AsBytes()
 	if err != nil {
-		return nil, fmt.Errorf("unable to marshal webhook serving certs: %v", err)
+		return fmt.Errorf("unable to marshal webhook serving certs: %v", err)
 	}
 
 	if err := ioutil.WriteFile(filepath.Join(localServingCertsDir, "tls.crt"), certData, 0640); err != nil {
-		return nil, fmt.Errorf("unable to write webhook serving cert to disk: %v", err)
+		return fmt.Errorf("unable to write webhook serving cert to disk: %v", err)
 	}
 	if err := ioutil.WriteFile(filepath.Join(localServingCertsDir, "tls.key"), keyData, 0640); err != nil {
-		return nil, fmt.Errorf("unable to write webhook serving key to disk: %v", err)
+		return fmt.Errorf("unable to write webhook serving key to disk: %v", err)
 	}
 
 	o.LocalServingCAData = certData
-	return certData, nil
+	return err
 }
 
 func createWebhooks(config *rest.Config, mutHooks []client.Object, valHooks []client.Object) error {

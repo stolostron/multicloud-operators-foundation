@@ -2,7 +2,7 @@ module github.com/open-cluster-management/multicloud-operators-foundation
 
 go 1.16
 
-replace k8s.io/client-go => k8s.io/client-go v0.20.0
+replace k8s.io/client-go => k8s.io/client-go v0.21.0
 
 // Determined by go.mod in github.com/openshift/hive
 // from installer
@@ -17,7 +17,7 @@ replace (
 	github.com/kubevirt/terraform-provider-kubevirt => github.com/nirarg/terraform-provider-kubevirt v0.0.0-20201222125919-101cee051ed3
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20200715132148-0f91f62a41fe
 	github.com/metal3-io/cluster-api-provider-baremetal => github.com/openshift/cluster-api-provider-baremetal v0.0.0-20190821174549-a2a477909c1d
-	github.com/openshift/api => github.com/openshift/api v0.0.0-20200827090112-c05698d102cf
+	github.com/openshift/api => github.com/openshift/api v0.0.0-20210331193751-3acddb19d360
 	github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20210506000647-1d9c87a6ff2b
 	github.com/terraform-providers/terraform-provider-aws => github.com/openshift/terraform-provider-aws v1.60.1-0.20200630224953-76d1fb4e5699
 	github.com/terraform-providers/terraform-provider-azurerm => github.com/openshift/terraform-provider-azurerm v1.40.1-0.20200707062554-97ea089cc12a
@@ -44,8 +44,8 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a
 	github.com/metal3-io/baremetal-operator v0.0.0
-	github.com/onsi/ginkgo v1.14.1
-	github.com/onsi/gomega v1.10.2
+	github.com/onsi/ginkgo v1.15.0
+	github.com/onsi/gomega v1.10.5
 	github.com/open-cluster-management/addon-framework v0.0.0-20210423114544-8e08479e80b6
 	github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
@@ -55,22 +55,23 @@ require (
 	github.com/openshift/hive v1.1.3
 	github.com/openshift/hive/apis v0.0.0
 	github.com/openshift/library-go v0.0.0-20210330121802-ebbc677c82a5
-	github.com/prometheus/client_golang v1.7.1
-	github.com/prometheus/common v0.10.0
+	github.com/prometheus/client_golang v1.9.0
+	github.com/prometheus/common v0.15.0
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
-	golang.org/x/net v0.0.0-20201202161906-c7110b5ffcbb
-	k8s.io/api v0.20.5
-	k8s.io/apimachinery v0.20.5
-	k8s.io/apiserver v0.20.0
+	golang.org/x/net v0.0.0-20210224082022-3d97a244fca7
+	k8s.io/api v0.21.0
+	k8s.io/apimachinery v0.21.0
+	k8s.io/apiserver v0.21.0
 	k8s.io/cli-runtime v0.20.0
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/code-generator v0.20.0
-	k8s.io/component-base v0.20.5
+	k8s.io/code-generator v0.21.0
+	k8s.io/component-base v0.21.0
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.8.0
 	k8s.io/kube-aggregator v0.20.0
-	k8s.io/kube-openapi v0.0.0-20201113171705-d219536bb9fd
-	sigs.k8s.io/controller-runtime v0.7.0
+	k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7
+	sigs.k8s.io/controller-runtime v0.9.0-beta.4
+
 )

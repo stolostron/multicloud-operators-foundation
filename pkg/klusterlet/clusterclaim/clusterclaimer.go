@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
+	configv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,11 +21,16 @@ const (
 	ClaimOpenshiftID             = "id.openshift.io"
 	ClaimOpenshiftVersion        = "version.openshift.io"
 	ClaimOpenshiftInfrastructure = "infrastructure.openshift.io"
-	ClaimOCMConsoleURL           = "consoleurl.cluster.open-cluster-management.io"
-	ClaimOCMRegion               = "region.open-cluster-management.io"
-	ClaimOCMKubeVersion          = "kubeversion.open-cluster-management.io"
-	ClaimOCMPlatform             = "platform.open-cluster-management.io"
-	ClaimOCMProduct              = "product.open-cluster-management.io"
+
+	// ClaimControlPlaneTopology expresses the expectations for operands that normally run on control nodes of Openshift.
+	// have 2 modes: `HighlyAvailable` and `SingleReplica`.
+	ClaimControlPlaneTopology = "controlplanetopology.openshift.io"
+
+	ClaimOCMConsoleURL  = "consoleurl.cluster.open-cluster-management.io"
+	ClaimOCMRegion      = "region.open-cluster-management.io"
+	ClaimOCMKubeVersion = "kubeversion.open-cluster-management.io"
+	ClaimOCMPlatform    = "platform.open-cluster-management.io"
+	ClaimOCMProduct     = "product.open-cluster-management.io"
 )
 
 // should be the type defined in infrastructure.config.openshift.io
@@ -109,6 +115,11 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 	}
 	if region != "" {
 		claims = append(claims, newClusterClaim(ClaimOCMRegion, region))
+	}
+
+	controlPlaneTopology := c.getControlPlaneTopology()
+	if controlPlaneTopology != "" {
+		claims = append(claims, newClusterClaim(ClaimControlPlaneTopology, string(controlPlaneTopology)))
 	}
 
 	return claims, nil
@@ -386,4 +397,13 @@ func (c *ClusterClaimer) getKubeVersionPlatformProduct() (kubeVersion, platform,
 	}
 
 	return kubeVersion, platform, product, nil
+}
+
+func (c *ClusterClaimer) getControlPlaneTopology() configv1.TopologyMode {
+	infra, err := c.ConfigV1Client.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		return ""
+	}
+
+	return infra.Status.ControlPlaneTopology
 }
