@@ -2,6 +2,7 @@ package clusterclaim
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"reflect"
 	"testing"
 
@@ -65,7 +66,13 @@ func TestSyncClaims(t *testing.T) {
 		newClusterClaim("z", "3"),
 	}
 
-	clusterClient := clusterfake.NewSimpleClientset()
+	deletedClaim := &clusterv1alpha1.ClusterClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "o",
+		},
+	}
+
+	clusterClient := clusterfake.NewSimpleClientset(deletedClaim)
 	reconciler := newClusterClaimReconciler(clusterClient, func() ([]*clusterv1alpha1.ClusterClaim, error) {
 		return expected, nil
 	})
@@ -84,4 +91,10 @@ func TestSyncClaims(t *testing.T) {
 			t.Errorf("Expected cluster claim %v, but got %v", item, claim)
 		}
 	}
+
+	if _, err := clusterClient.ClusterV1alpha1().ClusterClaims().Get(context.Background(),
+		deletedClaim.Name, metav1.GetOptions{}); !errors.IsNotFound(err) {
+		t.Errorf("deleted cluster claim %v is not deleted", deletedClaim.Name)
+	}
+
 }

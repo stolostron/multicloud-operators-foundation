@@ -270,6 +270,15 @@ const (
 	ReasonManagedClusterInfoSyncedFailed string = "ReasonManagedClusterInfoSyncedFailed"
 )
 
+const (
+	LabelCloudVendor = "cloud"
+	LabelKubeVendor  = "vendor"
+	LabelClusterID   = "clusterID"
+	LabelManagedBy   = "managed-by"
+	AutoDetect       = "auto-detect"
+	OCPVersion       = "openshiftVersion"
+)
+
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:path=managedclusterinfos

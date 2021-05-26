@@ -198,6 +198,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 
 		clusterClaimer := clusterclaimctl.ClusterClaimer{
 			ClusterName:    o.ClusterName,
+			HubClient:      mgr.GetClient(),
 			KubeClient:     managedClusterKubeClient,
 			ConfigV1Client: openshiftClient,
 		}
@@ -205,7 +206,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		clusterClaimReconciler := clusterclaimctl.ClusterClaimReconciler{
 			Log:               ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
 			ClusterClient:     managedClusterClusterClient,
-			ClusterInfomers:   clusterInformerFactory.Cluster().V1alpha1().ClusterClaims(),
+			ClusterInformers:  clusterInformerFactory.Cluster().V1alpha1().ClusterClaims(),
 			ListClusterClaims: clusterClaimer.List,
 		}
 

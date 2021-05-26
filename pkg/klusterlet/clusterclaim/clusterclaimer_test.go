@@ -1,6 +1,7 @@
 package clusterclaim
 
 import (
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	configfake "github.com/openshift/client-go/config/clientset/versioned/fake"
@@ -11,6 +12,9 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 )
 
@@ -257,10 +261,31 @@ func newNode(platform string) *corev1.Node {
 	return node
 }
 
+func fakeHubClient(clusterName string, labels map[string]string) client.Client {
+	clusterInfo := &clusterv1beta1.ManagedClusterInfo{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      clusterName,
+			Namespace: clusterName,
+			Labels: map[string]string{
+				clusterv1beta1.LabelClusterID:   "1234",
+				clusterv1beta1.LabelCloudVendor: "AWS",
+				clusterv1beta1.LabelKubeVendor:  "OCP",
+			},
+		},
+	}
+	clusterInfo.SetLabels(labels)
+	s := scheme.Scheme
+	s.AddKnownTypes(clusterv1beta1.GroupVersion, &clusterv1beta1.ManagedClusterInfo{})
+	clusterv1beta1.AddToScheme(s)
+
+	return fake.NewFakeClientWithScheme(s, clusterInfo)
+}
+
 func TestClusterClaimerList(t *testing.T) {
 	tests := []struct {
 		name           string
 		clusterName    string
+		hubClient      client.Client
 		kubeClient     kubernetes.Interface
 		configV1Client openshiftclientset.Interface
 		expectClaims   map[string]string
@@ -269,6 +294,7 @@ func TestClusterClaimerList(t *testing.T) {
 		{
 			name:        "claims of OCP on AWS",
 			clusterName: "clusterAWS",
+			hubClient:   fakeHubClient("clusterAWS", map[string]string{"testLabel/abc": "testLabel"}),
 			kubeClient: newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()},
 				[]runtime.Object{newNode(PlatformAWS), newConfigmapConsoleConfig()}),
 			configV1Client: newConfigV1Client("4.x", PlatformAWS),
@@ -283,12 +309,14 @@ func TestClusterClaimerList(t *testing.T) {
 				ClaimOCMKubeVersion:          "v0.0.0-master+$Format:%H$",
 				ClaimOCMRegion:               "region-aws",
 				ClaimControlPlaneTopology:    "HighlyAvailable",
+				"abc.testLabel":              "testLabel",
 			},
 			expectErr: nil,
 		},
 		{
 			name:        "claims of OSD on GCP",
 			clusterName: "clusterOSDGCP",
+			hubClient:   fakeHubClient("clusterOSDGCP", map[string]string{"open-cluster-management.io/agent": "abc"}),
 			kubeClient: newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource(), managedAPIResource()},
 				[]runtime.Object{newNode(PlatformGCP), newConfigmapConsoleConfig()}),
 			configV1Client: newConfigV1Client("4.x", PlatformGCP),
@@ -309,6 +337,7 @@ func TestClusterClaimerList(t *testing.T) {
 		{
 			name:           "claims of non-OCP",
 			clusterName:    "clusterNonOCP",
+			hubClient:      fakeHubClient("clusterNonOCP", map[string]string{}),
 			kubeClient:     newFakeKubeClient(nil, []runtime.Object{newNode(PlatformGCP), newConfigmapConsoleConfig()}),
 			configV1Client: newConfigV1Client("3", ""),
 			expectClaims: map[string]string{
@@ -324,6 +353,7 @@ func TestClusterClaimerList(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clusterClaimer := ClusterClaimer{ClusterName: test.clusterName,
+				HubClient:      test.hubClient,
 				KubeClient:     test.kubeClient,
 				ConfigV1Client: test.configV1Client}
 			claims, err := clusterClaimer.List()
