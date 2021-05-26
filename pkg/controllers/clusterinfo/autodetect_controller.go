@@ -19,15 +19,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-const (
-	LabelCloudVendor = "cloud"
-	LabelKubeVendor  = "vendor"
-	LabelClusterID   = "clusterID"
-	LabelManagedBy   = "managed-by"
-	AutoDetect       = "auto-detect"
-	OCPVersion       = "openshiftVersion"
-)
-
 // AutoDetectReconciler auto detects platform related labels and sync to managedcluster
 type AutoDetectReconciler struct {
 	client client.Client
@@ -68,29 +59,29 @@ func (r *AutoDetectReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	needUpdate := false
-	if labels[LabelCloudVendor] == AutoDetect && clusterInfo.Status.CloudVendor != "" {
-		labels[LabelCloudVendor] = string(clusterInfo.Status.CloudVendor)
+	if labels[clusterinfov1beta1.LabelCloudVendor] == clusterinfov1beta1.AutoDetect && clusterInfo.Status.CloudVendor != "" {
+		labels[clusterinfov1beta1.LabelCloudVendor] = string(clusterInfo.Status.CloudVendor)
 		needUpdate = true
 	}
 
-	if labels[LabelKubeVendor] == AutoDetect && clusterInfo.Status.KubeVendor != "" {
-		labels[LabelKubeVendor] = string(clusterInfo.Status.KubeVendor)
+	if labels[clusterinfov1beta1.LabelKubeVendor] == clusterinfov1beta1.AutoDetect && clusterInfo.Status.KubeVendor != "" {
+		labels[clusterinfov1beta1.LabelKubeVendor] = string(clusterInfo.Status.KubeVendor)
 		// Backward Compatible for placementrrule
 		if clusterInfo.Status.KubeVendor == clusterinfov1beta1.KubeVendorOSD {
-			labels[LabelKubeVendor] = string(clusterinfov1beta1.KubeVendorOpenShift)
-			labels[LabelManagedBy] = "platform"
+			labels[clusterinfov1beta1.LabelKubeVendor] = string(clusterinfov1beta1.KubeVendorOpenShift)
+			labels[clusterinfov1beta1.LabelManagedBy] = "platform"
 		}
 		needUpdate = true
 	}
 
-	if clusterInfo.Status.ClusterID != "" && labels[LabelClusterID] != clusterInfo.Status.ClusterID {
-		labels[LabelClusterID] = clusterInfo.Status.ClusterID
+	if clusterInfo.Status.ClusterID != "" && labels[clusterinfov1beta1.LabelClusterID] != clusterInfo.Status.ClusterID {
+		labels[clusterinfov1beta1.LabelClusterID] = clusterInfo.Status.ClusterID
 		needUpdate = true
 	}
 
 	for _, claim := range cluster.Status.ClusterClaims {
-		if claim.Name == clusterclaims.ClaimOpenshiftVersion && labels[OCPVersion] != claim.Value {
-			labels[OCPVersion] = claim.Value
+		if claim.Name == clusterclaims.ClaimOpenshiftVersion && labels[clusterinfov1beta1.OCPVersion] != claim.Value {
+			labels[clusterinfov1beta1.OCPVersion] = claim.Value
 			needUpdate = true
 		}
 	}

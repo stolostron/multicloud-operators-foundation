@@ -54,8 +54,8 @@ func TestAutoDetectReconcile(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: ManagedClusterName,
 						Labels: map[string]string{
-							LabelCloudVendor: AutoDetect,
-							LabelKubeVendor:  AutoDetect,
+							clusterv1beta1.LabelCloudVendor: clusterv1beta1.AutoDetect,
+							clusterv1beta1.LabelKubeVendor:  clusterv1beta1.AutoDetect,
 						},
 					},
 					Spec: clusterv1.ManagedClusterSpec{},
@@ -76,8 +76,8 @@ func TestAutoDetectReconcile(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: ManagedClusterName,
 						Labels: map[string]string{
-							LabelCloudVendor: AutoDetect,
-							LabelKubeVendor:  AutoDetect,
+							clusterv1beta1.LabelCloudVendor: clusterv1beta1.AutoDetect,
+							clusterv1beta1.LabelKubeVendor:  clusterv1beta1.AutoDetect,
 						},
 					},
 					Spec: clusterv1.ManagedClusterSpec{},
@@ -134,8 +134,8 @@ func TestOSDVendorOcpVersion(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: ManagedClusterName,
 						Labels: map[string]string{
-							LabelCloudVendor: AutoDetect,
-							LabelKubeVendor:  AutoDetect,
+							clusterv1beta1.LabelCloudVendor: clusterv1beta1.AutoDetect,
+							clusterv1beta1.LabelKubeVendor:  clusterv1beta1.AutoDetect,
 						},
 					},
 					Spec: clusterv1.ManagedClusterSpec{},
@@ -152,7 +152,7 @@ func TestOSDVendorOcpVersion(t *testing.T) {
 					},
 				},
 			},
-			expectedLabel:     map[string]string{LabelCloudVendor: "Azure", LabelKubeVendor: "OpenShift"},
+			expectedLabel:     map[string]string{clusterv1beta1.LabelCloudVendor: "Azure", clusterv1beta1.LabelKubeVendor: "OpenShift"},
 			expectedErrorType: nil,
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -167,8 +167,8 @@ func TestOSDVendorOcpVersion(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: ManagedClusterName,
 						Labels: map[string]string{
-							LabelCloudVendor: AutoDetect,
-							LabelKubeVendor:  AutoDetect,
+							clusterv1beta1.LabelCloudVendor: clusterv1beta1.AutoDetect,
+							clusterv1beta1.LabelKubeVendor:  clusterv1beta1.AutoDetect,
 						},
 					},
 					Spec: clusterv1.ManagedClusterSpec{},
@@ -185,7 +185,7 @@ func TestOSDVendorOcpVersion(t *testing.T) {
 					},
 				},
 			},
-			expectedLabel:     map[string]string{LabelCloudVendor: "Azure", LabelKubeVendor: "OpenShift", LabelManagedBy: "platform"},
+			expectedLabel:     map[string]string{clusterv1beta1.LabelCloudVendor: "Azure", clusterv1beta1.LabelKubeVendor: "OpenShift", clusterv1beta1.LabelManagedBy: "platform"},
 			expectedErrorType: nil,
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -218,7 +218,7 @@ func TestOSDVendorOcpVersion(t *testing.T) {
 					Spec: clusterv1beta1.ClusterInfoSpec{},
 				},
 			},
-			expectedLabel:     map[string]string{OCPVersion: "4.6"},
+			expectedLabel:     map[string]string{clusterv1beta1.OCPVersion: "4.6"},
 			expectedErrorType: nil,
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{

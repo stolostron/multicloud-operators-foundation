@@ -5,13 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
+	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	configv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"strconv"
 	"strings"
 )
@@ -32,6 +36,8 @@ const (
 	ClaimOCMPlatform    = "platform.open-cluster-management.io"
 	ClaimOCMProduct     = "product.open-cluster-management.io"
 )
+
+const labelCustomizedOnly = "open-cluster-management.io/spoke-only"
 
 // should be the type defined in infrastructure.config.openshift.io
 const (
@@ -59,8 +65,20 @@ const (
 	ProductOther = "Other"
 )
 
+// internalLabels includes the labels managed by ACM.
+var internalLabels = sets.String{}
+
+func init() {
+	internalLabels.Insert(clusterv1beta1.LabelClusterID,
+		clusterv1beta1.LabelCloudVendor,
+		clusterv1beta1.LabelKubeVendor,
+		clusterv1beta1.LabelManagedBy,
+		clusterv1beta1.OCPVersion)
+}
+
 type ClusterClaimer struct {
 	ClusterName    string
+	HubClient      client.Client
 	KubeClient     kubernetes.Interface
 	ConfigV1Client openshiftclientset.Interface
 }
@@ -122,6 +140,13 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 		claims = append(claims, newClusterClaim(ClaimControlPlaneTopology, string(controlPlaneTopology)))
 	}
 
+	syncedClaims, err := c.syncLabelsToClaims()
+	if err != nil {
+		klog.Errorf("failed to sync labels to claims: %v", err)
+	}
+	if len(syncedClaims) != 0 {
+		claims = append(claims, syncedClaims...)
+	}
 	return claims, nil
 }
 
@@ -406,4 +431,38 @@ func (c *ClusterClaimer) getControlPlaneTopology() configv1.TopologyMode {
 	}
 
 	return infra.Status.ControlPlaneTopology
+}
+
+func (c *ClusterClaimer) syncLabelsToClaims() ([]*clusterv1alpha1.ClusterClaim, error) {
+	var claims []*clusterv1alpha1.ClusterClaim
+	request := types.NamespacedName{Namespace: c.ClusterName, Name: c.ClusterName}
+	clusterInfo := &clusterv1beta1.ManagedClusterInfo{}
+	err := c.HubClient.Get(context.TODO(), request, clusterInfo)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return claims, nil
+		}
+		return claims, err
+	}
+
+	// do not create claim if the label is managed by ACM.
+	// if the label format is aaa/bbb, the name of claim will be bbb.aaa.
+	for label, value := range clusterInfo.Labels {
+		if internalLabels.Has(label) || strings.Contains(label, "open-cluster-management.io") {
+			continue
+		}
+
+		newLabel := label
+		subs := strings.Split(label, "/")
+		if len(subs) == 2 {
+			newLabel = fmt.Sprintf("%s.%s", subs[1], subs[0])
+		} else if len(subs) > 2 {
+			newLabel = strings.ReplaceAll(label, "/", ".")
+		}
+
+		claim := newClusterClaim(newLabel, value)
+		claim.SetLabels(map[string]string{labelCustomizedOnly: ""})
+		claims = append(claims, claim)
+	}
+	return claims, nil
 }
