@@ -191,6 +191,28 @@ func GetHostFromClientConfig() (string, error) {
 	return clientCfg.Host, nil
 }
 
+func GetManagedCluster(dynamicClient dynamic.Interface, clusterName string) (*unstructured.Unstructured, error) {
+	cluster, err := dynamicClient.Resource(ManagedClusterGVR).Get(context.TODO(), clusterName, metav1.GetOptions{})
+	if err != nil {
+		return nil, err
+	}
+	conditions, _, err := unstructured.NestedSlice(cluster.Object, "status", "conditions")
+	if err != nil {
+		return nil, err
+	}
+	for _, condition := range conditions {
+		if t, ok := condition.(map[string]interface{})["type"]; ok {
+			if t == clusterv1.ManagedClusterConditionJoined {
+				if condition.(map[string]interface{})["status"] == "True" {
+					return cluster, nil
+				}
+				break
+			}
+		}
+	}
+	return nil, fmt.Errorf("the managedcluster %s was not JOINED", clusterName)
+}
+
 func GetJoinedManagedClusters(dynamicClient dynamic.Interface) ([]*unstructured.Unstructured, error) {
 	clusters, err := dynamicClient.Resource(ManagedClusterGVR).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {

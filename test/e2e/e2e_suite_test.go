@@ -81,8 +81,11 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	// accept the managed cluster that is deployed by registration-operator
-	err = util.AcceptManagedCluster(managedClusterName)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	_, err = util.GetManagedCluster(dynamicClient, managedClusterName)
+	if err != nil {
+		err = util.AcceptManagedCluster(managedClusterName)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	}
 
 	// create a fake managed cluster
 	fakeManagedCluster, err := util.CreateManagedCluster(dynamicClient)
