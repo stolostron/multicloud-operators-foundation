@@ -8,6 +8,8 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 
+	"github.com/onsi/ginkgo/reporters"
+
 	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 
@@ -21,7 +23,13 @@ import (
 
 func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	ginkgo.RunSpecs(t, "E2E suite")
+	junit_report_file := os.Getenv("JUNIT_REPORT_FILE")
+	if junit_report_file != "" {
+		junitReporter := reporters.NewJUnitReporter(junit_report_file)
+		ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "E2E suite", []ginkgo.Reporter{junitReporter})
+	} else {
+		ginkgo.RunSpecs(t, "E2E suite")
+	}
 }
 
 const (
