@@ -110,7 +110,7 @@ var _ = ginkgo.Describe("Testing BareMetalAsset", func() {
 				return true
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 
-			// manually update custersync status
+			// manually update clustersync status
 			clusterSync, err := hiveClient.HiveinternalV1alpha1().ClusterSyncs(testNamespace).Get(context.Background(), testName, metav1.GetOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			clusterSync.Status.SyncSets = []hiveinternalv1alpha1.SyncStatus{
@@ -135,7 +135,10 @@ var _ = ginkgo.Describe("Testing BareMetalAsset", func() {
 				for _, condition := range conditions.([]interface{}) {
 					conditionStatus := condition.(map[string]interface{})["status"]
 					if conditionStatus.(string) != "True" {
-						return fmt.Errorf("contidion %v is not correct", condition.(map[string]interface{})["type"])
+						return fmt.Errorf("contidion %v is not correct, reason %v, message %v",
+							condition.(map[string]interface{})["type"],
+							condition.(map[string]interface{})["reason"],
+							condition.(map[string]interface{})["message"])
 					}
 				}
 				return nil

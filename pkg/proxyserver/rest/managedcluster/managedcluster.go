@@ -64,7 +64,7 @@ func (s *REST) NamespaceScoped() bool {
 
 // ShortNames implements the ShortNamesProvider interface. Returns a list of short names for a resource.
 func (r *REST) ShortNames() []string {
-	return []string{"mcv"}
+	return []string{"mcv", "mcvs"}
 }
 
 // NewList returns a new managedCluster list

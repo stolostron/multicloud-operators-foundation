@@ -22,7 +22,7 @@ replace (
 	github.com/terraform-providers/terraform-provider-aws => github.com/openshift/terraform-provider-aws v1.60.1-0.20200630224953-76d1fb4e5699
 	github.com/terraform-providers/terraform-provider-azurerm => github.com/openshift/terraform-provider-azurerm v1.40.1-0.20200707062554-97ea089cc12a
 	github.com/terraform-providers/terraform-provider-ignition/v2 => github.com/community-terraform-providers/terraform-provider-ignition/v2 v2.1.0
-	github.com/ulikunitz/xz => github.com/ulikunitz/xz v0.5.7
+	github.com/ulikunitz/xz => github.com/ulikunitz/xz v0.5.8
 	google.golang.org/api => google.golang.org/api v0.25.0
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
 	google.golang.org/grpc => google.golang.org/grpc v1.29.1
