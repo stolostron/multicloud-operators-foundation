@@ -125,6 +125,26 @@ var _ = ginkgo.Describe("Testing BareMetalAsset", func() {
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			// ensure conditions of bma are correct
 			gomega.Eventually(func() error {
+				// sync status of syncSet in clusterSync
+				syncSet, err := hiveClient.HiveV1().SyncSets(testNamespace).Get(context.Background(), testName, metav1.GetOptions{})
+				if err != nil {
+					return nil
+				}
+
+				clusterSync, err := hiveClient.HiveinternalV1alpha1().ClusterSyncs(testNamespace).Get(context.Background(), testName, metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				if len(clusterSync.Status.SyncSets) == 1 {
+					if clusterSync.Status.SyncSets[0].ObservedGeneration != syncSet.Generation {
+						clusterSync.Status.SyncSets[0].ObservedGeneration = syncSet.Generation
+						_, err := hiveClient.HiveinternalV1alpha1().ClusterSyncs(testNamespace).UpdateStatus(context.Background(), clusterSync, metav1.UpdateOptions{})
+						if err != nil {
+							return err
+						}
+					}
+				}
+
 				bma, err := dynamicClient.Resource(bmaGVR).Namespace(testNamespace).Get(context.Background(), testName, metav1.GetOptions{})
 				if err != nil {
 					return err
