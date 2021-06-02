@@ -135,6 +135,11 @@ var _ = ginkgo.Describe("Testing BareMetalAsset", func() {
 				for _, condition := range conditions.([]interface{}) {
 					conditionStatus := condition.(map[string]interface{})["status"]
 					if conditionStatus.(string) != "True" {
+						fmt.Printf("conditon fail: %v\n", conditions)
+						clusterSync, err := hiveClient.HiveinternalV1alpha1().ClusterSyncs(testNamespace).Get(context.Background(), testName, metav1.GetOptions{})
+						fmt.Printf("clusterSync: %v,%v\n", clusterSync, err)
+						syncSet, err := hiveClient.HiveV1().SyncSets(testNamespace).Get(context.Background(), testName, metav1.GetOptions{})
+						fmt.Printf("syncSet: %v,%v\n", syncSet, err)
 						return fmt.Errorf("contidion %v is not correct, reason %v, message %v",
 							condition.(map[string]interface{})["type"],
 							condition.(map[string]interface{})["reason"],
