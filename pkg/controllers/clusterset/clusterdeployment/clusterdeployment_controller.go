@@ -54,8 +54,50 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	if err = c.Watch(&source.Kind{Type: &hivev1.ClusterDeployment{}},
-		&handler.EnqueueRequestForObject{}); err != nil {
+	err = c.Watch(&source.Kind{Type: &hivev1.ClusterDeployment{}},
+		&handler.EnqueueRequestForObject{})
+	if err != nil {
+		return err
+	}
+
+	//watch all clusterpool reltated clusterdeployments
+	err = c.Watch(
+		&source.Kind{Type: &hivev1.ClusterPool{}},
+		handler.EnqueueRequestsFromMapFunc(
+			handler.MapFunc(func(a client.Object) []reconcile.Request {
+				clusterPool, ok := a.(*hivev1.ClusterPool)
+				if !ok {
+					// not a clusterpool, returning empty
+					klog.Error("Clusterpool handler received non-Clusterpool object")
+					return []reconcile.Request{}
+				}
+				clusterdeployments := &hivev1.ClusterDeploymentList{}
+				err := mgr.GetClient().List(context.TODO(), clusterdeployments, &client.ListOptions{})
+				if err != nil {
+					klog.Errorf("could not list clusterdeployments. Error: %v", err)
+				}
+				var requests []reconcile.Request
+				for _, clusterdeployment := range clusterdeployments.Items {
+					//If clusterdeployment is not created by clusterpool or already cliamed, ignore it
+					if clusterdeployment.Spec.ClusterPoolRef == nil || len(clusterdeployment.Spec.ClusterPoolRef.ClaimName) != 0 {
+						continue
+					}
+					//Only filter clusterpool related clusterdeployment
+					if clusterdeployment.Spec.ClusterPoolRef.PoolName != clusterPool.Name || clusterdeployment.Spec.ClusterPoolRef.Namespace != clusterPool.Namespace {
+						continue
+					}
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name:      clusterdeployment.Name,
+							Namespace: clusterdeployment.Namespace,
+						},
+					})
+				}
+				return requests
+
+			}),
+		))
+	if err != nil {
 		return err
 	}
 	return nil
@@ -72,8 +114,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	//if the clusterdeployment is not created by clusterpool, do nothing
-	if clusterdeployment.Spec.ClusterPoolRef == nil {
+	//if the clusterdeployment is not created by clusterpool or already claimed, do nothing
+	if clusterdeployment.Spec.ClusterPoolRef == nil || len(clusterdeployment.Spec.ClusterPoolRef.ClaimName) != 0 {
 		return ctrl.Result{}, nil
 	}
 
