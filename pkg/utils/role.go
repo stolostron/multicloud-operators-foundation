@@ -224,13 +224,13 @@ func GetViewResourceFromClusterRole(clusterRole *rbacv1.ClusterRole, group, reso
 			continue
 		}
 
+		if !ResourceMatches(&rule, resource, "") {
+			continue
+		}
+
 		if len(rule.ResourceNames) == 0 {
 			all = true
 			return names, all
-		}
-
-		if !ResourceMatches(&rule, resource, "") {
-			continue
 		}
 
 		names.Insert(rule.ResourceNames...)
@@ -252,13 +252,12 @@ func GetAdminResourceFromClusterRole(clusterRole *rbacv1.ClusterRole, group, res
 			continue
 		}
 
+		if !ResourceMatches(&rule, resource, "") {
+			continue
+		}
 		if len(rule.ResourceNames) == 0 {
 			all = true
 			return names, all
-		}
-
-		if !ResourceMatches(&rule, resource, "") {
-			continue
 		}
 
 		names.Insert(rule.ResourceNames...)
