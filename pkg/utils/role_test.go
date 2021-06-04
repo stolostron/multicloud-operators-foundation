@@ -271,6 +271,29 @@ func TestGetAdminResourceFromClusterRole(t *testing.T) {
 			resource:  "managedclusters",
 			expectAll: true,
 		},
+		{
+			name: "resource type do not match",
+			clusterrole: &rbacv1.ClusterRole{
+				ObjectMeta: metav1.ObjectMeta{Name: "role1", ResourceVersion: "1"},
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{"clusterview.open-cluster-management.io"},
+						Resources: []string{"managedclusters"},
+					},
+					{
+						Verbs:         []string{"list", "create", "update"},
+						APIGroups:     []string{"cluster.open-cluster-management.io"},
+						Resources:     []string{"managedclusters"},
+						ResourceNames: []string{},
+					},
+				},
+			},
+			group:       "cluster.open-cluster-management.io",
+			resource:    "managedclusterset",
+			expectedRst: sets.NewString(),
+			expectAll:   false,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -376,6 +399,29 @@ func TestGetViewResourceFromClusterRole(t *testing.T) {
 			group:     "cluster.open-cluster-management.io",
 			resource:  "managedclusters",
 			expectAll: true,
+		},
+		{
+			name: "resource type do not match",
+			clusterrole: &rbacv1.ClusterRole{
+				ObjectMeta: metav1.ObjectMeta{Name: "role1", ResourceVersion: "1"},
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{"list"},
+						APIGroups: []string{"clusterview.open-cluster-management.io"},
+						Resources: []string{"managedclusters"},
+					},
+					{
+						Verbs:         []string{"list", "create", "update"},
+						APIGroups:     []string{"cluster.open-cluster-management.io"},
+						Resources:     []string{"managedclusters"},
+						ResourceNames: []string{},
+					},
+				},
+			},
+			group:       "cluster.open-cluster-management.io",
+			resource:    "managedclusterset",
+			expectedRst: sets.NewString(),
+			expectAll:   false,
 		},
 	}
 	for _, test := range tests {
