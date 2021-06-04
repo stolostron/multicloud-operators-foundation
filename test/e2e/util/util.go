@@ -655,7 +655,7 @@ func CreateManagedCluster(dynamicClient dynamic.Interface) (*unstructured.Unstru
 }
 
 func CreateManagedClusterSet(dynamicClient dynamic.Interface) (*unstructured.Unstructured, error) {
-	fakeManagedClusterSet, err := LoadResourceFromJSON(ManagedClusterSetRandomTemplate)
+	fakeManagedClusterSet, err := LoadResourceFromJSON(ManagedClusterSetRandomTemplateJson)
 	if err != nil {
 		return nil, err
 	}

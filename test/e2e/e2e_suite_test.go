@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"context"
 	"os"
 	"testing"
 	"time"
@@ -16,6 +17,7 @@ import (
 	addonv1alpha1client "github.com/open-cluster-management/api/client/addon/clientset/versioned"
 	clusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
@@ -96,12 +98,8 @@ var _ = ginkgo.BeforeSuite(func() {
 		return util.CheckFoundationPodsReady()
 	}, 60*time.Second, 2*time.Second).Should(gomega.Succeed())
 
-	clusterset, err := util.LoadResourceFromJSON(util.ManagedClusterSetTemplate)
+	clusterset, err := clusterClient.ClusterV1alpha1().ManagedClusterSets().Create(context.Background(), util.ManagedClusterSetTemplate, metav1.CreateOptions{})
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-	// create ManagedClusterSet to real cluster
-	_, err = util.ApplyClusterResource(dynamicClient, util.ManagedClusterSetGVR, clusterset)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", util.ManagedClusterSetGVR.Resource)
 
 	//set ManagedClusterset for ManagedCluster
 	clustersetlabel := map[string]string{
@@ -121,12 +119,11 @@ var _ = ginkgo.BeforeSuite(func() {
 		return err
 	}, eventuallyTimeout, eventuallyInterval).Should(gomega.Succeed())
 
-	//create clusterrolebinding
-	clusterrolebinding, err := util.LoadResourceFromJSON(util.ClusterRoleBindingTemplate)
+	//create clusterset admin clusterrolebinding
+	_, err = kubeClient.RbacV1().ClusterRoleBindings().Create(context.Background(), util.ClusterRoleBindingAdminTemplate, metav1.CreateOptions{})
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-	// create clusterRoleBinding to real cluster
-	_, err = util.ApplyClusterResource(dynamicClient, util.ClusterRoleBindingGVR, clusterrolebinding)
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", util.ClusterRoleBindingGVR.Resource)
-
+	//create  clusterset view clusterrolebinding
+	_, err = kubeClient.RbacV1().ClusterRoleBindings().Create(context.Background(), util.ClusterRoleBindingViewTemplate, metav1.CreateOptions{})
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 })
