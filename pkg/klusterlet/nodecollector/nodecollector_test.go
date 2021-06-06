@@ -107,6 +107,19 @@ func TestReconcile(t *testing.T) {
 			prometheusData: model.Vector{},
 		},
 		{
+			name:             "no updates with multi nodes",
+			resources:        []runtime.Object{newNode("node1", 1, true), newNode("node2", 2, true)},
+			existingNodeList: []clusterv1beta1.NodeStatus{newResourceStatus("node2", map[clusterapiv1.ResourceName]int64{"cpu": 2}, true), newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true)},
+			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
+				assertActions(t, actions, "get", "create")
+			},
+			expectedNodeList: []clusterv1beta1.NodeStatus{
+				newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true),
+				newResourceStatus("node2", map[clusterapiv1.ResourceName]int64{"cpu": 2}, true),
+			},
+			prometheusData: model.Vector{},
+		},
+		{
 			name:             "missing node metrics",
 			resources:        []runtime.Object{newConfigmap(string(ca))},
 			existingNodeList: []clusterv1beta1.NodeStatus{},
@@ -218,6 +231,7 @@ func TestReconcile(t *testing.T) {
 			if err != nil {
 				t.Errorf("expected no error: %v", err)
 			}
+
 			if !apiequality.Semantic.DeepEqual(actualInfo.Status.NodeList, c.expectedNodeList) {
 				t.Errorf("unexpected nodelist: %v, %v", actualInfo.Status.NodeList, c.expectedNodeList)
 			}

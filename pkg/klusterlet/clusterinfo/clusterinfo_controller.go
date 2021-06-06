@@ -5,6 +5,8 @@ import (
 	"fmt"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"net"
+	"sort"
+	"time"
 
 	clusterv1alpha1informer "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
 	clusterv1alpha1lister "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1"
@@ -129,6 +131,15 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			Reason:  clusterv1beta1.ReasonManagedClusterInfoSyncedFailed,
 			Message: errors.NewAggregate(errs).Error(),
 		}
+	}
+
+	// check if distributionInfo is Updated.
+	// sort the slices in distributionInfo to make it comparable using DeepEqual if not update.
+	infoUpdated := distributionInfoUpdated(&clusterInfo.Status.DistributionInfo, &newStatus.DistributionInfo)
+
+	// need to sync ocp ClusterVersion info every 5 min since do not watch it.
+	if !infoUpdated && equality.Semantic.DeepEqual(newStatus, clusterInfo.Status) {
+		return ctrl.Result{RequeueAfter: time.Minute * 5}, nil
 	}
 
 	meta.SetStatusCondition(&newStatus.Conditions, newSyncedCondition)
@@ -386,6 +397,23 @@ func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.Distributi
 		}
 	}
 	return distributionInfo, nil
+}
+
+func distributionInfoUpdated(old, new *clusterv1beta1.DistributionInfo) bool {
+	switch new.Type {
+	case clusterv1beta1.DistributionTypeOCP:
+		return ocpDistributionInfoUpdated(&old.OCP, &new.OCP)
+	}
+	return false
+}
+
+func ocpDistributionInfoUpdated(old, new *clusterv1beta1.OCPDistributionInfo) bool {
+	sort.SliceStable(new.AvailableUpdates, func(i, j int) bool { return new.AvailableUpdates[i] < new.AvailableUpdates[j] })
+	sort.SliceStable(new.VersionAvailableUpdates, func(i, j int) bool {
+		return new.VersionAvailableUpdates[i].Version < new.VersionAvailableUpdates[j].Version
+	})
+	sort.SliceStable(new.VersionHistory, func(i, j int) bool { return new.VersionHistory[i].Version < new.VersionHistory[j].Version })
+	return !equality.Semantic.DeepEqual(old, new)
 }
 
 func (r *ClusterInfoReconciler) RefreshAgentServer(clusterInfo *clusterv1beta1.ManagedClusterInfo) {
