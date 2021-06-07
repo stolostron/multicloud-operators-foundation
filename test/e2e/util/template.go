@@ -24,6 +24,7 @@ var ManagedClusterSetRandomTemplate = &clusterv1alpha1.ManagedClusterSet{
 	},
 	Spec: clusterv1alpha1.ManagedClusterSetSpec{},
 }
+
 var ManagedClusterSetTemplate = &clusterv1alpha1.ManagedClusterSet{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "clusterset1",
@@ -101,6 +102,7 @@ var ClusterclaimTemplate = &hivev1.ClusterClaim{
 		ClusterPoolName: "clusterpool1",
 	},
 }
+
 var ClusterdeploymentTemplate = &hivev1.ClusterDeployment{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "clusterdeployment1",

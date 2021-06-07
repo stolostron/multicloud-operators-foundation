@@ -204,7 +204,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			//create clustetcalim with clusterpool ref
-			_, err = hiveClient.HiveV1().ClusterClaims(util.ClusterclaimTemplate.Namespace).Create(context.Background(), util.ClusterclaimTemplate, metav1.CreateOptions{})
+			clusterclaim, err := hiveClient.HiveV1().ClusterClaims(util.ClusterclaimTemplate.Namespace).Create(context.Background(), util.ClusterclaimTemplate, metav1.CreateOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			// create a namespace for testing
@@ -234,7 +234,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				return nil
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-			//Make sure clusterset admin rolebinding in clusterdeployment generated.
+			//Make sure clusterset admin rolebinding in clusterdeployment namespace generated.
 			gomega.Eventually(func() error {
 				_, err := kubeClient.RbacV1().RoleBindings(clusterdeployment.Namespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
 				if err != nil {
@@ -243,7 +243,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				return nil
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-			//Make sure clusterset view rolebinding in clusterdeployment generated.
+			//Make sure clusterset view rolebinding in clusterdeployment namespace generated.
 			gomega.Eventually(func() error {
 				_, err := kubeClient.RbacV1().RoleBindings(clusterdeployment.Namespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
 				if err != nil {
@@ -275,6 +275,55 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				}
 				return false
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			//cliam the clusterdeployment and remove from set
+			gomega.Eventually(func() error {
+				clusterdeployment, err = hiveClient.HiveV1().ClusterDeployments(clusterdeployment.Namespace).Get(context.Background(), clusterdeployment.Name, metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				clusterdeployment.Spec.ClusterPoolRef.ClaimName = "clusterclaim1"
+				clusterdeployment.Labels = map[string]string{}
+				clusterdeployment, err = hiveClient.HiveV1().ClusterDeployments(clusterdeployment.Namespace).Update(context.Background(), clusterdeployment, metav1.UpdateOptions{})
+				if err != nil {
+					return err
+				}
+				return nil
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+			//clusterset admin/view rolebinding is removed from clusterdeployment namespace
+			gomega.Eventually(func() error {
+				_, err := kubeClient.RbacV1().RoleBindings(clusterdeployment.Namespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				return nil
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+
+			gomega.Eventually(func() error {
+				_, err := kubeClient.RbacV1().RoleBindings(clusterdeployment.Namespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				return nil
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+
+			//clusterset admin/view rolebinding should not be removed from clusterclaim namespace, because clusterpool(ns is same as claim) still in this set
+			gomega.Eventually(func() error {
+				_, err := kubeClient.RbacV1().RoleBindings(clusterclaim.Namespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				return nil
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+			gomega.Eventually(func() error {
+				_, err := kubeClient.RbacV1().RoleBindings(clusterclaim.Namespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				return nil
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 		})
 	})
 

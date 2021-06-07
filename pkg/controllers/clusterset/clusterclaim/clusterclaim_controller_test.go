@@ -44,8 +44,8 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-func newTestReconciler(clusterpoolObjs []runtime.Object, clusterclaimObjs []runtime.Object) *Reconciler {
-	objs := append(clusterclaimObjs, clusterpoolObjs...)
+func newTestReconciler(clusterdepObjs []runtime.Object, clusterclaimObjs []runtime.Object) *Reconciler {
+	objs := append(clusterclaimObjs, clusterdepObjs...)
 	r := &Reconciler{
 		client: fake.NewFakeClientWithScheme(scheme, objs...),
 		scheme: scheme,
@@ -56,11 +56,11 @@ func newTestReconciler(clusterpoolObjs []runtime.Object, clusterclaimObjs []runt
 func TestReconcile(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
-		name             string
-		clusterClaimObjs []runtime.Object
-		clusterPools     []runtime.Object
-		expectedlabel    map[string]string
-		req              reconcile.Request
+		name               string
+		clusterClaimObjs   []runtime.Object
+		clusterDeployments []runtime.Object
+		expectedlabel      map[string]string
+		req                reconcile.Request
 	}{
 		{
 			name: "add Clusterclaim",
@@ -72,19 +72,20 @@ func TestReconcile(t *testing.T) {
 					},
 					Spec: hivev1.ClusterClaimSpec{
 						ClusterPoolName: "pool1",
+						Namespace:       "dep1",
 					},
 				},
 			},
-			clusterPools: []runtime.Object{
-				&hivev1.ClusterPool{
+			clusterDeployments: []runtime.Object{
+				&hivev1.ClusterDeployment{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pool1",
-						Namespace: "ns1",
+						Name:      "dep1",
+						Namespace: "dep1",
 						Labels: map[string]string{
 							utils.ClusterSetLabel: "clusterSet1",
 						},
 					},
-					Spec: hivev1.ClusterPoolSpec{},
+					Spec: hivev1.ClusterDeploymentSpec{},
 				},
 			},
 			req: reconcile.Request{
@@ -98,7 +99,7 @@ func TestReconcile(t *testing.T) {
 			},
 		},
 		{
-			name: "clusterclaim related clusterpool has no set label",
+			name: "clusterclaim related clusterdeployment has no set label",
 			clusterClaimObjs: []runtime.Object{
 				&hivev1.ClusterClaim{
 					ObjectMeta: metav1.ObjectMeta{
@@ -110,16 +111,17 @@ func TestReconcile(t *testing.T) {
 					},
 					Spec: hivev1.ClusterClaimSpec{
 						ClusterPoolName: "pool1",
+						Namespace:       "dep1",
 					},
 				},
 			},
-			clusterPools: []runtime.Object{
-				&hivev1.ClusterPool{
+			clusterDeployments: []runtime.Object{
+				&hivev1.ClusterDeployment{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "pool1",
-						Namespace: "ns1",
+						Name:      "dep1",
+						Namespace: "dep1",
 					},
-					Spec: hivev1.ClusterPoolSpec{},
+					Spec: hivev1.ClusterDeploymentSpec{},
 				},
 			},
 			req: reconcile.Request{
@@ -133,7 +135,7 @@ func TestReconcile(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		r := newTestReconciler(test.clusterPools, test.clusterClaimObjs)
+		r := newTestReconciler(test.clusterDeployments, test.clusterClaimObjs)
 		r.Reconcile(ctx, test.req)
 		validateResult(t, r, test.name, test.req, test.expectedlabel)
 	}

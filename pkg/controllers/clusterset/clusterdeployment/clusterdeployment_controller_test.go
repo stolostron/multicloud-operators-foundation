@@ -137,6 +137,43 @@ func TestReconcile(t *testing.T) {
 			},
 			expectedlabel: map[string]string{},
 		},
+		{
+			name: "clusterdeployment related clusterpool has been claimed",
+			clusterdeploymentObjs: []runtime.Object{
+				&hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "clusterdeployment1",
+						Namespace: "ns1",
+					},
+					Spec: hivev1.ClusterDeploymentSpec{
+						ClusterPoolRef: &hivev1.ClusterPoolReference{
+							Namespace: "poolNs1",
+							PoolName:  "pool1",
+							ClaimName: "claimed",
+						},
+					},
+				},
+			},
+			clusterPools: []runtime.Object{
+				&hivev1.ClusterPool{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "pool1",
+						Namespace: "poolNs1",
+						Labels: map[string]string{
+							utils.ClusterSetLabel: "clusterSet1",
+						},
+					},
+					Spec: hivev1.ClusterPoolSpec{},
+				},
+			},
+			req: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      "clusterdeployment1",
+					Namespace: "ns1",
+				},
+			},
+			expectedlabel: map[string]string{},
+		},
 	}
 
 	for _, test := range tests {
