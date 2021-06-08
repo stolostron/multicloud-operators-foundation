@@ -2,9 +2,8 @@ package controllers
 
 import (
 	"context"
-	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
-
 	apiconfigv1 "github.com/openshift/api/config/v1"
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	stdlog "log"
 	"os"
 	"testing"
@@ -498,4 +497,283 @@ func newConfigV1Client(version string, failingStatus bool) openshiftclientset.In
 	}
 
 	return configfake.NewSimpleClientset(clusterVersion)
+}
+
+func TestOcpDistributionInfoUpdated(t *testing.T) {
+	tests := []struct {
+		name           string
+		old            *clusterv1beta1.DistributionInfo
+		new            *clusterv1beta1.DistributionInfo
+		expectedUpdate bool
+	}{
+		{
+			name:           "old and new are equal",
+			expectedUpdate: false,
+			old: &clusterv1beta1.DistributionInfo{
+				Type: clusterv1beta1.DistributionTypeOCP,
+				OCP: clusterv1beta1.OCPDistributionInfo{
+					Version:          "v4.6",
+					AvailableUpdates: []string{"v4.6.8", "v4.6.9"},
+					DesiredVersion:   "v4.6",
+					UpgradeFailed:    false,
+					Channel:          "channel 4.6",
+					Desired:          clusterv1beta1.OCPVersionRelease{},
+					VersionAvailableUpdates: []clusterv1beta1.OCPVersionRelease{
+						{
+							Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+							URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+							Version: "4.6.8",
+						},
+						{
+							Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+							URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+							Version: "4.6.9",
+						},
+					},
+					VersionHistory: []clusterv1beta1.OCPVersionUpdateHistory{
+						{
+							Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+							State:    "Completed",
+							Verified: false,
+							Version:  "4.5.11",
+						},
+						{
+							Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+							State:    "Completed",
+							Verified: false,
+							Version:  "4.5.12",
+						},
+					},
+				},
+			},
+			new: &clusterv1beta1.DistributionInfo{
+				Type: clusterv1beta1.DistributionTypeOCP,
+				OCP: clusterv1beta1.OCPDistributionInfo{
+					Version:          "v4.6",
+					AvailableUpdates: []string{"v4.6.9", "v4.6.8"},
+					DesiredVersion:   "v4.6",
+					UpgradeFailed:    false,
+					Channel:          "channel 4.6",
+					Desired:          clusterv1beta1.OCPVersionRelease{},
+					VersionAvailableUpdates: []clusterv1beta1.OCPVersionRelease{
+						{
+							Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+							URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+							Version: "4.6.9",
+						},
+						{
+							Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+							URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+							Version: "4.6.8",
+						},
+					},
+					VersionHistory: []clusterv1beta1.OCPVersionUpdateHistory{
+						{
+							Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+							State:    "Completed",
+							Verified: false,
+							Version:  "4.5.12",
+						},
+						{
+							Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+							State:    "Completed",
+							Verified: false,
+							Version:  "4.5.11",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:           "old and new are not equal",
+			expectedUpdate: true,
+			old: &clusterv1beta1.DistributionInfo{
+				Type: clusterv1beta1.DistributionTypeOCP,
+				OCP: clusterv1beta1.OCPDistributionInfo{
+					Version:          "v4.6",
+					AvailableUpdates: []string{"v4.6.8", "v4.6.9"},
+					DesiredVersion:   "v4.6",
+					UpgradeFailed:    false,
+					Channel:          "channel 4.6",
+					Desired:          clusterv1beta1.OCPVersionRelease{},
+					VersionAvailableUpdates: []clusterv1beta1.OCPVersionRelease{
+						{
+							Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+							URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+							Version: "4.6.8",
+						},
+						{
+							Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+							URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+							Version: "4.6.9",
+						},
+					},
+					VersionHistory: []clusterv1beta1.OCPVersionUpdateHistory{
+						{
+							Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+							State:    "Completed",
+							Verified: false,
+							Version:  "4.5.11",
+						},
+						{
+							Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+							State:    "Completed",
+							Verified: false,
+							Version:  "4.5.12",
+						},
+					},
+				},
+			},
+			new: &clusterv1beta1.DistributionInfo{
+				Type: clusterv1beta1.DistributionTypeOCP,
+				OCP: clusterv1beta1.OCPDistributionInfo{
+					Version:          "v4.6",
+					AvailableUpdates: []string{"v4.6.9", "v4.6.8"},
+					DesiredVersion:   "v4.6",
+					UpgradeFailed:    false,
+					Channel:          "channel 4.6",
+					Desired:          clusterv1beta1.OCPVersionRelease{},
+					VersionAvailableUpdates: []clusterv1beta1.OCPVersionRelease{
+						{
+							Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+							URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+							Version: "4.6.9",
+						},
+						{
+							Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+							URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+							Version: "4.6.10",
+						},
+					},
+					VersionHistory: []clusterv1beta1.OCPVersionUpdateHistory{
+						{
+							Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+							State:    "Completed",
+							Verified: false,
+							Version:  "4.5.12",
+						},
+						{
+							Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+							State:    "Completed",
+							Verified: false,
+							Version:  "4.5.13",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:           "old is nil",
+			expectedUpdate: true,
+			old: &clusterv1beta1.DistributionInfo{
+				Type: clusterv1beta1.DistributionTypeOCP,
+				OCP: clusterv1beta1.OCPDistributionInfo{
+					Version:                 "v4.6",
+					AvailableUpdates:        nil,
+					DesiredVersion:          "v4.6",
+					UpgradeFailed:           false,
+					Channel:                 "channel 4.6",
+					Desired:                 clusterv1beta1.OCPVersionRelease{},
+					VersionAvailableUpdates: nil,
+					VersionHistory:          nil,
+				},
+			},
+			new: &clusterv1beta1.DistributionInfo{
+				Type: clusterv1beta1.DistributionTypeOCP,
+				OCP: clusterv1beta1.OCPDistributionInfo{
+					Version:          "v4.6",
+					AvailableUpdates: []string{"v4.6.9", "v4.6.8"},
+					DesiredVersion:   "v4.6",
+					UpgradeFailed:    false,
+					Channel:          "channel 4.6",
+					Desired:          clusterv1beta1.OCPVersionRelease{},
+					VersionAvailableUpdates: []clusterv1beta1.OCPVersionRelease{
+						{
+							Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+							URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+							Version: "4.6.9",
+						},
+						{
+							Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+							URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+							Version: "4.6.10",
+						},
+					},
+					VersionHistory: []clusterv1beta1.OCPVersionUpdateHistory{
+						{
+							Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+							State:    "Completed",
+							Verified: false,
+							Version:  "4.5.12",
+						},
+						{
+							Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+							State:    "Completed",
+							Verified: false,
+							Version:  "4.5.13",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:           "new is nil",
+			expectedUpdate: true,
+			old: &clusterv1beta1.DistributionInfo{
+				Type: clusterv1beta1.DistributionTypeOCP,
+				OCP: clusterv1beta1.OCPDistributionInfo{
+					Version:          "v4.6",
+					AvailableUpdates: []string{"v4.6.8", "v4.6.9"},
+					DesiredVersion:   "v4.6",
+					UpgradeFailed:    false,
+					Channel:          "channel 4.6",
+					Desired:          clusterv1beta1.OCPVersionRelease{},
+					VersionAvailableUpdates: []clusterv1beta1.OCPVersionRelease{
+						{
+							Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+							URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+							Version: "4.6.8",
+						},
+						{
+							Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+							URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+							Version: "4.6.9",
+						},
+					},
+					VersionHistory: []clusterv1beta1.OCPVersionUpdateHistory{
+						{
+							Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+							State:    "Completed",
+							Verified: false,
+							Version:  "4.5.11",
+						},
+						{
+							Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+							State:    "Completed",
+							Verified: false,
+							Version:  "4.5.12",
+						},
+					},
+				},
+			},
+			new: &clusterv1beta1.DistributionInfo{
+				Type: clusterv1beta1.DistributionTypeOCP,
+				OCP: clusterv1beta1.OCPDistributionInfo{
+					Version:                 "v4.6",
+					AvailableUpdates:        nil,
+					DesiredVersion:          "v4.6",
+					UpgradeFailed:           false,
+					Channel:                 "channel 4.6",
+					Desired:                 clusterv1beta1.OCPVersionRelease{},
+					VersionAvailableUpdates: nil,
+					VersionHistory:          nil,
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		update := distributionInfoUpdated(test.old, test.new)
+		assert.Equal(t, update, test.expectedUpdate)
+	}
 }

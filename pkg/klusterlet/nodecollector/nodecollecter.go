@@ -5,8 +5,11 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"net"
 	"net/http"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,7 +20,6 @@ import (
 	prometheusconfig "github.com/prometheus/common/config"
 	prometheusmodel "github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
-	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -112,6 +114,9 @@ func (r *resourceCollector) reconcile(ctx context.Context) {
 	}
 
 	nodeList = r.updateCapcityByPrometheus(ctx, nodeList)
+
+	// need sort the slices before compare using DeepEqual
+	sort.SliceStable(nodeList, func(i, j int) bool { return nodeList[i].Name < nodeList[j].Name })
 	if apiequality.Semantic.DeepEqual(nodeList, clusterinfo.Status.NodeList) {
 		return
 	}
@@ -208,7 +213,11 @@ func (r *resourceCollector) queryResource(ctx context.Context, client prometheus
 	}
 	for _, v := range vector {
 		nodeName := v.Metric["node"]
-		results[string(nodeName)] = resource.NewQuantity(int64(v.Value), resource.DecimalSI)
+		// here needs unmarshal to new a quantity since NewQuantity is different from the value after unmarshal.
+		data := strconv.FormatInt(int64(v.Value), 10)
+		socket := &resource.Quantity{}
+		_ = socket.UnmarshalJSON([]byte(data))
+		results[string(nodeName)] = socket
 	}
 
 	return results, nil
