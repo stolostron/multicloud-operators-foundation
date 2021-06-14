@@ -6,7 +6,7 @@
 package clusterrole
 
 import (
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -21,12 +21,12 @@ func buildAdminRole(clusterName, clusteroleName string) *rbacv1.ClusterRole {
 			Name: clusteroleName,
 		},
 		Rules: []rbacv1.PolicyRule{
-			clusterrbac.NewRule("create", "get", "list", "watch", "update", "patch", "delete").
+			helpers.NewRule("create", "get", "list", "watch", "update", "patch", "delete").
 				Groups(managedclusterGroup).
 				Resources("managedclusters").
 				Names(clusterName).
 				RuleOrDie(),
-			clusterrbac.NewRule("get", "list", "watch").
+			helpers.NewRule("get", "list", "watch").
 				Groups(managedClusterViewGroup).
 				Resources("managedclusters").
 				RuleOrDie(),
@@ -42,11 +42,11 @@ func buildViewRole(clusterName, clusteroleName string) *rbacv1.ClusterRole {
 			Name: clusteroleName,
 		},
 		Rules: []rbacv1.PolicyRule{
-			clusterrbac.NewRule("get", "list", "watch").
+			helpers.NewRule("get", "list", "watch").
 				Groups(managedclusterGroup).
 				Resources("managedclusters").
 				Names(clusterName).RuleOrDie(),
-			clusterrbac.NewRule("get", "list", "watch").
+			helpers.NewRule("get", "list", "watch").
 				Groups(managedClusterViewGroup).
 				Resources("managedclusters").
 				RuleOrDie(),

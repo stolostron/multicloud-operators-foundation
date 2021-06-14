@@ -330,7 +330,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 	ginkgo.Context("Delete ManagedClusterset, managedcluster clusterrolebinding and namespace rolebinding should be auto deleted successfully", func() {
 		ginkgo.It("Delete ManagedClusterset, managedcluster clusterrolebinding and namespace rolebinding should be auto deleted successfully", func() {
 			//Delete clusterset, clusterrolebinding should be auto deleted
-			err := clusterClient.ClusterV1alpha1().ManagedClusterSets().Delete(context.Background(), managedClustersetName, metav1.DeleteOptions{})
+			err := clusterClient.ClusterV1alpha1().ManagedClusterSets().Delete(context.Background(), managedClusterSetName, metav1.DeleteOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			//managedcluster cluster rolebinding deleted

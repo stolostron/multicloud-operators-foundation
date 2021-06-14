@@ -4,9 +4,10 @@ package options
 
 import (
 	"crypto/tls"
+	"sync"
+	"time"
 
 	"github.com/spf13/pflag"
-	"k8s.io/klog"
 )
 
 // Config contains the server (the webhook) cert and key.
@@ -43,14 +44,53 @@ func (c *Options) AddFlags(fs *pflag.FlagSet) {
 		"Maximum burst for throttle.")
 }
 
-func ConfigTLS(o *Options) *tls.Config {
-	sCert, err := tls.LoadX509KeyPair(o.CertFile, o.KeyFile)
-	if err != nil {
-		klog.Fatal(err)
-	}
+type certificateCacheEntry struct {
+	cert  *tls.Certificate
+	err   error
+	birth time.Time
+}
 
+// isStale returns true when this cache entry is too old to be usable
+func (c *certificateCacheEntry) isStale() bool {
+	return time.Since(c.birth) > time.Second
+}
+
+func newCertificateCacheEntry(certFile, keyFile string) certificateCacheEntry {
+	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
+	return certificateCacheEntry{cert: &cert, err: err, birth: time.Now()}
+}
+
+// cachingCertificateLoader ensures that we don't hammer the filesystem when opening many connections
+// the underlying cert files are read at most once every second
+func cachingCertificateLoader(certFile, keyFile string) func() (*tls.Certificate, error) {
+	current := newCertificateCacheEntry(certFile, keyFile)
+	var currentMtx sync.RWMutex
+
+	return func() (*tls.Certificate, error) {
+		currentMtx.RLock()
+		if current.isStale() {
+			currentMtx.RUnlock()
+
+			currentMtx.Lock()
+			defer currentMtx.Unlock()
+
+			if current.isStale() {
+				current = newCertificateCacheEntry(certFile, keyFile)
+			}
+		} else {
+			defer currentMtx.RUnlock()
+		}
+
+		return current.cert, current.err
+	}
+}
+
+func ConfigTLS(o *Options) *tls.Config {
+	dynamicCertLoader := cachingCertificateLoader(o.CertFile, o.KeyFile)
 	return &tls.Config{
-		MinVersion:   tls.VersionTLS12,
-		Certificates: []tls.Certificate{sCert},
+		MinVersion: tls.VersionTLS12,
+		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+			return dynamicCertLoader()
+		},
 	}
 }
