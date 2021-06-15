@@ -4,9 +4,10 @@ package main
 
 import (
 	"context"
-	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"os"
 	"time"
+
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 
 	"github.com/open-cluster-management/addon-framework/pkg/lease"
 	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
@@ -82,6 +83,9 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		setupLog.Error(err, "Unable to get managed cluster kube config.")
 		os.Exit(1)
 	}
+	managedClusterConfig.QPS = o.QPS
+	managedClusterConfig.Burst = o.Burst
+
 	managedClusterDynamicClient, err := dynamic.NewForConfig(managedClusterConfig)
 	if err != nil {
 		setupLog.Error(err, "Unable to create managed cluster dynamic client.")

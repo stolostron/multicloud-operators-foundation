@@ -65,6 +65,10 @@ func NewKubeControl(mapper meta.RESTMapper, config *rest.Config) *KubeControl {
 	}
 }
 
+// The resourceOrKindArg should be in the format of {resource}.{version}.{group}, or {resource}.
+// If it is {resource}.{group}, it will be mistakenly parsed to {resource: {resource}, version: {group or part of group if there is "." in group} }
+// which will trigger the reload of restmapper and introduce performance degradation.
+// TODO: refactor restmapper to avoid frequent reload.
 func MappingFor(mapper meta.RESTMapper, resourceOrKindArg string) (*meta.RESTMapping, error) {
 	fullySpecifiedGVR, groupResource := schema.ParseResourceArg(resourceOrKindArg)
 	gvk := schema.GroupVersionKind{}

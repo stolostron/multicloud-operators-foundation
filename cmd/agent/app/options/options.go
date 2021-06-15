@@ -28,6 +28,8 @@ type AgentOptions struct {
 	EnableImpersonation  bool
 	InSecure             bool
 	ComponentNamespace   string
+	QPS                  float32
+	Burst                int
 }
 
 func NewAgentOptions() *AgentOptions {
@@ -46,6 +48,8 @@ func NewAgentOptions() *AgentOptions {
 		TLSCertFile:          "",
 		TLSPrivateKeyFile:    "",
 		ClientCAFile:         "",
+		QPS:                  50,
+		Burst:                100,
 	}
 }
 
@@ -89,6 +93,9 @@ func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 		"is authenticated with an identity corresponding to the CommonName of the client certificate.")
 	fs.StringVar(&o.ComponentNamespace, "", o.ComponentNamespace, ""+
 		"Namespace of the agent running If not set, use the value in /var/run/secrets/kubernetes.io/serviceaccount/namespace")
-
+	fs.Float32Var(&o.QPS, "max-qps", o.QPS,
+		"Maximum QPS to the local server.")
+	fs.IntVar(&o.Burst, "max-burst", o.Burst,
+		"Maximum burst for throttle.")
 	flag.InitFlags()
 }
