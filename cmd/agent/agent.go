@@ -78,6 +78,9 @@ func startManager(o *options.AgentOptions, stopCh <-chan struct{}) {
 		setupLog.Error(err, "Unable to get managed cluster kube config.")
 		os.Exit(1)
 	}
+	managedClusterConfig.QPS = o.QPS
+	managedClusterConfig.Burst = o.Burst
+
 	managedClusterDynamicClient, err := dynamic.NewForConfig(managedClusterConfig)
 	if err != nil {
 		setupLog.Error(err, "Unable to create managed cluster dynamic client.")

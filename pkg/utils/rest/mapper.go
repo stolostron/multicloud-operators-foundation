@@ -65,9 +65,10 @@ func (p *Mapper) Mapper() meta.RESTMapper {
 	return p.mapper
 }
 
-// MappingFor returns the RESTMapping for the Kind given, or the Kind referenced by the resource.
-// Prefers a fully specified GroupVersionResource match. If one is not found, we match on a fully
-// specified GroupVersionKind, or fallback to a match on GroupKind.
+// The resourceOrKindArg should be in the format of {resource}.{version}.{group}, or {resource}.
+// If it is {resource}.{group}, it will be mistakenly parsed to {resource: {resource}, version: {group or part of group if there is "." in group} }
+// which will trigger the reload of restmapper and introduce performance degradation.
+// TODO: refactor restmapper to avoid frequent reload.
 func (p *Mapper) MappingFor(resourceOrKindArg string) (*meta.RESTMapping, error) {
 	p.syncLock.RLock()
 	defer p.syncLock.RUnlock()
