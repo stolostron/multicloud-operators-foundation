@@ -38,6 +38,7 @@ const (
 )
 
 const labelCustomizedOnly = "open-cluster-management.io/spoke-only"
+const labelHubManaged = "open-cluster-management.io/hub-managed"
 
 // should be the type defined in infrastructure.config.openshift.io
 const (
@@ -153,7 +154,8 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 func newClusterClaim(name, value string) *clusterv1alpha1.ClusterClaim {
 	return &clusterv1alpha1.ClusterClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:   name,
+			Labels: map[string]string{labelHubManaged: ""},
 		},
 		Spec: clusterv1alpha1.ClusterClaimSpec{
 			Value: value,
@@ -461,7 +463,9 @@ func (c *ClusterClaimer) syncLabelsToClaims() ([]*clusterv1alpha1.ClusterClaim, 
 		}
 
 		claim := newClusterClaim(newLabel, value)
-		claim.SetLabels(map[string]string{labelCustomizedOnly: ""})
+		if claim.Labels != nil {
+			claim.Labels[labelCustomizedOnly] = ""
+		}
 		claims = append(claims, claim)
 	}
 	return claims, nil

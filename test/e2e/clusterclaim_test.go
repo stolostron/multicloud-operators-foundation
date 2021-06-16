@@ -1,108 +1,156 @@
 package e2e
 
 import (
+	"context"
+	"fmt"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
+	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
+	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/util/retry"
 
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/rand"
 )
 
-var clusterClaimGVR = schema.GroupVersionResource{
-	Group:    "cluster.open-cluster-management.io",
-	Version:  "v1alpha1",
-	Resource: "clusterclaims",
+var requiredClaimNames = []string{
+	"id.k8s.io",
+	"kubeversion.open-cluster-management.io",
 }
 
 var _ = ginkgo.Describe("Testing ClusterClaim", func() {
-	var requiredClaimNames = []string{
-		"id.k8s.io",
-		"kubeversion.open-cluster-management.io",
-	}
 
 	ginkgo.It("should get the required ClusterClaims successfully the managed cluster", func() {
-		gomega.Eventually(func() bool {
+		gomega.Eventually(func() error {
 			for _, claimName := range requiredClaimNames {
-				exists, err := util.HasClusterResource(dynamicClient, clusterClaimGVR, claimName)
+				_, err := clusterClient.ClusterV1alpha1().ClusterClaims().Get(context.TODO(), claimName, v1.GetOptions{})
 				if err != nil {
-					return false
-				}
-				if !exists {
-					return false
+					return err
 				}
 			}
-
-			return true
-		}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+			return nil
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 	})
 
 	ginkgo.It("should recreate the ClusterClaim once it is deleted", func() {
 		claimName := requiredClaimNames[0]
 
 		// make sure the claim is in place
-		gomega.Eventually(func() bool {
-			exists, err := util.HasClusterResource(dynamicClient, clusterClaimGVR, claimName)
-			if err != nil {
-				return false
-			}
-
-			return exists
-		}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() error {
+			_, err := clusterClient.ClusterV1alpha1().ClusterClaims().Get(context.TODO(), claimName, v1.GetOptions{})
+			return err
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 		// delete the claim
-		err := util.DeleteClusterResource(dynamicClient, clusterClaimGVR, claimName)
+		err := clusterClient.ClusterV1alpha1().ClusterClaims().Delete(context.TODO(), claimName, v1.DeleteOptions{})
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		// check if it is recreated
-		gomega.Eventually(func() bool {
-			exists, err := util.HasClusterResource(dynamicClient, clusterClaimGVR, claimName)
-			if err != nil {
-				return false
-			}
-
-			return exists
-		}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+		gomega.Eventually(func() error {
+			_, err := clusterClient.ClusterV1alpha1().ClusterClaims().Get(context.TODO(), claimName, v1.GetOptions{})
+			return err
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 	})
 
 	ginkgo.It("should rollback the change of the ClusterClaim once it is modified", func() {
 		claimName := requiredClaimNames[0]
 
 		// get the original claim
-		var claim *unstructured.Unstructured
+		var claim *clusterv1alpha1.ClusterClaim
 		var err error
-		gomega.Eventually(func() bool {
-			claim, err = util.GetClusterResource(dynamicClient, clusterClaimGVR, claimName)
-			if err != nil {
-				return false
-			}
-
-			return true
-		}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
-
-		originalValue, _, err := unstructured.NestedString(claim.Object, "Spec", "Value")
-		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+		gomega.Eventually(func() error {
+			claim, err = clusterClient.ClusterV1alpha1().ClusterClaims().Get(context.TODO(), claimName, v1.GetOptions{})
+			return err
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		originalValue := claim.Spec.Value
 
 		// modify the the claim value
-		err = unstructured.SetNestedField(claim.Object, rand.String(6), "Spec", "Value")
-		gomega.Expect(err).ToNot(gomega.HaveOccurred())
-		_, err = util.UpdateClusterResource(dynamicClient, clusterClaimGVR, claim)
+		err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+			claim, err = clusterClient.ClusterV1alpha1().ClusterClaims().Get(context.TODO(), claimName, v1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			claim.Spec.Value = rand.String(6)
+			_, err = clusterClient.ClusterV1alpha1().ClusterClaims().Update(context.TODO(), claim, v1.UpdateOptions{})
+			return err
+		})
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		// check if the change is rollback
-		gomega.Eventually(func() bool {
-			claim, err = util.GetClusterResource(dynamicClient, clusterClaimGVR, claimName)
+		gomega.Eventually(func() error {
+			claim, err = clusterClient.ClusterV1alpha1().ClusterClaims().Get(context.TODO(), claimName, v1.GetOptions{})
 			if err != nil {
-				return false
+				return err
 			}
+			if originalValue != claim.Spec.Value {
+				return fmt.Errorf("the claim is not rollback")
+			}
+			return nil
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+	})
 
-			value, _, err := unstructured.NestedString(claim.Object, "Spec", "Value")
+	ginkgo.It("should sync the label to claim", func() {
+		var err error
+		// add label to managedCluster
+		err = util.UpdateManagedClusterLabels(clusterClient, managedClusterName, map[string]string{"test": "test"})
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+		// should get the claim synced from label
+		gomega.Eventually(func() error {
+			_, err := clusterClient.ClusterV1alpha1().ClusterClaims().Get(context.TODO(), "test", v1.GetOptions{})
+			return err
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+		// delete label from managedCluster
+		err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+			cluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), managedClusterName, v1.GetOptions{})
 			if err != nil {
-				return false
+				return err
 			}
+			delete(cluster.Labels, "test")
+			_, err = clusterClient.ClusterV1().ManagedClusters().Update(context.TODO(), cluster, v1.UpdateOptions{})
+			return err
+		})
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-			return originalValue == value
-		}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+		// should delete the claim synced from label
+		gomega.Eventually(func() error {
+			_, err := clusterClient.ClusterV1alpha1().ClusterClaims().Get(context.TODO(), "test", v1.GetOptions{})
+			if errors.IsNotFound(err) {
+				return nil
+			}
+			return fmt.Errorf("failed delete claim syned from label %v", err)
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.It("should not remove the customized claim", func() {
+		var err error
+
+		customizedClaim := &clusterv1alpha1.ClusterClaim{
+			ObjectMeta: v1.ObjectMeta{
+				Name: rand.String(6),
+			},
+			Spec: clusterv1alpha1.ClusterClaimSpec{
+				Value: rand.String(6),
+			},
+		}
+		_, err = clusterClient.ClusterV1alpha1().ClusterClaims().Create(context.TODO(), customizedClaim, v1.CreateOptions{})
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+		// should get the customized claim in 1 min
+		count := 0
+		gomega.Eventually(func() int {
+			_, err := clusterClient.ClusterV1alpha1().ClusterClaims().Get(context.TODO(), customizedClaim.Name, v1.GetOptions{})
+			if err == nil {
+				count = count + 1
+			}
+			return count
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeNumerically(">=", 30))
+
+		// clean the customized Claim
+		err = clusterClient.ClusterV1alpha1().ClusterClaims().Delete(context.TODO(), customizedClaim.Name, v1.DeleteOptions{})
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
 	})
 })

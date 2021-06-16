@@ -58,7 +58,8 @@ func (r *ClusterClaimReconciler) syncClaims(ctx context.Context) error {
 		claimSet.Insert(claim.Name)
 	}
 
-	existedObjs, err := r.ClusterClient.ClusterV1alpha1().ClusterClaims().List(ctx, metav1.ListOptions{})
+	labelSelector := fmt.Sprintf("%s=%s", labelHubManaged, "")
+	existedObjs, err := r.ClusterClient.ClusterV1alpha1().ClusterClaims().List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		errs = append(errs, client.IgnoreNotFound(err))
 		return utils.NewMultiLineAggregate(errs)
