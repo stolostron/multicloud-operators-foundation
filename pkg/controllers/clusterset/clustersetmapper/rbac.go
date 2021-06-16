@@ -6,7 +6,7 @@
 package clustersetmapper
 
 import (
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	utils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,32 +28,32 @@ func buildAdminRole(clustersetName, clusteroleName string) *rbacv1.ClusterRole {
 			},
 		},
 		Rules: []rbacv1.PolicyRule{
-			clusterrbac.NewRule("get", "update").
+			helpers.NewRule("get", "update").
 				Groups(managedclusterGroup).
 				Resources("managedclustersets").
 				Names(clustersetName).
 				RuleOrDie(),
-			clusterrbac.NewRule("create").
+			helpers.NewRule("create").
 				Groups(managedclusterGroup).
 				Resources("managedclustersets/join").
 				Names(clustersetName).
 				RuleOrDie(),
-			clusterrbac.NewRule("create").
+			helpers.NewRule("create").
 				Groups(managedclusterGroup).
 				Resources("managedclustersets/bind").
 				Names(clustersetName).
 				RuleOrDie(),
-			clusterrbac.NewRule("create").
+			helpers.NewRule("create").
 				Groups(managedclusterGroup).
 				Resources("managedclusters").
 				RuleOrDie(),
 			//TODO
 			// We will restrict the update permission only for authenticated clusterset in another pr
-			clusterrbac.NewRule("update").
+			helpers.NewRule("update").
 				Groups(registerGroup).
 				Resources("managedclusters/accept").
 				RuleOrDie(),
-			clusterrbac.NewRule("get", "list", "watch").
+			helpers.NewRule("get", "list", "watch").
 				Groups(managedClusterViewGroup).
 				Resources("managedclustersets").
 				RuleOrDie(),
@@ -72,12 +72,12 @@ func buildViewRole(clustersetName, clusteroleName string) *rbacv1.ClusterRole {
 			},
 		},
 		Rules: []rbacv1.PolicyRule{
-			clusterrbac.NewRule("get").
+			helpers.NewRule("get").
 				Groups(managedclusterGroup).
 				Resources("managedclustersets").
 				Names(clustersetName).
 				RuleOrDie(),
-			clusterrbac.NewRule("get", "list", "watch").
+			helpers.NewRule("get", "list", "watch").
 				Groups(managedClusterViewGroup).
 				Resources("managedclustersets").
 				RuleOrDie(),

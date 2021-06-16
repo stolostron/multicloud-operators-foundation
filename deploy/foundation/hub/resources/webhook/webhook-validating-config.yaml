@@ -1,0 +1,45 @@
+# Copyright Contributors to the Open Cluster Management project
+
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+  labels:
+    app: foundation-webhook
+  name: foundation-validating-webhook
+webhooks:
+  - name: ocm.validating.webhook.admission.open-cluster-management.io
+    admissionReviewVersions:
+      - v1
+    clientConfig:
+      service:
+        name: foundation-webhook
+        namespace: open-cluster-management
+        path: /validating
+        port: 443
+    failurePolicy: Fail
+    matchPolicy: Equivalent
+    rules:
+      - apiGroups:
+          - hive.openshift.io
+        operations:
+          - CREATE
+          - UPDATE
+        apiVersions:
+          - "v1"
+        resources:
+          - clusterdeployments
+          - clusterpools
+        scope: '*'
+      - apiGroups:
+          - cluster.open-cluster-management.io
+        operations:
+          - CREATE
+          - UPDATE
+        apiVersions:
+          - "*"
+        resources:
+          - managedclusters
+    sideEffects: None
+    timeoutSeconds: 10

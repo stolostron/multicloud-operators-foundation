@@ -2,6 +2,7 @@ package clusterrbac
 
 import (
 	"context"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"reflect"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
@@ -168,7 +169,7 @@ func (r *Reconciler) createOrUpdateRole(clusterName string) error {
 // createOrUpdateRoleBinding create or update a role binding for a given cluster
 func (r *Reconciler) createOrUpdateRoleBinding(clusterName string) error {
 	roleName := roleName(clusterName)
-	acmRoleBinding := NewRoleBinding(roleName, clusterName).Groups(subjectPrefix + clusterName).BindingOrDie()
+	acmRoleBinding := helpers.NewRoleBinding(roleName, clusterName).Groups(subjectPrefix + clusterName).BindingOrDie()
 
 	// role and rolebinding have the same name
 	binding, err := r.kubeClient.RbacV1().RoleBindings(clusterName).Get(context.TODO(), roleName, metav1.GetOptions{})

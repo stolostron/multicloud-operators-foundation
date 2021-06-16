@@ -2,14 +2,11 @@ package e2e
 
 import (
 	"context"
+	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/reporters"
+	"github.com/onsi/gomega"
 	"os"
 	"testing"
-	"time"
-
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
-
-	"github.com/onsi/ginkgo/reporters"
 
 	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
@@ -47,8 +44,8 @@ var (
 	addonClient            addonv1alpha1client.Interface
 	apiRegistrationClient  *apiregistrationclient.ApiregistrationV1Client
 	managedClusterName     string
-	managedClustersetName  string
-	fakeManagedClusterName string
+	managedClusterSetName  = "clusterset1"
+	fakeManagedClusterName = util.RandomName()
 )
 
 // This suite is sensitive to the following environment variables:
@@ -82,48 +79,53 @@ var _ = ginkgo.BeforeSuite(func() {
 	clusterClient, err = clusterclient.NewForConfig(cfg)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
+	gomega.Eventually(func() error {
+		return util.CheckFoundationPodsReady()
+	}, eventuallyTimeout, 2*eventuallyInterval).Should(gomega.Succeed())
+
 	// accept the managed cluster that is deployed by registration-operator
-	_, err = util.GetManagedCluster(dynamicClient, managedClusterName)
+	err = util.CheckJoinedManagedCluster(clusterClient, managedClusterName)
 	if err != nil {
-		err = util.AcceptManagedCluster(managedClusterName)
+		err = util.AcceptManagedCluster(kubeClient, clusterClient, managedClusterName)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	}
 
-	// create a fake managed cluster
-	fakeManagedCluster, err := util.CreateManagedCluster(dynamicClient)
+	// import a fake managed cluster
+	err = util.ImportManagedCluster(clusterClient, fakeManagedClusterName)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	fakeManagedClusterName = fakeManagedCluster.GetName()
 
-	gomega.Eventually(func() error {
-		return util.CheckFoundationPodsReady()
-	}, 60*time.Second, 2*time.Second).Should(gomega.Succeed())
+	err = util.CreateManagedClusterSet(clusterClient, managedClusterSetName)
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-	clusterset, err := clusterClient.ClusterV1alpha1().ManagedClusterSets().Create(context.Background(), util.ManagedClusterSetTemplate, metav1.CreateOptions{})
-	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-	//set ManagedClusterset for ManagedCluster
-	clustersetlabel := map[string]string{
-		clustersetutils.ClusterSetLabel: clusterset.GetName(),
+	// set managedClusterSet for managedCluster
+	clusterSetLabel := map[string]string{
+		clustersetutils.ClusterSetLabel: managedClusterSetName,
 	}
-	managedClustersetName = clusterset.GetName()
-	gomega.Eventually(func() error {
-		managedCluster, err := util.GetClusterResource(dynamicClient, util.ManagedClusterGVR, managedClusterName)
-		if err != nil {
-			return err
-		}
-		err = util.AddLabels(managedCluster, clustersetlabel)
-		if err != nil {
-			return err
-		}
-		_, err = util.UpdateClusterResource(dynamicClient, util.ManagedClusterGVR, managedCluster)
-		return err
-	}, eventuallyTimeout, eventuallyInterval).Should(gomega.Succeed())
 
-	//create clusterset admin clusterrolebinding
+	err = util.UpdateManagedClusterLabels(clusterClient, managedClusterName, clusterSetLabel)
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+	// create managedClusterSet admin clusterRoleBinding
 	_, err = kubeClient.RbacV1().ClusterRoleBindings().Create(context.Background(), util.ClusterRoleBindingAdminTemplate, metav1.CreateOptions{})
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-	//create  clusterset view clusterrolebinding
+	// create  managedClusterSet view clusterRoleBinding
 	_, err = kubeClient.RbacV1().ClusterRoleBindings().Create(context.Background(), util.ClusterRoleBindingViewTemplate, metav1.CreateOptions{})
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+})
+
+var _ = ginkgo.AfterSuite(func() {
+	// delete fake cluster
+	err := util.CleanManagedCluster(clusterClient, fakeManagedClusterName)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+	// delete managedClusterSet
+	err = util.DeleteManagedClusterSet(clusterClient, managedClusterSetName)
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+	// delete managedClusterSet admin/view clusterRoleBinding
+	err = kubeClient.RbacV1().ClusterRoleBindings().Delete(context.TODO(), util.ClusterRoleBindingAdminTemplate.Name, metav1.DeleteOptions{})
+	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	err = kubeClient.RbacV1().ClusterRoleBindings().Delete(context.TODO(), util.ClusterRoleBindingViewTemplate.Name, metav1.DeleteOptions{})
 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 })

@@ -25,13 +25,6 @@ var ManagedClusterSetRandomTemplate = &clusterv1alpha1.ManagedClusterSet{
 	Spec: clusterv1alpha1.ManagedClusterSetSpec{},
 }
 
-var ManagedClusterSetTemplate = &clusterv1alpha1.ManagedClusterSet{
-	ObjectMeta: metav1.ObjectMeta{
-		Name: "clusterset1",
-	},
-	Spec: clusterv1alpha1.ManagedClusterSetSpec{},
-}
-
 var ClusterRoleBindingAdminTemplate = &rbacv1.ClusterRoleBinding{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: "clustersetrolebindingAdmin",
@@ -123,14 +116,6 @@ var ClusterdeploymentTemplate = &hivev1.ClusterDeployment{
 		},
 	},
 }
-
-const ManagedClusterSetRandomTemplateJson = `{
-  "apiVersion": "cluster.open-cluster-management.io/v1alpha1",
-  "kind": "ManagedClusterSet",
-  "metadata": {
-    "generateName": "test-automation-clusterset-"
-  }
-}`
 
 // ManagedClusterActionCreateTemplate is json template for create action
 const ManagedClusterActionCreateTemplate = `{
@@ -260,36 +245,6 @@ const ManagedClusterActionUpdateTemplate = `{
         }
       }
     }
-  }
-}`
-
-// ManagedClusterTemplate is json template for namespace
-const ManagedClusterTemplate = `{
-  "apiVersion": "cluster.open-cluster-management.io/v1",
-  "kind": "ManagedCluster",
-  "metadata": {
-    "name": "cluster1"
-  },
-  "spec": {
-    "hubAcceptsClient": true,
-    "managedClusterClientConfigs": [
-      {
-        "caBundle": "test",
-        "url": "https://test.com"
-      }
-    ]
-  }
-}`
-
-// NamespaceTemplate is json template for namespace
-const NamespaceTemplate = `{
-  "apiVersion": "v1",
-  "kind": "Namespace",
-  "metadata": {
-    "labels": {
-	  "test-automation": "true"
-  	},
-	"generateName": "test-automation-"
   }
 }`
 

@@ -73,15 +73,13 @@ var _ = ginkgo.Describe("Testing ManagedClusterInfo", func() {
 	})
 
 	ginkgo.Context("Delete ManagedClusterInfo Automatically after ManagedCluster is deleted", func() {
-		var testManagedClusterName string
+		var testManagedClusterName = util.RandomName()
 
 		ginkgo.BeforeEach(func() {
-			managedCluster, err := util.CreateManagedCluster(dynamicClient)
+			err := util.ImportManagedCluster(clusterClient, testManagedClusterName)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-			testManagedClusterName = managedCluster.GetName()
-
-			//ManagedClusterinfo should exist
+			// ManagedClusterInfo should exist
 			gomega.Eventually(func() bool {
 				existing, err := util.HasResource(dynamicClient, clusterInfoGVR, testManagedClusterName, testManagedClusterName)
 				if err != nil {
@@ -90,12 +88,12 @@ var _ = ginkgo.Describe("Testing ManagedClusterInfo", func() {
 				return existing
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 
-			//Delete the managedcluster
+			// Delete the managedCluster
 			err = util.DeleteClusterResource(dynamicClient, util.ManagedClusterGVR, testManagedClusterName)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		})
 
-		ginkgo.It("clusterinfo should be deleted automitically.", func() {
+		ginkgo.It("clusterInfo should be deleted automatically.", func() {
 			gomega.Eventually(func() bool {
 				existing, err := util.HasResource(dynamicClient, clusterInfoGVR, testManagedClusterName, testManagedClusterName)
 				if err != nil {

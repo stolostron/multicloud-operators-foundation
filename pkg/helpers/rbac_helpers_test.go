@@ -1,4 +1,4 @@
-package clusterrbac
+package helpers
 
 import (
 	"testing"
