@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"net/http"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/mattbaird/jsonpatch"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
-	"k8s.io/api/admission/v1"
+	v1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/klog/v2"
@@ -92,6 +93,15 @@ func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionRe
 	}
 
 	annotations := obj.GetAnnotations()
+
+	// Do not change the userInfo if the object is being created by the AppMgr.
+	// This value is stamped onto the Subscription object by Appmgr (Only for subscriptions)
+	klog.V(2).Infof("User Groups: %+v", ar.Request.UserInfo.Groups)
+	if obj.GetKind() == "subscription" && contains(ar.Request.UserInfo.Groups, "system:open-cluster-management:cluster") {
+		klog.V(2).Infof("Skip add user and group for resource: %+v, name: %+v", ar.Request.Resource.Resource, obj.GetName())
+		return nil
+	}
+
 	resAnnotations := MergeUserIdentityToAnnotations(ar.Request.UserInfo, annotations, obj.GetNamespace(), a.Lister)
 	obj.SetAnnotations(resAnnotations)
 
@@ -125,4 +135,13 @@ func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionRe
 
 func (a *AdmissionHandler) ServeMutateResource(w http.ResponseWriter, r *http.Request) {
 	a.serve(w, r, a.mutateResource)
+}
+
+func contains(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
 }
