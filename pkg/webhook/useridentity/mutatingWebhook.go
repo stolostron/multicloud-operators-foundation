@@ -96,7 +96,7 @@ func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionRe
 
 	// Do not change the userInfo if the object is being created by the AppMgr.
 	// This value is stamped onto the Subscription object by Appmgr (Only for subscriptions)
-	klog.V(0).Infof("User Groups: %+v", ar.Request.UserInfo.Groups)
+	klog.V(0).Infof("User Groups : %+v", ar.Request.UserInfo.Groups)
 	if obj.GetKind() == "subscription" && contains(ar.Request.UserInfo.Groups, "system:cluster-admins") {
 		klog.V(0).Infof("Skip add user and group for resource: %+v, name: %+v", ar.Request.Resource.Resource, obj.GetName())
 		return nil
