@@ -84,7 +84,7 @@ func (a *AdmissionHandler) serve(w io.Writer, r *http.Request, admit admitFunc) 
 }
 
 func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionResponse {
-	klog.V(2).Info("mutating custom resource")
+	klog.V(0).Info("mutating custom resource")
 	obj := unstructured.Unstructured{}
 	err := obj.UnmarshalJSON(ar.Request.Object.Raw)
 	if err != nil {
@@ -96,9 +96,9 @@ func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionRe
 
 	// Do not change the userInfo if the object is being created by the AppMgr.
 	// This value is stamped onto the Subscription object by Appmgr (Only for subscriptions)
-	klog.V(2).Infof("User Groups: %+v", ar.Request.UserInfo.Groups)
-	if obj.GetKind() == "subscription" && contains(ar.Request.UserInfo.Groups, "system:open-cluster-management:cluster") {
-		klog.V(2).Infof("Skip add user and group for resource: %+v, name: %+v", ar.Request.Resource.Resource, obj.GetName())
+	klog.V(0).Infof("User Groups: %+v", ar.Request.UserInfo.Groups)
+	if obj.GetKind() == "subscription" && contains(ar.Request.UserInfo.Groups, "system:cluster-admins") {
+		klog.V(0).Infof("Skip add user and group for resource: %+v, name: %+v", ar.Request.Resource.Resource, obj.GetName())
 		return nil
 	}
 
