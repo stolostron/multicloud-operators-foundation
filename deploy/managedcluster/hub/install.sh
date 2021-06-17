@@ -22,7 +22,7 @@ cd registration-operator || {
 }
 
 echo "############  Deploying hub"
-make deploy-hub
+make deploy-hub GO_REQUIRED_MIN_VERSION:=
 if [ $? -ne 0 ]; then
  echo "############  Failed to deploy hub"
  exit 1

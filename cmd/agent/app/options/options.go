@@ -27,6 +27,8 @@ type AgentOptions struct {
 	EnableLeaderElection bool
 	EnableImpersonation  bool
 	InSecure             bool
+	QPS                  float32
+	Burst                int
 }
 
 func NewAgentOptions() *AgentOptions {
@@ -45,6 +47,8 @@ func NewAgentOptions() *AgentOptions {
 		TLSCertFile:          "",
 		TLSPrivateKeyFile:    "",
 		ClientCAFile:         "",
+		QPS:                  50,
+		Burst:                100,
 	}
 }
 
@@ -86,6 +90,9 @@ func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.ClientCAFile, "client-ca-file", o.ClientCAFile, ""+
 		"If set, any request presenting a client certificate signed by one of the authorities in the client-ca-file "+
 		"is authenticated with an identity corresponding to the CommonName of the client certificate.")
-
+	fs.Float32Var(&o.QPS, "max-qps", o.QPS,
+		"Maximum QPS to the local server.")
+	fs.IntVar(&o.Burst, "max-burst", o.Burst,
+		"Maximum burst for throttle.")
 	flag.InitFlags()
 }
