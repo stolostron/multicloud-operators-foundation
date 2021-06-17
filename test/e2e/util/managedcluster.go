@@ -104,7 +104,13 @@ func UpdateManagedClusterLabels(client clusterclient.Interface, clusterName stri
 		if err != nil {
 			return err
 		}
-		oldCluster.SetLabels(labels)
+		if oldCluster.Labels != nil {
+			for k, v := range labels {
+				oldCluster.Labels[k] = v
+			}
+		} else {
+			oldCluster.Labels = labels
+		}
 		_, err = client.ClusterV1().ManagedClusters().Update(context.TODO(), oldCluster, metav1.UpdateOptions{})
 		return err
 	})

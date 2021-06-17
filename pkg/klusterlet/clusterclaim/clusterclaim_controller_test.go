@@ -64,11 +64,17 @@ func TestSyncClaims(t *testing.T) {
 		newClusterClaim("x", "1"),
 		newClusterClaim("y", "2"),
 		newClusterClaim("z", "3"),
+		{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "o",
+			},
+		},
 	}
 
 	deletedClaim := &clusterv1alpha1.ClusterClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "o",
+			Name:   "p",
+			Labels: map[string]string{labelHubManaged: ""},
 		},
 	}
 

@@ -219,7 +219,7 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusters", func() {
 		// create clusterRole and clusterRoleBinding for user
 		rules := []rbacv1.PolicyRule{
 			helpers.NewRule("list", "watch").Groups("clusterview.open-cluster-management.io").Resources("managedclusters").RuleOrDie(),
-			helpers.NewRule("list", "get").Groups("cluster.open-cluster-management.io").Resources("managedclusters").RuleOrDie(),
+			helpers.NewRule("list", "get").Groups("cluster.open-cluster-management.io").Resources("managedclusters").Names(clusterName).RuleOrDie(),
 		}
 		err = util.CreateClusterRole(kubeClient, clusterRoleName, rules)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -255,20 +255,10 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusters", func() {
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 		defer watchedClient.Stop()
-		go func() {
-			expectedClusters := []string{clusterName}
-			rules := []rbacv1.PolicyRule{
-				helpers.NewRule("list", "watch").Groups("clusterview.open-cluster-management.io").Resources("managedclusters").RuleOrDie(),
-				helpers.NewRule("list", "get").Groups("cluster.open-cluster-management.io").Resources("managedclusters").Names(expectedClusters...).RuleOrDie(),
-			}
-			err = util.UpdateClusterRole(kubeClient, clusterRoleName, rules)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-		}()
 
 		timeCount := 0
 		clusterCount := 0
 		expectedClusterCount := 1
-		expectedClusterName := clusterName
 		for {
 			select {
 			case event, ok := <-watchedClient.ResultChan():
@@ -277,7 +267,7 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusters", func() {
 					obj := event.Object.DeepCopyObject()
 					cluster := obj.(*unstructured.Unstructured)
 					name, _, _ := unstructured.NestedString(cluster.Object, "metadata", "name")
-					gomega.Expect(name).Should(gomega.Equal(expectedClusterName))
+					gomega.Expect(name).Should(gomega.Equal(clusterName))
 					clusterCount++
 					break
 				}
@@ -439,7 +429,7 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusterSets", func(
 		// create clusterRole and clusterRoleBinding for user
 		rules := []rbacv1.PolicyRule{
 			helpers.NewRule("list", "watch").Groups("clusterview.open-cluster-management.io").Resources("managedclustersets").RuleOrDie(),
-			helpers.NewRule("list", "get").Groups("cluster.open-cluster-management.io").Resources("managedclustersets").RuleOrDie(),
+			helpers.NewRule("list", "get").Groups("cluster.open-cluster-management.io").Resources("managedclustersets").Names(clusterSetName).RuleOrDie(),
 		}
 		err = util.CreateClusterRole(kubeClient, clusterRoleName, rules)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -475,20 +465,10 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusterSets", func(
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 		defer watchedClient.Stop()
-		go func() {
-			expectedClusterSets := []string{clusterSetName}
-			rules := []rbacv1.PolicyRule{
-				helpers.NewRule("list", "watch").Groups("clusterview.open-cluster-management.io").Resources("managedclustersets").RuleOrDie(),
-				helpers.NewRule("list", "get").Groups("cluster.open-cluster-management.io").Resources("managedclustersets").Names(expectedClusterSets...).RuleOrDie(),
-			}
-			err = util.UpdateClusterRole(kubeClient, clusterRoleName, rules)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-		}()
 
 		timeCount := 0
 		clusterCount := 0
 		expectedClusterSetCount := 1
-		expectedClusterSetName := clusterSetName
 		for {
 			select {
 			case event, ok := <-watchedClient.ResultChan():
@@ -497,7 +477,7 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusterSets", func(
 					obj := event.Object.DeepCopyObject()
 					clusterSet := obj.(*unstructured.Unstructured)
 					name, _, _ := unstructured.NestedString(clusterSet.Object, "metadata", "name")
-					gomega.Expect(name).Should(gomega.Equal(expectedClusterSetName))
+					gomega.Expect(name).Should(gomega.Equal(clusterSetName))
 					clusterCount++
 					break
 				}
