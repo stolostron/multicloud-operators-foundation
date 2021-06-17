@@ -33,6 +33,9 @@ func toAdmissionResponse(err error) *v1.AdmissionResponse {
 // admitFunc is the type we use for all of our validators and mutators
 type admitFunc func(v1.AdmissionReview) *v1.AdmissionResponse
 
+// AppMgr service account, we do not overwrite the user, as the subscription will handle this.
+const UserIDforAppMgr = "system:serviceaccount:open-cluster-management-agent-addon:klusterlet-addon-appmgr"
+
 // serve handles the http portion of a request prior to handing to an admit
 // function
 func (a *AdmissionHandler) serve(w io.Writer, r *http.Request, admit admitFunc) {
@@ -92,6 +95,14 @@ func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionRe
 	}
 
 	annotations := obj.GetAnnotations()
+
+	// Do not change the userInfo if the object is being created by the AppMgr.
+	// This value is stamped onto the Subscription object by Appmgr (Only for subscriptions)
+	if obj.GetKind() == "subscription" && ar.Request.UserInfo.Username == UserIDforAppMgr {
+		klog.V(0).Infof("Skip add user and group for resource: %+v, name: %+v", ar.Request.Resource.Resource, obj.GetName())
+		return nil
+	}
+
 	resAnnotations := MergeUserIdentityToAnnotations(ar.Request.UserInfo, annotations, obj.GetNamespace(), a.Lister)
 	obj.SetAnnotations(resAnnotations)
 
