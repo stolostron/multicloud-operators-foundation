@@ -102,7 +102,7 @@ func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionRe
 	klog.V(0).Infof("Object kind:%s, User request:%s, expected:%s", obj.GetKind(), ar.Request.UserInfo.Username, UserIDforAppMgr)
 	if obj.GetKind() == "Subscription" && ar.Request.UserInfo.Username == UserIDforAppMgr {
 		klog.V(0).Infof("Skip add user and group for resource: %+v, name: %+v", ar.Request.Resource.Resource, obj.GetName())
-		return nil
+		return &v1.AdmissionResponse{}
 	}
 
 	resAnnotations := MergeUserIdentityToAnnotations(ar.Request.UserInfo, annotations, obj.GetNamespace(), a.Lister)
