@@ -75,7 +75,7 @@ func (a *AdmissionHandler) serve(w io.Writer, r *http.Request, admit admitFunc) 
 	// Return the same UID
 	responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
 
-	klog.V(2).Info(fmt.Sprintf("sending response: %+v", responseAdmissionReview))
+	klog.V(0).Info(fmt.Sprintf("sending response: %+v", responseAdmissionReview))
 
 	respBytes, err := json.Marshal(responseAdmissionReview)
 	if err != nil {
@@ -102,10 +102,13 @@ func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionRe
 	klog.V(0).Infof("Object kind:%s, User request:%s, expected:%s", obj.GetKind(), ar.Request.UserInfo.Username, UserIDforAppMgr)
 	if obj.GetKind() == "Subscription" && ar.Request.UserInfo.Username == UserIDforAppMgr {
 		klog.V(0).Infof("Skip add user and group for resource: %+v, name: %+v", ar.Request.Resource.Resource, obj.GetName())
-	} else {
-		resAnnotations := MergeUserIdentityToAnnotations(ar.Request.UserInfo, annotations, obj.GetNamespace(), a.Lister)
-		obj.SetAnnotations(resAnnotations)
+		reviewResponse := v1.AdmissionResponse{}
+		reviewResponse.Allowed = true
+		return &reviewResponse
 	}
+
+	resAnnotations := MergeUserIdentityToAnnotations(ar.Request.UserInfo, annotations, obj.GetNamespace(), a.Lister)
+	obj.SetAnnotations(resAnnotations)
 
 	reviewResponse := v1.AdmissionResponse{}
 	reviewResponse.Allowed = true
