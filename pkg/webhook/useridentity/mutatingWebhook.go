@@ -86,7 +86,7 @@ func (a *AdmissionHandler) serve(w io.Writer, r *http.Request, admit admitFunc) 
 }
 
 func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionResponse {
-	klog.V(2).Info("mutating custom resource")
+	klog.V(0).Info("mutating custom resource")
 	obj := unstructured.Unstructured{}
 	err := obj.UnmarshalJSON(ar.Request.Object.Raw)
 	if err != nil {
