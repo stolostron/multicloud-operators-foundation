@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"net/http"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/mattbaird/jsonpatch"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
-	"k8s.io/api/admission/v1"
+	v1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/klog/v2"
@@ -98,7 +99,7 @@ func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionRe
 
 	// Do not change the userInfo if the object is being created by the AppMgr.
 	// This value is stamped onto the Subscription object by Appmgr (Only for subscriptions)
-	klog.V(0).Info("Username: ", ar.Request.UserInfo.Username)
+	klog.V(0).Infof("User request:%s, expected:%s", ar.Request.UserInfo.Username, UserIDforAppMgr)
 	if obj.GetKind() == "subscription" && ar.Request.UserInfo.Username == UserIDforAppMgr {
 		klog.V(0).Infof("Skip add user and group for resource: %+v, name: %+v", ar.Request.Resource.Resource, obj.GetName())
 		return nil
