@@ -160,7 +160,8 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			componentNamespace)
 		go resourceCollector.Start(ctx)
 
-		leaseUpdater := lease.NewLeaseUpdater(managedClusterKubeClient, AddonName, componentNamespace)
+		leaseUpdater := lease.NewLeaseUpdater(managedClusterKubeClient, AddonName, componentNamespace).
+			WithHubLeaseConfig(hubConfig, o.ClusterName)
 		go leaseUpdater.Start(ctx)
 
 		// Add controller into manager

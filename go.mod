@@ -46,7 +46,7 @@ require (
 	github.com/metal3-io/baremetal-operator v0.0.0
 	github.com/onsi/ginkgo v1.15.0
 	github.com/onsi/gomega v1.10.5
-	github.com/open-cluster-management/addon-framework v0.0.0-20210423114544-8e08479e80b6
+	github.com/open-cluster-management/addon-framework v0.0.0-20210621074027-a81f712c10c2
 	github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 	github.com/openshift/build-machinery-go v0.0.0-20210209125900-0da259a2c359

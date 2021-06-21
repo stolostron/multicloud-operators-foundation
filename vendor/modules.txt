@@ -205,7 +205,7 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/open-cluster-management/addon-framework v0.0.0-20210423114544-8e08479e80b6
+# github.com/open-cluster-management/addon-framework v0.0.0-20210621074027-a81f712c10c2
 ## explicit
 github.com/open-cluster-management/addon-framework/pkg/lease
 # github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f

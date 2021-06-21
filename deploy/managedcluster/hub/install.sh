@@ -31,7 +31,7 @@ fi
 for i in {1..7}; do
   echo "############$i  Checking cluster-manager-registration-controller"
   RUNNING_POD=$($KUBECTL -n open-cluster-management-hub get pods | grep cluster-manager-registration-controller | grep -c "Running")
-  if [ "${RUNNING_POD}" -eq 3 ]; then
+  if [ "${RUNNING_POD}" -ge 1 ]; then
     break
   fi
 
@@ -47,7 +47,7 @@ done
 for i in {1..7}; do
   echo "############$i  Checking cluster-manager-registration-webhook"
   RUNNING_POD=$($KUBECTL -n open-cluster-management-hub get pods | grep cluster-manager-registration-webhook | grep -c "Running")
-  if [ "${RUNNING_POD}" -eq 3 ]; then
+  if [ "${RUNNING_POD}" -ge 1 ]; then
     break
   fi
 
