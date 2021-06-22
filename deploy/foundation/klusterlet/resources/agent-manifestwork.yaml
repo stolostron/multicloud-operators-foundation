@@ -89,7 +89,6 @@ spec:
                 - "--agent-address=foundation-agent.open-cluster-management-agent.svc"
                 - "--agent-port=443"
                 - "--lease-duration=5"
-                - "--insecure=true"
               volumeMounts:
                 - name: hub-config
                   mountPath: /var/run/hub

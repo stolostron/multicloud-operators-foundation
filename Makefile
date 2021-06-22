@@ -93,6 +93,7 @@ build-e2e:
 	go test -c ./test/e2e
 
 test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-foundation-hub deploy-foundation-webhook deploy-foundation-agent
+	deploy/foundation/scripts/install-check.sh
 	./e2e.test -test.v -ginkgo.v
 
 ############################################################
