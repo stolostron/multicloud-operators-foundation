@@ -25,6 +25,7 @@ cd registration-operator || {
 }
 
 echo "############  Deploying klusterlet"
+make cluster-ip GO_REQUIRED_MIN_VERSION:=
 make deploy-spoke GO_REQUIRED_MIN_VERSION:=
 if [ $? -ne 0 ]; then
  echo "############  Failed to deploy klusterlet"
