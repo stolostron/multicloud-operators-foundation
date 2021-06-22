@@ -314,7 +314,7 @@ func (r *ReconcileBareMetalAsset) checkAssetSecret(ctx context.Context, instance
 			meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 				Type:    inventoryv1alpha1.ConditionCredentialsFound,
 				Status:  metav1.ConditionFalse,
-				Reason:  "SecretNotFound",
+				Reason:  inventoryv1alpha1.ConditionReasonSecretNotFound,
 				Message: err.Error(),
 			})
 			return bmaerrors.NewAssetSecretNotFoundError(secretName, instance.Namespace)
@@ -337,7 +337,7 @@ func (r *ReconcileBareMetalAsset) checkAssetSecret(ctx context.Context, instance
 	meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 		Type:    inventoryv1alpha1.ConditionCredentialsFound,
 		Status:  metav1.ConditionTrue,
-		Reason:  "SecretFound",
+		Reason:  inventoryv1alpha1.ConditionReasonSecretFound,
 		Message: fmt.Sprintf("A secret with the name %v in namespace %v was found", secretName, instance.Namespace),
 	})
 
@@ -378,7 +378,7 @@ func (r *ReconcileBareMetalAsset) checkClusterDeployment(ctx context.Context, in
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 			Type:    inventoryv1alpha1.ConditionClusterDeploymentFound,
 			Status:  metav1.ConditionFalse,
-			Reason:  "NoneSpecified",
+			Reason:  inventoryv1alpha1.ConditionReasonNoneSpecified,
 			Message: "No cluster deployment specified",
 		})
 		meta.RemoveStatusCondition(&instance.Status.Conditions, inventoryv1alpha1.ConditionAssetSyncStarted)
@@ -397,7 +397,7 @@ func (r *ReconcileBareMetalAsset) checkClusterDeployment(ctx context.Context, in
 			meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 				Type:    inventoryv1alpha1.ConditionClusterDeploymentFound,
 				Status:  metav1.ConditionFalse,
-				Reason:  "ClusterDeploymentNotFound",
+				Reason:  inventoryv1alpha1.ConditionReasonClusterDeploymentNotFound,
 				Message: err.Error(),
 			})
 			return err
@@ -409,7 +409,7 @@ func (r *ReconcileBareMetalAsset) checkClusterDeployment(ctx context.Context, in
 	meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 		Type:    inventoryv1alpha1.ConditionClusterDeploymentFound,
 		Status:  metav1.ConditionTrue,
-		Reason:  "ClusterDeploymentFound",
+		Reason:  inventoryv1alpha1.ConditionReasonClusterDeploymentFound,
 		Message: fmt.Sprintf("A ClusterDeployment with the name %v in namespace %v was found", cd.Name, cd.Namespace),
 	})
 
@@ -429,7 +429,7 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(ctx context.Context, instanc
 				meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 					Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
 					Status:  metav1.ConditionFalse,
-					Reason:  "SyncSetCreationFailed",
+					Reason:  inventoryv1alpha1.ConditionReasonSyncSetCreationFailed,
 					Message: "Failed to create SyncSet",
 				})
 				return err
@@ -438,7 +438,7 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(ctx context.Context, instanc
 			meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 				Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
 				Status:  metav1.ConditionTrue,
-				Reason:  "SyncSetCreated",
+				Reason:  inventoryv1alpha1.ConditionReasonSyncSetCreated,
 				Message: "SyncSet created successfully",
 			})
 			return nil
@@ -447,7 +447,7 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(ctx context.Context, instanc
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 			Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
 			Status:  metav1.ConditionFalse,
-			Reason:  "SyncSetGetFailed",
+			Reason:  inventoryv1alpha1.ConditionReasonSyncSetGetFailed,
 			Message: "Failed to get SyncSet",
 		})
 		klog.Errorf("Failed to get Hive SyncSet (%s/%s), %v", hsc.Namespace, hsc.Name, err)
@@ -488,7 +488,7 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(ctx context.Context, instanc
 			meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 				Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
 				Status:  metav1.ConditionFalse,
-				Reason:  "SyncSetUpdateFailed",
+				Reason:  inventoryv1alpha1.ConditionReasonSyncSetUpdateFailed,
 				Message: "Failed to update SyncSet",
 			})
 			return err
@@ -496,7 +496,7 @@ func (r *ReconcileBareMetalAsset) ensureHiveSyncSet(ctx context.Context, instanc
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 			Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
 			Status:  metav1.ConditionTrue,
-			Reason:  "SyncSetUpdated",
+			Reason:  inventoryv1alpha1.ConditionReasonSyncSetUpdated,
 			Message: "SyncSet updated successfully",
 		})
 	}
@@ -620,7 +620,7 @@ func (r *ReconcileBareMetalAsset) checkHiveClusterSync(ctx context.Context, inst
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 			Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 			Status: metav1.ConditionFalse,
-			Reason: "SyncStatusNotFound",
+			Reason: inventoryv1alpha1.ConditionReasonSyncStatusNotFound,
 			Message: fmt.Sprintf("Problem getting Hive SyncSet for Name %s in Namespace %s, %v",
 				syncSetNsN.Name, syncSetNsN.Namespace, err),
 		})
@@ -638,7 +638,7 @@ func (r *ReconcileBareMetalAsset) checkHiveClusterSync(ctx context.Context, inst
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 			Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
 			Status: metav1.ConditionFalse,
-			Reason: "SyncStatusNotFound",
+			Reason: inventoryv1alpha1.ConditionReasonSyncStatusNotFound,
 			Message: fmt.Sprintf("Problem getting Hive ClusterSync for ClusterDeployment.Name %s in Namespace %s, %v",
 				clusterSyncNsN.Name, clusterSyncNsN.Namespace, err),
 		})
@@ -658,7 +658,7 @@ func (r *ReconcileBareMetalAsset) checkHiveClusterSync(ctx context.Context, inst
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 			Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 			Status:  metav1.ConditionFalse,
-			Reason:  "SyncStatusNotFound",
+			Reason:  inventoryv1alpha1.ConditionReasonSyncStatusNotFound,
 			Message: err.Error(),
 		})
 		return false
@@ -670,7 +670,7 @@ func (r *ReconcileBareMetalAsset) checkHiveClusterSync(ctx context.Context, inst
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 			Type:    inventoryv1alpha1.ConditionAssetSyncStarted,
 			Status:  metav1.ConditionFalse,
-			Reason:  "SyncSetNotApplied",
+			Reason:  inventoryv1alpha1.ConditionReasonSyncSetNotApplied,
 			Message: "SyncSet not yet been applied",
 		})
 		return false
@@ -692,7 +692,7 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncStatus(ctx context.Context,
 			meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 				Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status:  metav1.ConditionTrue,
-				Reason:  "SyncSetAppliedSuccessful",
+				Reason:  inventoryv1alpha1.ConditionReasonSyncSetAppliedSuccessful,
 				Message: "Successfully applied SyncSet",
 			})
 			return true
@@ -701,7 +701,7 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncStatus(ctx context.Context,
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 			Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 			Status:  metav1.ConditionFalse,
-			Reason:  "SyncSetAppliedFailed",
+			Reason:  inventoryv1alpha1.ConditionReasonSyncSetAppliedFailed,
 			Message: fmt.Sprintf("Failed to apply SyncSet with err %s", syncSetStatus.FailureMessage),
 		})
 		return false
@@ -712,7 +712,7 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncStatus(ctx context.Context,
 			meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 				Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 				Status:  metav1.ConditionTrue,
-				Reason:  "SyncSetAppliedSuccessful",
+				Reason:  inventoryv1alpha1.ConditionReasonSyncSetAppliedSuccessful,
 				Message: "Successfully applied SyncSet",
 			})
 			return true
@@ -721,7 +721,7 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncStatus(ctx context.Context,
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 			Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 			Status:  metav1.ConditionFalse,
-			Reason:  "SyncSetAppliedFailed",
+			Reason:  inventoryv1alpha1.ConditionReasonSyncSetAppliedFailed,
 			Message: fmt.Sprintf("Failed to apply SyncSet with err %s", syncSetStatus.FailureMessage),
 		})
 
@@ -741,7 +741,7 @@ func (r *ReconcileBareMetalAsset) checkHiveSyncStatus(ctx context.Context,
 	meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 		Type:    inventoryv1alpha1.ConditionAssetSyncCompleted,
 		Status:  metav1.ConditionFalse,
-		Reason:  "UnexpectedResourceCount",
+		Reason:  inventoryv1alpha1.ConditionReasonUnexpectedResourceCount,
 		Message: err.Error(),
 	})
 
