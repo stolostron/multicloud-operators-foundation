@@ -97,6 +97,25 @@ const (
 	ConditionAssetSyncCompleted string = "AssetSyncCompleted"
 )
 
+// Condition Reasons
+const (
+	ConditionReasonSecretNotFound            string = "SecretNotFound"
+	ConditionReasonSecretFound               string = "SecretFound"
+	ConditionReasonNoneSpecified             string = "NoneSpecified"
+	ConditionReasonClusterDeploymentNotFound string = "ClusterDeploymentNotFound"
+	ConditionReasonClusterDeploymentFound    string = "ClusterDeploymentFound"
+	ConditionReasonSyncSetCreationFailed     string = "SyncSetCreationFailed"
+	ConditionReasonSyncSetCreated            string = "SyncSetCreated"
+	ConditionReasonSyncSetGetFailed          string = "SyncSetGetFailed"
+	ConditionReasonSyncSetUpdateFailed       string = "SyncSetUpdateFailed"
+	ConditionReasonSyncSetUpdated            string = "SyncSetUpdated"
+	ConditionReasonSyncStatusNotFound        string = "SyncStatusNotFound"
+	ConditionReasonSyncSetNotApplied         string = "SyncSetNotApplied"
+	ConditionReasonSyncSetAppliedSuccessful  string = "SyncSetAppliedSuccessful"
+	ConditionReasonSyncSetAppliedFailed      string = "SyncSetAppliedFailed"
+	ConditionReasonUnexpectedResourceCount   string = "UnexpectedResourceCount"
+)
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // BareMetalAsset is the Schema for the baremetalassets API
