@@ -4,8 +4,7 @@ package app
 
 import (
 	"context"
-	"io/ioutil"
-	"path"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/certrotation"
 	"time"
 
 	clusterv1client "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
@@ -90,11 +89,6 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	clusterInformers := clusterv1informers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
 	kubeInfomers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
 
-	caData, err := GetAgentCA(o.CAFile)
-	if err != nil {
-		klog.Warningf("unable to get foundation agent server CA file: %v", err)
-	}
-
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
 		Scheme:                 scheme,
 		LeaderElectionID:       "foundation-controller",
@@ -139,7 +133,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		}
 	}
 
-	if err = clusterinfo.SetupWithManager(mgr, caData); err != nil {
+	if err = clusterinfo.SetupWithManager(mgr, o.LogCertSecret); err != nil {
 		klog.Errorf("unable to setup clusterInfo reconciler: %v", err)
 		return err
 	}
@@ -177,6 +171,12 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		klog.Errorf("unable to setup gc reconciler: %v", err)
 		return err
 	}
+
+	if err = certrotation.SetupWithManager(mgr, o.LogCertSecret); err != nil {
+		klog.Errorf("unable to setup cert rotation reconciler: %v", err)
+		return err
+	}
+
 	go func() {
 		<-mgr.Elected()
 		go clusterInformers.Start(ctx.Done())
@@ -195,12 +195,4 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	}
 
 	return nil
-}
-
-func GetAgentCA(caFile string) ([]byte, error) {
-	pemBlock, err := ioutil.ReadFile(path.Clean(caFile))
-	if err != nil {
-		return nil, err
-	}
-	return pemBlock, nil
 }

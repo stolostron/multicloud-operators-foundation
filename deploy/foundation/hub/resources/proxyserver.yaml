@@ -22,9 +22,17 @@ spec:
         imagePullPolicy: IfNotPresent
         args:
           - "/proxyserver"
-          - "--agent-cert-dir=/tmp/agent-cert"
-          - "--cert-dir=/tmp/cert"
           - "--secure-port=6443"
+          - "--tls-cert-file=/var/run/apiservice/tls.crt"
+          - "--tls-private-key-file=/var/run/apiservice/tls.key"
+          - "--agent-cafile=/var/run/klusterlet/ca.crt"
+          - "--agent-certfile=/var/run/klusterlet/tls.crt"
+          - "--agent-keyfile=/var/run/klusterlet/tls.key"
+        volumeMounts:
+        - mountPath: /var/run/klusterlet
+          name: klusterlet-certs
+        - mountPath: /var/run/apiservice
+          name: apiservice-certs
         livenessProbe:
           httpGet:
             path: /healthz
@@ -38,3 +46,12 @@ spec:
             scheme: HTTPS
             port: 6443
           initialDelaySeconds: 2
+      volumes:
+      - name: klusterlet-certs
+        secret:
+          defaultMode: 420
+          secretName: ocm-klusterlet-self-signed-secrets
+      - name: apiservice-certs
+        secret:
+          defaultMode: 420
+          secretName: foundation-proxyserver

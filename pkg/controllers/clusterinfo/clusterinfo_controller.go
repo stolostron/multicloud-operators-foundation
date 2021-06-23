@@ -2,6 +2,8 @@ package clusterinfo
 
 import (
 	"context"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/cache"
 	"reflect"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
@@ -30,31 +32,46 @@ const (
 	clusterFinalizerName = "managedclusterinfo.finalizers.open-cluster-management.io"
 )
 
+var (
+	logCertSecretNamespace string
+	logCertSecretName      string
+)
+
 type ClusterInfReconciler struct {
 	client client.Client
 	scheme *runtime.Scheme
-	caData []byte
 }
 
-func SetupWithManager(mgr manager.Manager, caData []byte) error {
-	if err := add(mgr, newClusterInfoReconciler(mgr, caData)); err != nil {
+func SetupWithManager(mgr manager.Manager, logCertSecret string) error {
+	var err error
+	logCertSecretNamespace, logCertSecretName, err = cache.SplitMetaNamespaceKey(logCertSecret)
+	if err != nil {
 		return err
 	}
-	if err := add(mgr, newAutoDetectReconciler(mgr)); err != nil {
+	if logCertSecretNamespace == "" {
+		logCertSecretNamespace, err = utils.GetComponentNamespace()
+		if err != nil {
+			return err
+		}
+	}
+	if err = add(mgr, newClusterInfoReconciler(mgr)); err != nil {
 		return err
 	}
-	if err := add(mgr, newCapacityReconciler(mgr)); err != nil {
+	if err = add(mgr, newAutoDetectReconciler(mgr)); err != nil {
+		return err
+	}
+	if err = add(mgr, newCapacityReconciler(mgr)); err != nil {
 		return err
 	}
 	return nil
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newClusterInfoReconciler(mgr manager.Manager, caData []byte) reconcile.Reconciler {
+func newClusterInfoReconciler(mgr manager.Manager) reconcile.Reconciler {
+
 	return &ClusterInfReconciler{
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
-		caData: caData,
 	}
 }
 
@@ -76,6 +93,36 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, handler.EnqueueRequestsFromMapFunc(
+		handler.MapFunc(func(a client.Object) []reconcile.Request {
+			certSecret, ok := a.(*corev1.Secret)
+			if !ok {
+				// not a secret, returning empty
+				klog.Error("clusterinfo handler received non-secret object")
+				return []reconcile.Request{}
+			}
+
+			if certSecret.Name != logCertSecretName || certSecret.Namespace != logCertSecretNamespace {
+				return []reconcile.Request{}
+			}
+
+			managedClusterInfoList := &clusterinfov1beta1.ManagedClusterInfoList{}
+			err := mgr.GetClient().List(context.TODO(), managedClusterInfoList)
+			if err != nil {
+				klog.Error("Could not list managedClusterInfo", err)
+			}
+			var requests []reconcile.Request
+			for _, managedClusterInfo := range managedClusterInfoList.Items {
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      managedClusterInfo.Name,
+						Namespace: managedClusterInfo.Namespace,
+					},
+				})
+			}
+			return requests
+		}),
+	))
 	return nil
 }
 
@@ -117,15 +164,26 @@ func (r *ClusterInfReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		return ctrl.Result{}, err
 	}
 
+	update := false
 	endpoint := ""
 	if len(cluster.Spec.ManagedClusterClientConfigs) != 0 {
 		endpoint = cluster.Spec.ManagedClusterClientConfigs[0].URL
+		if endpoint != "" && endpoint != clusterInfo.Spec.MasterEndpoint {
+			clusterInfo.Spec.MasterEndpoint = endpoint
+			update = true
+		}
+	}
+	caData, err := r.getLogCA()
+	if err != nil {
+		klog.Errorf("failed to get log CA. %v", err)
 	}
 
-	if !reflect.DeepEqual(r.caData, clusterInfo.Spec.LoggingCA) ||
-		clusterInfo.Spec.MasterEndpoint != endpoint {
-		clusterInfo.Spec.LoggingCA = r.caData
-		clusterInfo.Spec.MasterEndpoint = endpoint
+	if caData != nil && !reflect.DeepEqual(caData, clusterInfo.Spec.LoggingCA) {
+		clusterInfo.Spec.LoggingCA = caData
+		update = true
+	}
+
+	if update {
 		return ctrl.Result{}, r.client.Update(ctx, clusterInfo)
 	}
 
@@ -163,6 +221,11 @@ func (r *ClusterInfReconciler) newClusterInfoByManagedCluster(cluster *clusterv1
 		endpoint = cluster.Spec.ManagedClusterClientConfigs[0].URL
 	}
 
+	caData, err := r.getLogCA()
+	if err != nil {
+		klog.Errorf("failed to get log CA. %v", err)
+	}
+
 	return &clusterinfov1beta1.ManagedClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      cluster.Name,
@@ -171,7 +234,18 @@ func (r *ClusterInfReconciler) newClusterInfoByManagedCluster(cluster *clusterv1
 		},
 		Spec: clusterinfov1beta1.ClusterInfoSpec{
 			MasterEndpoint: endpoint,
-			LoggingCA:      r.caData,
+			LoggingCA:      caData,
 		},
 	}
+}
+
+func (r *ClusterInfReconciler) getLogCA() ([]byte, error) {
+	logCertSecret := &corev1.Secret{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{Name: logCertSecretName, Namespace: logCertSecretNamespace}, logCertSecret)
+	if err != nil {
+		klog.Errorf("failed to get log cert secret %v/%v: %v", logCertSecretNamespace, logCertSecretName, err)
+		return nil, err
+	}
+	caData := logCertSecret.Data["ca.crt"]
+	return caData, nil
 }

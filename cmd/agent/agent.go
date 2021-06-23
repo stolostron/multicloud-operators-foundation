@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"k8s.io/component-base/logs"
 	"os"
 	"time"
 
@@ -68,6 +69,8 @@ func main() {
 	o := options.NewAgentOptions()
 	o.AddFlags(pflag.CommandLine)
 
+	logs.InitLogs()
+	defer logs.FlushLogs()
 	ctx := signals.SetupSignalHandler()
 	startManager(o, ctx)
 }

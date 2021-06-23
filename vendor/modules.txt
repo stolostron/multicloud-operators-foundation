@@ -281,6 +281,7 @@ github.com/openshift/hive/apis/scheme
 # github.com/openshift/library-go v0.0.0-20210330121802-ebbc677c82a5 => github.com/openshift/library-go v0.0.0-20200918101923-1e4c94603efe
 ## explicit
 github.com/openshift/library-go/pkg/authorization/authorizationutil
+github.com/openshift/library-go/pkg/crypto
 # github.com/pkg/errors v0.9.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0

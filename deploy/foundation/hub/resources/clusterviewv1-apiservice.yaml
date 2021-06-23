@@ -2,12 +2,13 @@ apiVersion: apiregistration.k8s.io/v1
 kind: APIService
 metadata:
   name: v1.clusterview.open-cluster-management.io
+  annotations:
+    "service.beta.openshift.io/inject-cabundle": "true"
 spec:
   group: clusterview.open-cluster-management.io
   version: v1
   service:
     namespace: open-cluster-management
     name: foundation-proxyserver
-  insecureSkipTLSVerify: true
   groupPriorityMinimum: 10
   versionPriority: 20

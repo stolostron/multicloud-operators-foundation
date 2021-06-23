@@ -83,7 +83,7 @@ func (k *Agent) RefreshServerIfNeeded(clusterInfo *v1beta1.ManagedClusterInfo) {
 	if k.server.isShutDown() {
 		return
 	}
-
+	klog.Infof("refresh server: %v\n", caData)
 	go k.server.refresh(caData, pool)
 }
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"os/user"
@@ -338,66 +337,6 @@ func CheckClusterID(obj *unstructured.Unstructured) error {
 			return fmt.Errorf("failed to get valid ocp clusterID")
 		}
 	}
-	return nil
-}
-
-func CheckFoundationPodsReady() error {
-	clusterCfg, err := clientcmd.BuildConfigFromFlags("", os.Getenv("KUBECONFIG"))
-	if err != nil {
-		return err
-	}
-
-	hubClient, err := kubernetes.NewForConfig(clusterCfg)
-	if err != nil {
-		return err
-	}
-
-	_, err = hubClient.CoreV1().Secrets("open-cluster-management").Get(context.TODO(),
-		"foundation-webhook", metav1.GetOptions{})
-	if err != nil {
-		return fmt.Errorf("failed to get secret foundation-webhook; %v", err)
-	}
-
-	labelNs := map[string]string{
-		"app=foundation-controller":  "open-cluster-management",
-		"app=foundation-proxyserver": "open-cluster-management",
-		"app=foundation-webhook":     "open-cluster-management",
-		"app=work-manager":           "open-cluster-management-agent",
-	}
-	for label, ns := range labelNs {
-		pods, err := hubClient.CoreV1().Pods(ns).List(context.TODO(),
-			metav1.ListOptions{LabelSelector: label})
-		if err != nil {
-			return fmt.Errorf("failed to get %v pods. %#v", label, err)
-		}
-		if len(pods.Items) == 0 {
-			return fmt.Errorf("failed to get %v pods", label)
-		}
-
-		for _, pod := range pods.Items {
-			if err := podConditionsReady(pod); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func podConditionsReady(pod corev1.Pod) error {
-	if len(pod.Status.Conditions) == 0 {
-		return fmt.Errorf("the pod %v conditions is null", pod.Name)
-	}
-
-	for _, condition := range pod.Status.Conditions {
-		if condition.Type == corev1.PodReady && condition.Status != corev1.ConditionTrue {
-			return fmt.Errorf("the pod %v conditions is not ready", pod.Name)
-		}
-		if condition.Type == corev1.ContainersReady && condition.Status != corev1.ConditionTrue {
-			return fmt.Errorf("the containers of pod %v conditions are not ready", pod.Name)
-		}
-	}
-
 	return nil
 }
 

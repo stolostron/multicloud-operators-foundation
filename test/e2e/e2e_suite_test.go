@@ -46,6 +46,7 @@ var (
 	managedClusterName     string
 	managedClusterSetName  = "clusterset1"
 	fakeManagedClusterName = util.RandomName()
+	foundationNS           string
 )
 
 // This suite is sensitive to the following environment variables:
@@ -58,6 +59,11 @@ var _ = ginkgo.BeforeSuite(func() {
 	managedClusterName = os.Getenv("MANAGED_CLUSTER_NAME")
 	if managedClusterName == "" {
 		managedClusterName = "cluster1"
+	}
+
+	foundationNS = os.Getenv("FOUNDATION_NS")
+	if foundationNS == "" {
+		foundationNS = "open-cluster-management"
 	}
 
 	dynamicClient, err = util.NewDynamicClient()
@@ -78,10 +84,6 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	clusterClient, err = clusterclient.NewForConfig(cfg)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-
-	gomega.Eventually(func() error {
-		return util.CheckFoundationPodsReady()
-	}, eventuallyTimeout, 2*eventuallyInterval).Should(gomega.Succeed())
 
 	// accept the managed cluster that is deployed by registration-operator
 	err = util.CheckJoinedManagedCluster(clusterClient, managedClusterName)

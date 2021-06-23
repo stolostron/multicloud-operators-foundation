@@ -3,6 +3,8 @@ apiVersion: v1
 metadata:
   name: foundation-proxyserver
   namespace: open-cluster-management
+  annotations:
+    "service.beta.openshift.io/serving-cert-secret-name": foundation-proxyserver
 spec:
   selector:
     app: foundation-proxyserver

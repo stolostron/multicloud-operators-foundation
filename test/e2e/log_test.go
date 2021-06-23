@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -68,35 +69,42 @@ var _ = ginkgo.Describe("Testing Pod log", func() {
 	})
 
 	ginkgo.It("should get log from pod successfully", func() {
-		gomega.Eventually(func() bool {
-			exists, err := util.HasResource(dynamicClient, clusterInfoGVR, managedClusterName, managedClusterName)
-			if err != nil {
-				return false
-			}
-			return exists
-		}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
-
-		gomega.Eventually(func() bool {
+		// check the ManagedClusterInfo status
+		gomega.Eventually(func() error {
 			managedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, managedClusterName, managedClusterName)
 			if err != nil {
-				return false
+				return err
 			}
-			// check the ManagedClusterInfo status
-			return util.GetConditionTypeFromStatus(managedClusterInfo, clusterinfov1beta1.ManagedClusterInfoSynced)
-		}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+			if !util.GetConditionTypeFromStatus(managedClusterInfo, clusterinfov1beta1.ManagedClusterInfoSynced) {
+				return fmt.Errorf("the condition of managedClusterInfo is not synced")
+			}
+			return nil
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-		req := restClient.Get().Namespace(managedClusterName).
-			Name(managedClusterName).
-			Resource("clusterstatuses").
-			SubResource("log").Suffix(podNamespace, podName, containerName)
+		// case1: get logs successfully
+		gomega.Eventually(func() error {
+			req := restClient.Get().Namespace(managedClusterName).
+				Name(managedClusterName).
+				Resource("clusterstatuses").
+				SubResource("log").Suffix(podNamespace, podName, containerName)
 
-		gomega.Eventually(func() bool {
 			_, err := req.DoRaw(context.TODO())
+			return err
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-			if err != nil {
-				return false
-			}
-			return true
-		}, 60*time.Second, 1*time.Second).Should(gomega.BeTrue())
+		// case2: get logs successfully after cert rotation
+		gomega.Eventually(func() error {
+			return kubeClient.CoreV1().Secrets(foundationNS).Delete(context.TODO(), "ocm-klusterlet-self-signed-secrets", metav1.DeleteOptions{})
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+		gomega.Eventually(func() error {
+			req := restClient.Get().Namespace(managedClusterName).
+				Name(managedClusterName).
+				Resource("clusterstatuses").
+				SubResource("log").Suffix(podNamespace, podName, containerName)
+
+			_, err := req.DoRaw(context.TODO())
+			return err
+		}, eventuallyTimeout*2, eventuallyInterval*5).ShouldNot(gomega.HaveOccurred())
 	})
 })

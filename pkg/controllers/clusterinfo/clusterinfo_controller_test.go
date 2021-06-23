@@ -2,6 +2,7 @@ package clusterinfo
 
 import (
 	"context"
+	corev1 "k8s.io/api/core/v1"
 	"os"
 	"path/filepath"
 	"sync"
@@ -43,6 +44,7 @@ func TestMain(m *testing.M) {
 
 	clusterinfov1beta1.AddToScheme(cliScheme.Scheme)
 	clusterv1.AddToScheme(cliScheme.Scheme)
+	corev1.AddToScheme(cliScheme.Scheme)
 
 	var err error
 	if cfg, err = t.Start(); err != nil {
@@ -52,7 +54,7 @@ func TestMain(m *testing.M) {
 	// AddToSchemes may be used to add all resources defined in the project to a Scheme
 	var AddToSchemes runtime.SchemeBuilder
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, clusterv1.Install, clusterinfov1beta1.AddToScheme)
+	AddToSchemes = append(AddToSchemes, clusterv1.Install, clusterinfov1beta1.AddToScheme, corev1.AddToScheme)
 
 	if err := AddToSchemes.AddToScheme(scheme); err != nil {
 		klog.Errorf("Failed adding apis to scheme, %v", err)
@@ -65,6 +67,10 @@ func TestMain(m *testing.M) {
 	}
 	if err := clusterv1.Install(scheme); err != nil {
 		klog.Errorf("Failed adding cluster to scheme, %v", err)
+		os.Exit(1)
+	}
+	if err := corev1.AddToScheme(scheme); err != nil {
+		klog.Errorf("Failed adding core v1 to scheme, %v", err)
 		os.Exit(1)
 	}
 
@@ -96,7 +102,7 @@ func TestControllerReconcile(t *testing.T) {
 
 	c = mgr.GetClient()
 
-	SetupWithManager(mgr, []byte(""))
+	SetupWithManager(mgr, "open-cluster-management/ocm-klusterlet-self-signed-secrets")
 
 	cancel, mgrStopped := StartTestManager(mgr, g)
 
@@ -120,7 +126,6 @@ func newTestClusterInfoReconciler(existingObjs []runtime.Object) *ClusterInfReco
 	return &ClusterInfReconciler{
 		client: fake.NewFakeClientWithScheme(scheme, existingObjs...),
 		scheme: scheme,
-		caData: []byte{},
 	}
 }
 
@@ -234,6 +239,50 @@ func TestReconcile(t *testing.T) {
 			} else {
 				assert.Equal(t, res.Requeue, false)
 			}
+		})
+	}
+}
+
+func Test_getLogCA(t *testing.T) {
+	logCertSecretNamespace = "open-cluster-management"
+	logCertSecretName = "ocm-klusterlet-self-signed-secrets"
+
+	tests := []struct {
+		name         string
+		existingObjs []runtime.Object
+		expectCAData []byte
+	}{
+		{
+			name: "get log ca",
+			existingObjs: []runtime.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: logCertSecretName, Namespace: logCertSecretNamespace},
+				Data: map[string][]byte{
+					"ca.crt": {123},
+				},
+			}},
+			expectCAData: []byte{123},
+		},
+		{
+			name:         "no cert secret",
+			existingObjs: []runtime.Object{},
+			expectCAData: nil,
+		},
+		{
+			name: "no ca data",
+			existingObjs: []runtime.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: logCertSecretName, Namespace: logCertSecretNamespace},
+				Data:       nil,
+			}},
+			expectCAData: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			svrc := newTestClusterInfoReconciler(test.existingObjs)
+			caData, _ := svrc.getLogCA()
+
+			assert.Equal(t, test.expectCAData, caData)
 		})
 	}
 }

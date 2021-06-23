@@ -72,6 +72,9 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// refresh logging server CA if CA is changed
+	r.RefreshAgentServer(clusterInfo)
+
 	// Update cluster info status here.
 	newStatus := clusterInfo.DeepCopy().Status
 	var errs []error
@@ -154,8 +157,6 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		log.Error(err, "Failed to update status")
 		return ctrl.Result{}, err
 	}
-
-	r.RefreshAgentServer(clusterInfo)
 
 	return ctrl.Result{}, nil
 }
@@ -419,7 +420,7 @@ func ocpDistributionInfoUpdated(old, new *clusterv1beta1.OCPDistributionInfo) bo
 func (r *ClusterInfoReconciler) RefreshAgentServer(clusterInfo *clusterv1beta1.ManagedClusterInfo) {
 	select {
 	case r.Agent.RunServer <- *clusterInfo:
-		log.Info("Signal agent server to start")
+		klog.Info("Signal agent server to start")
 	default:
 	}
 
