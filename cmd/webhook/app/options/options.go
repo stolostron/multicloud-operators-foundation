@@ -12,21 +12,23 @@ import (
 
 // Config contains the server (the webhook) cert and key.
 type Options struct {
-	CertFile       string
-	KeyFile        string
-	KubeConfigFile string
-	QPS            float32
-	Burst          int
+	CertFile              string
+	KeyFile               string
+	KubeConfigFile        string
+	QPS                   float32
+	Burst                 int
+	SkipOverwriteUserList []string
 }
 
 // NewOptions constructs a new set of default options for webhook.
 func NewOptions() *Options {
 	return &Options{
-		KubeConfigFile: "",
-		CertFile:       "",
-		KeyFile:        "",
-		QPS:            100.0,
-		Burst:          200,
+		KubeConfigFile:        "",
+		CertFile:              "",
+		KeyFile:               "",
+		QPS:                   100.0,
+		Burst:                 200,
+		SkipOverwriteUserList: []string{"system:serviceaccount:open-cluster-management-agent-addon:klusterlet-addon-appmgr"},
 	}
 }
 
@@ -42,6 +44,8 @@ func (c *Options) AddFlags(fs *pflag.FlagSet) {
 		"Maximum QPS to the hub server from this webhook.")
 	fs.IntVar(&c.Burst, "max-burst", c.Burst,
 		"Maximum burst for throttle.")
+	fs.StringSliceVar(&c.SkipOverwriteUserList, "skip-overwrite-user-list", c.SkipOverwriteUserList,
+		"List of users to skip overwriting of user identity annotations.")
 }
 
 type certificateCacheEntry struct {

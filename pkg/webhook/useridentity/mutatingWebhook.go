@@ -5,19 +5,22 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"net/http"
+
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/mattbaird/jsonpatch"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
-	"k8s.io/api/admission/v1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	v1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/klog/v2"
 )
 
 type AdmissionHandler struct {
-	Lister rbaclisters.RoleBindingLister
+	Lister                rbaclisters.RoleBindingLister
+	SkipOverwriteUserList []string
 }
 
 // toAdmissionResponse is a helper function to create an AdmissionResponse
@@ -83,7 +86,8 @@ func (a *AdmissionHandler) serve(w io.Writer, r *http.Request, admit admitFunc) 
 }
 
 func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionResponse {
-	klog.V(2).Info("mutating custom resource")
+	klog.V(4).Info("mutating custom resource")
+
 	obj := unstructured.Unstructured{}
 	err := obj.UnmarshalJSON(ar.Request.Object.Raw)
 	if err != nil {
@@ -92,6 +96,14 @@ func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionRe
 	}
 
 	annotations := obj.GetAnnotations()
+
+	if utils.ContainsString(a.SkipOverwriteUserList, ar.Request.UserInfo.Username) {
+		klog.V(4).Infof("Skip add user and group for resource: %+v, name: %+v", ar.Request.Resource.Resource, obj.GetName())
+		reviewResponse := v1.AdmissionResponse{}
+		reviewResponse.Allowed = true
+		return &reviewResponse
+	}
+
 	resAnnotations := MergeUserIdentityToAnnotations(ar.Request.UserInfo, annotations, obj.GetNamespace(), a.Lister)
 	obj.SetAnnotations(resAnnotations)
 

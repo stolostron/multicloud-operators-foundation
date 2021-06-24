@@ -37,7 +37,8 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 	informer := informerFactory.Rbac().V1().RoleBindings()
 
 	mutatingAh := &useridentity.AdmissionHandler{
-		Lister: informer.Lister(),
+		Lister:                informer.Lister(),
+		SkipOverwriteUserList: opts.SkipOverwriteUserList,
 	}
 
 	validatingAh := &clusterset.AdmissionHandler{
