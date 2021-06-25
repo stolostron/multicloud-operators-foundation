@@ -4,8 +4,9 @@ package app
 
 import (
 	"context"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/certrotation"
 	"time"
+
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/certrotation"
 
 	clusterv1client "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterv1informers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
@@ -19,6 +20,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterinfo"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrole"
+
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clusterclaim"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clusterdeployment"
 	clustersetmapper "github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
@@ -176,6 +178,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		klog.Errorf("unable to setup cert rotation reconciler: %v", err)
 		return err
 	}
+	cleanGarbageFinalizer := gc.NewCleanGarbageFinalizer(kubeClient)
 
 	go func() {
 		<-mgr.Elected()
@@ -186,6 +189,8 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		go clusterSetAdminCache.Run(5 * time.Second)
 		go clusterrolebindingSync.Run(5 * time.Second)
 		go rolebindingSync.Run(5 * time.Second)
+
+		go cleanGarbageFinalizer.Run(ctx.Done())
 	}()
 
 	// Start manager

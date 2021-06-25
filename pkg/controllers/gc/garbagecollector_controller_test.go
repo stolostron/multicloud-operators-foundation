@@ -8,6 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	rbacv1 "k8s.io/api/rbac/v1"
+	k8sfake "k8s.io/client-go/kubernetes/fake"
+
 	"github.com/onsi/gomega"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 	"github.com/stretchr/testify/assert"
@@ -223,5 +227,43 @@ func TestReconcile(t *testing.T) {
 			validateError(t, err, test.expectedErrorType)
 			assert.Equal(t, res.Requeue, false)
 		})
+	}
+}
+
+var objs = []runtime.Object{
+	&rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "clusterrole1",
+			Finalizers: []string{
+				ClustersetFinalizerName,
+			},
+		},
+		Rules: nil,
+	},
+	&rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "clusterrole2",
+			Finalizers: []string{
+				ClustersetFinalizerName,
+			},
+		},
+		Rules: nil,
+	},
+}
+
+func TestClean(t *testing.T) {
+	kubeClient := k8sfake.NewSimpleClientset(objs...)
+	ctx := context.Background()
+	gf := NewCleanGarbageFinalizer(kubeClient)
+	gf.clean()
+	clusterrole1, err := kubeClient.RbacV1().ClusterRoles().Get(ctx, "clusterrole1", metav1.GetOptions{})
+	validateError(t, err, nil)
+	if utils.ContainsString(clusterrole1.GetFinalizers(), ClustersetFinalizerName) {
+		t.Errorf("Finalizer is not removed, clusterrole: %v", clusterrole1)
+	}
+	clusterrole2, err := kubeClient.RbacV1().ClusterRoles().Get(ctx, "clusterrole1", metav1.GetOptions{})
+	validateError(t, err, nil)
+	if utils.ContainsString(clusterrole2.GetFinalizers(), ClustersetFinalizerName) {
+		t.Errorf("Finalizer is not removed")
 	}
 }
