@@ -5,8 +5,13 @@ import (
 	"time"
 
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/meta"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	utilwait "k8s.io/apimachinery/pkg/util/wait"
+
+	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -23,7 +28,8 @@ type Reconciler struct {
 }
 
 const (
-	gcTimeout = 60 * time.Second
+	gcTimeout                      = 60 * time.Second
+	ClustersetFinalizerName string = "open-cluster-management.io/clusterset"
 )
 
 func SetupWithManager(mgr manager.Manager) error {
@@ -80,4 +86,45 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	return ctrl.Result{RequeueAfter: gcTimeout}, nil
+}
+
+// In 2.2.X, we add the finalier for some clusterrole(have admin permission to clusterset)
+// In 2.3, the finalizer is not needed, so we need to clean these finalizers to handle upgrade case.
+type CleanGarbageFinalizer struct {
+	kubeClient kubernetes.Interface
+}
+
+func NewCleanGarbageFinalizer(kubeClient kubernetes.Interface) *CleanGarbageFinalizer {
+	return &CleanGarbageFinalizer{
+		kubeClient: kubeClient,
+	}
+}
+
+// start a routine to sync the clusterrolebinding periodically.
+func (c *CleanGarbageFinalizer) Run(stopCh <-chan struct{}) {
+	utilwait.PollImmediateUntil(60*time.Second, c.clean, stopCh)
+}
+
+func (c *CleanGarbageFinalizer) clean() (bool, error) {
+	clusterRolebindingList, err := c.kubeClient.RbacV1().ClusterRoles().List(context.Background(), v1.ListOptions{})
+	if err != nil {
+		return false, nil
+	}
+	allFinalizerRmoved := true
+	for _, clusterrole := range clusterRolebindingList.Items {
+		if !utils.ContainsString(clusterrole.GetFinalizers(), ClustersetFinalizerName) {
+			continue
+		}
+
+		klog.V(4).Infof("removing ClusterRoleBinding Finalizer in ClusterRole %v", clusterrole.Name)
+		clusterrole.ObjectMeta.Finalizers = utils.RemoveString(clusterrole.ObjectMeta.Finalizers, ClustersetFinalizerName)
+		_, err = c.kubeClient.RbacV1().ClusterRoles().Update(context.Background(), &clusterrole, v1.UpdateOptions{})
+		if err != nil {
+			allFinalizerRmoved = false
+		}
+	}
+	if allFinalizerRmoved {
+		return true, nil
+	}
+	return false, nil
 }
