@@ -1,24 +1,24 @@
 kind: Deployment
 apiVersion: apps/v1
 metadata:
-  name: foundation-proxyserver
+  name: ocm-proxyserver
   namespace: open-cluster-management
   labels:
-    app: foundation-proxyserver
+    app: ocm-proxyserver
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: foundation-proxyserver
+      app: ocm-proxyserver
   template:
     metadata:
       labels:
-        app: foundation-proxyserver
+        app: ocm-proxyserver
     spec:
       serviceAccountName: foundation-hub-sa
       containers:
-      - name: foundation-proxyserver
-        image: foundation-proxyserver
+      - name: ocm-proxyserver
+        image: ocm-proxyserver
         imagePullPolicy: IfNotPresent
         args:
           - "/proxyserver"
@@ -54,4 +54,4 @@ spec:
       - name: apiservice-certs
         secret:
           defaultMode: 420
-          secretName: foundation-proxyserver
+          secretName: ocm-proxyserver

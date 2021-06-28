@@ -93,7 +93,7 @@ var _ = ginkgo.Describe("Testing ClusterClaim", func() {
 	ginkgo.It("should sync the label to claim", func() {
 		var err error
 		// add label to managedCluster
-		err = util.UpdateManagedClusterLabels(clusterClient, managedClusterName, map[string]string{"test": "test"})
+		err = util.UpdateManagedClusterLabels(clusterClient, defaultManagedCluster, map[string]string{"test": "test"})
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 		// should get the claim synced from label
@@ -104,7 +104,7 @@ var _ = ginkgo.Describe("Testing ClusterClaim", func() {
 
 		// delete label from managedCluster
 		err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-			cluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), managedClusterName, v1.GetOptions{})
+			cluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), defaultManagedCluster, v1.GetOptions{})
 			if err != nil {
 				return err
 			}

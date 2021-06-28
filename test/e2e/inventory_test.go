@@ -3,6 +3,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"github.com/openshift/hive/apis/hive/v1/aws"
 	"time"
 
 	"github.com/onsi/ginkgo"
@@ -48,7 +49,14 @@ var _ = ginkgo.Describe("Testing BareMetalAsset", func() {
 			Spec: hivev1.ClusterDeploymentSpec{
 				BaseDomain:  "hive.example.com",
 				ClusterName: testName,
-				Platform:    hivev1.Platform{},
+				Platform: hivev1.Platform{
+					AWS: &aws.Platform{
+						CredentialsSecretRef: corev1.LocalObjectReference{
+							Name: "aws-clusterpool-aws-creds",
+						},
+						Region: "us-east",
+					},
+				},
 				Provisioning: &hivev1.Provisioning{
 					InstallConfigSecretRef: &corev1.LocalObjectReference{
 						Name: "secret-ref",
@@ -182,13 +190,18 @@ var _ = ginkgo.Describe("Testing BareMetalAsset", func() {
 		})
 
 		ginkgo.It("delete clusterdeployment should clean ref in bma", func() {
-			gomega.Eventually(func() (interface{}, error) {
+			gomega.Eventually(func() error {
 				cd, err := hiveClient.HiveV1().ClusterDeployments(testNamespace).Get(context.Background(), testName, metav1.GetOptions{})
 				if err != nil {
-					return []string{}, err
+					return err
 				}
-				return cd.Finalizers, nil
-			}, 60*time.Second, 1*time.Second).Should(gomega.Equal([]string{"baremetalasset.inventory.open-cluster-management.io"}))
+				for _, finalizer := range cd.Finalizers {
+					if finalizer == "baremetalasset.inventory.open-cluster-management.io" {
+						return nil
+					}
+				}
+				return fmt.Errorf("there is no finalizer baremetalasset.inventory.open-cluster-management.io")
+			}, 60*time.Second, 1*time.Second).ShouldNot(gomega.HaveOccurred())
 
 			gomega.Eventually(func() bool {
 				bma, err := util.GetResource(dynamicClient, bmaGVR, testNamespace, testName)

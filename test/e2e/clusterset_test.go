@@ -2,6 +2,8 @@ package e2e
 
 import (
 	"context"
+	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
+	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -23,89 +25,121 @@ var updatedSubjectView = rbacv1.Subject{
 }
 
 var (
-	adminRoleBindingName        string
-	viewRoleBindingName         string
-	adminClusterroleBindingName string
-	viewClusterroleBindingName  string
-	clusterDeploymentNamespace  string
+	adminUser1               = "admin1"
+	viewUser1                = "view1"
+	clusterRoleBindingAdmin1 = "clusterSetRoleBindingAdmin1"
+	clusterRoleBindingView1  = "clusterSetRoleBindingView1"
 )
 
 var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
+	var (
+		managedCluster              string
+		managedClusterSet           string
+		adminClusterSetRole         string
+		viewClusterSetRole          string
+		adminRoleBindingName        string
+		viewRoleBindingName         string
+		adminClusterRoleBindingName string
+		viewClusterRoleBindingName  string
+		err                         error
+	)
 
-	ginkgo.Context("Clusterset admin/view clusterrole auto create/delete.", func() {
-		ginkgo.It("Clusterset admin/view clusterrole auto create/delete successfully", func() {
-			clusterset, err := clusterClient.ClusterV1alpha1().ManagedClusterSets().Create(context.Background(), util.ManagedClusterSetRandomTemplate, metav1.CreateOptions{})
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	ginkgo.BeforeEach(func() {
+		managedCluster = util.RandomName()
+		managedClusterSet = util.RandomName()
+		adminClusterSetRole = utils.GenerateClustersetClusterroleName(managedClusterSet, "admin")
+		viewClusterSetRole = utils.GenerateClustersetClusterroleName(managedClusterSet, "view")
+		adminRoleBindingName = utils.GenerateClustersetResourceRoleBindingName("admin")
+		viewRoleBindingName = utils.GenerateClustersetResourceRoleBindingName("view")
+		adminClusterRoleBindingName = utils.GenerateClustersetClusterRoleBindingName(managedCluster, "admin")
+		viewClusterRoleBindingName = utils.GenerateClustersetClusterRoleBindingName(managedCluster, "view")
+
+		err = util.ImportManagedCluster(clusterClient, managedCluster)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.CreateManagedClusterSet(clusterClient, managedClusterSet)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		// set managedClusterSet for managedCluster
+		clusterSetLabel := map[string]string{
+			clustersetutils.ClusterSetLabel: managedClusterSet,
+		}
+		err = util.UpdateManagedClusterLabels(clusterClient, managedCluster, clusterSetLabel)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+		err = util.CreateClusterRoleBindingForUser(kubeClient, clusterRoleBindingAdmin1, adminClusterSetRole, adminUser1)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+		err = util.CreateClusterRoleBindingForUser(kubeClient, clusterRoleBindingView1, viewClusterSetRole, viewUser1)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.AfterEach(func() {
+		err = util.DeleteManagedClusterSet(clusterClient, managedClusterSet)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.CleanManagedCluster(clusterClient, managedCluster)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.DeleteClusterRoleBinding(kubeClient, clusterRoleBindingAdmin1)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		err = util.DeleteClusterRoleBinding(kubeClient, clusterRoleBindingView1)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.Context("managedClusterSet admin/view clusterRole should be created/deleted automatically.", func() {
+		ginkgo.It("managedClusterSet admin/view clusterRole should be created/deleted automatically", func() {
+			ginkgo.By("managedClusterSet admin clusterRole should be created")
 			gomega.Eventually(func() error {
-				//clusterset admin clusterrole should be auto created
-				adminClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "admin")
-				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClustersetRole, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
+				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterSetRole, metav1.GetOptions{})
+				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
+			ginkgo.By("managedClusterSet view clusterRole should be created")
 			gomega.Eventually(func() error {
-				//clusterset view clusterrole should be auto created
-				viewClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "admin")
-				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClustersetRole, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
+				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClusterSetRole, metav1.GetOptions{})
+				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-			//delete clusterset
-			err = clusterClient.ClusterV1alpha1().ManagedClusterSets().Delete(context.Background(), clusterset.Name, metav1.DeleteOptions{})
+			ginkgo.By("should delete the managedClusterSet")
+			err = util.DeleteManagedClusterSet(clusterClient, managedClusterSet)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
+			ginkgo.By("managedClusterSet admin clusterRole should be deleted")
 			gomega.Eventually(func() error {
-				//clusterset admin clusterrole should be auto created
-				adminClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "admin")
-				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClustersetRole, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
+				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterSetRole, metav1.GetOptions{})
+				return err
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
 
+			ginkgo.By("managedClusterSet view clusterRole should be deleted")
 			gomega.Eventually(func() error {
-				//clusterset view clusterrole should be auto created
-				viewClustersetRole := utils.GenerateClustersetClusterroleName(clusterset.GetName(), "admin")
-				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClustersetRole, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
+				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClusterSetRole, metav1.GetOptions{})
+				return err
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
 		})
 	})
 
-	ginkgo.Context("Managedcluster Clusterrolebinding auto create/update.", func() {
-		ginkgo.It("clusterrolebinding should be auto updated successfully", func() {
+	ginkgo.Context("managedCluster clusterRoleBinding should be created/updated automatically.", func() {
+		ginkgo.It("managedCluster clusterRoleBinding should be updated successfully", func() {
+			ginkgo.By("clusterSet admin clusterRoleBinding should be auto created")
 			gomega.Eventually(func() error {
-				//clusterset admin clusterrolebinding should be auto created
-				adminClusterroleBindingName = utils.GenerateClustersetClusterRoleBindingName(managedClusterName, "admin")
-				_, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), adminClusterroleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
+				_, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), adminClusterRoleBindingName, metav1.GetOptions{})
+				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-			//update clusterset admin clusterrolebinding subject, and generated clusterrolebinding will be auto updated
-			updateAdminClusterrolebinding := util.ClusterRoleBindingAdminTemplate.DeepCopy()
-			updatedAdminSubject := append(updateAdminClusterrolebinding.Subjects, updatedSubjectAdmin)
-			updateAdminClusterrolebinding.Subjects = updatedAdminSubject
+			ginkgo.By("update clusterSet admin clusterRoleBinding subject")
+			updateAdminClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.TODO(), clusterRoleBindingAdmin1, metav1.GetOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			updatedAdminSubject := append(updateAdminClusterRoleBinding.Subjects, updatedSubjectAdmin)
+			updateAdminClusterRoleBinding.Subjects = updatedAdminSubject
 
-			_, err := kubeClient.RbacV1().ClusterRoleBindings().Update(context.Background(), updateAdminClusterrolebinding, metav1.UpdateOptions{})
+			_, err = kubeClient.RbacV1().ClusterRoleBindings().Update(context.Background(), updateAdminClusterRoleBinding, metav1.UpdateOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
+			ginkgo.By("clusterSet admin clusterRoleBinding should be updated")
 			gomega.Eventually(func() bool {
-				generatedClusterrolebinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), adminClusterroleBindingName, metav1.GetOptions{})
+				generatedClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), adminClusterRoleBindingName, metav1.GetOptions{})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				for _, subject := range generatedClusterrolebinding.Subjects {
+				for _, subject := range generatedClusterRoleBinding.Subjects {
 					if subject.Kind == updatedSubjectAdmin.Kind &&
 						subject.Name == updatedSubjectAdmin.Name {
 						return true
@@ -114,29 +148,26 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				return false
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 
-			//Check view clusterrolebinding auto generated
+			ginkgo.By("clusterSet view clusterRoleBinding should be created automatically")
 			gomega.Eventually(func() error {
-				//clusterset view clusterrolebinding should be auto created
-				viewClusterroleBindingName = utils.GenerateClustersetClusterRoleBindingName(managedClusterName, "view")
-				_, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), viewClusterroleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
+				_, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), viewClusterRoleBindingName, metav1.GetOptions{})
+				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-			//update clusterset view clusterrolebinding subject, and generated clusterrolebinding will be auto updated
-			updateClusterrolebinding := util.ClusterRoleBindingViewTemplate.DeepCopy()
-			updatedSubject := append(updateClusterrolebinding.Subjects, updatedSubjectView)
-			updateClusterrolebinding.Subjects = updatedSubject
+			ginkgo.By("update clusterSet view clusterRoleBinding subject")
+			updateClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.TODO(), clusterRoleBindingView1, metav1.GetOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			updatedSubject := append(updateClusterRoleBinding.Subjects, updatedSubjectView)
+			updateClusterRoleBinding.Subjects = updatedSubject
 
-			_, err = kubeClient.RbacV1().ClusterRoleBindings().Update(context.Background(), updateClusterrolebinding, metav1.UpdateOptions{})
+			_, err = kubeClient.RbacV1().ClusterRoleBindings().Update(context.Background(), updateClusterRoleBinding, metav1.UpdateOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
+			ginkgo.By("clusterSet view clusterRoleBinding should be updated")
 			gomega.Eventually(func() bool {
-				generatedClusterrolebinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), viewClusterroleBindingName, metav1.GetOptions{})
+				generatedClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), viewClusterRoleBindingName, metav1.GetOptions{})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				for _, subject := range generatedClusterrolebinding.Subjects {
+				for _, subject := range generatedClusterRoleBinding.Subjects {
 					if subject.Kind == updatedSubjectView.Kind &&
 						subject.Name == updatedSubjectView.Name {
 						return true
@@ -146,25 +177,30 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 
 		})
-
 	})
 
-	ginkgo.Context("ManagedCluster namespace rolebinding auto create/update.", func() {
-		ginkgo.It("ManagedCluster namespace rolebinding should be auto created successfully", func() {
-			//Make sure clusterset admin rolebinding generated.
+	ginkgo.Context("managedCluster namespace roleBinding should be created/updated automatically.", func() {
+		ginkgo.It("managedCluster namespace roleBinding should be auto created successfully", func() {
+			ginkgo.By("clusterSet admin roleBinding should be created")
 			gomega.Eventually(func() error {
-				adminRoleBindingName = utils.GenerateClustersetResourceRoleBindingName("admin")
-				_, err := kubeClient.RbacV1().RoleBindings(managedClusterName).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
+				_, err = kubeClient.RbacV1().RoleBindings(managedCluster).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
+				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
+			ginkgo.By("update clusterSet admin clusterRoleBinding subject")
+			updateAdminClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.TODO(), clusterRoleBindingAdmin1, metav1.GetOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			updatedAdminSubject := append(updateAdminClusterRoleBinding.Subjects, updatedSubjectAdmin)
+			updateAdminClusterRoleBinding.Subjects = updatedAdminSubject
+
+			_, err = kubeClient.RbacV1().ClusterRoleBindings().Update(context.Background(), updateAdminClusterRoleBinding, metav1.UpdateOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("clusterSet admin roleBinding should be updated")
 			gomega.Eventually(func() bool {
-				generatedRolebinding, err := kubeClient.RbacV1().RoleBindings(managedClusterName).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
+				generatedRoleBinding, err := kubeClient.RbacV1().RoleBindings(managedCluster).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				for _, subject := range generatedRolebinding.Subjects {
+				for _, subject := range generatedRoleBinding.Subjects {
 					if subject.Kind == updatedSubjectAdmin.Kind &&
 						subject.Name == updatedSubjectAdmin.Name {
 						return true
@@ -173,20 +209,26 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				return false
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 
-			//Make sure clusterset view rolebinding generated.
+			ginkgo.By("clusterSet view roleBinding should be created")
 			gomega.Eventually(func() error {
-				viewRoleBindingName = utils.GenerateClustersetResourceRoleBindingName("view")
-				_, err := kubeClient.RbacV1().RoleBindings(managedClusterName).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
+				_, err := kubeClient.RbacV1().RoleBindings(managedCluster).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
+				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
+			ginkgo.By("update clusterSet view clusterRoleBinding subject")
+			updateClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.TODO(), clusterRoleBindingView1, metav1.GetOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			updatedSubject := append(updateClusterRoleBinding.Subjects, updatedSubjectView)
+			updateClusterRoleBinding.Subjects = updatedSubject
+
+			_, err = kubeClient.RbacV1().ClusterRoleBindings().Update(context.Background(), updateClusterRoleBinding, metav1.UpdateOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("clusterSet view roleBinding should be updated")
 			gomega.Eventually(func() bool {
-				generatedRolebinding, err := kubeClient.RbacV1().RoleBindings(managedClusterName).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
+				generatedRoleBinding, err := kubeClient.RbacV1().RoleBindings(managedCluster).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
 				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				for _, subject := range generatedRolebinding.Subjects {
+				for _, subject := range generatedRoleBinding.Subjects {
 					if subject.Kind == updatedSubjectView.Kind &&
 						subject.Name == updatedSubjectView.Name {
 						return true
@@ -197,204 +239,250 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 		})
 	})
 
-	ginkgo.Context("ClusterClaim and clusterdeployment auto add to ManagedClusterset.", func() {
-		ginkgo.It("ClusterClaim and clusterdeployment auto add to ManagedClusterset.", func() {
-			//create clusterpool in clusterset
-			clusterpool, err := hiveClient.HiveV1().ClusterPools(util.ClusterpoolTemplate.Namespace).Create(context.Background(), util.ClusterpoolTemplate, metav1.CreateOptions{})
+	ginkgo.Context("clusterClaim and clusterDeployment should be added into managedClusterSet automatically.", func() {
+		var (
+			clusterPoolNamespace       = util.RandomName()
+			clusterDeploymentNamespace = util.RandomName()
+			clusterPool                = util.RandomName()
+			clusterClaim               = util.RandomName()
+			clusterDeployment          = util.RandomName()
+		)
+		ginkgo.BeforeEach(func() {
+			err = util.CreateNamespace(clusterPoolNamespace)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			//create clustetcalim with clusterpool ref
-			clusterclaim, err := hiveClient.HiveV1().ClusterClaims(util.ClusterclaimTemplate.Namespace).Create(context.Background(), util.ClusterclaimTemplate, metav1.CreateOptions{})
+			err = util.CreateNamespace(clusterDeploymentNamespace)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			// create a namespace for testing
-			ns, err := kubeClient.CoreV1().Namespaces().Create(context.Background(), util.NamespaceRandomTemplate, metav1.CreateOptions{})
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-			clusterDeploymentNamespace = ns.Name
-
-			//create clusterdeployment with clusterpool ref
-			clusterdeployment, err := hiveClient.HiveV1().ClusterDeployments(clusterDeploymentNamespace).Create(context.Background(), util.ClusterdeploymentTemplate, metav1.CreateOptions{})
+			clusterSetLabel := map[string]string{"cluster.open-cluster-management.io/clusterset": managedClusterSet}
+			err = util.CreateClusterPool(hiveClient, clusterPool, clusterPoolNamespace, clusterSetLabel)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			//Make sure clusterset admin rolebinding in clusterpool namespace generated.
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().RoleBindings(clusterpool.Namespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+			err = util.CreateClusterClaim(hiveClient, clusterClaim, clusterPoolNamespace, clusterPool)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			//Make sure clusterset view rolebinding in clusterpool namespace generated.
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().RoleBindings(clusterpool.Namespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-
-			//Make sure clusterset admin rolebinding in clusterdeployment namespace generated.
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().RoleBindings(clusterdeployment.Namespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-
-			//Make sure clusterset view rolebinding in clusterdeployment namespace generated.
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().RoleBindings(clusterdeployment.Namespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-
-			gomega.Eventually(func() bool {
-				generatedRolebinding, err := kubeClient.RbacV1().RoleBindings(clusterdeployment.Namespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				for _, subject := range generatedRolebinding.Subjects {
-					if subject.Kind == updatedSubjectAdmin.Kind &&
-						subject.Name == updatedSubjectAdmin.Name {
-						return true
-					}
-				}
-				return false
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
-
-			gomega.Eventually(func() bool {
-				generatedRolebinding, err := kubeClient.RbacV1().RoleBindings(clusterdeployment.Namespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-				for _, subject := range generatedRolebinding.Subjects {
-					if subject.Kind == updatedSubjectView.Kind &&
-						subject.Name == updatedSubjectView.Name {
-						return true
-					}
-				}
-				return false
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
-
-			//cliam the clusterdeployment and remove from set
-			gomega.Eventually(func() error {
-				clusterdeployment, err = hiveClient.HiveV1().ClusterDeployments(clusterdeployment.Namespace).Get(context.Background(), clusterdeployment.Name, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				clusterdeployment.Spec.ClusterPoolRef.ClaimName = "clusterclaim1"
-				clusterdeployment.Labels = map[string]string{}
-				clusterdeployment, err = hiveClient.HiveV1().ClusterDeployments(clusterdeployment.Namespace).Update(context.Background(), clusterdeployment, metav1.UpdateOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-
-			//clusterset admin/view rolebinding is removed from clusterdeployment namespace
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().RoleBindings(clusterdeployment.Namespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
-
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().RoleBindings(clusterdeployment.Namespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
-
-			//clusterset admin/view rolebinding should not be removed from clusterclaim namespace, because clusterpool(ns is same as claim) still in this set
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().RoleBindings(clusterclaim.Namespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().RoleBindings(clusterclaim.Namespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+			err = util.CreateClusterDeployment(hiveClient, clusterDeployment, clusterDeploymentNamespace, clusterPool, clusterPoolNamespace)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		})
-	})
-
-	ginkgo.Context("Delete ManagedClusterset, managedcluster clusterrolebinding and namespace rolebinding should be auto deleted successfully", func() {
-		ginkgo.It("Delete ManagedClusterset, managedcluster clusterrolebinding and namespace rolebinding should be auto deleted successfully", func() {
-			//Delete clusterset, clusterrolebinding should be auto deleted
-			err := clusterClient.ClusterV1alpha1().ManagedClusterSets().Delete(context.Background(), managedClusterSetName, metav1.DeleteOptions{})
+		ginkgo.AfterEach(func() {
+			err = hiveClient.HiveV1().ClusterDeployments(clusterDeploymentNamespace).Delete(context.TODO(), clusterDeployment, metav1.DeleteOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			//managedcluster cluster rolebinding deleted
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), adminClusterroleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), viewClusterroleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+			err = hiveClient.HiveV1().ClusterClaims(clusterPoolNamespace).Delete(context.TODO(), clusterClaim, metav1.DeleteOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			//managedcluster namespace rolebinding deleted
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().RoleBindings(managedClusterName).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().RoleBindings(managedClusterName).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+			err = hiveClient.HiveV1().ClusterPools(clusterPoolNamespace).Delete(context.TODO(), clusterPool, metav1.DeleteOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			//clusterpool namespace rolebinding deleted
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().RoleBindings(util.ClusterpoolTemplate.Namespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().RoleBindings(util.ClusterpoolTemplate.Namespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+			err = util.DeleteNamespace(clusterDeploymentNamespace)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			//clusterdeployment namespace rolebinding deleted
+			err = util.DeleteNamespace(clusterPoolNamespace)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		})
+		ginkgo.It("clusterClaim and clusterDeployment should be added into managedClusterSet automatically.", func() {
+			ginkgo.By("clusterSet admin roleBinding in clusterPool namespace is created")
+			gomega.Eventually(func() error {
+				_, err = kubeClient.RbacV1().RoleBindings(clusterPoolNamespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("clusterSet view roleBinding in clusterPool namespace is created")
+			gomega.Eventually(func() error {
+				_, err = kubeClient.RbacV1().RoleBindings(clusterPoolNamespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("clusterSet admin roleBinding in clusterDeployment namespace is created")
 			gomega.Eventually(func() error {
 				_, err := kubeClient.RbacV1().RoleBindings(clusterDeploymentNamespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("clusterSet view roleBinding in clusterDeployment namespace is created")
 			gomega.Eventually(func() error {
 				_, err := kubeClient.RbacV1().RoleBindings(clusterDeploymentNamespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("update clusterSet admin clusterRoleBinding subject")
+			updateAdminClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.TODO(), clusterRoleBindingAdmin1, metav1.GetOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			updatedAdminSubject := append(updateAdminClusterRoleBinding.Subjects, updatedSubjectAdmin)
+			updateAdminClusterRoleBinding.Subjects = updatedAdminSubject
+
+			_, err = kubeClient.RbacV1().ClusterRoleBindings().Update(context.Background(), updateAdminClusterRoleBinding, metav1.UpdateOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("clusterSet admin roleBinding should be updated")
+			gomega.Eventually(func() bool {
+				generatedRoleBinding, err := kubeClient.RbacV1().RoleBindings(clusterDeploymentNamespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				for _, subject := range generatedRoleBinding.Subjects {
+					if subject.Kind == updatedSubjectAdmin.Kind &&
+						subject.Name == updatedSubjectAdmin.Name {
+						return true
+					}
+				}
+				return false
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			ginkgo.By("update clusterSet view clusterRoleBinding subject")
+			updateClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.TODO(), clusterRoleBindingView1, metav1.GetOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			updatedSubject := append(updateClusterRoleBinding.Subjects, updatedSubjectView)
+			updateClusterRoleBinding.Subjects = updatedSubject
+
+			_, err = kubeClient.RbacV1().ClusterRoleBindings().Update(context.Background(), updateClusterRoleBinding, metav1.UpdateOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("clusterSet view roleBinding should be updated")
+			gomega.Eventually(func() bool {
+				generatedRoleBinding, err := kubeClient.RbacV1().RoleBindings(clusterDeploymentNamespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				for _, subject := range generatedRoleBinding.Subjects {
+					if subject.Kind == updatedSubjectView.Kind &&
+						subject.Name == updatedSubjectView.Name {
+						return true
+					}
+				}
+				return false
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			ginkgo.By("Claim clusterDeployment")
+			gomega.Eventually(func() error {
+				oldClusterDeployment, err := hiveClient.HiveV1().ClusterDeployments(clusterDeploymentNamespace).Get(context.Background(), clusterDeployment, metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				oldClusterDeployment.Spec.ClusterPoolRef.ClaimName = clusterClaim
+				oldClusterDeployment.Labels = map[string]string{}
+				_, err = hiveClient.HiveV1().ClusterDeployments(clusterDeploymentNamespace).Update(context.Background(), oldClusterDeployment, metav1.UpdateOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("clusterSet admin roleBinding is removed from clusterDeployment namespace")
+			gomega.Eventually(func() bool {
+				_, err := kubeClient.RbacV1().RoleBindings(clusterDeploymentNamespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
+				return errors.IsNotFound(err)
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			ginkgo.By("clusterSet view roleBinding is removed from clusterDeployment namespace")
+			gomega.Eventually(func() bool {
+				_, err := kubeClient.RbacV1().RoleBindings(clusterDeploymentNamespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
+				return errors.IsNotFound(err)
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			ginkgo.By("clusterSet admin roleBinding should not be removed from clusterClaim namespace")
+			gomega.Eventually(func() error {
+				_, err := kubeClient.RbacV1().RoleBindings(clusterPoolNamespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("clusterSet view roleBinding should not be removed from clusterClaim namespace")
+			gomega.Eventually(func() error {
+				_, err := kubeClient.RbacV1().RoleBindings(clusterPoolNamespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}
 				return nil
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		})
+	})
+
+	ginkgo.Context("managedCluster clusterRoleBinding and namespace roleBinding should be deleted successfully after managedClusterSet is deleted", func() {
+		var (
+			clusterPoolNamespace       = util.RandomName()
+			clusterDeploymentNamespace = util.RandomName()
+			clusterPool                = util.RandomName()
+			clusterClaim               = util.RandomName()
+			clusterDeployment          = util.RandomName()
+		)
+		ginkgo.BeforeEach(func() {
+			err = util.CreateNamespace(clusterPoolNamespace)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			err = util.CreateNamespace(clusterDeploymentNamespace)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			clusterSetLabel := map[string]string{"cluster.open-cluster-management.io/clusterset": managedClusterSet}
+			err = util.CreateClusterPool(hiveClient, clusterPool, clusterPoolNamespace, clusterSetLabel)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			err = util.CreateClusterClaim(hiveClient, clusterClaim, clusterPoolNamespace, clusterPool)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			err = util.CreateClusterDeployment(hiveClient, clusterDeployment, clusterDeploymentNamespace, clusterPool, clusterPoolNamespace)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		})
+		ginkgo.AfterEach(func() {
+			err = hiveClient.HiveV1().ClusterDeployments(clusterDeploymentNamespace).Delete(context.TODO(), clusterDeployment, metav1.DeleteOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			err = hiveClient.HiveV1().ClusterClaims(clusterPoolNamespace).Delete(context.TODO(), clusterClaim, metav1.DeleteOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			err = hiveClient.HiveV1().ClusterPools(clusterPoolNamespace).Delete(context.TODO(), clusterPool, metav1.DeleteOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			err = util.DeleteNamespace(clusterDeploymentNamespace)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			err = util.DeleteNamespace(clusterPoolNamespace)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		})
+
+		ginkgo.It("managedCluster clusterRoleBinding and namespace roleBinding should be deleted successfully after managedClusterSet is deleted", func() {
+			ginkgo.By("delete managedClusterSet")
+			err = clusterClient.ClusterV1alpha1().ManagedClusterSets().Delete(context.Background(), managedClusterSet, metav1.DeleteOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("managedCluster admin clusterRoleBinding should be deleted")
+			gomega.Eventually(func() bool {
+				_, err = kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), adminClusterRoleBindingName, metav1.GetOptions{})
+				return errors.IsNotFound(err)
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			ginkgo.By("managedCluster view clusterRoleBinding should be deleted")
+			gomega.Eventually(func() bool {
+				_, err = kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), viewClusterRoleBindingName, metav1.GetOptions{})
+				return errors.IsNotFound(err)
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			ginkgo.By("managedCluster namespace admin roleBinding should be deleted")
+			gomega.Eventually(func() bool {
+				_, err = kubeClient.RbacV1().RoleBindings(managedCluster).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
+				return errors.IsNotFound(err)
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			ginkgo.By("managedCluster namespace view roleBinding should be deleted")
+			gomega.Eventually(func() bool {
+				_, err = kubeClient.RbacV1().RoleBindings(managedCluster).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
+				return errors.IsNotFound(err)
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			ginkgo.By("clusterPool namespace admin roleBinding should be deleted")
+			gomega.Eventually(func() error {
+				_, err = kubeClient.RbacV1().RoleBindings(clusterPoolNamespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+
+			ginkgo.By("clusterPool namespace view roleBinding should be deleted")
+			gomega.Eventually(func() error {
+				_, err = kubeClient.RbacV1().RoleBindings(clusterPoolNamespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+
+			ginkgo.By("clusterDeployment namespace admin roleBinding should be deleted")
+			gomega.Eventually(func() error {
+				_, err = kubeClient.RbacV1().RoleBindings(clusterDeploymentNamespace).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+
+			ginkgo.By("clusterDeployment namespace view roleBinding should be deleted")
+			gomega.Eventually(func() error {
+				_, err = kubeClient.RbacV1().RoleBindings(clusterDeploymentNamespace).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
+				return err
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
 		})
 	})

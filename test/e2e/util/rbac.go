@@ -78,3 +78,25 @@ func DeleteClusterRole(kubeClient kubernetes.Interface, name string) error {
 	}
 	return err
 }
+
+func CreateClusterRoleBinding(kubeClient kubernetes.Interface, name, clusterRole, user string) error {
+	clusterRoleBinding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     clusterRole,
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:     "User",
+				APIGroup: "rbac.authorization.k8s.io",
+				Name:     user,
+			},
+		},
+	}
+	_, err := kubeClient.RbacV1().ClusterRoleBindings().Create(context.TODO(), clusterRoleBinding, metav1.CreateOptions{})
+	return err
+}

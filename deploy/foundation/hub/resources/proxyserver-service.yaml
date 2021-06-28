@@ -1,13 +1,13 @@
 kind: Service
 apiVersion: v1
 metadata:
-  name: foundation-proxyserver
+  name: ocm-proxyserver
   namespace: open-cluster-management
   annotations:
-    "service.beta.openshift.io/serving-cert-secret-name": foundation-proxyserver
+    "service.beta.openshift.io/serving-cert-secret-name": ocm-proxyserver
 spec:
   selector:
-    app: foundation-proxyserver
+    app: ocm-proxyserver
   ports:
     - name: secure
       protocol: TCP

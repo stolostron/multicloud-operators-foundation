@@ -4,7 +4,7 @@ resources:
 namespace: cluster1
 
 images:
-- name: foundation-agent
+- name: klusterlet-addon-workmgr
   newName: quay.io/open-cluster-management/multicloud-manager
   newTag: latest
 apiVersion: kustomize.config.k8s.io/v1beta1

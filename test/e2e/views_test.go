@@ -26,22 +26,20 @@ var _ = ginkgo.Describe("Testing ManagedClusterView if agent is ok", func() {
 		ginkgo.It("Should create successfully", func() {
 			obj, err = util.LoadResourceFromJSON(util.ManagedClusterViewTemplate)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-			err = unstructured.SetNestedField(obj.Object, managedClusterName, "metadata", "namespace")
+			err = unstructured.SetNestedField(obj.Object, defaultManagedCluster, "metadata", "namespace")
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			// create managedClusterView to real cluster
 			obj, err = util.CreateResource(dynamicClient, viewGVR, obj)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", viewGVR.Resource)
-		})
 
-		ginkgo.It("should get successfully", func() {
-			exists, err := util.HasResource(dynamicClient, viewGVR, managedClusterName, obj.GetName())
+			ginkgo.By("should get successfully")
+			exists, err := util.HasResource(dynamicClient, viewGVR, defaultManagedCluster, obj.GetName())
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			gomega.Expect(exists).Should(gomega.BeTrue())
-		})
 
-		ginkgo.It("should have a valid condition", func() {
+			ginkgo.By("should have a valid condition")
 			gomega.Eventually(func() (interface{}, error) {
-				managedClusterView, err := util.GetResource(dynamicClient, viewGVR, managedClusterName, obj.GetName())
+				managedClusterView, err := util.GetResource(dynamicClient, viewGVR, defaultManagedCluster, obj.GetName())
 				if err != nil {
 					return "", err
 				}
@@ -64,30 +62,40 @@ var _ = ginkgo.Describe("Testing ManagedClusterView if agent is ok", func() {
 
 var _ = ginkgo.Describe("Testing ManagedClusterView if agent is lost", func() {
 	var (
-		obj *unstructured.Unstructured
-		err error
+		lostManagedCluster = util.RandomName()
+		obj                *unstructured.Unstructured
+		err                error
 	)
+
+	ginkgo.BeforeEach(func() {
+		err = util.ImportManagedCluster(clusterClient, lostManagedCluster)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.AfterEach(func() {
+		err = util.CleanManagedCluster(clusterClient, lostManagedCluster)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	})
 
 	ginkgo.Context("Creating a managedClusterView", func() {
 		ginkgo.It("Should create successfully", func() {
 			obj, err = util.LoadResourceFromJSON(util.ManagedClusterViewTemplate)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-			err = unstructured.SetNestedField(obj.Object, fakeManagedClusterName, "metadata", "namespace")
+			err = unstructured.SetNestedField(obj.Object, lostManagedCluster, "metadata", "namespace")
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
 			// create managedClusterView to real cluster
 			obj, err = util.CreateResource(dynamicClient, viewGVR, obj)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred(), "Failed to create %s", viewGVR.Resource)
-		})
 
-		ginkgo.It("should get successfully", func() {
-			exists, err := util.HasResource(dynamicClient, viewGVR, fakeManagedClusterName, obj.GetName())
+			ginkgo.By("should get successfully")
+			exists, err := util.HasResource(dynamicClient, viewGVR, lostManagedCluster, obj.GetName())
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			gomega.Expect(exists).Should(gomega.BeTrue())
-		})
 
-		ginkgo.It("should have a valid condition", func() {
+			ginkgo.By("should have a valid condition")
 			gomega.Eventually(func() (interface{}, error) {
-				managedClusterView, err := util.GetResource(dynamicClient, viewGVR, fakeManagedClusterName, obj.GetName())
+				managedClusterView, err := util.GetResource(dynamicClient, viewGVR, lostManagedCluster, obj.GetName())
 				if err != nil {
 					return "", err
 				}
