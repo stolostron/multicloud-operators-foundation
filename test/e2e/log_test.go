@@ -71,7 +71,7 @@ var _ = ginkgo.Describe("Testing Pod log", func() {
 	ginkgo.It("should get log from pod successfully", func() {
 		// check the ManagedClusterInfo status
 		gomega.Eventually(func() error {
-			managedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, managedClusterName, managedClusterName)
+			managedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
 			if err != nil {
 				return err
 			}
@@ -83,8 +83,8 @@ var _ = ginkgo.Describe("Testing Pod log", func() {
 
 		// case1: get logs successfully
 		gomega.Eventually(func() error {
-			req := restClient.Get().Namespace(managedClusterName).
-				Name(managedClusterName).
+			req := restClient.Get().Namespace(defaultManagedCluster).
+				Name(defaultManagedCluster).
 				Resource("clusterstatuses").
 				SubResource("log").Suffix(podNamespace, podName, containerName)
 
@@ -98,8 +98,8 @@ var _ = ginkgo.Describe("Testing Pod log", func() {
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 		gomega.Eventually(func() error {
-			req := restClient.Get().Namespace(managedClusterName).
-				Name(managedClusterName).
+			req := restClient.Get().Namespace(defaultManagedCluster).
+				Name(defaultManagedCluster).
 				Resource("clusterstatuses").
 				SubResource("log").Suffix(podNamespace, podName, containerName)
 

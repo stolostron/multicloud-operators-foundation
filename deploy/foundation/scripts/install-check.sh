@@ -9,13 +9,13 @@ KUBECTL=${KUBECTL:-kubectl}
 for i in {1..7}; do
   echo "############$i  Checking foundation pods"
   RUNNING_POD=0
-  controller=$($KUBECTL -n open-cluster-management get pods | grep foundation-controller | grep -c "Running")
+  controller=$($KUBECTL -n open-cluster-management get pods | grep ocm-controller | grep -c "Running")
   RUNNING_POD=$((RUNNING_POD+controller))
-  proxyserver=$($KUBECTL -n open-cluster-management get pods | grep foundation-proxyserver | grep -c "Running")
+  proxyserver=$($KUBECTL -n open-cluster-management get pods | grep ocm-proxyserver | grep -c "Running")
   RUNNING_POD=$((RUNNING_POD+proxyserver))
-  webhook=$($KUBECTL -n open-cluster-management get pods | grep foundation-webhook | grep -c "Running")
+  webhook=$($KUBECTL -n open-cluster-management get pods | grep ocm-webhook | grep -c "Running")
   RUNNING_POD=$((RUNNING_POD+webhook))
-  agent=$($KUBECTL -n open-cluster-management-agent get pods | grep foundation-agent | grep -c "Running")
+  agent=$($KUBECTL -n open-cluster-management-agent get pods | grep klusterlet-addon-workmgr | grep -c "Running")
   RUNNING_POD=$((RUNNING_POD+agent))
 
   if [ "${RUNNING_POD}" -eq 4 ]; then

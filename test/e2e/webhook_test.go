@@ -218,11 +218,11 @@ var _ = ginkgo.Describe("Testing webhook cert rotation", func() {
 			return err
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-		err = kubeClient.CoreV1().Secrets(foundationNS).Delete(context.TODO(), "foundation-webhook", metav1.DeleteOptions{})
+		err = kubeClient.CoreV1().Secrets(foundationNS).Delete(context.TODO(), "ocm-webhook", metav1.DeleteOptions{})
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		gomega.Eventually(func() error {
-			_, err := kubeClient.CoreV1().Secrets(foundationNS).Get(context.TODO(), "foundation-webhook", metav1.GetOptions{})
+			_, err := kubeClient.CoreV1().Secrets(foundationNS).Get(context.TODO(), "ocm-webhook", metav1.GetOptions{})
 			return err
 		}, eventuallyTimeout, eventuallyInterval*5).ShouldNot(gomega.HaveOccurred())
 

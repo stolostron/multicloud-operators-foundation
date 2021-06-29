@@ -9,6 +9,6 @@ spec:
   version: v1beta1
   service:
     namespace: open-cluster-management
-    name: foundation-proxyserver
+    name: ocm-proxyserver
   groupPriorityMinimum: 10000
   versionPriority: 20

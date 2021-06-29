@@ -13,7 +13,7 @@ var _ = ginkgo.Describe("Testing ManagedCluster", func() {
 	ginkgo.Context("Get ManagedCluster cpu worker capacity", func() {
 		ginkgo.It("should get a cpu_worker successfully in status of managedcluster", func() {
 			gomega.Eventually(func() error {
-				cluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.Background(), managedClusterName, metav1.GetOptions{})
+				cluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.Background(), defaultManagedCluster, metav1.GetOptions{})
 				if err != nil {
 					return err
 				}

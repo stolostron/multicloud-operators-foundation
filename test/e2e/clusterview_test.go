@@ -121,7 +121,7 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusters", func() {
 	})
 	// all cases are running in order with the same clusterRole and clusterRoleBinding of the user
 	ginkgo.It("should list the managedClusters.clusterview successfully", func() {
-		// Case 1: authorize cluster1, cluster2 to user
+		ginkgo.By("authorize cluster1, cluster2 to user")
 		expectedClusters := []string{cluster1, cluster2}
 		rules := []rbacv1.PolicyRule{
 			helpers.NewRule("list", "watch").Groups("clusterview.open-cluster-management.io").Resources("managedclusters").RuleOrDie(),
@@ -135,7 +135,7 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusters", func() {
 				util.ManagedClusterGVR, expectedClusters)
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-		// Case 2: append cluster3 to user role
+		ginkgo.By("append cluster3 to user role")
 		expectedClusters = []string{cluster1, cluster2, cluster3}
 		rules = []rbacv1.PolicyRule{
 			helpers.NewRule("list", "watch").Groups("clusterview.open-cluster-management.io").Resources("managedclusters").RuleOrDie(),
@@ -149,7 +149,7 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusters", func() {
 				util.ManagedClusterGVR, expectedClusters)
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-		// Case 3: delete cluster2 to user
+		ginkgo.By("delete cluster2 to user")
 		expectedClusters = []string{cluster1, cluster3}
 		rules = []rbacv1.PolicyRule{
 			helpers.NewRule("list", "watch").Groups("clusterview.open-cluster-management.io").Resources("managedclusters").RuleOrDie(),
@@ -163,7 +163,7 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusters", func() {
 				util.ManagedClusterGVR, expectedClusters)
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-		// Case 4: delete cluster3
+		ginkgo.By("delete cluster3")
 		err = util.CleanManagedCluster(clusterClient, cluster3)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
@@ -181,7 +181,7 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusters", func() {
 				util.ManagedClusterGVR, expectedClusters)
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-		// Case 5: delete clusterRole
+		ginkgo.By("delete clusterRole")
 		err = util.DeleteClusterRole(kubeClient, clusterRoleName)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
@@ -192,7 +192,7 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusters", func() {
 				util.ManagedClusterGVR, expectedClusters)
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.Equal(errors.New(expectedError)))
 
-		// Case 6: add clusterRole
+		ginkgo.By("add clusterRole")
 		expectedClusters = []string{cluster1, cluster2}
 		rules = []rbacv1.PolicyRule{
 			helpers.NewRule("list", "watch").Groups("clusterview.open-cluster-management.io").Resources("managedclusters").RuleOrDie(),
@@ -231,9 +231,6 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusters", func() {
 		userDynamicClient, err = util.NewDynamicClientWithImpersonate(userName, nil)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		// prepare 1 cluster
-		err = util.ImportManagedCluster(clusterClient, clusterName)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
 	ginkgo.AfterEach(func() {
 		// cleanup clusterRole and clusterRoleBinding
@@ -255,6 +252,13 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusters", func() {
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 		defer watchedClient.Stop()
+
+		go func() {
+			time.Sleep(time.Second * 1)
+			// prepare 1 cluster
+			err = util.ImportManagedCluster(clusterClient, clusterName)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		}()
 
 		timeCount := 0
 		clusterCount := 0
@@ -323,16 +327,16 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusterSets", func() 
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		// cleanup clusterSets
-		err := util.DeleteManagedClusterSet(clusterClient, clusterSet1)
+		err = util.DeleteManagedClusterSet(clusterClient, clusterSet1)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-		err = util.DeleteManagedClusterSet(clusterClient, clusterSet3)
+		err = util.DeleteManagedClusterSet(clusterClient, clusterSet2)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		err = util.DeleteManagedClusterSet(clusterClient, clusterSet3)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
 	// all cases are running in order with the same clusterRole and clusterRoleBinding of the user
-	ginkgo.It("should list the managedClusterSets.clusterview successfully", func() {
-		// Case 1: authorize clusterSet1, clusterSet2 to user
+	ginkgo.It("should list the managedClusterSets.clusterView successfully", func() {
+		ginkgo.By("authorize clusterSet1, clusterSet2 to user")
 		expectedClusterSets := []string{clusterSet1, clusterSet2}
 		rules := []rbacv1.PolicyRule{
 			helpers.NewRule("list", "watch").Groups("clusterview.open-cluster-management.io").Resources("managedclustersets").RuleOrDie(),
@@ -346,7 +350,7 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusterSets", func() 
 				util.ManagedClusterSetGVR, expectedClusterSets)
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-		// Case 2: append clusterSet3 to user role
+		ginkgo.By("append clusterSet3 to user role")
 		expectedClusterSets = []string{clusterSet1, clusterSet2, clusterSet3}
 		rules = []rbacv1.PolicyRule{
 			helpers.NewRule("list", "watch").Groups("clusterview.open-cluster-management.io").Resources("managedclustersets").RuleOrDie(),
@@ -360,7 +364,7 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusterSets", func() 
 				util.ManagedClusterSetGVR, expectedClusterSets)
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-		// Case 3: delete clusterSet2 in user role
+		ginkgo.By("delete clusterSet2 in user role")
 		expectedClusterSets = []string{clusterSet1, clusterSet3}
 		rules = []rbacv1.PolicyRule{
 			helpers.NewRule("list", "watch").Groups("clusterview.open-cluster-management.io").Resources("managedclustersets").RuleOrDie(),
@@ -374,7 +378,7 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusterSets", func() 
 				util.ManagedClusterSetGVR, expectedClusterSets)
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-		// Case 4: delete clusterSet3
+		ginkgo.By("delete clusterSet3")
 		err = util.DeleteManagedClusterSet(clusterClient, clusterSet3)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
@@ -392,7 +396,7 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusterSets", func() 
 				util.ManagedClusterSetGVR, expectedClusterSets)
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-		// Case 5: delete clusterRole
+		ginkgo.By("delete clusterRole")
 		err = util.DeleteClusterRole(kubeClient, clusterRoleName)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		expectedClusterSets = []string{}
@@ -402,7 +406,7 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusterSets", func() 
 				util.ManagedClusterSetGVR, expectedClusterSets)
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.Equal(errors.New(expectedError)))
 
-		// Case 6: add clusterRole
+		ginkgo.By("add clusterRole")
 		expectedClusterSets = []string{clusterSet1, clusterSet2}
 		rules = []rbacv1.PolicyRule{
 			helpers.NewRule("list", "watch").Groups("clusterview.open-cluster-management.io").Resources("managedclustersets").RuleOrDie(),
@@ -440,9 +444,6 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusterSets", func(
 		userDynamicClient, err = util.NewDynamicClientWithImpersonate(userName, nil)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		// prepare 1 clusterSet
-		err = util.CreateManagedClusterSet(clusterClient, clusterSetName)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
 	ginkgo.AfterEach(func() {
 		// cleanup clusterRole and clusterRoleBinding
@@ -452,10 +453,10 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusterSets", func(
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		// cleanup clusterSet
-		err := util.DeleteManagedClusterSet(clusterClient, clusterSetName)
+		err = util.DeleteManagedClusterSet(clusterClient, clusterSetName)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
-	ginkgo.It("should watch the managedClusterSets.clusterview successfully", func() {
+	ginkgo.It("should watch the managedClusterSets.clusterView successfully", func() {
 		var watchedClient watch.Interface
 		var err error
 
@@ -465,6 +466,13 @@ var _ = ginkgo.Describe("Testing ClusterView to watch managedClusterSets", func(
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 		defer watchedClient.Stop()
+
+		go func() {
+			time.Sleep(time.Second * 1)
+			// prepare 1 clusterSet
+			err = util.CreateManagedClusterSet(clusterClient, clusterSetName)
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		}()
 
 		timeCount := 0
 		clusterCount := 0

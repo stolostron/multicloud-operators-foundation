@@ -17,10 +17,10 @@ resources:
 - resources/clusterviewv1alpha1-apiservice.yaml
 
 images:
-- name: foundation-controller
+- name: ocm-controller
   newName: quay.io/open-cluster-management/multicloud-manager
   newTag: latest
-- name: foundation-proxyserver
+- name: ocm-proxyserver
   newName: quay.io/open-cluster-management/multicloud-manager
   newTag: latest
 apiVersion: kustomize.config.k8s.io/v1beta1

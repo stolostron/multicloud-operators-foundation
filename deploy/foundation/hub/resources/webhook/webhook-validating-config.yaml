@@ -6,15 +6,15 @@ metadata:
   annotations:
     service.beta.openshift.io/inject-cabundle: "true"
   labels:
-    app: foundation-webhook
-  name: foundation-validating-webhook
+    app: ocm-webhook
+  name: ocm-validating-webhook
 webhooks:
   - name: ocm.validating.webhook.admission.open-cluster-management.io
     admissionReviewVersions:
       - v1
     clientConfig:
       service:
-        name: foundation-webhook
+        name: ocm-webhook
         namespace: open-cluster-management
         path: /validating
         port: 443

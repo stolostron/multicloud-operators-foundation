@@ -2,26 +2,26 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: foundation-webhook
-  name: foundation-webhook
+    app: ocm-webhook
+  name: ocm-webhook
   namespace: open-cluster-management
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: foundation-webhook
+      app: ocm-webhook
   template:
     metadata:
       labels:
-        app: foundation-webhook
+        app: ocm-webhook
     spec:
       containers:
-        - name: foundation-webhook
+        - name: ocm-webhook
           args:
             - /webhook
             - --tls-cert-file=/var/run/ocm-webhook/tls.crt
             - --tls-private-key-file=/var/run/ocm-webhook/tls.key
-          image: foundation-webhook
+          image: ocm-webhook
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8000
@@ -34,4 +34,4 @@ spec:
         - name: webhook-cert
           secret:
             defaultMode: 420
-            secretName: foundation-webhook
+            secretName: ocm-webhook
