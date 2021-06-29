@@ -71,44 +71,6 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 		return err
 	}
 
-	// Watch for changes to ClusterPool
-	err = c.Watch(
-		&source.Kind{Type: &hivev1.ClusterPool{}},
-		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(a client.Object) []reconcile.Request {
-				clusterPool, ok := a.(*hivev1.ClusterPool)
-				if !ok {
-					klog.Error("clusterPool handler received non-clusterPool object")
-					return []reconcile.Request{}
-				}
-				requests := getRequiredClusterSet(clusterPool.Labels, clusterSetNamespaceMapper, clusterPool.Namespace)
-				return requests
-			},
-			),
-		),
-	)
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to ClusterClaim
-	err = c.Watch(
-		&source.Kind{Type: &hivev1.ClusterClaim{}},
-		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(a client.Object) []reconcile.Request {
-				clusterClaim, ok := a.(*hivev1.ClusterClaim)
-				if !ok {
-					klog.Error("clusterClaim handler received non-clusterClaim object")
-					return []reconcile.Request{}
-				}
-				requests := getRequiredClusterSet(clusterClaim.Labels, clusterSetNamespaceMapper, clusterClaim.Namespace)
-				return requests
-			}),
-		))
-	if err != nil {
-		return err
-	}
-
 	// Watch for changes to ClusterDeployment
 	err = c.Watch(
 		&source.Kind{Type: &hivev1.ClusterDeployment{}},
@@ -300,43 +262,20 @@ func (r *Reconciler) generateClustersetCluster(selector labels.Selector) (sets.S
 }
 
 // generateClustersetNamespace generate namespace which owned by one clusterset(selector).
-// The namespace include clusterclaim/clusterpool/clusterdeployment namespace.
+// The namespace include clusterdeployment namespace.
 // For each namespace, we create an admin rolebinding and an view rolebinding in another controller.
 func (r *Reconciler) generateClustersetNamespace(selector labels.Selector) (sets.String, error) {
 	namespaces := sets.NewString()
 
-	//Add clusterclaim namespace to newClusterSetNamespaceMapper
-	clusterClaimList := &hivev1.ClusterClaimList{}
-	err := r.client.List(context.TODO(), clusterClaimList, &client.ListOptions{LabelSelector: selector})
-	if err != nil {
-		klog.Errorf("failed to list clusterclaim %v", err)
-		return nil, err
-	}
-	for _, clusterClaim := range clusterClaimList.Items {
-		namespaces.Insert(clusterClaim.Namespace)
-	}
-
 	//Add clusterdeployment namespace to newClusterSetNamespaceMapper
 	clusterDeploymentList := &hivev1.ClusterDeploymentList{}
-	err = r.client.List(context.TODO(), clusterDeploymentList, &client.ListOptions{LabelSelector: selector})
+	err := r.client.List(context.TODO(), clusterDeploymentList, &client.ListOptions{LabelSelector: selector})
 	if err != nil {
-		klog.Errorf("failed to list clusterclaim %v", err)
+		klog.Errorf("failed to list clusterdeployment %v", err)
 		return nil, err
 	}
 	for _, clusterDeployment := range clusterDeploymentList.Items {
 		namespaces.Insert(clusterDeployment.Namespace)
-	}
-
-	//Add clusterpool namespace to newClusterSetNamespaceMapper
-	clusterPoolList := &hivev1.ClusterPoolList{}
-	err = r.client.List(context.TODO(), clusterPoolList, &client.ListOptions{LabelSelector: selector})
-	if err != nil {
-		klog.Errorf("failed to list clusterclaim %v", err)
-		return nil, err
-	}
-
-	for _, clusterPool := range clusterPoolList.Items {
-		namespaces.Insert(clusterPool.Namespace)
 	}
 
 	return namespaces, nil
