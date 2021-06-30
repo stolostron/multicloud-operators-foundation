@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	stdlog "log"
@@ -199,6 +200,14 @@ func TestClusterInfoReconcile(t *testing.T) {
 			Namespace:         clusterName,
 			CreationTimestamp: now,
 		},
+		Status: clusterv1beta1.ClusterInfoStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.ManagedClusterConditionAvailable,
+					Status: metav1.ConditionTrue,
+				},
+			},
+		},
 	}
 
 	s := scheme.Scheme
@@ -240,6 +249,14 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 			Name:              clusterName,
 			Namespace:         clusterName,
 			CreationTimestamp: now,
+		},
+		Status: clusterv1beta1.ClusterInfoStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.ManagedClusterConditionAvailable,
+					Status: metav1.ConditionTrue,
+				},
+			},
 		},
 	}
 

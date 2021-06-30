@@ -2,7 +2,10 @@ package utils
 
 import (
 	"fmt"
+	clusterapiv1 "github.com/open-cluster-management/api/cluster/v1"
 	"io/ioutil"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -28,4 +31,8 @@ func BuildKubeClient(kubeConfigPath string) (*kubernetes.Clientset, error) {
 
 func ResourceNamespacedName(resourceType, namespace, name string) string {
 	return fmt.Sprintf("%s/%s/%s", resourceType, namespace, name)
+}
+
+func ClusterIsOffLine(conditions []metav1.Condition) bool {
+	return meta.IsStatusConditionPresentAndEqual(conditions, clusterapiv1.ManagedClusterConditionAvailable, metav1.ConditionUnknown)
 }
