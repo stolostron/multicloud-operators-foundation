@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"net"
 	"net/http"
@@ -106,6 +107,10 @@ func (r *resourceCollector) reconcile(ctx context.Context) {
 	err := r.client.Get(ctx, types.NamespacedName{Namespace: r.clusterName, Name: r.clusterName}, clusterinfo)
 	if err != nil {
 		klog.Errorf("Failed to get cluster: %v", err)
+	}
+
+	if utils.ClusterIsOffLine(clusterinfo.Status.Conditions) {
+		return
 	}
 
 	nodeList, err := r.getNodeList()

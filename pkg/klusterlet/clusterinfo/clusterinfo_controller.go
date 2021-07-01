@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"net"
 	"sort"
@@ -70,6 +71,10 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	err := r.Get(ctx, request, clusterInfo)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if utils.ClusterIsOffLine(clusterInfo.Status.Conditions) {
+		return ctrl.Result{RequeueAfter: time.Minute * 5}, nil
 	}
 
 	// refresh logging server CA if CA is changed
@@ -148,7 +153,7 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	meta.SetStatusCondition(&newStatus.Conditions, newSyncedCondition)
 
 	if equality.Semantic.DeepEqual(newStatus, clusterInfo.Status) {
-		return ctrl.Result{}, nil
+		return ctrl.Result{RequeueAfter: time.Minute * 5}, nil
 	}
 
 	clusterInfo.Status = newStatus
@@ -158,7 +163,7 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, err
 	}
 
-	return ctrl.Result{}, nil
+	return ctrl.Result{RequeueAfter: time.Minute * 5}, nil
 }
 
 func (r *ClusterInfoReconciler) readAgentConfig() (*corev1.EndpointAddress, *corev1.EndpointPort, error) {

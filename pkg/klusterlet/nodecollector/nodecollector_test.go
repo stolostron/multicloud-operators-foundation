@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io/ioutil"
+	certutil "k8s.io/client-go/util/cert"
 	"net"
 	"os"
 	"testing"
@@ -26,7 +27,6 @@ import (
 	fakekube "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	clienttesting "k8s.io/client-go/testing"
-	certutil "k8s.io/client-go/util/cert"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -45,15 +45,17 @@ func TestReconcile(t *testing.T) {
 	cases := []struct {
 		name                string
 		resources           []runtime.Object
+		clusterInfoStatus   metav1.ConditionStatus
 		existingNodeList    []clusterv1beta1.NodeStatus
 		prometheusData      model.Vector
 		expectedNodeList    []clusterv1beta1.NodeStatus
 		validateKubeActions func(t *testing.T, actions []clienttesting.Action)
 	}{
 		{
-			name:             "missing configmap",
-			resources:        []runtime.Object{},
-			existingNodeList: []clusterv1beta1.NodeStatus{},
+			name:              "missing configmap",
+			resources:         []runtime.Object{},
+			clusterInfoStatus: metav1.ConditionTrue,
+			existingNodeList:  []clusterv1beta1.NodeStatus{},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get", "create")
 			},
@@ -61,9 +63,10 @@ func TestReconcile(t *testing.T) {
 			prometheusData:   model.Vector{},
 		},
 		{
-			name:             "missing configmap having node",
-			resources:        []runtime.Object{newNode("node1", 1, true)},
-			existingNodeList: []clusterv1beta1.NodeStatus{},
+			name:              "missing configmap having node",
+			resources:         []runtime.Object{newNode("node1", 1, true)},
+			clusterInfoStatus: metav1.ConditionTrue,
+			existingNodeList:  []clusterv1beta1.NodeStatus{},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get", "create")
 			},
@@ -73,9 +76,10 @@ func TestReconcile(t *testing.T) {
 			prometheusData: model.Vector{},
 		},
 		{
-			name:             "no updates with same capacity",
-			resources:        []runtime.Object{newNode("node1", 1, true)},
-			existingNodeList: []clusterv1beta1.NodeStatus{newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true)},
+			name:              "no updates with same capacity",
+			resources:         []runtime.Object{newNode("node1", 1, true)},
+			clusterInfoStatus: metav1.ConditionTrue,
+			existingNodeList:  []clusterv1beta1.NodeStatus{newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true)},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get", "create")
 			},
@@ -85,9 +89,10 @@ func TestReconcile(t *testing.T) {
 			prometheusData: model.Vector{},
 		},
 		{
-			name:             "missing ca",
-			resources:        []runtime.Object{newConfigmap("")},
-			existingNodeList: []clusterv1beta1.NodeStatus{newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true)},
+			name:              "missing ca",
+			resources:         []runtime.Object{newConfigmap("")},
+			clusterInfoStatus: metav1.ConditionTrue,
+			existingNodeList:  []clusterv1beta1.NodeStatus{newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true)},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get")
 			},
@@ -95,9 +100,10 @@ func TestReconcile(t *testing.T) {
 			prometheusData:   model.Vector{},
 		},
 		{
-			name:             "no updates with same capacity",
-			resources:        []runtime.Object{newNode("node1", 2, false)},
-			existingNodeList: []clusterv1beta1.NodeStatus{newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true)},
+			name:              "no updates with same capacity",
+			resources:         []runtime.Object{newNode("node1", 2, false)},
+			clusterInfoStatus: metav1.ConditionTrue,
+			existingNodeList:  []clusterv1beta1.NodeStatus{newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true)},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get", "create")
 			},
@@ -107,9 +113,10 @@ func TestReconcile(t *testing.T) {
 			prometheusData: model.Vector{},
 		},
 		{
-			name:             "no updates with multi nodes",
-			resources:        []runtime.Object{newNode("node1", 1, true), newNode("node2", 2, true)},
-			existingNodeList: []clusterv1beta1.NodeStatus{newResourceStatus("node2", map[clusterapiv1.ResourceName]int64{"cpu": 2}, true), newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true)},
+			name:              "no updates with multi nodes",
+			resources:         []runtime.Object{newNode("node1", 1, true), newNode("node2", 2, true)},
+			clusterInfoStatus: metav1.ConditionTrue,
+			existingNodeList:  []clusterv1beta1.NodeStatus{newResourceStatus("node2", map[clusterapiv1.ResourceName]int64{"cpu": 2}, true), newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true)},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get", "create")
 			},
@@ -120,9 +127,10 @@ func TestReconcile(t *testing.T) {
 			prometheusData: model.Vector{},
 		},
 		{
-			name:             "missing node metrics",
-			resources:        []runtime.Object{newConfigmap(string(ca))},
-			existingNodeList: []clusterv1beta1.NodeStatus{},
+			name:              "missing node metrics",
+			resources:         []runtime.Object{newConfigmap(string(ca))},
+			clusterInfoStatus: metav1.ConditionTrue,
+			existingNodeList:  []clusterv1beta1.NodeStatus{},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get")
 			},
@@ -130,9 +138,10 @@ func TestReconcile(t *testing.T) {
 			prometheusData:   model.Vector{},
 		},
 		{
-			name:             "missing node",
-			resources:        []runtime.Object{newConfigmap(string(ca))},
-			existingNodeList: []clusterv1beta1.NodeStatus{},
+			name:              "missing node",
+			resources:         []runtime.Object{newConfigmap(string(ca))},
+			clusterInfoStatus: metav1.ConditionTrue,
+			existingNodeList:  []clusterv1beta1.NodeStatus{},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get")
 			},
@@ -147,9 +156,10 @@ func TestReconcile(t *testing.T) {
 			expectedNodeList: []clusterv1beta1.NodeStatus{},
 		},
 		{
-			name:             "update status",
-			resources:        []runtime.Object{newConfigmap(string(ca)), newNode("node1", 1, true)},
-			existingNodeList: []clusterv1beta1.NodeStatus{newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true)},
+			name:              "update status",
+			resources:         []runtime.Object{newConfigmap(string(ca)), newNode("node1", 1, true)},
+			clusterInfoStatus: metav1.ConditionTrue,
+			existingNodeList:  []clusterv1beta1.NodeStatus{newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true)},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get")
 			},
@@ -166,9 +176,10 @@ func TestReconcile(t *testing.T) {
 			},
 		},
 		{
-			name:             "update status with worker/master",
-			resources:        []runtime.Object{newConfigmap(string(ca)), newNode("node1", 2, true), newNode("node2", 1, false)},
-			existingNodeList: []clusterv1beta1.NodeStatus{},
+			name:              "update status with worker/master",
+			resources:         []runtime.Object{newConfigmap(string(ca)), newNode("node1", 2, true), newNode("node2", 1, false)},
+			clusterInfoStatus: metav1.ConditionTrue,
+			existingNodeList:  []clusterv1beta1.NodeStatus{},
 			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
 				assertActions(t, actions, "get")
 			},
@@ -191,20 +202,24 @@ func TestReconcile(t *testing.T) {
 				newResourceStatus("node2", map[clusterapiv1.ResourceName]int64{"cpu": 1, "socket": 1}, false),
 			},
 		},
+		{
+			name:              "offline",
+			resources:         []runtime.Object{},
+			clusterInfoStatus: metav1.ConditionUnknown,
+			existingNodeList:  []clusterv1beta1.NodeStatus{},
+			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
+				assertActions(t, actions)
+			},
+			expectedNodeList: []clusterv1beta1.NodeStatus{},
+			prometheusData:   model.Vector{},
+		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			fakekubeClient := fakekube.NewSimpleClientset(c.resources...)
-			clusterinfo := &clusterv1beta1.ManagedClusterInfo{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "cluster1",
-					Namespace: "cluster1",
-				},
-				Status: clusterv1beta1.ClusterInfoStatus{
-					NodeList: c.existingNodeList,
-				},
-			}
+			clusterinfo := newClusterInfo("cluster1", c.clusterInfoStatus, c.existingNodeList)
+
 			infomerFactory := informers.NewSharedInformerFactory(fakekubeClient, 10*time.Minute)
 			handler.val = c.prometheusData
 			client := fake.NewClientBuilder().WithScheme(s).WithObjects(clusterinfo).Build()
@@ -341,4 +356,22 @@ func assertActions(t *testing.T, actualActions []clienttesting.Action, expectedV
 // AssertNoActions asserts no actions are happened
 func assertNoActions(t *testing.T, actualActions []clienttesting.Action) {
 	assertActions(t, actualActions)
+}
+
+func newClusterInfo(name string, status metav1.ConditionStatus, nodeList []clusterv1beta1.NodeStatus) *clusterv1beta1.ManagedClusterInfo {
+	return &clusterv1beta1.ManagedClusterInfo{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: name,
+		},
+		Status: clusterv1beta1.ClusterInfoStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterapiv1.ManagedClusterConditionAvailable,
+					Status: status,
+				},
+			},
+			NodeList: nodeList,
+		},
+	}
 }

@@ -188,6 +188,14 @@ func TestReconcile(t *testing.T) {
 						HubAcceptsClient:     false,
 						LeaseDurationSeconds: 0,
 					},
+					Status: clusterv1.ManagedClusterStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ManagedClusterConditionAvailable,
+								Status: metav1.ConditionTrue,
+							},
+						},
+					},
 				},
 			},
 			req: reconcile.Request{
@@ -213,6 +221,14 @@ func TestReconcile(t *testing.T) {
 						HubAcceptsClient:     false,
 						LeaseDurationSeconds: 0,
 					},
+					Status: clusterv1.ManagedClusterStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ManagedClusterConditionAvailable,
+								Status: metav1.ConditionTrue,
+							},
+						},
+					},
 				},
 				&clusterinfov1beta1.ManagedClusterInfo{
 					ObjectMeta: metav1.ObjectMeta{
@@ -234,6 +250,7 @@ func TestReconcile(t *testing.T) {
 			svrc := newTestClusterInfoReconciler(test.existingObjs)
 			res, err := svrc.Reconcile(ctx, test.req)
 			validateError(t, err, test.expectedErrorType)
+
 			if test.requeue {
 				assert.Equal(t, res.Requeue, true)
 			} else {
