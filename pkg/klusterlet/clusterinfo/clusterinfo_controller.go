@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"net"
 	"strconv"
 	"strings"
@@ -58,6 +59,10 @@ func (r *ClusterInfoReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	err := r.Get(ctx, req.NamespacedName, clusterInfo)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	if utils.ClusterIsOffLine(clusterInfo.Status.Conditions) {
+		return ctrl.Result{RequeueAfter: time.Minute * 5}, nil
 	}
 
 	// Update cluster info status here.

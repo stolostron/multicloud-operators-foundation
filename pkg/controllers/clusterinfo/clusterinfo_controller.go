@@ -144,15 +144,22 @@ func (r *Reconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// TODO: the conditions of managed cluster need to be deprecated.
-	newConditions := cluster.Status.Conditions
+	clusterConditions := cluster.Status.Conditions
+	newClusterInfo := clusterInfo.DeepCopy()
+
+	// empty node list in clusterInfo status when cluster is offline
+	if utils.ClusterIsOffLine(clusterConditions) {
+		newClusterInfo.Status.NodeList = []clusterinfov1beta1.NodeStatus{}
+	}
+	newClusterInfo.Status.Conditions = clusterConditions
+
 	syncedCondition := meta.FindStatusCondition(clusterInfo.Status.Conditions, clusterinfov1beta1.ManagedClusterInfoSynced)
 	if syncedCondition != nil {
-		newConditions = append(newConditions, *syncedCondition)
+		newClusterInfo.Status.Conditions = append(newClusterInfo.Status.Conditions, *syncedCondition)
 	}
 
-	if !reflect.DeepEqual(newConditions, clusterInfo.Status.Conditions) {
-		clusterInfo.Status.Conditions = newConditions
-		err = r.client.Status().Update(ctx, clusterInfo)
+	if !reflect.DeepEqual(newClusterInfo.Status, clusterInfo.Status) {
+		err = r.client.Status().Update(ctx, newClusterInfo)
 		if err != nil {
 			klog.Warningf("will reconcile since failed to update ManagedClusterInfo status %v, %v", cluster.Name, err)
 			return ctrl.Result{}, err
@@ -190,6 +197,9 @@ func (r *Reconciler) newClusterInfoByManagedCluster(cluster *clusterv1.ManagedCl
 		Spec: clusterinfov1beta1.ClusterInfoSpec{
 			MasterEndpoint: endpoint,
 			LoggingCA:      r.caData,
+		},
+		Status: clusterinfov1beta1.ClusterInfoStatus{
+			Conditions: cluster.Status.Conditions,
 		},
 	}
 }

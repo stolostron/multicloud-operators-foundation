@@ -178,6 +178,14 @@ func TestReconcile(t *testing.T) {
 						HubAcceptsClient:     false,
 						LeaseDurationSeconds: 0,
 					},
+					Status: clusterv1.ManagedClusterStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ManagedClusterConditionAvailable,
+								Status: metav1.ConditionTrue,
+							},
+						},
+					},
 				},
 			},
 			req: reconcile.Request{
@@ -202,6 +210,14 @@ func TestReconcile(t *testing.T) {
 						},
 						HubAcceptsClient:     false,
 						LeaseDurationSeconds: 0,
+					},
+					Status: clusterv1.ManagedClusterStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ManagedClusterConditionAvailable,
+								Status: metav1.ConditionTrue,
+							},
+						},
 					},
 				},
 				&clusterinfov1beta1.ManagedClusterInfo{

@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	tlog "github.com/go-logr/logr/testing"
+	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 	routev1Fake "github.com/openshift/client-go/route/clientset/versioned/fake"
 	corev1 "k8s.io/api/core/v1"
@@ -182,6 +183,14 @@ func TestClusterInfoReconcile(t *testing.T) {
 			Namespace:         clusterInfoNamespace,
 			CreationTimestamp: now,
 		},
+		Status: clusterv1beta1.ClusterInfoStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.ManagedClusterConditionAvailable,
+					Status: metav1.ConditionTrue,
+				},
+			},
+		},
 	}
 
 	s := scheme.Scheme
@@ -233,6 +242,14 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 			Name:              clusterInfoName,
 			Namespace:         clusterInfoNamespace,
 			CreationTimestamp: now,
+		},
+		Status: clusterv1beta1.ClusterInfoStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.ManagedClusterConditionAvailable,
+					Status: metav1.ConditionTrue,
+				},
+			},
 		},
 	}
 
