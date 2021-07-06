@@ -9,6 +9,7 @@ import (
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"net"
 	"net/http"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -73,6 +74,8 @@ type resourceCollector struct {
 	client             client.Client
 	clusterName        string
 	caData             []byte
+	certPool           *x509.CertPool
+	prometheusClient   prometheusv1.API
 	tokenFile          string
 	server             string
 	componentNamespace string
@@ -118,7 +121,7 @@ func (r *resourceCollector) reconcile(ctx context.Context) {
 		klog.Errorf("Failed to get nodes: %v", err)
 	}
 
-	nodeList = r.updateCapcityByPrometheus(ctx, nodeList)
+	nodeList = r.updateCapacityByPrometheus(ctx, nodeList)
 
 	// need sort the slices before compare using DeepEqual
 	sort.SliceStable(nodeList, func(i, j int) bool { return nodeList[i].Name < nodeList[j].Name })
@@ -133,24 +136,30 @@ func (r *resourceCollector) reconcile(ctx context.Context) {
 	}
 }
 
-func (r *resourceCollector) updateCapcityByPrometheus(ctx context.Context, nodes []clusterv1beta1.NodeStatus) []clusterv1beta1.NodeStatus {
+func (r *resourceCollector) updateCapacityByPrometheus(ctx context.Context, nodes []clusterv1beta1.NodeStatus) []clusterv1beta1.NodeStatus {
 	// get sockert/core from prometheus
 	caData, err := r.getPrometheusCA(ctx)
 	if err != nil {
 		klog.Errorf("failed to get ca: %v", err)
+		return nodes
 	}
 	if len(caData) == 0 {
 		klog.Errorf("CA data does not exist")
 		return nodes
 	}
 
-	apiClient, err := r.newPrometheusClient(caData)
-	if err != nil {
-		klog.Errorf("Failed to create prometheus client: %v", err)
-		return nodes
+	if !reflect.DeepEqual(r.caData, caData) {
+		apiClient, err := r.newPrometheusClient(caData)
+		if err != nil {
+			klog.Errorf("Failed to create prometheus client: %v", err)
+			return nodes
+		}
+
+		r.caData = caData
+		r.prometheusClient = apiClient
 	}
 
-	sockets, err := r.queryResource(ctx, apiClient, "machine_cpu_sockets")
+	sockets, err := r.queryResource(ctx, r.prometheusClient, "machine_cpu_sockets")
 	if err != nil {
 		klog.Errorf("failed to query resource: %v", err)
 	}
@@ -165,10 +174,6 @@ func (r *resourceCollector) updateCapcityByPrometheus(ctx context.Context, nodes
 }
 
 func (r *resourceCollector) getPrometheusCA(ctx context.Context) ([]byte, error) {
-	if len(r.caData) > 0 {
-		return r.caData, nil
-	}
-
 	cm, err := r.kubeClient.CoreV1().ConfigMaps(r.componentNamespace).Get(ctx, caConfigMapName, metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		cm = &corev1.ConfigMap{
@@ -190,11 +195,8 @@ func (r *resourceCollector) getPrometheusCA(ctx context.Context) ([]byte, error)
 		return nil, err
 	}
 	caString := cm.Data["service-ca.crt"]
-	if len(caString) > 0 {
-		r.caData = []byte(caString)
-	}
 
-	return r.caData, nil
+	return []byte(caString), nil
 }
 
 func (r *resourceCollector) queryResource(ctx context.Context, client prometheusv1.API, name string) (map[string]*resource.Quantity, error) {
@@ -229,6 +231,7 @@ func (r *resourceCollector) queryResource(ctx context.Context, client prometheus
 }
 
 func (r *resourceCollector) newPrometheusClient(caData []byte) (prometheusv1.API, error) {
+	var err error
 	transport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
@@ -239,16 +242,19 @@ func (r *resourceCollector) newPrometheusClient(caData []byte) (prometheusv1.API
 	}
 
 	// setup transport CA
-	pool, err := x509.SystemCertPool()
-	if err != nil {
-		return nil, err
+	if r.certPool == nil {
+		r.certPool, err = x509.SystemCertPool()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	if !pool.AppendCertsFromPEM(caData) {
+	// AppendCertsFromPEM can update ca by subject of ca since ca is stored in a map with subject as key.
+	if !r.certPool.AppendCertsFromPEM(caData) {
 		return nil, fmt.Errorf("no cert found in ca file")
 	}
 
-	transport.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
+	transport.TLSClientConfig = &tls.Config{RootCAs: r.certPool, MinVersion: tls.VersionTLS12}
 
 	// read token from token files
 	client, err := prometheusapi.NewClient(prometheusapi.Config{
