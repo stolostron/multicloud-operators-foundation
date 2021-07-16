@@ -17,6 +17,7 @@ import (
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/cache"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterca"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterinfo"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrole"
@@ -169,6 +170,10 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 
+	if err = clusterca.SetupWithManager(mgr); err != nil {
+		klog.Errorf("unable to setup clusterca reconciler: %v", err)
+		return err
+	}
 	if err = gc.SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to setup gc reconciler: %v", err)
 		return err

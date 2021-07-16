@@ -2,13 +2,17 @@ package controllers
 
 import (
 	"context"
+	stdlog "log"
+	"os"
+	"reflect"
+	"testing"
+	"time"
+
+	ocinfrav1 "github.com/openshift/api/config/v1"
+
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
-	stdlog "log"
-	"os"
-	"testing"
-	"time"
 
 	tlog "github.com/go-logr/logr/testing"
 	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
@@ -335,7 +339,7 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			cir.ConfigV1Client = test.configV1Client
-			info, err := cir.getOCPDistributionInfo()
+			info, err := cir.getOCPDistributionInfo(context.Background())
 			if err != nil {
 				assert.Equal(t, err.Error(), test.expectError)
 			}
@@ -792,5 +796,378 @@ func TestOcpDistributionInfoUpdated(t *testing.T) {
 	for _, test := range tests {
 		update := distributionInfoUpdated(test.old, test.new)
 		assert.Equal(t, update, test.expectedUpdate)
+	}
+}
+
+func newTestClusterInfoReconciler(existingCluster, existingKubeOjb, existingOcpOjb []runtime.Object) *ClusterInfoReconciler {
+	s := scheme.Scheme
+	s.AddKnownTypes(clusterv1beta1.GroupVersion, &clusterv1beta1.ManagedClusterInfo{})
+	clusterv1beta1.AddToScheme(s)
+
+	return &ClusterInfoReconciler{
+		Client:         fake.NewFakeClientWithScheme(s, existingCluster...),
+		KubeClient:     kubefake.NewSimpleClientset(existingKubeOjb...),
+		ConfigV1Client: configfake.NewSimpleClientset(existingOcpOjb...),
+	}
+}
+
+func Test_getClientConfig(t *testing.T) {
+	tests := []struct {
+		name               string
+		existingCluster    []runtime.Object
+		existingKubeOjb    []runtime.Object
+		existingOcpOjb     []runtime.Object
+		expectClientConfig clusterv1beta1.ClientConfig
+	}{
+		{
+			name: "Apiserver url not found",
+			existingCluster: []runtime.Object{
+				&clusterv1beta1.ManagedClusterInfo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ManagedClusterInfo1",
+						Namespace: "ManagedClusterInfo1",
+					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
+					Status: clusterv1beta1.ClusterInfoStatus{
+						DistributionInfo: clusterv1beta1.DistributionInfo{
+							Type: clusterv1beta1.DistributionTypeOCP,
+						},
+					},
+				},
+			},
+			existingKubeOjb:    []runtime.Object{},
+			existingOcpOjb:     []runtime.Object{},
+			expectClientConfig: clusterv1beta1.ClientConfig{},
+		},
+		{
+			name: "clusterca not found",
+			existingCluster: []runtime.Object{
+				&clusterv1beta1.ManagedClusterInfo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ManagedClusterInfo1",
+						Namespace: "ManagedClusterInfo1",
+					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
+					Status: clusterv1beta1.ClusterInfoStatus{
+						DistributionInfo: clusterv1beta1.DistributionInfo{
+							Type: clusterv1beta1.DistributionTypeOCP,
+						},
+					},
+				},
+			},
+			existingKubeOjb: []runtime.Object{},
+			existingOcpOjb: []runtime.Object{
+				&ocinfrav1.Infrastructure{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: ocinfrav1.InfrastructureSpec{},
+					Status: ocinfrav1.InfrastructureStatus{
+						APIServerURL: "http://127.0.0.1:6443",
+					},
+				},
+			},
+			expectClientConfig: clusterv1beta1.ClientConfig{},
+		},
+		{
+			name: "add apiserver ca to ManagedClusterInfo",
+			existingCluster: []runtime.Object{
+				&clusterv1beta1.ManagedClusterInfo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ManagedClusterInfo1",
+						Namespace: "ManagedClusterInfo1",
+					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
+					Status: clusterv1beta1.ClusterInfoStatus{
+						DistributionInfo: clusterv1beta1.DistributionInfo{
+							Type: clusterv1beta1.DistributionTypeOCP,
+							OCP:  clusterv1beta1.OCPDistributionInfo{},
+						},
+					},
+				},
+			},
+			existingKubeOjb: []runtime.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-secret",
+						Namespace: "openshift-config",
+					},
+					Data: map[string][]byte{
+						"tls.crt": []byte("fake-cert-data"),
+						"tls.key": []byte("fake-key-data"),
+					},
+					Type: corev1.SecretTypeTLS,
+				},
+			},
+			existingOcpOjb: []runtime.Object{
+				&ocinfrav1.Infrastructure{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: ocinfrav1.InfrastructureSpec{},
+					Status: ocinfrav1.InfrastructureStatus{
+						APIServerURL: "http://127.0.0.1:6443",
+					},
+				},
+				&ocinfrav1.APIServer{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: ocinfrav1.APIServerSpec{
+						ServingCerts: ocinfrav1.APIServerServingCerts{
+							NamedCertificates: []ocinfrav1.APIServerNamedServingCert{
+								{
+									Names:              []string{"127.0.0.1"},
+									ServingCertificate: ocinfrav1.SecretNameReference{Name: "test-secret"},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectClientConfig: clusterv1beta1.ClientConfig{
+				URL:      "http://127.0.0.1:6443",
+				CABundle: []byte("fake-cert-data"),
+			},
+		},
+		{
+			name: "add configmap ca to ManagedClusterInfo",
+			existingCluster: []runtime.Object{
+				&clusterv1beta1.ManagedClusterInfo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ManagedClusterInfo1",
+						Namespace: "ManagedClusterInfo1",
+					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
+					Status: clusterv1beta1.ClusterInfoStatus{
+						DistributionInfo: clusterv1beta1.DistributionInfo{
+							Type: clusterv1beta1.DistributionTypeOCP,
+						},
+					},
+				},
+			},
+			existingKubeOjb: []runtime.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "kube-root-ca.crt",
+						Namespace: "kube-public",
+					},
+					Data: map[string]string{
+						"ca.crt": "configmap-fake-cert-data",
+					},
+				},
+			},
+			existingOcpOjb: []runtime.Object{
+				&ocinfrav1.Infrastructure{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: ocinfrav1.InfrastructureSpec{},
+					Status: ocinfrav1.InfrastructureStatus{
+						APIServerURL: "http://127.0.0.1:6443",
+					},
+				},
+				&ocinfrav1.APIServer{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: ocinfrav1.APIServerSpec{},
+				},
+			},
+			expectClientConfig: clusterv1beta1.ClientConfig{
+				URL:      "http://127.0.0.1:6443",
+				CABundle: []byte("configmap-fake-cert-data"),
+			},
+		},
+		{
+			name: "add service account ca to ManagedClusterInfo",
+			existingCluster: []runtime.Object{
+				&clusterv1beta1.ManagedClusterInfo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ManagedClusterInfo1",
+						Namespace: "ManagedClusterInfo1",
+					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
+					Status: clusterv1beta1.ClusterInfoStatus{
+						DistributionInfo: clusterv1beta1.DistributionInfo{
+							Type: clusterv1beta1.DistributionTypeOCP,
+							OCP:  clusterv1beta1.OCPDistributionInfo{},
+						},
+					},
+				},
+			},
+			existingKubeOjb: []runtime.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "default-token-xxx",
+						Namespace: "kube-system",
+					},
+					Data: map[string][]byte{
+						"ca.crt": []byte("sa-fake-cert-data"),
+					},
+					Type: corev1.SecretTypeServiceAccountToken,
+				},
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "default",
+						Namespace: "kube-system",
+					},
+					Secrets: []corev1.ObjectReference{
+						{
+							Name: "default-token-xxx",
+						},
+					},
+				},
+			},
+			existingOcpOjb: []runtime.Object{
+				&ocinfrav1.Infrastructure{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: ocinfrav1.InfrastructureSpec{},
+					Status: ocinfrav1.InfrastructureStatus{
+						APIServerURL: "http://127.0.0.1:6443",
+					},
+				},
+			},
+			expectClientConfig: clusterv1beta1.ClientConfig{
+				URL:      "http://127.0.0.1:6443",
+				CABundle: []byte("sa-fake-cert-data"),
+			},
+		},
+		{
+			name: "update service account ca to ManagedClusterInfo",
+			existingCluster: []runtime.Object{
+				&clusterv1beta1.ManagedClusterInfo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ManagedClusterInfo1",
+						Namespace: "ManagedClusterInfo1",
+					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
+					Status: clusterv1beta1.ClusterInfoStatus{
+						DistributionInfo: clusterv1beta1.DistributionInfo{
+							Type: clusterv1beta1.DistributionTypeOCP,
+							OCP: clusterv1beta1.OCPDistributionInfo{
+								ManagedClusterClientConfig: clusterv1beta1.ClientConfig{
+									URL:      "http://127.0.0.1:6443",
+									CABundle: []byte("ori data"),
+								},
+							},
+						},
+					},
+				},
+			},
+			existingKubeOjb: []runtime.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "default-token-xxx",
+						Namespace: "kube-system",
+					},
+					Data: map[string][]byte{
+						"ca.crt": []byte("sa-fake-cert-data"),
+					},
+					Type: corev1.SecretTypeServiceAccountToken,
+				},
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "default",
+						Namespace: "kube-system",
+					},
+					Secrets: []corev1.ObjectReference{
+						{
+							Name: "default-token-xxx",
+						},
+					},
+				},
+			},
+			existingOcpOjb: []runtime.Object{
+				&ocinfrav1.Infrastructure{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: ocinfrav1.InfrastructureSpec{},
+					Status: ocinfrav1.InfrastructureStatus{
+						APIServerURL: "http://127.0.0.1:6443",
+					},
+				},
+			},
+			expectClientConfig: clusterv1beta1.ClientConfig{
+				URL:      "http://127.0.0.1:6443",
+				CABundle: []byte("sa-fake-cert-data"),
+			},
+		},
+		{
+			name: "do not need updateca to ManagedClusterInfo",
+			existingCluster: []runtime.Object{
+				&clusterv1beta1.ManagedClusterInfo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "ManagedClusterInfo1",
+						Namespace: "ManagedClusterInfo1",
+					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
+					Status: clusterv1beta1.ClusterInfoStatus{
+						DistributionInfo: clusterv1beta1.DistributionInfo{
+							Type: clusterv1beta1.DistributionTypeOCP,
+							OCP: clusterv1beta1.OCPDistributionInfo{
+								ManagedClusterClientConfig: clusterv1beta1.ClientConfig{
+									URL:      "http://127.0.0.1:6443",
+									CABundle: []byte("sa-fake-cert-data"),
+								},
+							},
+						},
+					},
+				},
+			},
+			existingKubeOjb: []runtime.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "default-token-xxx",
+						Namespace: "kube-system",
+					},
+					Data: map[string][]byte{
+						"ca.crt": []byte("sa-fake-cert-data"),
+					},
+					Type: corev1.SecretTypeServiceAccountToken,
+				},
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "default",
+						Namespace: "kube-system",
+					},
+					Secrets: []corev1.ObjectReference{
+						{
+							Name: "default-token-xxx",
+						},
+					},
+				},
+			},
+			existingOcpOjb: []runtime.Object{
+				&ocinfrav1.Infrastructure{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: ocinfrav1.InfrastructureSpec{},
+					Status: ocinfrav1.InfrastructureStatus{
+						APIServerURL: "http://127.0.0.1:6443",
+					},
+				},
+			},
+			expectClientConfig: clusterv1beta1.ClientConfig{
+				URL:      "http://127.0.0.1:6443",
+				CABundle: []byte("sa-fake-cert-data"),
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			svrc := newTestClusterInfoReconciler(test.existingCluster, test.existingKubeOjb, test.existingOcpOjb)
+			retConfig := svrc.getClientConfig(ctx)
+			if !reflect.DeepEqual(retConfig, test.expectClientConfig) {
+				t.Errorf("case:%v, expect client config is not same as return client config. expecrClientConfigs=%v, return client config=%v", test.name, test.expectClientConfig, retConfig)
+			}
+			return
+		})
 	}
 }

@@ -3,11 +3,12 @@ package controllers
 import (
 	"context"
 	"fmt"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"net"
 	"sort"
 	"time"
+
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 
 	clusterv1alpha1informer "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
 	clusterv1alpha1lister "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1"
@@ -61,6 +62,7 @@ type ClusterInfoReconciler struct {
 	AgentService    string
 	AgentPort       int32
 	Agent           *agent.Agent
+	isIbmCloud      bool
 }
 
 func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -82,6 +84,7 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	// Update cluster info status here.
 	newStatus := clusterInfo.DeepCopy().Status
+
 	var errs []error
 
 	// Config Agent endpoint
@@ -94,8 +97,12 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		newStatus.LoggingPort = *agentPort
 	}
 
+	if newStatus.CloudVendor == clusterv1beta1.CloudVendorIBM {
+		r.isIbmCloud = true
+	}
+
 	// Get distribution info
-	newStatus.DistributionInfo, err = r.getDistributionInfo()
+	newStatus.DistributionInfo, err = r.getDistributionInfo(ctx)
 	if err != nil {
 		log.Error(err, "Failed to get distribution info")
 		errs = append(errs, fmt.Errorf("failed to get distribution info, error:%v ", err))
@@ -333,9 +340,9 @@ func (r *ClusterInfoReconciler) isOpenshift() bool {
 	return false
 }
 
-func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDistributionInfo, error) {
+func (r *ClusterInfoReconciler) getOCPDistributionInfo(ctx context.Context) (clusterv1beta1.OCPDistributionInfo, error) {
 	ocpDistributionInfo := clusterv1beta1.OCPDistributionInfo{}
-	clusterVersion, err := r.ConfigV1Client.ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
+	clusterVersion, err := r.ConfigV1Client.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
 	if err != nil {
 		return ocpDistributionInfo, client.IgnoreNotFound(err)
 	}
@@ -373,7 +380,7 @@ func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDist
 		history.Verified = historyItem.Verified
 		ocpDistributionInfo.VersionHistory = append(ocpDistributionInfo.VersionHistory, history)
 	}
-
+	ocpDistributionInfo.ManagedClusterClientConfig = r.getClientConfig(ctx)
 	ocpDistributionInfo.UpgradeFailed = false
 	conditions := clusterVersion.Status.Conditions
 
@@ -389,7 +396,62 @@ func (r *ClusterInfoReconciler) getOCPDistributionInfo() (clusterv1beta1.OCPDist
 	return ocpDistributionInfo, nil
 }
 
-func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.DistributionInfo, error) {
+func (r *ClusterInfoReconciler) getClientConfig(ctx context.Context) clusterv1beta1.ClientConfig {
+	//get ocp apiserver url
+	kubeAPIServer, err := utils.GetKubeAPIServerAddress(ctx, r.ConfigV1Client)
+	if err != nil {
+		klog.Errorf("Failed to get kube Apiserver. err:%v", err)
+		return clusterv1beta1.ClientConfig{}
+	}
+
+	//get ocp ca
+	clusterca := r.getClusterCA(ctx, kubeAPIServer)
+	if len(clusterca) <= 0 {
+		klog.Errorf("Failed to get clusterca.")
+		return clusterv1beta1.ClientConfig{}
+	}
+
+	klog.V(5).Infof("kubeapiserver: %v, clusterca:%v", kubeAPIServer, clusterca)
+
+	return clusterv1beta1.ClientConfig{
+		URL:      kubeAPIServer,
+		CABundle: clusterca,
+	}
+}
+
+func (r *ClusterInfoReconciler) getClusterCA(ctx context.Context, kubeAPIServer string) []byte {
+	//Get ca from apiserver
+	certData, err := utils.GetCAFromApiserver(ctx, r.ConfigV1Client, r.KubeClient, kubeAPIServer)
+	if err == nil && len(certData) > 0 {
+		return certData
+	}
+	klog.V(3).Infof("Failed to get ca from apiserver, error:%v", err)
+
+	//Get ca from configmap in kube-public namespace
+	certData, err = utils.GetCAFromConfigMap(ctx, r.KubeClient)
+	if err == nil && len(certData) > 0 {
+		return certData
+	}
+
+	klog.V(3).Infof("Failed to get ca from kubepublic namespace configmap, error:%v", err)
+
+	//Fallback to service account token ca.crt
+	certData, err = utils.GetCAFromServiceAccount(ctx, r.KubeClient)
+	if err == nil && len(certData) > 0 {
+		// check if it's roks
+		// if it's ocp && it's on ibm cloud, we treat it as roks
+		if r.isIbmCloud {
+			// simply don't give any certs as the apiserver is using certs signed by known CAs
+			return nil
+		}
+		return certData
+	}
+
+	klog.V(3).Infof("Failed to get ca from service account, error:%v", err)
+	return nil
+}
+
+func (r *ClusterInfoReconciler) getDistributionInfo(ctx context.Context) (clusterv1beta1.DistributionInfo, error) {
 	var err error
 	var distributionInfo = clusterv1beta1.DistributionInfo{
 		Type: clusterv1beta1.DistributionTypeUnknown,
@@ -398,7 +460,7 @@ func (r *ClusterInfoReconciler) getDistributionInfo() (clusterv1beta1.Distributi
 	switch {
 	case r.isOpenshift():
 		distributionInfo.Type = clusterv1beta1.DistributionTypeOCP
-		if distributionInfo.OCP, err = r.getOCPDistributionInfo(); err != nil {
+		if distributionInfo.OCP, err = r.getOCPDistributionInfo(ctx); err != nil {
 			return distributionInfo, err
 		}
 	}
