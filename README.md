@@ -62,3 +62,4 @@ Need to approve and accept the managed clusters registered to the Hub.
 
 If you've found a security issue that you'd like to disclose confidentially please contact
 Red Hat's Product Security team. Details at [here](https://access.redhat.com/security/team/contact).
+
