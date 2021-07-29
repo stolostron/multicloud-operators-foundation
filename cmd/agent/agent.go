@@ -4,9 +4,10 @@ package main
 
 import (
 	"context"
-	"k8s.io/component-base/logs"
 	"os"
 	"time"
+
+	"k8s.io/component-base/logs"
 
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 
@@ -20,6 +21,7 @@ import (
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 	actionctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/action"
+
 	clusterclaimctl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	clusterinfoctl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterinfo"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/nodecollector"
@@ -203,7 +205,6 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			Agent:          agent,
 			AgentService:   o.AgentService,
 		}
-
 		clusterClaimer := clusterclaimctl.ClusterClaimer{
 			ClusterName:    o.ClusterName,
 			HubClient:      mgr.GetClient(),

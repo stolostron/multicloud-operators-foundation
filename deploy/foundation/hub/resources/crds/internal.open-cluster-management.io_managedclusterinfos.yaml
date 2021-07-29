@@ -134,6 +134,19 @@ spec:
                       desiredVersion:
                         description: DesiredVersion is the version that the cluster is reconciling towards. Deprecated in release 2.3 and will be removed in the future. User Desired instead.
                         type: string
+                      managedClusterClientConfig:
+                        description: Controller will sync this field to managedcluster's ManagedClusterClientConfigs
+                        properties:
+                          caBundle:
+                            description: CABundle is the ca bundle to connect to apiserver of the managed cluster. System certs are used if it is not set.
+                            format: byte
+                            type: string
+                          url:
+                            description: URL is the URL of apiserver endpoint of the managed cluster.
+                            type: string
+                        required:
+                        - url
+                        type: object
                       upgradeFailed:
                         description: UpgradeFailed indicates whether upgrade of the manage cluster is failed. This is true if the status of Failing condition is True and the version is different with desiredVersion in clusterVersion
                         type: boolean

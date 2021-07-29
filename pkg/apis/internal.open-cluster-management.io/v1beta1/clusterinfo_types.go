@@ -19,6 +19,17 @@ type ClusterInfoSpec struct {
 	MasterEndpoint string `json:"masterEndpoint,omitempty"`
 }
 
+type ClientConfig struct {
+	// URL is the URL of apiserver endpoint of the managed cluster.
+	// +required
+	URL string `json:"url"`
+
+	// CABundle is the ca bundle to connect to apiserver of the managed cluster.
+	// System certs are used if it is not set.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+}
+
 // ClusterInfoStatus is the information about managed cluster
 type ClusterInfoStatus struct {
 	// Conditions contains condition information for a managed cluster
@@ -203,6 +214,10 @@ type OCPDistributionInfo struct {
 	// applied the state will be Partial. Only a limited amount of update history
 	// is preserved.
 	VersionHistory []OCPVersionUpdateHistory `json:"versionHistory,omitempty"`
+
+	//Controller will sync this field to managedcluster's ManagedClusterClientConfigs
+	// +optional
+	ManagedClusterClientConfig ClientConfig `json:"managedClusterClientConfig,omitempty"`
 }
 
 // DistributionType is type of distribution
