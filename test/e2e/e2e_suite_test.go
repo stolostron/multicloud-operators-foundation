@@ -3,13 +3,15 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
-	"testing"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 
@@ -42,11 +44,13 @@ var (
 	kubeClient            kubernetes.Interface
 	hiveClient            hiveclient.Interface
 	clusterClient         clusterclient.Interface
+	ocpClient             openshiftclientset.Interface
 	addonClient           addonv1alpha1client.Interface
 	apiRegistrationClient *apiregistrationclient.ApiregistrationV1Client
 	defaultManagedCluster string
 	foundationNS          string
 	deployedByACM         = false
+	isOcp                 = false
 )
 
 // This suite is sensitive to the following environment variables:
@@ -70,6 +74,9 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	kubeClient, err = util.NewKubeClient()
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+	ocpClient, err = util.NewOCPClient()
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	hiveClient, err = util.NewHiveClient()
@@ -104,4 +111,16 @@ var _ = ginkgo.BeforeSuite(func() {
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	}
 
+	gomega.Eventually(func() error {
+		managedClusterInfo, err := util.GetResource(dynamicClient, util.ClusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
+		if err != nil {
+			return err
+		}
+		// check the distributionInfo
+		isOcp, err = util.IsOCP(managedClusterInfo)
+		if err != nil {
+			return err
+		}
+		return nil
+	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 })

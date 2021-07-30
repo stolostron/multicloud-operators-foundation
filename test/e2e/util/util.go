@@ -3,19 +3,22 @@ package util
 import (
 	"context"
 	"fmt"
-	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
-	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
-	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"os/user"
 	"path"
 
+	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
+	"k8s.io/apimachinery/pkg/util/rand"
+
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
+
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
@@ -33,6 +36,11 @@ var ManagedClusterSetGVR = schema.GroupVersionResource{
 	Group:    "cluster.open-cluster-management.io",
 	Version:  "v1alpha1",
 	Resource: "managedclustersets",
+}
+var ClusterInfoGVR = schema.GroupVersionResource{
+	Group:    "internal.open-cluster-management.io",
+	Version:  "v1beta1",
+	Resource: "managedclusterinfos",
 }
 
 func getKubeConfigFile() (string, error) {
@@ -74,6 +82,19 @@ func NewKubeClient() (kubernetes.Interface, error) {
 	}
 
 	return kubernetes.NewForConfig(cfg)
+}
+
+func NewOCPClient() (openshiftclientset.Interface, error) {
+	kubeConfigFile, err := getKubeConfigFile()
+	if err != nil {
+		return nil, err
+	}
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return openshiftclientset.NewForConfig(cfg)
 }
 
 func NewHiveClient() (hiveclient.Interface, error) {
@@ -290,6 +311,23 @@ func CheckNodeList(obj *unstructured.Unstructured) error {
 	}
 
 	return nil
+}
+
+//Check if the current cluster is ocp by managedclusterinfo
+func IsOCP(obj *unstructured.Unstructured) (bool, error) {
+	distributionInfo, found, err := unstructured.NestedMap(obj.Object, "status", "distributionInfo")
+	if err != nil || !found {
+		return false, fmt.Errorf("failed to get distributionInfo. found:%v, err:%v", found, err)
+	}
+	distributionType, found, err := unstructured.NestedString(distributionInfo, "type")
+	if err != nil || !found {
+		return false, fmt.Errorf("failed to get distributionType. found:%v, err:%v", found, err)
+	}
+
+	if distributionType == string(clusterinfov1beta1.DistributionTypeOCP) {
+		return true, nil
+	}
+	return false, nil
 }
 
 func CheckDistributionInfo(obj *unstructured.Unstructured) error {

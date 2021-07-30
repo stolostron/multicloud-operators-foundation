@@ -71,7 +71,7 @@ var _ = ginkgo.Describe("Testing Pod log", func() {
 	ginkgo.It("should get log from pod successfully", func() {
 		// check the ManagedClusterInfo status
 		gomega.Eventually(func() error {
-			managedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
+			managedClusterInfo, err := util.GetResource(dynamicClient, util.ClusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
 			if err != nil {
 				return err
 			}

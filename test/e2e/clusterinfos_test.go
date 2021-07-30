@@ -5,21 +5,13 @@ import (
 	"github.com/onsi/gomega"
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
-
-	"k8s.io/apimachinery/pkg/runtime/schema"
 )
-
-var clusterInfoGVR = schema.GroupVersionResource{
-	Group:    "internal.open-cluster-management.io",
-	Version:  "v1beta1",
-	Resource: "managedclusterinfos",
-}
 
 var _ = ginkgo.Describe("Testing ManagedClusterInfo", func() {
 	ginkgo.Context("Get ManagedClusterInfo", func() {
 		ginkgo.It("should get a ManagedClusterInfo successfully in cluster", func() {
 			gomega.Eventually(func() bool {
-				exists, err := util.HasResource(dynamicClient, clusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
+				exists, err := util.HasResource(dynamicClient, util.ClusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
 				if err != nil {
 					return false
 				}
@@ -29,7 +21,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterInfo", func() {
 
 		ginkgo.It("should have node list reported successfully in cluster", func() {
 			gomega.Eventually(func() error {
-				managedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
+				managedClusterInfo, err := util.GetResource(dynamicClient, util.ClusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
 				if err != nil {
 					return err
 				}
@@ -40,7 +32,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterInfo", func() {
 
 		ginkgo.It("should have a valid condition", func() {
 			gomega.Eventually(func() bool {
-				managedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
+				managedClusterInfo, err := util.GetResource(dynamicClient, util.ClusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
 				if err != nil {
 					return false
 				}
@@ -51,7 +43,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterInfo", func() {
 
 		ginkgo.It("should have valid distributionInfo", func() {
 			gomega.Eventually(func() error {
-				managedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
+				managedClusterInfo, err := util.GetResource(dynamicClient, util.ClusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
 				if err != nil {
 					return err
 				}
@@ -62,7 +54,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterInfo", func() {
 
 		ginkgo.It("should have valid ClusterID", func() {
 			gomega.Eventually(func() error {
-				managedClusterInfo, err := util.GetResource(dynamicClient, clusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
+				managedClusterInfo, err := util.GetResource(dynamicClient, util.ClusterInfoGVR, defaultManagedCluster, defaultManagedCluster)
 				if err != nil {
 					return err
 				}
@@ -81,7 +73,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterInfo", func() {
 
 			// ManagedClusterInfo should exist
 			gomega.Eventually(func() bool {
-				existing, err := util.HasResource(dynamicClient, clusterInfoGVR, testManagedClusterName, testManagedClusterName)
+				existing, err := util.HasResource(dynamicClient, util.ClusterInfoGVR, testManagedClusterName, testManagedClusterName)
 				if err != nil {
 					return false
 				}
@@ -100,7 +92,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterInfo", func() {
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			gomega.Eventually(func() bool {
-				existing, err := util.HasResource(dynamicClient, clusterInfoGVR, testManagedClusterName, testManagedClusterName)
+				existing, err := util.HasResource(dynamicClient, util.ClusterInfoGVR, testManagedClusterName, testManagedClusterName)
 				if err != nil {
 					return false
 				}
