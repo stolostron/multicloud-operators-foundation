@@ -51,6 +51,7 @@ Need to approve and accept the managed clusters registered to the Hub.
     make deploy-foundation-hub
     ```
 
+
 2. Deploy foundation agent components to the managed cluster from the hub cluster.
    
     ```sh
