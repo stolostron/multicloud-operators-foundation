@@ -14,14 +14,14 @@ import (
 )
 
 const (
-	apiserverConfigName      = "cluster"
-	openshiftConfigNamespace = "openshift-config"
-	serviceAccountNamespace  = "kube-system"
-	serviceAccountName       = "default"
+	ApiserverConfigName      = "cluster"
+	OpenshiftConfigNamespace = "openshift-config"
+	ServiceAccountNamespace  = "kube-system"
+	ServiceAccountName       = "default"
 	infrastructureConfigName = "cluster"
-	configmapNamespace       = "kube-public"
-	crtConfigmapName         = "kube-root-ca.crt"
-	clusterinfoConfigmap     = "cluster-info"
+	ConfigmapNamespace       = "kube-public"
+	CrtConfigmapName         = "kube-root-ca.crt"
+	ClusterinfoConfigmap     = "cluster-info"
 )
 
 func GetKubeAPIServerAddress(ctx context.Context, openshiftClient openshiftclientset.Interface) (string, error) {
@@ -35,7 +35,7 @@ func GetKubeAPIServerAddress(ctx context.Context, openshiftClient openshiftclien
 // getKubeAPIServerSecretName iterate through all namespacedCertificates
 // returns the first one which has a name matches the given dnsName
 func getKubeAPIServerSecretName(ctx context.Context, ocpClient openshiftclientset.Interface, dnsName string) (string, error) {
-	apiserver, err := ocpClient.ConfigV1().APIServers().Get(ctx, apiserverConfigName, v1.GetOptions{})
+	apiserver, err := ocpClient.ConfigV1().APIServers().Get(ctx, ApiserverConfigName, v1.GetOptions{})
 	if err != nil {
 		return "", err
 	}
@@ -54,14 +54,14 @@ func getKubeAPIServerSecretName(ctx context.Context, ocpClient openshiftclientse
 
 // getKubeAPIServerCertificate looks for secret in openshift-config namespace, and returns tls.crt
 func getKubeAPIServerCertificate(ctx context.Context, kubeClient kubernetes.Interface, secretName string) ([]byte, error) {
-	secret, err := kubeClient.CoreV1().Secrets(openshiftConfigNamespace).Get(ctx, secretName, v1.GetOptions{})
+	secret, err := kubeClient.CoreV1().Secrets(OpenshiftConfigNamespace).Get(ctx, secretName, v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	if secret.Type != corev1.SecretTypeTLS {
 		return nil, fmt.Errorf(
 			"secret %s/%s should have type=kubernetes.io/tls",
-			openshiftConfigNamespace,
+			OpenshiftConfigNamespace,
 			secretName,
 		)
 	}
@@ -69,7 +69,7 @@ func getKubeAPIServerCertificate(ctx context.Context, kubeClient kubernetes.Inte
 	if !ok {
 		return nil, fmt.Errorf(
 			"failed to find data[tls.crt] in secret %s/%s",
-			openshiftConfigNamespace,
+			OpenshiftConfigNamespace,
 			secretName,
 		)
 	}
@@ -95,7 +95,7 @@ func GetCAFromApiserver(ctx context.Context, ocpClient openshiftclientset.Interf
 
 //GetCACert returns the CA cert. It searches in the kube-root-ca.crt configmap in kube-public ns.
 func GetCAFromConfigMap(ctx context.Context, kubeClient kubernetes.Interface) ([]byte, error) {
-	cm, err := kubeClient.CoreV1().ConfigMaps(configmapNamespace).Get(ctx, crtConfigmapName, metav1.GetOptions{})
+	cm, err := kubeClient.CoreV1().ConfigMaps(ConfigmapNamespace).Get(ctx, CrtConfigmapName, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
@@ -103,12 +103,12 @@ func GetCAFromConfigMap(ctx context.Context, kubeClient kubernetes.Interface) ([
 }
 
 func GetCAFromServiceAccount(ctx context.Context, kubeClient kubernetes.Interface) ([]byte, error) {
-	defaultsa, err := kubeClient.CoreV1().ServiceAccounts(serviceAccountNamespace).Get(ctx, serviceAccountName, v1.GetOptions{})
+	defaultsa, err := kubeClient.CoreV1().ServiceAccounts(ServiceAccountNamespace).Get(ctx, ServiceAccountName, v1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	for _, objectRef := range defaultsa.Secrets {
-		defaultSecret, err := kubeClient.CoreV1().Secrets(serviceAccountNamespace).Get(ctx, objectRef.Name, v1.GetOptions{})
+		defaultSecret, err := kubeClient.CoreV1().Secrets(ServiceAccountNamespace).Get(ctx, objectRef.Name, v1.GetOptions{})
 		if err != nil || defaultSecret.Type != corev1.SecretTypeServiceAccountToken || defaultSecret == nil {
 			continue
 		}
@@ -118,6 +118,6 @@ func GetCAFromServiceAccount(ctx context.Context, kubeClient kubernetes.Interfac
 	}
 	return nil, fmt.Errorf("secret with type %s not found in service account %s/%s",
 		corev1.SecretTypeServiceAccountToken,
-		serviceAccountNamespace,
-		serviceAccountName)
+		ServiceAccountNamespace,
+		ServiceAccountName)
 }
