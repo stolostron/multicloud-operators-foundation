@@ -60,7 +60,7 @@ func ApplyClusterRoleBinding(ctx context.Context, kubeClient kubernetes.Interfac
 
 	modified := false
 
-	MergeMap(&modified, existingCopy.Labels, requiredCopy.Labels)
+	MergeMap(&modified, &existingCopy.Labels, requiredCopy.Labels)
 
 	roleRefIsSame := reflect.DeepEqual(existingCopy.RoleRef, requiredCopy.RoleRef)
 	subjectsAreSame := EqualSubjects(existingCopy.Subjects, requiredCopy.Subjects)
@@ -90,7 +90,7 @@ func ApplyRoleBinding(ctx context.Context, kubeClient kubernetes.Interface, requ
 
 	modified := false
 
-	MergeMap(&modified, existingCopy.Labels, requiredCopy.Labels)
+	MergeMap(&modified, &existingCopy.Labels, requiredCopy.Labels)
 
 	roleRefIsSame := reflect.DeepEqual(existingCopy.RoleRef, requiredCopy.RoleRef)
 	subjectsAreSame := EqualSubjects(existingCopy.Subjects, requiredCopy.Subjects)

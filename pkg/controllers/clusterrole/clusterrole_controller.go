@@ -137,7 +137,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		managedClusterKey: cluster.GetName(),
 	}
 	var modified = false
-	utils.MergeMap(&modified, clusterNamespace.GetLabels(), ClusterNameLabel)
+	utils.MergeMap(&modified, &clusterNamespace.Labels, ClusterNameLabel)
 
 	if modified {
 		_, err = r.kubeClient.CoreV1().Namespaces().Update(context.TODO(), clusterNamespace, metav1.UpdateOptions{})

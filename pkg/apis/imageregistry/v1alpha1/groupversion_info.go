@@ -16,7 +16,7 @@ limitations under the License.
 
 // Package v1beta1 contains API Schema definitions for the action v1alpha1 API group
 // +kubebuilder:object:generate=true
-// +groupName=cluster.open-cluster-management.io
+// +groupName=imageregistry.open-cluster-management.io
 package v1alpha1
 
 import (
@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	GroupName = "cluster.open-cluster-management.io"
+	GroupName = "imageregistry.open-cluster-management.io"
 
 	// GroupVersion is group version used to register these objects
 	GroupVersion = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}

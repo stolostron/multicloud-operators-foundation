@@ -80,7 +80,7 @@ spec:
             containers:
             - name: klusterlet-addon-workmgr
               image: klusterlet-addon-workmgr
-              imagePullPolicy: IfNotPresent
+              imagePullPolicy: Always
               args:
                 - "/agent"
                 - "--hub-kubeconfig=/var/run/hub/kubeconfig"
