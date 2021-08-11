@@ -5,8 +5,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"net"
 	"net/http"
 	"reflect"
@@ -17,11 +15,12 @@ import (
 
 	clusterapiv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	prometheusapi "github.com/prometheus/client_golang/api"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
-	prometheusconfig "github.com/prometheus/common/config"
 	prometheusmodel "github.com/prometheus/common/model"
 	corev1 "k8s.io/api/core/v1"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,6 +31,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/transport"
 	"k8s.io/klog"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -232,7 +232,7 @@ func (r *resourceCollector) queryResource(ctx context.Context, client prometheus
 
 func (r *resourceCollector) newPrometheusClient(caData []byte) (prometheusv1.API, error) {
 	var err error
-	transport := &http.Transport{
+	httpTransport := &http.Transport{
 		Proxy: http.ProxyFromEnvironment,
 		DialContext: (&net.Dialer{
 			Timeout:   30 * time.Second,
@@ -254,12 +254,16 @@ func (r *resourceCollector) newPrometheusClient(caData []byte) (prometheusv1.API
 		return nil, fmt.Errorf("no cert found in ca file")
 	}
 
-	transport.TLSClientConfig = &tls.Config{RootCAs: r.certPool, MinVersion: tls.VersionTLS12}
+	httpTransport.TLSClientConfig = &tls.Config{RootCAs: r.certPool, MinVersion: tls.VersionTLS12}
 
+	roundTripper, err := transport.NewBearerAuthWithRefreshRoundTripper("", r.tokenFile, httpTransport)
+	if err != nil {
+		return nil, err
+	}
 	// read token from token files
 	client, err := prometheusapi.NewClient(prometheusapi.Config{
 		Address:      r.server,
-		RoundTripper: prometheusconfig.NewBearerAuthFileRoundTripper(r.tokenFile, transport),
+		RoundTripper: roundTripper,
 	})
 	if err != nil {
 		return nil, err

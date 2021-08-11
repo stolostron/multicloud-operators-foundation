@@ -103,7 +103,53 @@ type HiveConfigSpec struct {
 	// 3. A list of VPCs that should be able to resolve the DNS addresses setup for Private Link.
 	AWSPrivateLink *AWSPrivateLinkConfig `json:"awsPrivateLink,omitempty"`
 
+	// ReleaseImageVerificationConfigMapRef is a reference to the ConfigMap that
+	// will be used to verify release images.
+	//
+	// The config map structure is exactly the same as the config map used for verification of release
+	// images for OpenShift 4 during upgrades. Therefore you can usually set this to the config map shipped
+	// as part of OpenShift (openshift-config-managed/release-verification).
+	//
+	// See https://github.com/openshift/cluster-update-keys for more details.
+	// The keys within the config map in the data field define how verification is performed:
+	//
+	// verifier-public-key-*: One or more GPG public keys in ASCII form that must have signed the
+	//                        release image by digest.
+	//
+	// store-*: A URL (scheme file://, http://, or https://) location that contains signatures. These
+	//          signatures are in the atomic container signature format. The URL will have the digest
+	//          of the image appended to it as "<STORE>/<ALGO>=<DIGEST>/signature-<NUMBER>" as described
+	//          in the container image signing format. The docker-image-manifest section of the
+	//          signature must match the release image digest. Signatures are searched starting at
+	//          NUMBER 1 and incrementing if the signature exists but is not valid. The signature is a
+	//          GPG signed and encrypted JSON message. The file store is provided for testing only at
+	//          the current time, although future versions of the CVO might allow host mounting of
+	//          signatures.
+	//
+	// See https://github.com/containers/image/blob/ab49b0a48428c623a8f03b41b9083d48966b34a9/docs/signature-protocols.md
+	// for a description of the signature store
+	//
+	// The returned verifier will require that any new release image will only be considered verified
+	// if each provided public key has signed the release image digest. The signature may be in any
+	// store and the lookup order is internally defined.
+	//
+	// If not set, no verification will be performed.
+	// +optional
+	ReleaseImageVerificationConfigMapRef *ReleaseImageVerificationConfigMapReference `json:"releaseImageVerificationConfigMapRef,omitempty"`
+	// ArgoCD specifies configuration for ArgoCD integration. If enabled, Hive will automatically add provisioned
+	// clusters to ArgoCD, and remove them when they are deprovisioned.
+	ArgoCD ArgoCDConfig `json:"argoCDConfig,omitempty"`
+
 	FeatureGates *FeatureGateSelection `json:"featureGates,omitempty"`
+}
+
+// ReleaseImageVerificationConfigMapReference is a reference to the ConfigMap that
+// will be used to verify release images.
+type ReleaseImageVerificationConfigMapReference struct {
+	// Namespace of the ConfigMap
+	Namespace string `json:"namespace"`
+	// Name of the ConfigMap
+	Name string `json:"name"`
 }
 
 // AWSPrivateLinkConfig defines the configuration for the aws-private-link controller.
@@ -235,6 +281,50 @@ type HiveConfigStatus struct {
 	// ConfigApplied will be set by the hive operator to indicate whether or not the LastGenerationObserved
 	// was successfully reconciled.
 	ConfigApplied bool `json:"configApplied,omitempty"`
+
+	// Conditions includes more detailed status for the HiveConfig
+	// +optional
+	Conditions []HiveConfigCondition `json:"conditions,omitempty"`
+}
+
+// HiveConfigCondition contains details for the current condition of a HiveConfig
+type HiveConfigCondition struct {
+	// Type is the type of the condition.
+	Type HiveConfigConditionType `json:"type"`
+	// Status is the status of the condition.
+	Status corev1.ConditionStatus `json:"status"`
+	// LastProbeTime is the last time we probed the condition.
+	// +optional
+	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
+	// LastTransitionTime is the last time the condition transitioned from one status to another.
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	// Reason is a unique, one-word, CamelCase reason for the condition's last transition.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// Message is a human-readable message indicating details about last transition.
+	// +optional
+	Message string `json:"message,omitempty"`
+}
+
+// HiveConfigConditionType is a valid value for HiveConfigCondition.Type
+type HiveConfigConditionType string
+
+const (
+	// HiveReadyCondition is set when hive is deployed successfully and ready to provision clusters
+	HiveReadyCondition HiveConfigConditionType = "Ready"
+)
+
+// ArgoCDConfig contains settings for integration with ArgoCD.
+type ArgoCDConfig struct {
+	// Enabled dictates if ArgoCD gitops integration is enabled.
+	// If not specified, the default is disabled.
+	Enabled bool `json:"enabled"`
+
+	// Namespace specifies the namespace where ArgoCD is installed. Used for the location of cluster secrets.
+	// Defaults to "argocd"
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // BackupConfig contains settings for the Velero backup integration.
@@ -436,6 +526,7 @@ const (
 	ClustersyncControllerName          ControllerName = "clustersync"
 	MachineManagementControllerName    ControllerName = "machineManagement"
 	AWSPrivateLinkControllerName       ControllerName = "awsprivatelink"
+	HiveControllerName                 ControllerName = "hive"
 )
 
 // SpecificControllerConfig contains the configuration for a specific controller

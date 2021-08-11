@@ -49,6 +49,10 @@ const (
 	// FinalizerMachineManagementTargetNamespace is used on ClusterDeployments to
 	// ensure we clean up the machine management target namespace before cleaning up the API object.
 	FinalizerMachineManagementTargetNamespace string = "hive.openshift.io/machine-management-targetnamespace"
+
+	// FinalizerArgoCDCluster is used on ClusterDeployments to ensure we clean up the ArgoCD cluster
+	// secret before cleaning up the API object.
+	FinalizerArgoCDCluster = "hive.openshift.io/argocd-cluster"
 )
 
 // ClusterPowerState is used to indicate whether a cluster is running or in a
@@ -88,7 +92,9 @@ type ClusterDeploymentSpec struct {
 	// +optional
 	PullSecretRef *corev1.LocalObjectReference `json:"pullSecretRef,omitempty"`
 
-	// PreserveOnDelete allows the user to disconnect a cluster from Hive without deprovisioning it
+	// PreserveOnDelete allows the user to disconnect a cluster from Hive without deprovisioning it. This can also be
+	// used to abandon ongoing cluster deprovision.
+	// +optional
 	PreserveOnDelete bool `json:"preserveOnDelete,omitempty"`
 
 	// ControlPlaneConfig contains additional configuration for the target cluster's control plane
@@ -138,7 +144,10 @@ type ClusterDeploymentSpec struct {
 	// HibernateAfter will transition a cluster to hibernating power state after it has been running for the
 	// given duration. The time that a cluster has been running is the time since the cluster was installed or the
 	// time since the cluster last came out of hibernation.
+	// This is a Duration value; see https://pkg.go.dev/time#ParseDuration for accepted formats.
 	// +optional
+	// +kubebuilder:validation:Type=string
+	// +kubebuilder:validation:Format=duration
 	HibernateAfter *metav1.Duration `json:"hibernateAfter,omitempty"`
 
 	// InstallAttemptsLimit is the maximum number of times Hive will attempt to install the cluster.
@@ -258,7 +267,8 @@ type ClusterMetadata struct {
 	AdminKubeconfigSecretRef corev1.LocalObjectReference `json:"adminKubeconfigSecretRef"`
 
 	// AdminPasswordSecretRef references the secret containing the admin username/password which can be used to login to this cluster.
-	AdminPasswordSecretRef corev1.LocalObjectReference `json:"adminPasswordSecretRef"`
+	// +optional
+	AdminPasswordSecretRef *corev1.LocalObjectReference `json:"adminPasswordSecretRef,omitempty"`
 }
 
 // ClusterDeploymentStatus defines the observed state of ClusterDeployment
@@ -336,12 +346,7 @@ type ClusterDeploymentCondition struct {
 // ClusterDeploymentConditionType is a valid value for ClusterDeploymentCondition.Type
 type ClusterDeploymentConditionType string
 
-// WARNING: All ClusterDeploymentConditionTypes should be added to the AllClusterDeploymentConditions slice below.
 const (
-	// ClusterImageSetNotFoundCondition is set when the ClusterImageSet referenced by the
-	// ClusterDeployment is not found.
-	ClusterImageSetNotFoundCondition ClusterDeploymentConditionType = "ClusterImageSetNotFound"
-
 	// InstallerImageResolutionFailedCondition is a condition that indicates whether the job
 	// to determine the installer image based on a release image was successful.
 	InstallerImageResolutionFailedCondition ClusterDeploymentConditionType = "InstallerImageResolutionFailed"
@@ -392,6 +397,10 @@ const (
 	// ProvisionStoppedCondition is set when cluster provisioning is stopped
 	ProvisionStoppedCondition ClusterDeploymentConditionType = "ProvisionStopped"
 
+	// RequirementsMetCondition is set True when all pre-provision requirements have been met,
+	// and the controllers can begin the cluster install.
+	RequirementsMetCondition ClusterDeploymentConditionType = "RequirementsMet"
+
 	// AuthenticationFailureCondition is true when platform credentials cannot be used because of authentication failure
 	AuthenticationFailureClusterDeploymentCondition ClusterDeploymentConditionType = "AuthenticationFailure"
 
@@ -410,23 +419,16 @@ const (
 	ClusterInstallRequirementsMetClusterDeploymentCondition ClusterDeploymentConditionType = "ClusterInstallRequirementsMet"
 )
 
-// AllClusterDeploymentConditions is a slice containing all condition types. This can be used for dealing with
-// cluster deployment conditions dynamically.
-var AllClusterDeploymentConditions = []ClusterDeploymentConditionType{
-	ClusterImageSetNotFoundCondition,
-	InstallerImageResolutionFailedCondition,
-	ControlPlaneCertificateNotFoundCondition,
-	IngressCertificateNotFoundCondition,
-	UnreachableCondition,
+// PositivePolarityClusterDeploymentConditions is a slice containing all condition types with positive polarity
+// For controllers that handle these conditions, the desired state is True
+// All cluster deployment condition types that are not in this slice are assumed to have negative polarity
+var PositivePolarityClusterDeploymentConditions = []ClusterDeploymentConditionType{
 	ActiveAPIURLOverrideCondition,
-	DNSNotReadyCondition,
-	ProvisionFailedCondition,
-	SyncSetFailedCondition,
-	RelocationFailedCondition,
 	ClusterHibernatingCondition,
-	InstallLaunchErrorCondition,
 	AWSPrivateLinkReadyClusterDeploymentCondition,
-	AWSPrivateLinkFailedClusterDeploymentCondition,
+	ClusterInstallCompletedClusterDeploymentCondition,
+	ClusterInstallRequirementsMetClusterDeploymentCondition,
+	RequirementsMetCondition,
 }
 
 // Cluster hibernating reasons

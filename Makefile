@@ -5,6 +5,7 @@ all: build
 include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 	golang.mk \
 	targets/openshift/deps.mk \
+	targets/openshift/imagebuilder.mk \
 	targets/openshift/images.mk \
 	targets/openshift/bindata.mk \
 	lib/tmp.mk \
@@ -18,6 +19,7 @@ KUSTOMIZE_VERSION?=v3.5.4
 KUSTOMIZE_ARCHIVE_NAME?=kustomize_$(KUSTOMIZE_VERSION)_$(GOHOSTOS)_$(GOHOSTARCH).tar.gz
 kustomize_dir:=$(dir $(KUSTOMIZE))
 
+
 # Image URL to use all building/pushing image targets;
 IMAGE ?= multicloud-manager
 IMAGE_REGISTRY ?= quay.io/open-cluster-management
@@ -29,6 +31,9 @@ GIT_HOST ?= github.com/open-cluster-management
 BASE_DIR := $(shell basename $(PWD))
 DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 BINDIR ?= _output
+
+# Controller runtime need use this variable as tmp cache dir. if not set, ut will fail in prow
+export XDG_CACHE_HOME ?= $(BASE_DIR)/.cache
 
 # KUBEBUILDER for unit test
 export KUBEBUILDER_ASSETS ?=$(shell pwd)/$(PERMANENT_TMP_GOPATH)/kubebuilder/bin
