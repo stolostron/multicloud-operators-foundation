@@ -406,20 +406,20 @@ func (c *ClusterClaimer) getKubeVersionPlatformProduct() (kubeVersion, platform,
 		platform = PlatformIBMZ
 	case architecture == "ppc64le":
 		platform = PlatformIBMP
-	case strings.Contains(providerID, "ibm"):
+	case strings.HasPrefix(providerID, "ibm"):
 		platform = PlatformIBM
-	case strings.Contains(providerID, "azure"):
+	case strings.HasPrefix(providerID, "azure"):
 		platform = PlatformAzure
 		if product == ProductOther {
 			product = ProductAKS
 		}
-	case strings.Contains(providerID, "aws"):
+	case strings.HasPrefix(providerID, "aws"):
 		platform = PlatformAWS
-	case strings.Contains(providerID, "gce"):
+	case strings.HasPrefix(providerID, "gce"):
 		platform = PlatformGCP
-	case strings.Contains(providerID, "vsphere"):
+	case strings.HasPrefix(providerID, "vsphere"):
 		platform = PlatformVSphere
-	case strings.Contains(providerID, "openstack"):
+	case strings.HasPrefix(providerID, "openstack"):
 		platform = PlatformOpenStack
 	}
 
