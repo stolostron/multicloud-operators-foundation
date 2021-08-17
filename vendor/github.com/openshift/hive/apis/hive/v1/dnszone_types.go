@@ -27,6 +27,12 @@ type DNSZoneSpec struct {
 	// +optional
 	LinkToParentDomain bool `json:"linkToParentDomain,omitempty"`
 
+	// PreserveOnDelete allows the user to disconnect a DNSZone from Hive without deprovisioning it.
+	// This can also be used to abandon ongoing DNSZone deprovision.
+	// Typically set automatically due to PreserveOnDelete being set on a ClusterDeployment.
+	// +optional
+	PreserveOnDelete bool `json:"preserveOnDelete,omitempty"`
+
 	// AWS specifies AWS-specific cloud configuration
 	// +optional
 	AWS *AWSDNSZoneSpec `json:"aws,omitempty"`
@@ -179,6 +185,9 @@ const (
 	// AuthenticationFailureCondition is true when credentials cannot be used to create a
 	// DNS zone because they fail authentication
 	AuthenticationFailureCondition DNSZoneConditionType = "AuthenticationFailure"
+	// GenericDNSErrorsCondition is true when there's some DNS Zone related error that isn't related to
+	// authentication or credentials, and needs to be bubbled up to ClusterDeployment
+	GenericDNSErrorsCondition DNSZoneConditionType = "DNSError"
 )
 
 // +genclient
