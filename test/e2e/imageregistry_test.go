@@ -1,12 +1,15 @@
 package e2e
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/imageregistry"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
+	"io"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -108,23 +111,44 @@ var _ = ginkgo.Describe("Testing ManagedClusterImageRegistry", func() {
 func output_debug(namespace, clusterName, imageRegistryName, placementName string) {
 	cluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), clusterName, metav1.GetOptions{})
 	if err != nil {
-		fmt.Printf("failed to get cluster %v\n", cluster)
+		fmt.Printf("failed to get cluster %#v\n", cluster)
 	}
-	fmt.Printf("cluster %v :%v", clusterName, cluster)
+	fmt.Printf("cluster %v :%#v \n", clusterName, cluster)
 	placementDecisionList, err := clusterClient.ClusterV1alpha1().PlacementDecisions(namespace).List(context.TODO(), metav1.ListOptions{
 		LabelSelector: fmt.Sprintf("cluster.open-cluster-management.io/placement=%s", placementName),
 	})
 	if err != nil {
-		fmt.Printf("failed to get placementDecisionList %v\n", err)
+		fmt.Printf("failed to get placementDecisionList %#v\n", err)
 	}
 
 	for _, placementDecision := range placementDecisionList.Items {
-		fmt.Printf("placementDecision %v\n", placementDecision)
+		fmt.Printf("placementDecision %#v\n", placementDecision)
 	}
 
-	imageRistry, err := util.GetImageRegistry(dynamicClient, namespace, imageRegistryName)
+	imageRegistry, err := util.GetImageRegistry(dynamicClient, namespace, imageRegistryName)
 	if err != nil {
-		fmt.Printf("failed to get imageRegistry %v\n", err)
+		fmt.Printf("failed to get imageRegistry %#v\n", err)
 	}
-	fmt.Printf("imageRistry %v\n", imageRistry)
+	fmt.Printf("imageRistry %#v\n", imageRegistry)
+
+	pods, err := kubeClient.CoreV1().Pods("open-cluster-management").List(context.TODO(), metav1.ListOptions{
+		LabelSelector: "app=ocm-controller"})
+	if err != nil {
+		fmt.Printf("failed to get pods %#v\n", err)
+	}
+	for _, pod := range pods.Items {
+		fmt.Printf("ocm-controller pod: %#v\n", pod)
+		podLogs, err := kubeClient.CoreV1().Pods("open-cluster-management").
+			GetLogs(pod.Name, &corev1.PodLogOptions{}).Stream(context.TODO())
+		if err != nil {
+			fmt.Printf("Failed to read logs %v\n", err)
+		}
+		buf := new(bytes.Buffer)
+		_, err = io.Copy(buf, podLogs)
+		if err != nil {
+			fmt.Printf("failed output %v \n", err)
+		}
+
+		fmt.Printf("logs: %s \n", buf.String())
+	}
 }

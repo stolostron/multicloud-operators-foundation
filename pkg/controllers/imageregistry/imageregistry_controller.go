@@ -116,6 +116,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	klog.Info("###### Image Registry Reconcile......")
 	imageRegistry := &v1alpha1.ManagedClusterImageRegistry{}
 	err := r.client.Get(ctx, req.NamespacedName, imageRegistry)
 	switch {

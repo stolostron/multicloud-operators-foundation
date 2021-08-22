@@ -19,7 +19,7 @@ spec:
       containers:
       - name: ocm-proxyserver
         image: ocm-proxyserver
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         args:
           - "/proxyserver"
           - "--secure-port=6443"
