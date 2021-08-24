@@ -72,14 +72,32 @@ func StringToMap(str string) map[string]string {
 	return returnMap
 }
 
-func MergeMap(modified *bool, existing map[string]string, required map[string]string) {
-	if existing == nil {
-		existing = map[string]string{}
+func MergeMap(modified *bool, existing *map[string]string, required map[string]string) {
+	if *existing == nil {
+		*existing = map[string]string{}
 	}
 	for k, v := range required {
-		if existingV, ok := existing[k]; !ok || v != existingV {
+		actualKey := k
+		removeKey := false
+
+		// if "required" map contains a key with "-" as suffix, remove that
+		// key from the existing map instead of replacing the value
+		if strings.HasSuffix(k, "-") {
+			removeKey = true
+			actualKey = strings.TrimRight(k, "-")
+		}
+
+		if existingV, ok := (*existing)[actualKey]; removeKey {
+			if !ok {
+				continue
+			}
+			// value found -> it should be removed
+			delete(*existing, actualKey)
 			*modified = true
-			existing[k] = v
+
+		} else if !ok || v != existingV {
+			*modified = true
+			(*existing)[actualKey] = v
 		}
 	}
 }

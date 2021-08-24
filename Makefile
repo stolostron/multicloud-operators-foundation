@@ -65,20 +65,20 @@ deploy-klusterlet:
 
 deploy-foundation-hub: ensure-kustomize
 	cp deploy/foundation/hub/kustomization.yaml deploy/foundation/hub/kustomization.yaml.tmp
-	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image foundation-controller=$(FOUNDATION_IMAGE_NAME)
-	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image foundation-proxyserver=$(FOUNDATION_IMAGE_NAME)
+	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image ocm-controller=$(FOUNDATION_IMAGE_NAME)
+	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image ocm-proxyserver=$(FOUNDATION_IMAGE_NAME)
 	$(KUSTOMIZE) build deploy/foundation/hub | $(KUBECTL) apply -f -
 	mv deploy/foundation/hub/kustomization.yaml.tmp deploy/foundation/hub/kustomization.yaml
 
 deploy-foundation-webhook: ensure-kustomize
 	cp deploy/foundation/hub/resources/webhook/kustomization.yaml deploy/foundation/hub/resources/webhook/kustomization.yaml.tmp
-	cd deploy/foundation/hub/resources/webhook && ../../../../../$(KUSTOMIZE) edit set image foundation-webhook=$(FOUNDATION_IMAGE_NAME)
+	cd deploy/foundation/hub/resources/webhook && ../../../../../$(KUSTOMIZE) edit set image ocm-webhook=$(FOUNDATION_IMAGE_NAME)
 	$(KUSTOMIZE) build deploy/foundation/hub/resources/webhook | $(KUBECTL) apply -f -
 	mv deploy/foundation/hub/resources/webhook/kustomization.yaml.tmp deploy/foundation/hub/resources/webhook/kustomization.yaml
 
 deploy-foundation-agent: ensure-kustomize
 	cp deploy/foundation/klusterlet/kustomization.yaml deploy/foundation/klusterlet/kustomization.yaml.tmp
-	cd deploy/foundation/klusterlet && ../../../$(KUSTOMIZE) edit set image foundation-agent=$(FOUNDATION_IMAGE_NAME)
+	cd deploy/foundation/klusterlet && ../../../$(KUSTOMIZE) edit set image klusterlet-addon-workmgr=$(FOUNDATION_IMAGE_NAME)
 	cd deploy/foundation/klusterlet && ../../../$(KUSTOMIZE) edit set namespace $(MANAGED_CLUSTER_NAME)
 	$(KUSTOMIZE) build deploy/foundation/klusterlet | $(KUBECTL) apply -f -
 	mv deploy/foundation/klusterlet/kustomization.yaml.tmp deploy/foundation/klusterlet/kustomization.yaml
@@ -145,13 +145,14 @@ manifests: ensure-controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/view/v1beta1" output:crd:artifacts:config=deploy/foundation/hub/resources/crds
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/internal.open-cluster-management.io/v1beta1" output:crd:artifacts:config=deploy/foundation/hub/resources/crds
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/inventory/v1alpha1" output:crd:artifacts:config=deploy/foundation/hub/resources/crds
+	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=manager-role webhook paths="./pkg/apis/imageregistry/v1alpha1" output:crd:artifacts:config=deploy/foundation/hub/resources/crds
 
 # Generate code
 generate: ensure-controller-gen
 	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/action/v1beta1"
 	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/view/v1beta1"
 	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/inventory/v1alpha1"
-	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/cluster/v1alpha1"
+	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/imageregistry/v1alpha1"
 	$(CONTROLLER_GEN) object:headerFile="hack/custom-boilerplate.go.txt" paths="./pkg/apis/internal.open-cluster-management.io/v1beta1"
 
 # Ensure kubebuilder

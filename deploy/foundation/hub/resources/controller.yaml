@@ -19,7 +19,7 @@ spec:
       containers:
       - name: ocm-controller
         image: ocm-controller
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         args:
           - "/controller"
           - "--enable-rbac=true"

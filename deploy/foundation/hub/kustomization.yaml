@@ -1,6 +1,7 @@
 resources:
 - resources/crds/action.open-cluster-management.io_managedclusteractions.yaml
 - resources/crds/internal.open-cluster-management.io_managedclusterinfos.yaml
+- resources/crds/imageregistry.open-cluster-management.io_managedclusterimageregistries.yaml
 - resources/crds/inventory.open-cluster-management.io_baremetalassets.yaml
 - resources/crds/view.open-cluster-management.io_managedclusterviews.yaml
 - resources/crds/hive.openshift.io_syncsets.yaml

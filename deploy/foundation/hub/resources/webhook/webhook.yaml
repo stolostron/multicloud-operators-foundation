@@ -22,7 +22,7 @@ spec:
             - --tls-cert-file=/var/run/ocm-webhook/tls.crt
             - --tls-private-key-file=/var/run/ocm-webhook/tls.key
           image: ocm-webhook
-          imagePullPolicy: IfNotPresent
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
               protocol: TCP

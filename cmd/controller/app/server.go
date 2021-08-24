@@ -4,6 +4,7 @@ package app
 
 import (
 	"context"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/imageregistry"
 	"time"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/certrotation"
@@ -31,6 +32,7 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/syncclusterrolebinding"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/imageregistry/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/gc"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
@@ -59,6 +61,7 @@ func init() {
 	_ = clusterv1.Install(scheme)
 	_ = actionv1beta1.AddToScheme(scheme)
 	_ = clusterv1alaph1.Install(scheme)
+	_ = v1alpha1.AddToScheme(scheme)
 }
 
 func Run(o *options.ControllerRunOptions, ctx context.Context) error {
@@ -146,11 +149,15 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 	if err = clusterdeployment.SetupWithManager(mgr); err != nil {
-		klog.Errorf("unable to setup clustersetmapper reconciler: %v", err)
+		klog.Errorf("unable to setup clusterdeployment reconciler: %v", err)
 		return err
 	}
 	if err = clusterclaim.SetupWithManager(mgr); err != nil {
-		klog.Errorf("unable to setup clustersetmapper reconciler: %v", err)
+		klog.Errorf("unable to setup clusterclaim reconciler: %v", err)
+		return err
+	}
+	if err = imageregistry.SetupWithManager(mgr); err != nil {
+		klog.Errorf("unable to setup imageregistry reconciler: %v", err)
 		return err
 	}
 

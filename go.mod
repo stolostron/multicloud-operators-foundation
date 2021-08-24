@@ -47,7 +47,7 @@ require (
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
 	github.com/open-cluster-management/addon-framework v0.0.0-20210621074027-a81f712c10c2
-	github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f
+	github.com/open-cluster-management/api v0.0.0-20210527013639-a6845f2ebcb1
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 	github.com/openshift/build-machinery-go v0.0.0-20210701182933-efa47ed39f2e
 	github.com/openshift/client-go v0.0.0-20201020074620-f8fd44879f7c
