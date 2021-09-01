@@ -11,16 +11,16 @@ import (
 
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 
-	"github.com/open-cluster-management/addon-framework/pkg/lease"
-	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/agent/app"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/agent/app/options"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	viewv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 	actionctrl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/action"
+	"open-cluster-management.io/addon-framework/pkg/lease"
+	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 
 	clusterclaimctl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	clusterinfoctl "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterinfo"

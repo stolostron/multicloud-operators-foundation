@@ -2,10 +2,10 @@ package utils
 
 import (
 	"fmt"
-	clusterapiv1 "github.com/open-cluster-management/api/cluster/v1"
 	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterapiv1 "open-cluster-management.io/api/cluster/v1"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"

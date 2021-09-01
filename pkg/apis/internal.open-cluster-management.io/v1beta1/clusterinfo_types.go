@@ -1,10 +1,10 @@
 package v1beta1
 
 import (
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 // ClusterInfoSpec is information about the current status of a managed cluster updated

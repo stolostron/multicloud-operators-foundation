@@ -4,16 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"io/ioutil"
-	certutil "k8s.io/client-go/util/cert"
 	"net"
 	"os"
 	"testing"
 	"time"
 
+	certutil "k8s.io/client-go/util/cert"
+
 	"net/http"
 	"net/http/httptest"
 
-	clusterapiv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
@@ -27,6 +27,7 @@ import (
 	fakekube "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	clienttesting "k8s.io/client-go/testing"
+	clusterapiv1 "open-cluster-management.io/api/cluster/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 

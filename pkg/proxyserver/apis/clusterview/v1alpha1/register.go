@@ -1,10 +1,10 @@
 package v1alpha1
 
 import (
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 )
 
 const GroupName = "clusterview.open-cluster-management.io"

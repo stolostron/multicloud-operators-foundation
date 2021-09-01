@@ -7,9 +7,9 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	addonv1alpha1 "github.com/open-cluster-management/api/addon/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 )
 
 var (

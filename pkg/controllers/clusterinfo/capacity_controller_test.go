@@ -14,9 +14,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 func newTestCapacityReconciler(existingObjs ...runtime.Object) (*CapacityReconciler, client.Client) {

@@ -7,11 +7,11 @@ import (
 
 	utils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
 
-	clusterv1alapha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
+	clusterv1alapha1 "open-cluster-management.io/api/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 

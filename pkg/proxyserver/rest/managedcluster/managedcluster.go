@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/printers/internalversion"
 
-	clientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	clusterv1lister "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/cache"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/helpers"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/printers"
@@ -21,6 +18,9 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
+	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterv1lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 type REST struct {

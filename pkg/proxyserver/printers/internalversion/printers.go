@@ -1,11 +1,11 @@
 package internalversion
 
 import (
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/printers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/duration"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	"strings"
 	"time"
 )

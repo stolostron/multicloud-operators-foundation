@@ -10,14 +10,11 @@ import (
 
 	ocinfrav1 "github.com/openshift/api/config/v1"
 
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 
 	tlog "github.com/go-logr/logr/testing"
-	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
-	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
@@ -35,6 +32,9 @@ import (
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
+	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
+	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"

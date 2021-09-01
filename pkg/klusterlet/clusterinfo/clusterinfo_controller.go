@@ -10,9 +10,9 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 
-	clusterv1alpha1informer "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
-	clusterv1alpha1lister "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
+	clusterv1alpha1informer "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1alpha1"
+	clusterv1alpha1lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1"
 
 	"github.com/go-logr/logr"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
