@@ -4,15 +4,12 @@ package app
 
 import (
 	"context"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/imageregistry"
 	"time"
+
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/imageregistry"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/certrotation"
 
-	clusterv1client "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	clusterv1informers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	clusterv1alaph1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/controller/app/options"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
@@ -22,6 +19,10 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterinfo"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrole"
+	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	clusterv1alaph1 "open-cluster-management.io/api/cluster/v1alpha1"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clusterclaim"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clusterdeployment"

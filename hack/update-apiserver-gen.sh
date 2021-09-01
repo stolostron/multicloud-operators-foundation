@@ -43,6 +43,6 @@ SC_PKG='github.com/open-cluster-management/multicloud-operators-foundation'
 "${BINDIR}"/openapi-gen "$@" \
 	--v 1 --logtostderr \
 	--go-header-file "${REPO_ROOT}"/hack/custom-boilerplate.go.txt \
-	--input-dirs "${SC_PKG}/pkg/proxyserver/apis/proxy/v1beta1,${SC_PKG}/pkg/proxyserver/apis/clusterview/v1,${SC_PKG}/pkg/proxyserver/apis/clusterview/v1alpha1,github.com/open-cluster-management/api/cluster/v1,github.com/open-cluster-management/api/cluster/v1alpha1,k8s.io/apimachinery/pkg/api/resource,k8s.io/apimachinery/pkg/runtime,k8s.io/apimachinery/pkg/apis/meta/v1" \
+	--input-dirs "${SC_PKG}/pkg/proxyserver/apis/proxy/v1beta1,${SC_PKG}/pkg/proxyserver/apis/clusterview/v1,${SC_PKG}/pkg/proxyserver/apis/clusterview/v1alpha1,open-cluster-management.io/api/cluster/v1,open-cluster-management.io/api/cluster/v1alpha1,k8s.io/apimachinery/pkg/api/resource,k8s.io/apimachinery/pkg/runtime,k8s.io/apimachinery/pkg/apis/meta/v1" \
 	--output-package "${SC_PKG}/pkg/proxyserver/apis/openapi" \
   --report-filename ".api_violation.report"

@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	clusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/cache"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/log"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/managedcluster"
@@ -13,6 +11,8 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest/proxy"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/client-go/informers"
+	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 
 	apisclusterview "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview"
 	clusterviewv1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1"

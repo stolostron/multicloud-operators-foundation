@@ -2,15 +2,16 @@ package clusterclaim
 
 import (
 	"context"
-	"k8s.io/apimachinery/pkg/api/errors"
 	"reflect"
 	"testing"
 
+	"k8s.io/apimachinery/pkg/api/errors"
+
 	tlog "github.com/go-logr/logr/testing"
-	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 )
 
 func newClusterClaimReconciler(clusterClient clusterclientset.Interface, listFunc ListClusterClaimsFunc) *ClusterClaimReconciler {

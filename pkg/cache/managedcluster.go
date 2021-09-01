@@ -3,9 +3,6 @@ package cache
 import (
 	"time"
 
-	clusterinformerv1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1"
-	clusterv1lister "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,6 +12,9 @@ import (
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
 	rbacv1informers "k8s.io/client-go/informers/rbac/v1"
+	clusterinformerv1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1"
+	clusterv1lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 // ClusterLister enforces ability to enumerate cluster based on role

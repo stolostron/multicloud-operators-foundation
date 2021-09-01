@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 func Test_updateClientConfig(t *testing.T) {

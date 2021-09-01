@@ -2,15 +2,15 @@ package clusterinfo
 
 import (
 	"context"
-	corev1 "k8s.io/api/core/v1"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/onsi/gomega"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +19,7 @@ import (
 	cliScheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"

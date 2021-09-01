@@ -3,12 +3,12 @@
 package app
 
 import (
-	clusterv1client "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	clusterv1informers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/api"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/informers"
+	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 )
 
 type ProxyServer struct {

@@ -15,12 +15,12 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 
-	addonv1alpha1client "github.com/open-cluster-management/api/client/addon/clientset/versioned"
-	clusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
+	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
+	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 )
 
 func TestE2E(t *testing.T) {

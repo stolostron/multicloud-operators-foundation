@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 	"k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/util/retry"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/util/rand"
 )

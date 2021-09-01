@@ -46,15 +46,13 @@ require (
 	github.com/metal3-io/baremetal-operator v0.0.0
 	github.com/onsi/ginkgo v1.16.4
 	github.com/onsi/gomega v1.13.0
-	github.com/open-cluster-management/addon-framework v0.0.0-20210621074027-a81f712c10c2
-	github.com/open-cluster-management/api v0.0.0-20210527013639-a6845f2ebcb1
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 	github.com/openshift/build-machinery-go v0.0.0-20210701182933-efa47ed39f2e
 	github.com/openshift/client-go v0.0.0-20201020074620-f8fd44879f7c
 	github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca
 	github.com/openshift/hive v1.1.12
 	github.com/openshift/hive/apis v0.0.0
-	github.com/openshift/library-go v0.0.0-20210330121802-ebbc677c82a5
+	github.com/openshift/library-go v0.0.0-20210609150209-1c980926414c
 	github.com/prometheus/client_golang v1.11.0
 	github.com/prometheus/common v0.26.0
 	github.com/smartystreets/goconvey v1.6.4
@@ -72,5 +70,7 @@ require (
 	k8s.io/klog/v2 v2.9.0
 	k8s.io/kube-aggregator v0.21.2
 	k8s.io/kube-openapi v0.0.0-20210305001622-591a79e4bda7
+	open-cluster-management.io/addon-framework v0.0.0-20210803032803-58eac513499e
+	open-cluster-management.io/api v0.0.0-20210823013037-9667ae902e4b
 	sigs.k8s.io/controller-runtime v0.9.3-0.20210709165254-650ea59f19cc
 )

@@ -3,9 +3,9 @@ package cache
 import (
 	"time"
 
-	clusterinformerv1alpha1 "github.com/open-cluster-management/api/client/cluster/informers/externalversions/cluster/v1alpha1"
-	clusterv1alpha1lister "github.com/open-cluster-management/api/client/cluster/listers/cluster/v1alpha1"
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
+	clusterinformerv1alpha1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1alpha1"
+	clusterv1alpha1lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 
 	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

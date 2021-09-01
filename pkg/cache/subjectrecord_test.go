@@ -4,14 +4,14 @@ import (
 	"testing"
 	"time"
 
-	clusterfake "github.com/open-cluster-management/api/client/cluster/clientset/versioned/fake"
-	clusterv1informers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apiserver/pkg/authentication/user"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes/fake"
+	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
+	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 )
 
 func validateSet(set, expectedSet sets.String) bool {

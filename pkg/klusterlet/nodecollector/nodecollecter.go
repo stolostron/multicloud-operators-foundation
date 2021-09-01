@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	clusterapiv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	prometheusapi "github.com/prometheus/client_golang/api"
@@ -33,6 +32,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/transport"
 	"k8s.io/klog"
+	clusterapiv1 "open-cluster-management.io/api/cluster/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 

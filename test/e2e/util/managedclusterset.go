@@ -2,10 +2,10 @@ package util
 
 import (
 	"context"
-	clusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 )
 
 func NewManagedClusterSet(name string) *clusterv1alpha1.ManagedClusterSet {

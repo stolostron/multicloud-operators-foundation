@@ -2,12 +2,12 @@ package clusterrbac
 
 import (
 	"context"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"reflect"
+
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
 	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"

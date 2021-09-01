@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	clusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
-	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	clusterv1alaph1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
+	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	clusterv1alaph1 "open-cluster-management.io/api/cluster/v1alpha1"
 )
 
 var _ = ginkgo.Describe("Testing user create/update managedCluster without mangedClusterSet label", func() {
