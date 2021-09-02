@@ -1,0 +1,50 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: klusterlet-addon-workmgr
+  namespace: {{ .Namespace }}
+  labels:
+    app: work-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: work-manager
+  template:
+    metadata:
+      labels:
+        app: work-manager
+    spec:
+      serviceAccountName: klusterlet-addon-workmgr-sa
+      securityContext:
+        runAsNonRoot: true
+      volumes:
+      - name: hub-config
+        secret:
+          secretName: {{ .KubeConfigSecret }}
+      containers:
+      - name: klusterlet-addon-workmgr
+        image: {{ .Image }}
+        args:
+          - "/agent"
+          - "--hub-kubeconfig=/var/run/hub/kubeconfig"
+          - "--cluster-name={{ .ClusterName }}"
+          - "--port=4443"
+          - "--agent-address=klusterlet-addon-workmgr.open-cluster-management-agent.svc"
+          - "--agent-port=443"
+          - "--lease-duration=5"
+        volumeMounts:
+          - name: hub-config
+            mountPath: /var/run/hub
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8000
+          failureThreshold: 3
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8000
+          failureThreshold: 3
+          periodSeconds: 10

@@ -10,6 +10,7 @@ resources:
 - resources/crds/hive.openshift.io_clusterclaims.yaml
 - resources/crds/hive.openshift.io_clusterpools.yaml
 - resources/clusterrole.yaml
+- resources/agent-clusterrole.yaml
 - resources/proxyserver-apiservice.yaml
 - resources/proxyserver-service.yaml
 - resources/proxyserver.yaml
