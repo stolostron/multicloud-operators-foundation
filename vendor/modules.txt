@@ -236,9 +236,12 @@ github.com/openshift/custom-resource-status/objectreferences/v1
 # github.com/openshift/hive v1.1.16
 ## explicit
 github.com/openshift/hive/pkg/client/clientset/versioned
+github.com/openshift/hive/pkg/client/clientset/versioned/fake
 github.com/openshift/hive/pkg/client/clientset/versioned/scheme
 github.com/openshift/hive/pkg/client/clientset/versioned/typed/hive/v1
+github.com/openshift/hive/pkg/client/clientset/versioned/typed/hive/v1/fake
 github.com/openshift/hive/pkg/client/clientset/versioned/typed/hiveinternal/v1alpha1
+github.com/openshift/hive/pkg/client/clientset/versioned/typed/hiveinternal/v1alpha1/fake
 # github.com/openshift/hive/apis v0.0.0 => github.com/openshift/hive/apis v0.0.0-20210812165704-3dc3c3c7ca4b
 ## explicit
 github.com/openshift/hive/apis/hive/v1

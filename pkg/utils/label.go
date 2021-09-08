@@ -137,8 +137,8 @@ func RemoveString(slice []string, s string) (result []string) {
 	return
 }
 
-// SyncMapFiled sync the "syncFiledKey" label filed of required map.
-func SyncMapFiled(modified *bool, existing *map[string]string, required map[string]string, syncFiledKey string) {
+// SyncMapField sync the "syncFiledKey" label filed of required map.
+func SyncMapField(modified *bool, existing *map[string]string, required map[string]string, syncFiledKey string) {
 	*modified = false
 	if *existing == nil {
 		*existing = map[string]string{}

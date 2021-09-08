@@ -11,6 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
+
 	clusterv1alapha1 "open-cluster-management.io/api/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -35,7 +37,10 @@ func TestMain(m *testing.M) {
 		klog.Errorf("Failed adding cluster v1alph1 to scheme, %v", err)
 		os.Exit(1)
 	}
-
+	if err := clusterv1.Install(scheme); err != nil {
+		klog.Errorf("Failed adding cluster to scheme, %v", err)
+		os.Exit(1)
+	}
 	if err := hivev1.AddToScheme(scheme); err != nil {
 		klog.Errorf("Failed adding hive to scheme, %v", err)
 		os.Exit(1)
@@ -45,8 +50,9 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-func newTestReconciler(clusterpoolObjs []runtime.Object, clusterdeploymentObjs []runtime.Object) *Reconciler {
+func newTestReconciler(managedClusters, clusterpoolObjs, clusterdeploymentObjs []runtime.Object) *Reconciler {
 	objs := append(clusterdeploymentObjs, clusterpoolObjs...)
+	objs = append(objs, managedClusters...)
 	r := &Reconciler{
 		client: fake.NewFakeClientWithScheme(scheme, objs...),
 		scheme: scheme,
@@ -60,6 +66,7 @@ func TestReconcile(t *testing.T) {
 		name                  string
 		clusterdeploymentObjs []runtime.Object
 		clusterPools          []runtime.Object
+		managedClusters       []runtime.Object
 		expectedlabel         map[string]string
 		req                   reconcile.Request
 	}{
@@ -138,12 +145,12 @@ func TestReconcile(t *testing.T) {
 			expectedlabel: map[string]string{},
 		},
 		{
-			name: "clusterdeployment related clusterpool has been claimed",
+			name: "clusterdeployment related clusterpool has been claimed, has managedcluster",
 			clusterdeploymentObjs: []runtime.Object{
 				&hivev1.ClusterDeployment{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "clusterdeployment1",
-						Namespace: "ns1",
+						Name:      "cd1",
+						Namespace: "cd1",
 					},
 					Spec: hivev1.ClusterDeploymentSpec{
 						ClusterPoolRef: &hivev1.ClusterPoolReference{
@@ -166,18 +173,62 @@ func TestReconcile(t *testing.T) {
 					Spec: hivev1.ClusterPoolSpec{},
 				},
 			},
-			req: reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      "clusterdeployment1",
-					Namespace: "ns1",
+			managedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cd1",
+						Labels: map[string]string{
+							utils.ClusterSetLabel: "clusterSet1",
+						},
+					},
 				},
 			},
-			expectedlabel: map[string]string{},
+			req: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      "cd1",
+					Namespace: "cd1",
+				},
+			},
+			expectedlabel: map[string]string{
+				utils.ClusterSetLabel: "clusterSet1",
+			},
+		},
+		{
+			name: "directly create managedcluster, and clusterdeployment",
+			clusterdeploymentObjs: []runtime.Object{
+				&hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cd1",
+						Namespace: "cd1",
+					},
+					Spec: hivev1.ClusterDeploymentSpec{},
+				},
+			},
+
+			managedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cd1",
+						Labels: map[string]string{
+							utils.ClusterSetLabel: "clusterSet1",
+						},
+					},
+				},
+			},
+			req: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      "cd1",
+					Namespace: "cd1",
+				},
+			},
+			expectedlabel: map[string]string{
+				utils.ClusterSetLabel: "clusterSet1",
+			},
 		},
 	}
 
 	for _, test := range tests {
-		r := newTestReconciler(test.clusterPools, test.clusterdeploymentObjs)
+		r := newTestReconciler(test.managedClusters, test.clusterPools, test.clusterdeploymentObjs)
 		r.Reconcile(ctx, test.req)
 		validateResult(t, r, test.name, test.req, test.expectedlabel)
 	}

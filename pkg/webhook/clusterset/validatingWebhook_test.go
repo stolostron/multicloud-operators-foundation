@@ -4,28 +4,34 @@ import (
 	"reflect"
 	"testing"
 
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
+
+	hivefake "github.com/openshift/hive/pkg/client/clientset/versioned/fake"
 	v1 "k8s.io/api/admission/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+
 	clienttesting "k8s.io/client-go/testing"
 )
 
 const (
-	clusterDeploymentWithLabel    = `{"apiVersion": "hive.openshift.io/v1","kind": "ClusterDeployment","metadata": {"name": "test","namespace": "default","labels": {"cluster.open-cluster-management.io/clusterset":"clusterset1"}}}`
-	clusterDeploymentWithLabel2   = `{"apiVersion": "hive.openshift.io/v1","kind": "ClusterDeployment","metadata": {"name": "test","namespace": "default","labels": {"cluster.open-cluster-management.io/clusterset":"clusterset2"}}}`
-	clusterDeploymentWithoutLabel = `{"apiVersion": "hive.openshift.io/v1","kind": "ClusterDeployment","metadata": {"name": "test","namespace": "default"}}`
-	clusterDeploymentWithClaim    = `{"apiVersion": "hive.openshift.io/v1","kind": "ClusterDeployment","metadata": {"name": "test","namespace": "default"},"spec": {"baseDomain":"dev04.red-chesterfield.com","clusterPoolRef": {"claimName": "test"}}}`
-	clusterPool                   = `{"apiVersion": "hive.openshift.io/v1","kind": "ClusterPool","metadata": {"name": "test","namespace": "default","labels": {"cluster.open-cluster-management.io/clusterset":"clusterset1"}}}`
+	clusterPool                = `{"apiVersion": "hive.openshift.io/v1","kind": "ClusterPool","metadata": {"name": "test","namespace": "default","labels": {"cluster.open-cluster-management.io/clusterset":"clusterset1"}}}`
+	updateClusterPoolSet       = `{"apiVersion": "hive.openshift.io/v1","kind": "ClusterPool","metadata": {"name": "test","namespace": "default","labels": {"cluster.open-cluster-management.io/clusterset":"clusterset2"}}}`
+	updateClusterPoolNotSet    = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterPool","metadata":{"name":"test","namespace":"default","labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1","a":"b"}}}`
+	managedcluster             = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1"},"name":"c0"},"spec":{}}`
+	updateManagedclusterSet    = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"cluster.open-cluster-management.io/clusterset":"clusterset2"},"name":"c0"},"spec":{}}`
+	updateManagedclusterNotSet = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1","a":"b"},"name":"c0"},"spec":{}}`
 )
 
 func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 	cases := []struct {
-		name                   string
-		request                *v1.AdmissionRequest
-		expectedResponse       *v1.AdmissionResponse
-		allowUpdateClusterSets map[string]bool
+		name                      string
+		request                   *v1.AdmissionRequest
+		existingClusterdeployment []runtime.Object
+		expectedResponse          *v1.AdmissionResponse
+		allowUpdateClusterSets    map[string]bool
 	}{
 		{
 			name: "validate none specified resources request",
@@ -36,130 +42,12 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 					Resource: "tests",
 				},
 			},
+
 			expectedResponse: &v1.AdmissionResponse{
 				Allowed: true,
 			},
 		},
-		{
-			name: "allow to create clusterdeployment without clusterset label",
-			request: &v1.AdmissionRequest{
-				Resource:  clusterDeploymentsGVR,
-				Operation: v1.Create,
-				Object: runtime.RawExtension{
-					Raw: []byte(clusterDeploymentWithoutLabel),
-				},
-			},
-			allowUpdateClusterSets: map[string]bool{"*": true},
-			expectedResponse: &v1.AdmissionResponse{
-				Allowed: true,
-			},
-		},
-		{
-			name: "forbidden to create clusterdeployment without clusterset label",
-			request: &v1.AdmissionRequest{
-				Resource:  clusterDeploymentsGVR,
-				Operation: v1.Create,
-				Object: runtime.RawExtension{
-					Raw: []byte(clusterDeploymentWithoutLabel),
-				},
-			},
-			allowUpdateClusterSets: map[string]bool{"*": false},
-			expectedResponse: &v1.AdmissionResponse{
-				Allowed: false,
-			},
-		},
-		{
-			name: "allow to create clusterdeployment in clusterset1",
-			request: &v1.AdmissionRequest{
-				Resource:  clusterDeploymentsGVR,
-				Operation: v1.Create,
-				Object: runtime.RawExtension{
-					Raw: []byte(clusterDeploymentWithLabel),
-				},
-			},
-			allowUpdateClusterSets: map[string]bool{"clusterset1": true},
-			expectedResponse: &v1.AdmissionResponse{
-				Allowed: true,
-			},
-		},
-		{
-			name: "forbidden to add clusterdeployment into clusterset1",
-			request: &v1.AdmissionRequest{
-				Resource:  clusterDeploymentsGVR,
-				Operation: v1.Update,
-				OldObject: runtime.RawExtension{
-					Raw: []byte(clusterDeploymentWithoutLabel),
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(clusterDeploymentWithLabel),
-				},
-			},
-			allowUpdateClusterSets: map[string]bool{"*": false, "clusterset1": true},
-			expectedResponse: &v1.AdmissionResponse{
-				Allowed: false,
-			},
-		},
-		{
-			name: "allow to update clusterdeployment from clusterset1 to clusterset2",
-			request: &v1.AdmissionRequest{
-				Resource:  clusterDeploymentsGVR,
-				Operation: v1.Update,
-				OldObject: runtime.RawExtension{
-					Raw: []byte(clusterDeploymentWithLabel),
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(clusterDeploymentWithLabel2),
-				},
-			},
-			allowUpdateClusterSets: map[string]bool{"clusterset1": true, "clusterset2": true},
-			expectedResponse: &v1.AdmissionResponse{
-				Allowed: true,
-			},
-		},
-		{
-			name: "forbidden to remove clusterdeployment from clusterset1",
-			request: &v1.AdmissionRequest{
-				Resource:  clusterDeploymentsGVR,
-				Operation: v1.Update,
-				OldObject: runtime.RawExtension{
-					Raw: []byte(clusterDeploymentWithLabel),
-				},
-				Object: runtime.RawExtension{
-					Raw: []byte(clusterDeploymentWithoutLabel),
-				},
-			},
-			allowUpdateClusterSets: map[string]bool{"*": false, "clusterset1": true},
-			expectedResponse: &v1.AdmissionResponse{
-				Allowed: false,
-			},
-		},
-		{
-			name: "forbidden to create clusterdeployment in clusterset1 with clusterset2 label",
-			request: &v1.AdmissionRequest{
-				Resource:  clusterDeploymentsGVR,
-				Operation: v1.Create,
-				Object: runtime.RawExtension{
-					Raw: []byte(clusterDeploymentWithLabel),
-				},
-			},
-			allowUpdateClusterSets: map[string]bool{"clusterset2": true},
-			expectedResponse: &v1.AdmissionResponse{
-				Allowed: false,
-			},
-		},
-		{
-			name: "allow to create clusterdeployment by clusterclaim",
-			request: &v1.AdmissionRequest{
-				Resource:  clusterDeploymentsGVR,
-				Operation: v1.Create,
-				Object: runtime.RawExtension{
-					Raw: []byte(clusterDeploymentWithClaim),
-				},
-			},
-			expectedResponse: &v1.AdmissionResponse{
-				Allowed: true,
-			},
-		},
+
 		{
 			name: "allow to create clusterpool in clusterset1",
 			request: &v1.AdmissionRequest{
@@ -174,12 +62,134 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 				Allowed: true,
 			},
 		},
+		{
+			name: "deny to update clusterpool from clusterset1 in clusterset2",
+			request: &v1.AdmissionRequest{
+				Resource:  clusterPoolsGVR,
+				Operation: v1.Update,
+				Object: runtime.RawExtension{
+					Raw: []byte(updateClusterPoolSet),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(clusterPool),
+				},
+			},
+			allowUpdateClusterSets: map[string]bool{"clusterset1": true},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: false,
+			},
+		},
+		{
+			name: "allow to update clusterpool if not updating set",
+			request: &v1.AdmissionRequest{
+				Resource:  clusterPoolsGVR,
+				Operation: v1.Update,
+				Object: runtime.RawExtension{
+					Raw: []byte(updateClusterPoolNotSet),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(clusterPool),
+				},
+			},
+			allowUpdateClusterSets: map[string]bool{"clusterset1": true},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "allow to create cluster in clusterset1",
+			request: &v1.AdmissionRequest{
+				Resource:  clusterPoolsGVR,
+				Operation: v1.Create,
+				Object: runtime.RawExtension{
+					Raw: []byte(managedcluster),
+				},
+			},
+			allowUpdateClusterSets: map[string]bool{"clusterset1": true},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "allow to update cluster to clusterset2 if there is no clusterdeployment",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Update,
+				Object: runtime.RawExtension{
+					Raw: []byte(updateManagedclusterSet),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(managedcluster),
+				},
+			},
+			allowUpdateClusterSets: map[string]bool{"clusterset1": true, "clusterset2": true},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "allow to update cluster to clusterset2 if there is a clusterdeployment",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Update,
+				Object: runtime.RawExtension{
+					Raw: []byte(updateManagedclusterSet),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(managedcluster),
+				},
+			},
+			existingClusterdeployment: []runtime.Object{
+				&hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "c0",
+						Namespace: "c0",
+					},
+					Spec: hivev1.ClusterDeploymentSpec{},
+				},
+			},
+			allowUpdateClusterSets: map[string]bool{"clusterset1": true, "clusterset2": true},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "deny to update cluster to clusterset2 if there is a clusterdeployment",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Update,
+				Object: runtime.RawExtension{
+					Raw: []byte(updateManagedclusterSet),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(managedcluster),
+				},
+			},
+			existingClusterdeployment: []runtime.Object{
+				&hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "c0",
+						Namespace: "c0",
+					},
+					Spec: hivev1.ClusterDeploymentSpec{
+						ClusterPoolRef: &hivev1.ClusterPoolReference{
+							PoolName:  "p1",
+							Namespace: "ns1",
+						},
+					},
+				},
+			},
+			allowUpdateClusterSets: map[string]bool{"clusterset1": true, "clusterset2": true},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: false,
+			},
+		},
 	}
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			kubeClient := kubefake.NewSimpleClientset()
-
+			hiveClient := hivefake.NewSimpleClientset(c.existingClusterdeployment...)
 			kubeClient.PrependReactor(
 				"create",
 				"subjectaccessreviews",
@@ -204,7 +214,7 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 				},
 			)
 
-			admissionHandler := &AdmissionHandler{KubeClient: kubeClient}
+			admissionHandler := &AdmissionHandler{KubeClient: kubeClient, HiveClient: hiveClient}
 
 			actualResponse := admissionHandler.validateResource(c.request)
 
