@@ -1,13 +1,11 @@
 package e2e
 
 import (
-	"context"
 	"fmt"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/imageregistry"
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = ginkgo.Describe("Testing ManagedClusterImageRegistry", func() {
@@ -17,11 +15,16 @@ var _ = ginkgo.Describe("Testing ManagedClusterImageRegistry", func() {
 	testClusterSet := util.RandomName()
 	testClusterSetBinding := testClusterSet
 	testCluster := util.RandomName()
+	testPullSecret := util.RandomName()
+	testRegistry := "quay.io/test/"
 	selectedLabel := map[string]string{"e2e-placement": "testplacement"}
 
 	ginkgo.BeforeEach(func() {
 		// create ns
 		err := util.CreateNamespace(testNamespace)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		// create pullSecret
+		err = util.CreatePullSecret(kubeClient, testNamespace, testPullSecret)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		// create clusterSet
 		err = util.CreateManagedClusterSet(clusterClient, testClusterSet)
@@ -33,7 +36,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterImageRegistry", func() {
 		err = util.CreatePlacement(clusterClient, testNamespace, testPlacement, []string{testClusterSet}, selectedLabel)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		// create imageRegistry
-		err = util.CreateImageRegistry(dynamicClient, testNamespace, testImageRegistry, testPlacement)
+		err = util.CreateImageRegistry(dynamicClient, testNamespace, testImageRegistry, testPlacement, testPullSecret, testRegistry)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
 
@@ -68,16 +71,29 @@ var _ = ginkgo.Describe("Testing ManagedClusterImageRegistry", func() {
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		gomega.Eventually(func() error {
-			cluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), testCluster, metav1.GetOptions{})
+			pullSecret, err := imageRegistryClient.Cluster(testCluster).PullSecret()
 			if err != nil {
 				return err
 			}
-			labels := cluster.GetLabels()
-			if labels == nil {
-				return fmt.Errorf("no labels got in cluster")
+			if pullSecret == nil {
+				return fmt.Errorf("failed to get pullSecret of imageRegistry %v in cluster %v", testImageRegistry, testCluster)
 			}
-			if labels[imageregistry.ClusterImageRegistryLabel] != testNamespace+"."+testImageRegistry {
-				return fmt.Errorf("the cluster has wrong imageRegistry label %v", labels[imageregistry.ClusterImageRegistryLabel])
+			if pullSecret.Name != testPullSecret {
+				return fmt.Errorf("expected pullSecret %v, but got %v", testPullSecret, pullSecret.Name)
+			}
+			return nil
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+		gomega.Eventually(func() error {
+			registry, err := imageRegistryClient.Cluster(testCluster).Registry()
+			if err != nil {
+				return err
+			}
+			if registry == "" {
+				return fmt.Errorf("failed to get registry of imageRegistry %v in cluster %v", testImageRegistry, testCluster)
+			}
+			if registry != testRegistry {
+				return fmt.Errorf("expected registry %v, but got %v", testRegistry, registry)
 			}
 			return nil
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
@@ -86,16 +102,25 @@ var _ = ginkgo.Describe("Testing ManagedClusterImageRegistry", func() {
 		err = util.UpdateManagedClusterLabels(clusterClient, testCluster, map[string]string{"e2e-placement": "remove"})
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		gomega.Eventually(func() error {
-			cluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.TODO(), testCluster, metav1.GetOptions{})
+			pullSecret, err := imageRegistryClient.Cluster(testCluster).PullSecret()
 			if err != nil {
 				return err
 			}
-			labels := cluster.GetLabels()
-			if labels == nil {
-				return nil
+
+			if pullSecret != nil {
+				return fmt.Errorf("expected nil pullSecret, but got %v", pullSecret.Name)
 			}
-			if labels[imageregistry.ClusterImageRegistryLabel] != "" {
-				return fmt.Errorf("imageRegistry label %v has not be removed", labels[imageregistry.ClusterImageRegistryLabel])
+			return nil
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+		gomega.Eventually(func() error {
+			registry, err := imageRegistryClient.Cluster(testCluster).Registry()
+			if err != nil {
+				return err
+			}
+
+			if registry != "" {
+				return fmt.Errorf("expected null registry, but got %v", registry)
 			}
 			return nil
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())

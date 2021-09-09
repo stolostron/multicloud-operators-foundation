@@ -86,6 +86,11 @@ const (
 	ConditionReasonClustersUpdated        string = "ClustersUpdated"
 )
 
+const (
+	// ClusterImageRegistryLabel value is namespace.managedClusterImageRegistry
+	ClusterImageRegistryLabel = "open-cluster-management.io/image-registry"
+)
+
 // +kubebuilder:object:root=true
 
 // ManagedClusterImageRegistryList is a list of ManagedClusterImageRegistry objects.
