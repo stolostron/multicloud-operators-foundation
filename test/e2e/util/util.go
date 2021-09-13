@@ -8,6 +8,7 @@ import (
 	"path"
 
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers/imageregistry"
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
 	"k8s.io/apimachinery/pkg/util/rand"
 
@@ -160,6 +161,26 @@ func NewDynamicClientWithImpersonate(user string, groups []string) (dynamic.Inte
 	cfg.Impersonate.Groups = groups
 
 	return dynamic.NewForConfig(cfg)
+}
+
+func NewImageRegistryClient() (imageregistry.Client, error) {
+	kubeConfigFile, err := getKubeConfigFile()
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("Use kubeconfig file: %s\n", kubeConfigFile)
+
+	clusterCfg, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	imageRegistryClient, err := imageregistry.NewDynamicClient(clusterCfg)
+	if err != nil {
+		return nil, err
+	}
+
+	return imageRegistryClient, nil
 }
 
 func LoadResourceFromJSON(json string) (*unstructured.Unstructured, error) {

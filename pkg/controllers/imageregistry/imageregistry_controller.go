@@ -8,16 +8,15 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/imageregistry/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/equality"
-	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/client-go/tools/record"
-	v1 "open-cluster-management.io/api/cluster/v1"
-	clusterapiv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
+	v1 "open-cluster-management.io/api/cluster/v1"
+	clusterapiv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -32,11 +31,6 @@ import (
 )
 
 const (
-	placementLabel = "cluster.open-cluster-management.io/placement"
-
-	// ClusterImageRegistryLabel value is namespace.managedClusterImageRegistry
-	ClusterImageRegistryLabel = "open-cluster-management.io/image-registry"
-
 	imageRegistryFinalizerName = "imageregistry.finalizers.open-cluster-management.io"
 )
 
@@ -95,7 +89,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					return []reconcile.Request{}
 				}
 				labels := placementDecision.GetLabels()
-				placementName := labels[placementLabel]
+				placementName := labels[clusterapiv1alpha1.PlacementLabel]
 				if placementName == "" {
 					klog.Errorf("Could not get placement label in placementDecision %v", placementDecision.Name)
 					return []reconcile.Request{}
@@ -209,7 +203,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 func (r *Reconciler) cleanImageRegistryLabel(ctx context.Context, namespace, imageRegistry string) error {
 	imageRegistryLabelValue := generateImageRegistryLabelValue(namespace, imageRegistry)
 	clusterList := &v1.ManagedClusterList{}
-	err := r.client.List(ctx, clusterList, client.MatchingLabels{ClusterImageRegistryLabel: imageRegistryLabelValue})
+	err := r.client.List(ctx, clusterList, client.MatchingLabels{v1alpha1.ClusterImageRegistryLabel: imageRegistryLabelValue})
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -235,7 +229,7 @@ func (r *Reconciler) updateImageRegistryLabel(ctx context.Context, selectedClust
 
 	imageRegistryLabelValue := generateImageRegistryLabelValue(namespace, imageRegistry)
 	clusterList := &v1.ManagedClusterList{}
-	err := r.client.List(ctx, clusterList, client.MatchingLabels{ClusterImageRegistryLabel: imageRegistryLabelValue})
+	err := r.client.List(ctx, clusterList, client.MatchingLabels{v1alpha1.ClusterImageRegistryLabel: imageRegistryLabelValue})
 	if err != nil {
 		return client.IgnoreNotFound(err)
 	}
@@ -274,9 +268,9 @@ func (r *Reconciler) removeClusterImageRegistryLabel(ctx context.Context, cluste
 			return client.IgnoreNotFound(err)
 		}
 
-		if cluster.Labels[ClusterImageRegistryLabel] == imageRegistryLabelValue {
+		if cluster.Labels[v1alpha1.ClusterImageRegistryLabel] == imageRegistryLabelValue {
 			modified := false
-			utils.MergeMap(&modified, &cluster.Labels, map[string]string{ClusterImageRegistryLabel + "-": ""})
+			utils.MergeMap(&modified, &cluster.Labels, map[string]string{v1alpha1.ClusterImageRegistryLabel + "-": ""})
 			if !modified {
 				return nil
 			}
@@ -308,7 +302,7 @@ func (r *Reconciler) updateClusterImageRegistryLabel(ctx context.Context, cluste
 			return err
 		}
 
-		oldImageRegistryLabelValue := cluster.Labels[ClusterImageRegistryLabel]
+		oldImageRegistryLabelValue := cluster.Labels[v1alpha1.ClusterImageRegistryLabel]
 		if oldImageRegistryLabelValue != "" && oldImageRegistryLabelValue != imageRegistryLabelValue {
 			r.recorder.Eventf(cluster, "Warning", "imageRegistryUpdate",
 				"Cannot update imageRegistry label %v for mangedCluster %v, since the managedCluster has imageRegistry label %v",
@@ -317,7 +311,7 @@ func (r *Reconciler) updateClusterImageRegistryLabel(ctx context.Context, cluste
 		}
 
 		modified := false
-		utils.MergeMap(&modified, &cluster.Labels, map[string]string{ClusterImageRegistryLabel: imageRegistryLabelValue})
+		utils.MergeMap(&modified, &cluster.Labels, map[string]string{v1alpha1.ClusterImageRegistryLabel: imageRegistryLabelValue})
 		if !modified {
 			return nil
 		}
@@ -352,7 +346,7 @@ func (r *Reconciler) getSelectedClusters(ctx context.Context, namespace, placeme
 	placementDecisionList := &clusterapiv1alpha1.PlacementDecisionList{}
 
 	err := r.client.List(ctx, placementDecisionList,
-		client.InNamespace(namespace), client.MatchingLabels{placementLabel: placementName})
+		client.InNamespace(namespace), client.MatchingLabels{clusterapiv1alpha1.PlacementLabel: placementName})
 	if err != nil {
 		return clusters, client.IgnoreNotFound(err)
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers/imageregistry"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,6 +48,7 @@ var (
 	ocpClient             openshiftclientset.Interface
 	addonClient           addonv1alpha1client.Interface
 	apiRegistrationClient *apiregistrationclient.ApiregistrationV1Client
+	imageRegistryClient   imageregistry.Client
 	defaultManagedCluster string
 	foundationNS          string
 	deployedByACM         = false
@@ -85,6 +87,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	apiRegistrationClient, err = util.NewAPIServiceClient()
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
+	imageRegistryClient, err = util.NewImageRegistryClient()
 	cfg, err := util.NewKubeConfig()
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	addonClient, err = addonv1alpha1client.NewForConfig(cfg)

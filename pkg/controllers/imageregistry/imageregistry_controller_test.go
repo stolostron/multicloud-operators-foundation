@@ -60,7 +60,7 @@ func newCluster(name, imageRegistry string) *clusterv1.ManagedCluster {
 		},
 	}
 	if imageRegistry != "" {
-		cluster.SetLabels(map[string]string{ClusterImageRegistryLabel: imageRegistry})
+		cluster.SetLabels(map[string]string{v1alpha1.ClusterImageRegistryLabel: imageRegistry})
 	}
 	return cluster
 }
@@ -70,7 +70,7 @@ func newPlacementDecision(namespace, name, placementName string, clusters []stri
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-			Labels:    map[string]string{placementLabel: placementName},
+			Labels:    map[string]string{clusterv1alaph1.PlacementLabel: placementName},
 		},
 		Status: clusterv1alaph1.PlacementDecisionStatus{
 			Decisions: []clusterv1alaph1.ClusterDecision{},
@@ -181,7 +181,7 @@ func validateClusters(t *testing.T, client client.Client, expectedClusters []*cl
 		err := client.Get(context.TODO(), types.NamespacedName{Name: cluster.Name}, realCluster)
 		assert.NoError(t, err)
 		realLabels := realCluster.GetLabels()
-		assert.Equal(t, expectedLabels[ClusterImageRegistryLabel], realLabels[ClusterImageRegistryLabel])
+		assert.Equal(t, expectedLabels[v1alpha1.ClusterImageRegistryLabel], realLabels[v1alpha1.ClusterImageRegistryLabel])
 	}
 }
 
