@@ -33,7 +33,7 @@ fi
 for i in {1..7}; do
   echo "############$i  Checking klusterlet-registration-agent"
   RUNNING_POD=$($KUBECTL -n open-cluster-management-agent get pods | grep klusterlet-registration-agent | grep -c "Running")
-  if [ "${RUNNING_POD}" -eq 3 ]; then
+  if [ "${RUNNING_POD}" -gt 0 ]; then
     break
   fi
 

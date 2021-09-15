@@ -13,7 +13,8 @@ type ControllerRunOptions struct {
 	LogCertSecret        string
 	EnableInventory      bool
 	EnableLeaderElection bool
-	EnableRBAC           bool
+	EnableAddonDeploy    bool
+	AddonImage           string
 	QPS                  float32
 	Burst                int
 }
@@ -26,9 +27,10 @@ func NewControllerRunOptions() *ControllerRunOptions {
 		LogCertSecret:        "ocm-klusterlet-self-signed-secrets",
 		EnableInventory:      true,
 		EnableLeaderElection: true,
-		EnableRBAC:           false,
+		EnableAddonDeploy:    false,
 		QPS:                  100.0,
 		Burst:                200,
+		AddonImage:           "quay.io/open-cluster-management/multicloud-manager:latest",
 	}
 }
 
@@ -45,8 +47,10 @@ func (o *ControllerRunOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	fs.BoolVar(&o.EnableRBAC, "enable-rbac", o.EnableRBAC,
-		"Enable RBAC controller.")
+	fs.BoolVar(&o.EnableAddonDeploy, "enable-agent-deploy", o.EnableAddonDeploy,
+		"Enable deploy addon agent.")
+	fs.StringVar(&o.AddonImage, "agent-addon-image", o.AddonImage,
+		"image of the addon agent to deploy.")
 	fs.Float32Var(&o.QPS, "max-qps", o.QPS,
 		"Maximum QPS to the hub server from this controller.")
 	fs.IntVar(&o.Burst, "max-burst", o.Burst,

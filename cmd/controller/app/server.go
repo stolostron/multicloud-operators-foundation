@@ -6,44 +6,40 @@ import (
 	"context"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/imageregistry"
-
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/certrotation"
-
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/controller/app/options"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/addon"
 	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/imageregistry/v1alpha1"
 	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/cache"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/certrotation"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterca"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterinfo"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrbac"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterrole"
-	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
-	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	clusterv1alaph1 "open-cluster-management.io/api/cluster/v1alpha1"
-
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clusterclaim"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clusterdeployment"
 	clustersetmapper "github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/syncrolebinding"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	kubeinformers "k8s.io/client-go/informers"
-
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/syncclusterrolebinding"
-
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/imageregistry/v1alpha1"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/syncrolebinding"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/gc"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/imageregistry"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveinternalv1alpha1 "github.com/openshift/hive/apis/hiveinternal/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
+	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager"
+	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	clusterv1alaph1 "open-cluster-management.io/api/cluster/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	ctrlruntimelog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -132,6 +128,15 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		utils.GetViewResourceFromClusterRole,
 	)
 
+	addonMgr, err := addonmanager.New(kubeConfig)
+	if err != nil {
+		klog.Errorf("unable to setup addon manager: %v", err)
+		return err
+	}
+	if o.EnableAddonDeploy {
+		addonMgr.AddAgent(addon.NewAgent(kubeClient, "work-manager", o.AddonImage))
+	}
+
 	// Setup reconciler
 	if o.EnableInventory {
 		if err = inventory.SetupWithManager(mgr); err != nil {
@@ -166,13 +171,6 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 
 	rolebindingSync := syncrolebinding.NewReconciler(kubeClient, clusterSetAdminCache.Cache, clusterSetViewCache.Cache, clusterSetClusterMapper, clusterSetNamespaceMapper)
 
-	if o.EnableRBAC {
-		if err = clusterrbac.SetupWithManager(mgr, kubeClient); err != nil {
-			klog.Errorf("unable to setup clusterrbac reconciler: %v", err)
-			return err
-		}
-	}
-
 	if err = clusterrole.SetupWithManager(mgr, kubeClient); err != nil {
 		klog.Errorf("unable to setup clusterrole reconciler: %v", err)
 		return err
@@ -204,6 +202,10 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		go rolebindingSync.Run(5 * time.Second)
 
 		go cleanGarbageFinalizer.Run(ctx.Done())
+
+		if o.EnableAddonDeploy {
+			go addonMgr.Start(ctx)
+		}
 	}()
 
 	// Start manager

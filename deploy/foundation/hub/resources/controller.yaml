@@ -22,7 +22,7 @@ spec:
         imagePullPolicy: Always
         args:
           - "/controller"
-          - "--enable-rbac=true"
+          - "--enable-agent-deploy=true"
         livenessProbe:
           httpGet:
             path: /healthz
