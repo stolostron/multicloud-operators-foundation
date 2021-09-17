@@ -30,7 +30,7 @@ spec:
           - "--hub-kubeconfig=/var/run/hub/kubeconfig"
           - "--cluster-name={{ .ClusterName }}"
           - "--port=4443"
-          - "--agent-address=klusterlet-addon-workmgr.open-cluster-management-agent.svc"
+          - "--agent-address=klusterlet-addon-workmgr.{{ .Namespace }}.svc"
           - "--agent-port=443"
           - "--lease-duration=5"
         volumeMounts:

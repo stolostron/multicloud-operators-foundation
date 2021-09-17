@@ -15,7 +15,7 @@ for i in {1..7}; do
   RUNNING_POD=$((RUNNING_POD+proxyserver))
   webhook=$($KUBECTL -n open-cluster-management get pods | grep ocm-webhook | grep -c "Running")
   RUNNING_POD=$((RUNNING_POD+webhook))
-  agent=$($KUBECTL -n open-cluster-management-agent get pods | grep klusterlet-addon-workmgr | grep -c "Running")
+  agent=$($KUBECTL -n open-cluster-management-agent-addon get pods | grep klusterlet-addon-workmgr | grep -c "Running")
   RUNNING_POD=$((RUNNING_POD+agent))
 
   if [ "${RUNNING_POD}" -eq 4 ]; then

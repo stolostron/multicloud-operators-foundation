@@ -13,8 +13,10 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/addoninstall"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/agentdeploy"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/certificate"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/clustermanagement"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/registration"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
@@ -156,6 +158,23 @@ func (a *addonManager) Start(ctx context.Context) error {
 		eventRecorder,
 	)
 
+	clusterManagementController := clustermanagement.NewClusterManagementController(
+		addonClient,
+		clusterInformers.Cluster().V1().ManagedClusters(),
+		addonInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+		addonInformers.Addon().V1alpha1().ClusterManagementAddOns(),
+		a.addonAgents,
+		eventRecorder,
+	)
+
+	addonInstallController := addoninstall.NewAddonInstallController(
+		addonClient,
+		clusterInformers.Cluster().V1().ManagedClusters(),
+		addonInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+		a.addonAgents,
+		eventRecorder,
+	)
+
 	go addonInformers.Start(ctx.Done())
 	go workInformers.Start(ctx.Done())
 	go clusterInformers.Start(ctx.Done())
@@ -165,6 +184,8 @@ func (a *addonManager) Start(ctx context.Context) error {
 	go registrationController.Run(ctx, 1)
 	go csrApproveController.Run(ctx, 1)
 	go csrSignController.Run(ctx, 1)
+	go clusterManagementController.Run(ctx, 1)
+	go addonInstallController.Run(ctx, 1)
 	return nil
 }
 

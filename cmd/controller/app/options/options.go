@@ -8,29 +8,31 @@ import (
 
 // ControllerRunOptions for the hcm controller.
 type ControllerRunOptions struct {
-	KubeConfig           string
-	CAFile               string
-	LogCertSecret        string
-	EnableInventory      bool
-	EnableLeaderElection bool
-	EnableAddonDeploy    bool
-	AddonImage           string
-	QPS                  float32
-	Burst                int
+	KubeConfig            string
+	CAFile                string
+	LogCertSecret         string
+	EnableInventory       bool
+	EnableLeaderElection  bool
+	EnableAddonDeploy     bool
+	AddonImage            string
+	AddonInstallNamespace string
+	QPS                   float32
+	Burst                 int
 }
 
 // NewControllerRunOptions creates a new ServerRunOptions object with default values.
 func NewControllerRunOptions() *ControllerRunOptions {
 	return &ControllerRunOptions{
-		KubeConfig:           "",
-		CAFile:               "/var/run/agent/ca.crt",
-		LogCertSecret:        "ocm-klusterlet-self-signed-secrets",
-		EnableInventory:      true,
-		EnableLeaderElection: true,
-		EnableAddonDeploy:    false,
-		QPS:                  100.0,
-		Burst:                200,
-		AddonImage:           "quay.io/open-cluster-management/multicloud-manager:latest",
+		KubeConfig:            "",
+		CAFile:                "/var/run/agent/ca.crt",
+		LogCertSecret:         "ocm-klusterlet-self-signed-secrets",
+		EnableInventory:       true,
+		EnableLeaderElection:  true,
+		EnableAddonDeploy:     false,
+		QPS:                   100.0,
+		Burst:                 200,
+		AddonImage:            "quay.io/open-cluster-management/multicloud-manager:latest",
+		AddonInstallNamespace: "open-cluster-management-agent-addon",
 	}
 }
 
@@ -51,6 +53,8 @@ func (o *ControllerRunOptions) AddFlags(fs *pflag.FlagSet) {
 		"Enable deploy addon agent.")
 	fs.StringVar(&o.AddonImage, "agent-addon-image", o.AddonImage,
 		"image of the addon agent to deploy.")
+	fs.StringVar(&o.AddonInstallNamespace, "agent-addon-install-namespace", o.AddonInstallNamespace,
+		"namespace on the managed cluster for the addon agent to install.")
 	fs.Float32Var(&o.QPS, "max-qps", o.QPS,
 		"Maximum QPS to the hub server from this controller.")
 	fs.IntVar(&o.Burst, "max-burst", o.Burst,

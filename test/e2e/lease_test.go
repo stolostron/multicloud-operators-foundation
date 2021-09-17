@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	podNamespace            = "open-cluster-management-agent"
+	podNamespace            = "open-cluster-management-agent-addon"
 	managedClusterAddOnName = "work-manager"
 )
 
