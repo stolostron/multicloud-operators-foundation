@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+
 	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
 	"k8s.io/apimachinery/pkg/api/errors"
 
@@ -434,7 +435,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 
 		ginkgo.It("managedCluster clusterRoleBinding and namespace roleBinding should be deleted successfully after managedClusterSet is deleted", func() {
 			ginkgo.By("delete managedClusterSet")
-			err = clusterClient.ClusterV1alpha1().ManagedClusterSets().Delete(context.Background(), managedClusterSet, metav1.DeleteOptions{})
+			err = clusterClient.ClusterV1beta1().ManagedClusterSets().Delete(context.Background(), managedClusterSet, metav1.DeleteOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			ginkgo.By("managedCluster admin clusterRoleBinding should be deleted")

@@ -35,7 +35,7 @@ var ManagedClusterGVR schema.GroupVersionResource = schema.GroupVersionResource{
 
 var ManagedClusterSetGVR = schema.GroupVersionResource{
 	Group:    "cluster.open-cluster-management.io",
-	Version:  "v1alpha1",
+	Version:  "v1beta1",
 	Resource: "managedclustersets",
 }
 var ClusterInfoGVR = schema.GroupVersionResource{
