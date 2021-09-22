@@ -18,7 +18,7 @@ import (
 )
 
 var _ = ginkgo.Describe("Testing Pod log", func() {
-	podNamespace := "open-cluster-management-agent"
+	podNamespace := "open-cluster-management-agent-addon"
 	var podName string
 	var containerName string
 	var restClient *rest.RESTClient

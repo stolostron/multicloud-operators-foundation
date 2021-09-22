@@ -134,7 +134,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 	if o.EnableAddonDeploy {
-		addonMgr.AddAgent(addon.NewAgent(kubeClient, "work-manager", o.AddonImage))
+		addonMgr.AddAgent(addon.NewAgent(kubeClient, "work-manager", o.AddonImage, o.AddonInstallNamespace))
 	}
 
 	// Setup reconciler

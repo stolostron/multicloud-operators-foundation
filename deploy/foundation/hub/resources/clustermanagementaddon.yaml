@@ -1,0 +1,8 @@
+apiVersion: addon.open-cluster-management.io/v1alpha1
+kind: ClusterManagementAddOn
+metadata:
+ name: work-manager
+spec:
+ addOnMeta:
+   displayName: work-manager
+   description: "work-manager provides action, view and rbac settings"

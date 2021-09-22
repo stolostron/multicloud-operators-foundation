@@ -9,4 +9,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: klusterlet-addon-workmgr-sa
-    namespace: open-cluster-management-agent
+    namespace: {{ .Namespace }}

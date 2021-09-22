@@ -45,15 +45,15 @@ func TestManifest(t *testing.T) {
 	}{
 		{
 			name:              "no install namespace",
-			agent:             NewAgent(nil, "work-mgr", "test"),
+			agent:             NewAgent(nil, "work-mgr", "test", "open-cluster-management-agent-addon"),
 			cluster:           newCluster("cluster1"),
 			addon:             newAddon("work-mgr", "cluster1", ""),
-			expectedNamespace: defaultInstallationNamespace,
+			expectedNamespace: "open-cluster-management-agent-addon",
 			expectedImage:     "test",
 		},
 		{
 			name:              "no install namespace",
-			agent:             NewAgent(nil, "work-mgr", "test"),
+			agent:             NewAgent(nil, "work-mgr", "test", "open-cluster-management-agent-addon"),
 			cluster:           newCluster("cluster1"),
 			addon:             newAddon("work-mgr", "cluster1", "test"),
 			expectedNamespace: "test",
@@ -186,7 +186,7 @@ func TestCreateOrUpdateRoleBinding(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			kubeClient := fakekube.NewSimpleClientset(test.initObjects...)
-			agent := NewAgent(kubeClient, "work-mgr", "test")
+			agent := NewAgent(kubeClient, "work-mgr", "test", "open-cluster-management-agent-addon")
 			err := agent.createOrUpdateRoleBinding(test.clusterName)
 			if err != nil {
 				t.Errorf("createOrUpdateRoleBinding expected no error, but got %v", err)

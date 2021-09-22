@@ -76,18 +76,8 @@ deploy-foundation-webhook: ensure-kustomize
 	$(KUSTOMIZE) build deploy/foundation/hub/resources/webhook | $(KUBECTL) apply -f -
 	mv deploy/foundation/hub/resources/webhook/kustomization.yaml.tmp deploy/foundation/hub/resources/webhook/kustomization.yaml
 
-deploy-foundation-agent: ensure-kustomize
-	cp deploy/foundation/klusterlet/kustomization.yaml deploy/foundation/klusterlet/kustomization.yaml.tmp
-	cd deploy/foundation/klusterlet && ../../../$(KUSTOMIZE) edit set image klusterlet-addon-workmgr=$(FOUNDATION_IMAGE_NAME)
-	cd deploy/foundation/klusterlet && ../../../$(KUSTOMIZE) edit set namespace $(MANAGED_CLUSTER_NAME)
-	$(KUSTOMIZE) build deploy/foundation/klusterlet | $(KUBECTL) apply -f -
-	mv deploy/foundation/klusterlet/kustomization.yaml.tmp deploy/foundation/klusterlet/kustomization.yaml
-
 clean-foundation-hub:
 	$(KUBECTL) delete -k deploy/foundation/hub
-
-clean-foundation-agent:
-	$(KUBECTL) delete -k deploy/foundation/klusterlet
 
 clean-foundation-webhook:
 	$(KUBECTL) delete -k deploy/foundation/hub/resources/webhook
@@ -97,7 +87,7 @@ clean-deploy: clean-foundation-agent clean-foundation-webhook clean-foundation-h
 build-e2e:
 	go test -c ./test/e2e
 
-test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-foundation-hub deploy-foundation-webhook deploy-foundation-agent
+test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-foundation-hub deploy-foundation-webhook
 	deploy/foundation/scripts/install-check.sh
 	./e2e.test -test.v -ginkgo.v
 

@@ -31,9 +31,8 @@ func init() {
 }
 
 const (
-	clusterRoleName              = "managed-cluster-workmgr"
-	roleBindingName              = "managed-cluster-workmgr"
-	defaultInstallationNamespace = "open-cluster-management-agent-addon"
+	clusterRoleName = "managed-cluster-workmgr"
+	roleBindingName = "managed-cluster-workmgr"
 )
 
 var agentDeploymentFiles = []string{
@@ -48,16 +47,18 @@ var agentDeploymentFiles = []string{
 var manifestFiles embed.FS
 
 type foundationAgent struct {
-	kubeClient kubernetes.Interface
-	addonName  string
-	imageName  string
+	kubeClient       kubernetes.Interface
+	addonName        string
+	imageName        string
+	installNamespace string
 }
 
-func NewAgent(kubeClient kubernetes.Interface, addonName, imageName string) *foundationAgent {
+func NewAgent(kubeClient kubernetes.Interface, addonName, imageName, installNamespace string) *foundationAgent {
 	return &foundationAgent{
-		kubeClient: kubeClient,
-		addonName:  addonName,
-		imageName:  imageName,
+		kubeClient:       kubeClient,
+		addonName:        addonName,
+		imageName:        imageName,
+		installNamespace: installNamespace,
 	}
 }
 
@@ -67,7 +68,7 @@ func (f *foundationAgent) Manifests(cluster *clusterv1.ManagedCluster, addon *ad
 	// using open-cluster-management-agent-addon namespace as default namespace.
 	installNamespace := addon.Spec.InstallNamespace
 	if len(installNamespace) == 0 {
-		installNamespace = defaultInstallationNamespace
+		installNamespace = f.installNamespace
 	}
 
 	manifestConfig := struct {
@@ -111,6 +112,7 @@ func (f *foundationAgent) GetAgentAddonOptions() agent.AgentAddonOptions {
 				return f.createOrUpdateRoleBinding(cluster.Name)
 			},
 		},
+		InstallStrategy: agent.InstallAllStrategy(f.installNamespace),
 	}
 }
 

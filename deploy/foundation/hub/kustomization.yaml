@@ -17,6 +17,7 @@ resources:
 - resources/controller.yaml
 - resources/clusterviewv1-apiservice.yaml
 - resources/clusterviewv1alpha1-apiservice.yaml
+- resources/clustermanagementaddon.yaml
 
 images:
 - name: ocm-controller
