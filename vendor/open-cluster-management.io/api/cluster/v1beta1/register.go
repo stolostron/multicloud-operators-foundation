@@ -1,16 +1,14 @@
-package v1alpha1
+package v1beta1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 )
 
-const GroupName = "clusterview.open-cluster-management.io"
-
 var (
-	GroupVersion  = schema.GroupVersion{Group: GroupName, Version: "v1alpha1"}
+	GroupName     = "cluster.open-cluster-management.io"
+	GroupVersion  = schema.GroupVersion{Group: GroupName, Version: "v1beta1"}
 	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
 	// Install is a function which adds this version to a scheme
 	Install = schemeBuilder.AddToScheme
@@ -23,11 +21,19 @@ var (
 	AddToScheme = schemeBuilder.AddToScheme
 )
 
+// Resource generated code relies on this being here, but it logically belongs to the group
+// DEPRECATED
+func Resource(resource string) schema.GroupResource {
+	return schema.GroupResource{Group: GroupName, Resource: resource}
+}
+
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
-		&clusterv1beta1.ManagedClusterSet{},
-		&clusterv1beta1.ManagedClusterSetList{},
+		&ManagedClusterSet{},
+		&ManagedClusterSetList{},
+		&ManagedClusterSetBinding{},
+		&ManagedClusterSetBindingList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil

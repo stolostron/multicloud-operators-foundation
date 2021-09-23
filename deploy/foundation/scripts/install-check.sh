@@ -25,8 +25,8 @@ for i in {1..7}; do
   if [ $i -eq 7 ]; then
     echo "!!!!!!!!!!  the foundation pods are not ready within 4 minutes"
     $KUBECTL -n open-cluster-management get pods -o yaml
-    $KUBECTL get pods -n open-cluster-management -l app=ocm-controller | grep ocm-controller | awk '{print $1}' |xargs $KUBECTL -n open-cluster-management log
-    $KUBECTL get pods -n open-cluster-management -l app=ocm-proxyserver | grep ocm-proxyserver | awk '{print $1}' |xargs $KUBECTL -n open-cluster-management log
+    $KUBECTL get pods -n open-cluster-management -l app=ocm-controller | grep ocm-controller | awk '{print $1}' |xargs $KUBECTL -n open-cluster-management logs
+    $KUBECTL get pods -n open-cluster-management -l app=ocm-proxyserver | grep ocm-proxyserver | awk '{print $1}' |xargs $KUBECTL -n open-cluster-management logs
     $KUBECTL -n open-cluster-management get secret
     $KUBECTL -n open-cluster-management-agent get pods
     $KUBECTL get mcl

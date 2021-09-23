@@ -23,7 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/klog"
-	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -52,14 +52,14 @@ func TestMain(m *testing.M) {
 	// AddToSchemes may be used to add all resources defined in the project to a Scheme
 	var AddToSchemes runtime.SchemeBuilder
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, clusterv1alpha1.Install, clusterv1.Install)
+	AddToSchemes = append(AddToSchemes, clusterv1beta1.Install, clusterv1.Install)
 
 	if err := AddToSchemes.AddToScheme(scheme); err != nil {
 		klog.Errorf("Failed adding apis to scheme, %v", err)
 		os.Exit(1)
 	}
 
-	if err := clusterv1alpha1.Install(scheme); err != nil {
+	if err := clusterv1beta1.Install(scheme); err != nil {
 		klog.Errorf("Failed adding cluster to scheme, %v", err)
 		os.Exit(1)
 	}
@@ -132,7 +132,7 @@ func TestReconcile(t *testing.T) {
 		{
 			name: "ManagedClusterSetHasFinalizerWithoutClusterRole",
 			existingObjs: []runtime.Object{
-				&clusterv1alpha1.ManagedClusterSet{
+				&clusterv1beta1.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: ManagedClusterSetName,
 						DeletionTimestamp: &metav1.Time{
@@ -142,7 +142,7 @@ func TestReconcile(t *testing.T) {
 							clustersetRoleFinalizerName,
 						},
 					},
-					Spec: clusterv1alpha1.ManagedClusterSetSpec{},
+					Spec: clusterv1beta1.ManagedClusterSetSpec{},
 				},
 			},
 			req: reconcile.Request{
@@ -159,11 +159,11 @@ func TestReconcile(t *testing.T) {
 		{
 			name: "ManagedClusterSetNoFinalizerWithoutClusterRole",
 			existingObjs: []runtime.Object{
-				&clusterv1alpha1.ManagedClusterSet{
+				&clusterv1beta1.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: ManagedClusterSetName,
 					},
-					Spec: clusterv1alpha1.ManagedClusterSetSpec{},
+					Spec: clusterv1beta1.ManagedClusterSetSpec{},
 				},
 				&clusterv1.ManagedCluster{
 					ObjectMeta: metav1.ObjectMeta{
@@ -190,11 +190,11 @@ func TestReconcile(t *testing.T) {
 		{
 			name: "ManagedClusterSetNoFinalizerWithClusterRole",
 			existingObjs: []runtime.Object{
-				&clusterv1alpha1.ManagedClusterSet{
+				&clusterv1beta1.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: ManagedClusterSetName,
 					},
-					Spec: clusterv1alpha1.ManagedClusterSetSpec{},
+					Spec: clusterv1beta1.ManagedClusterSetSpec{},
 				},
 			},
 			existingRoleObjs: newAdminRoleObjs(),

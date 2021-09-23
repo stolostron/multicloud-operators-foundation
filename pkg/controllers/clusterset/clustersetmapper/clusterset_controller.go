@@ -7,7 +7,7 @@ import (
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,7 +66,7 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &clusterv1alpha1.ManagedClusterSet{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &clusterv1beta1.ManagedClusterSet{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func getRequiredClusterSet(labels map[string]string, clusterSetMapper *helpers.C
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	clusterset := &clusterv1alpha1.ManagedClusterSet{}
+	clusterset := &clusterv1beta1.ManagedClusterSet{}
 
 	err := r.client.Get(ctx, types.NamespacedName{Name: req.Name}, clusterset)
 	if err != nil {

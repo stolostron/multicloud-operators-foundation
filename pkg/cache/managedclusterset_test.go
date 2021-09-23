@@ -15,12 +15,12 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
-	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 )
 
 var (
-	managedClusterSetList = clusterv1alpha1.ManagedClusterSetList{
-		Items: []clusterv1alpha1.ManagedClusterSet{
+	managedClusterSetList = clusterv1beta1.ManagedClusterSetList{
+		Items: []clusterv1beta1.ManagedClusterSet{
 			{
 				ObjectMeta: metav1.ObjectMeta{Name: "clusterset1", ResourceVersion: "1"},
 			},
@@ -138,16 +138,16 @@ var (
 	}
 )
 
-func newManagedClusterSet(names ...string) []*clusterv1alpha1.ManagedClusterSet {
-	ret := []*clusterv1alpha1.ManagedClusterSet{}
+func newManagedClusterSet(names ...string) []*clusterv1beta1.ManagedClusterSet {
+	ret := []*clusterv1beta1.ManagedClusterSet{}
 	for _, name := range names {
-		ret = append(ret, &clusterv1alpha1.ManagedClusterSet{ObjectMeta: metav1.ObjectMeta{Name: name}})
+		ret = append(ret, &clusterv1beta1.ManagedClusterSet{ObjectMeta: metav1.ObjectMeta{Name: name}})
 	}
 
 	return ret
 }
 
-func validateClusterSetCacheListList(clusterSetList *clusterv1alpha1.ManagedClusterSetList, expectedSet sets.String) bool {
+func validateClusterSetCacheListList(clusterSetList *clusterv1beta1.ManagedClusterSetList, expectedSet sets.String) bool {
 	clusterSets := sets.String{}
 	for _, clusterSet := range clusterSetList.Items {
 		clusterSets.Insert(clusterSet.Name)
@@ -171,12 +171,12 @@ func fakeNewClusterSetCache(stopCh chan struct{}) *ClusterSetCache {
 	fakeClusterSetClient := clusterfake.NewSimpleClientset(&managedClusterSetList)
 	clusterInformers := clusterinformers.NewSharedInformerFactory(fakeClusterSetClient, 10*time.Minute)
 	for key := range managedClusterSetList.Items {
-		clusterInformers.Cluster().V1alpha1().ManagedClusterSets().Informer().GetIndexer().Add(&managedClusterSetList.Items[key])
+		clusterInformers.Cluster().V1beta1().ManagedClusterSets().Informer().GetIndexer().Add(&managedClusterSetList.Items[key])
 	}
 	clusterInformers.Start(stopCh)
 
 	return NewClusterSetCache(
-		clusterInformers.Cluster().V1alpha1().ManagedClusterSets(),
+		clusterInformers.Cluster().V1beta1().ManagedClusterSets(),
 		informers.Rbac().V1().ClusterRoles(),
 		informers.Rbac().V1().ClusterRoleBindings(),
 		utils.GetViewResourceFromClusterRole,

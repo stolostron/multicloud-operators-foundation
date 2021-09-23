@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
@@ -13,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	clusterv1alaph1 "open-cluster-management.io/api/cluster/v1alpha1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 )
 
 var _ = ginkgo.Describe("Testing user create/update managedCluster without mangedClusterSet label", func() {
@@ -25,7 +26,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster without mange
 		var err error
 		// create rbac with managedClusterSet/join <all> permission for user
 		rules := []rbacv1.PolicyRule{
-			helpers.NewRule("create").Groups(clusterv1alaph1.GroupName).Resources("managedclustersets/join").RuleOrDie(),
+			helpers.NewRule("create").Groups(clusterv1beta1.GroupName).Resources("managedclustersets/join").RuleOrDie(),
 			helpers.NewRule("create", "update", "get").Groups(clusterv1.GroupName).Resources("managedclusters").RuleOrDie(),
 		}
 		err = util.CreateClusterRole(kubeClient, rbacName, rules)
@@ -87,7 +88,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 		var err error
 		// create rbac with managedClusterSet/join clusterset-e2e permission for user
 		rules := []rbacv1.PolicyRule{
-			helpers.NewRule("create").Groups(clusterv1alaph1.GroupName).Resources("managedclustersets/join").Names(clusterSet1, clusterSet2).RuleOrDie(),
+			helpers.NewRule("create").Groups(clusterv1beta1.GroupName).Resources("managedclustersets/join").Names(clusterSet1, clusterSet2).RuleOrDie(),
 			helpers.NewRule("create", "update", "get").Groups(clusterv1.GroupName).Resources("managedclusters").RuleOrDie(),
 		}
 		err = util.CreateClusterRole(kubeClient, rbacName, rules)
@@ -182,7 +183,7 @@ var _ = ginkgo.Describe("Testing webhook cert rotation", func() {
 		var err error
 		// create rbac with managedClusterSet/join <all> permission for user
 		rules := []rbacv1.PolicyRule{
-			helpers.NewRule("create").Groups(clusterv1alaph1.GroupName).Resources("managedclustersets/join").RuleOrDie(),
+			helpers.NewRule("create").Groups(clusterv1beta1.GroupName).Resources("managedclustersets/join").RuleOrDie(),
 			helpers.NewRule("create", "update", "get").Groups(clusterv1.GroupName).Resources("managedclusters").RuleOrDie(),
 		}
 		err = util.CreateClusterRole(kubeClient, rbacName, rules)
