@@ -60,7 +60,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	//watch clusterdeployment related claim
+	//watch clusterdeployment's claim
 	err = c.Watch(
 		&source.Kind{Type: &hivev1.ClusterDeployment{}},
 		handler.EnqueueRequestsFromMapFunc(
@@ -71,24 +71,30 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					klog.Error("ClusterDeployment handler received non-ClusterDeployment object")
 					return []reconcile.Request{}
 				}
-				clusterclaims := &hivev1.ClusterClaimList{}
-				err := mgr.GetClient().List(context.TODO(), clusterclaims, &client.ListOptions{})
+				// this clusterdeployment is not related to any pool
+				if clusterDeployment.Spec.ClusterPoolRef == nil {
+					return []reconcile.Request{}
+				}
+				// this clusterdeployment is not claimed
+				if len(clusterDeployment.Spec.ClusterPoolRef.ClaimName) == 0 {
+					return []reconcile.Request{}
+				}
+				clusterclaim := &hivev1.ClusterClaim{}
+				claimInfo := types.NamespacedName{Namespace: clusterDeployment.Spec.ClusterPoolRef.Namespace, Name: clusterDeployment.Spec.ClusterPoolRef.ClaimName}
+				err = mgr.GetClient().Get(context.TODO(), claimInfo, clusterclaim)
 				if err != nil {
-					klog.Errorf("could not list clusterclaims. Error: %v", err)
+					klog.Errorf("Failed to get clusterclaim, error: %v", err)
+					return []reconcile.Request{}
 				}
+
 				var requests []reconcile.Request
-				for _, clusterclaim := range clusterclaims.Items {
-					//If clusterclaims is not related to this clusterDeployment, ignore it
-					if clusterclaim.Spec.Namespace != clusterDeployment.Namespace {
-						continue
-					}
-					requests = append(requests, reconcile.Request{
-						NamespacedName: types.NamespacedName{
-							Name:      clusterclaim.Name,
-							Namespace: clusterclaim.Namespace,
-						},
-					})
-				}
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name:      clusterclaim.Name,
+						Namespace: clusterclaim.Namespace,
+					},
+				})
+
 				return requests
 			}),
 		))
@@ -113,8 +119,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if len(clusterclaim.Spec.Namespace) == 0 {
 		return ctrl.Result{}, nil
 	}
+
 	clusterDeploymentName := clusterclaim.Spec.Namespace
-	//update clusterclaim label by clusterpool's clusterset label
 	clusterDeployment := &hivev1.ClusterDeployment{}
 	err = r.client.Get(ctx, types.NamespacedName{Namespace: clusterDeploymentName, Name: clusterDeploymentName}, clusterDeployment)
 	if err != nil {
@@ -127,7 +133,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	klog.V(5).Infof("Clusterclaim's clusterdeployment: %+v", clusterDeployment)
 
 	var isModified = false
-	utils.SyncMapFiled(&isModified, &clusterclaim.Labels, clusterDeployment.Labels, clustersetutils.ClusterSetLabel)
+	utils.SyncMapField(&isModified, &clusterclaim.Labels, clusterDeployment.Labels, clustersetutils.ClusterSetLabel)
 
 	if isModified {
 		err = r.client.Update(ctx, clusterclaim, &client.UpdateOptions{})

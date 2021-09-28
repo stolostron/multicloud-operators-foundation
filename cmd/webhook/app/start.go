@@ -7,10 +7,12 @@ import (
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/clusterset"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/useridentity"
+	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
@@ -33,6 +35,12 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 		return err
 	}
 
+	hiveClient, err := hiveclient.NewForConfig(kubeConfig)
+	if err != nil {
+		klog.Errorf("Error building hive client: %s", err.Error())
+		return err
+	}
+
 	informerFactory := informers.NewSharedInformerFactory(kubeClientSet, 10*time.Minute)
 	informer := informerFactory.Rbac().V1().RoleBindings()
 
@@ -43,6 +51,7 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 
 	validatingAh := &clusterset.AdmissionHandler{
 		KubeClient: kubeClientSet,
+		HiveClient: hiveClient,
 	}
 
 	go informerFactory.Start(stopCh)

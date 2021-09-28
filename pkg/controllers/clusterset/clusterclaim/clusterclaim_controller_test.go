@@ -10,7 +10,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
-	clusterv1alapha1 "open-cluster-management.io/api/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -28,10 +27,6 @@ func TestMain(m *testing.M) {
 
 	if err := AddToSchemes.AddToScheme(scheme); err != nil {
 		klog.Errorf("Failed adding apis to scheme, %v", err)
-		os.Exit(1)
-	}
-	if err := clusterv1alapha1.Install(scheme); err != nil {
-		klog.Errorf("Failed adding cluster v1alph1 to scheme, %v", err)
 		os.Exit(1)
 	}
 

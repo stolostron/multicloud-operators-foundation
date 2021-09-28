@@ -116,7 +116,7 @@ func TestStrings(t *testing.T) {
 	}
 }
 
-func TestSyncMapFiled(t *testing.T) {
+func TestSyncMapField(t *testing.T) {
 	var modified = false
 	type args struct {
 		modified  *bool
@@ -221,7 +221,7 @@ func TestSyncMapFiled(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			SyncMapFiled(tt.args.modified, &tt.args.existing, tt.args.required, tt.args.syncFiled)
+			SyncMapField(tt.args.modified, &tt.args.existing, tt.args.required, tt.args.syncFiled)
 			if tt.wantModified != *tt.args.modified {
 				t.Errorf("case: %v, failed to sync map, want wantModified:%v, actual:%v", tt.name, tt.wantModified, *tt.args.modified)
 			}
