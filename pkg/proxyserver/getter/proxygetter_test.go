@@ -2,6 +2,8 @@ package getter
 
 import (
 	"testing"
+
+	"k8s.io/client-go/rest"
 )
 
 func Test_getter(t *testing.T) {
@@ -9,16 +11,19 @@ func Test_getter(t *testing.T) {
 		Name:        "default/search",
 		SubResource: "sync",
 		UseID:       true,
+		RestConfig:  &rest.Config{},
 	}
 	serviceInfo2 := &ProxyServiceInfo{
 		Name:        "default/search",
 		SubResource: "sync",
 		UseID:       false,
+		RestConfig:  &rest.Config{},
 	}
 	serviceInfo3 := &ProxyServiceInfo{
 		Name:        "kube-system/search",
 		SubResource: "sync",
 		UseID:       false,
+		RestConfig:  &rest.Config{},
 	}
 
 	getter := NewProxyServiceInfoGetter()
