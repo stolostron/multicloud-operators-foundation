@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers/certificate"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 )
@@ -48,6 +49,13 @@ func (g *ProxyServiceInfoGetter) Add(proxyServiceInfo *ProxyServiceInfo) {
 				klog.Errorf("The proxy service configMap %s cannot be updated by %s", old.Name, proxyServiceInfo.Name)
 				return
 			}
+			// merge the caBundles firstly and then update info
+			caData, err := certificate.MergeCABundle(old.RestConfig.CAData, proxyServiceInfo.RestConfig.CAData)
+			if err != nil {
+				klog.Errorf("failed to merge CABundle.err: %v", caData)
+				return
+			}
+			proxyServiceInfo.RestConfig.CAData = caData
 
 			klog.Infof("Update proxy service info %s", proxyServiceInfo.Name)
 			g.proxyServiceInfos[proxyServiceInfo.SubResource] = proxyServiceInfo
