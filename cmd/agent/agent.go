@@ -210,6 +210,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			HubClient:      mgr.GetClient(),
 			KubeClient:     managedClusterKubeClient,
 			ConfigV1Client: openshiftClient,
+			Mapper:         restMapper,
 		}
 
 		clusterClaimReconciler := clusterclaimctl.ClusterClaimReconciler{
