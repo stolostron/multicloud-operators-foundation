@@ -12,7 +12,9 @@ import (
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
@@ -64,6 +66,8 @@ const (
 	ProductOpenShift = "OpenShift"
 	ProductOSD       = "OpenShiftDedicated"
 	ProductROSA      = "ROSA"
+	ProductARO       = "ARO"
+
 	// ProductOther other (unable to auto detect)
 	ProductOther = "Other"
 )
@@ -84,6 +88,7 @@ type ClusterClaimer struct {
 	HubClient      client.Client
 	KubeClient     kubernetes.Interface
 	ConfigV1Client openshiftclientset.Interface
+	Mapper         meta.RESTMapper
 }
 
 func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
@@ -166,38 +171,25 @@ func newClusterClaim(name, value string) *clusterv1alpha1.ClusterClaim {
 }
 
 func (c *ClusterClaimer) isOpenShift() bool {
-	serverGroups, err := c.KubeClient.Discovery().ServerGroups()
+	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "project.openshift.io", Kind: "Project"}, "v1")
 	if err != nil {
-		klog.Errorf("failed to get server group %v", err)
 		return false
 	}
-	for _, apiGroup := range serverGroups.Groups {
-		if apiGroup.Name == "project.openshift.io" {
-			return true
-		}
-	}
-	return false
+	return true
 }
 
 func (c *ClusterClaimer) isOpenshiftDedicated() bool {
-	hasProject := false
-	hasManaged := false
-	serverGroups, err := c.KubeClient.Discovery().ServerGroups()
-	if err != nil {
-		klog.Errorf("failed to get server group %v", err)
+	if !c.isOpenShift() {
 		return false
 	}
-	for _, apiGroup := range serverGroups.Groups {
-		if apiGroup.Name == "project.openshift.io" {
-			hasProject = true
-		}
-		// this API group is created for the Openshift Dedicated platform to manage various permissions.
-		// defined in https://github.com/openshift/rbac-permissions-operator/blob/master/pkg/apis/managed/v1alpha1/subjectpermission_types.go
-		if apiGroup.Name == "managed.openshift.io" {
-			hasManaged = true
-		}
+
+	// this API group is created for the Openshift Dedicated platform to manage various permissions.
+	// defined in https://github.com/openshift/rbac-permissions-operator/blob/master/pkg/apis/managed/v1alpha1/subjectpermission_types.go
+	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "managed.openshift.io", Kind: "SubjectPermission"}, "v1alpha1")
+	if err != nil {
+		return false
 	}
-	return hasProject && hasManaged
+	return true
 }
 
 func (c *ClusterClaimer) isROSA() bool {
@@ -214,6 +206,17 @@ func (c *ClusterClaimer) isROSA() bool {
 		return false
 	}
 
+	return true
+}
+
+func (c *ClusterClaimer) isARO() bool {
+	if !c.isOpenShift() {
+		return false
+	}
+	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "aro.openshift.io", Kind: "Cluster"}, "v1alpha1")
+	if err != nil {
+		return false
+	}
 	return true
 }
 
@@ -411,6 +414,10 @@ func (c *ClusterClaimer) getKubeVersionPlatformProduct() (kubeVersion, platform,
 	case c.isROSA():
 		platform = PlatformAWS
 		product = ProductROSA
+		return
+	case c.isARO():
+		platform = PlatformAzure
+		product = ProductARO
 		return
 	case c.isOpenshiftDedicated():
 		product = ProductOSD
