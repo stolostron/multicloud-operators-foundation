@@ -2,6 +2,8 @@ package v1helpers
 
 import (
 	"errors"
+	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -13,6 +15,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/util/retry"
+
+	"github.com/ghodss/yaml"
 
 	configv1 "github.com/openshift/api/config/v1"
 	operatorv1 "github.com/openshift/api/operator/v1"
@@ -231,6 +235,40 @@ func UpdateStaticPodConditionFn(cond operatorv1.OperatorCondition) UpdateStaticP
 	}
 }
 
+// EnsureFinalizer adds a new finalizer to the operator CR, if it does not exists. No-op otherwise.
+// The finalizer name is computed from the controller name and operator name ($OPERATOR_NAME or os.Args[0])
+// It re-tries on conflicts.
+func EnsureFinalizer(client OperatorClientWithFinalizers, controllerName string) error {
+	finalizer := getFinalizerName(controllerName)
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		return client.EnsureFinalizer(finalizer)
+	})
+	return err
+}
+
+// RemoveFinalizer removes a finalizer from the operator CR, if it is there. No-op otherwise.
+// The finalizer name is computed from the controller name and operator name ($OPERATOR_NAME or os.Args[0])
+// It re-tries on conflicts.
+func RemoveFinalizer(client OperatorClientWithFinalizers, controllerName string) error {
+	finalizer := getFinalizerName(controllerName)
+	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		return client.RemoveFinalizer(finalizer)
+	})
+	return err
+}
+
+// getFinalizerName computes a nice finalizer name from controllerName and the operator name ($OPERATOR_NAME or os.Args[0]).
+func getFinalizerName(controllerName string) string {
+	return fmt.Sprintf("%s.operator.openshift.io/%s", getOperatorName(), controllerName)
+}
+
+func getOperatorName() string {
+	if name := os.Getenv("OPERATOR_NAME"); name != "" {
+		return name
+	}
+	return os.Args[0]
+}
+
 type aggregate []error
 
 var _ utilerrors.Aggregate = aggregate{}
@@ -309,4 +347,38 @@ func MapToEnvVars(mapEnvVars map[string]string) []corev1.EnvVar {
 	// need to sort the slice so that kube-controller-manager-pod configmap does not change all the time
 	sort.Slice(envVars, func(i, j int) bool { return envVars[i].Name < envVars[j].Name })
 	return envVars
+}
+
+// InjectObservedProxyIntoContainers injects proxy environment variables in containers specified in containerNames.
+func InjectObservedProxyIntoContainers(podSpec *corev1.PodSpec, containerNames []string, observedConfig []byte, fields ...string) error {
+	var config map[string]interface{}
+	if err := yaml.Unmarshal(observedConfig, &config); err != nil {
+		return fmt.Errorf("failed to unmarshal the observedConfig: %w", err)
+	}
+
+	proxyConfig, found, err := unstructured.NestedStringMap(config, fields...)
+	if err != nil {
+		return fmt.Errorf("couldn't get the proxy config from observedConfig: %w", err)
+	}
+
+	proxyEnvVars := MapToEnvVars(proxyConfig)
+	if !found || len(proxyEnvVars) < 1 {
+		// There's no observed proxy config, we should tolerate that
+		return nil
+	}
+
+	for _, containerName := range containerNames {
+		for i := range podSpec.InitContainers {
+			if podSpec.InitContainers[i].Name == containerName {
+				podSpec.InitContainers[i].Env = append(podSpec.InitContainers[i].Env, proxyEnvVars...)
+			}
+		}
+		for i := range podSpec.Containers {
+			if podSpec.Containers[i].Name == containerName {
+				podSpec.Containers[i].Env = append(podSpec.Containers[i].Env, proxyEnvVars...)
+			}
+		}
+	}
+
+	return nil
 }

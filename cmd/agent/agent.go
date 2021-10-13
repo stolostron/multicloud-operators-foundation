@@ -39,6 +39,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/leaderelection"
+	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	ctrlruntimelog "sigs.k8s.io/controller-runtime/pkg/log"
@@ -144,7 +145,13 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		os.Exit(1)
 	}
 
-	go app.ServeHealthProbes(ctx.Done(), ":8000")
+	cc, err := addonutils.NewConfigChecker("work manager", o.HubKubeConfig)
+	if err != nil {
+		setupLog.Error(err, "unable to setup a configChecker")
+		os.Exit(1)
+	}
+
+	go app.ServeHealthProbes(ctx.Done(), ":8000", cc.Check)
 
 	run := func(ctx context.Context) {
 		// run agent server
