@@ -262,6 +262,15 @@ func newNode(platform string) *corev1.Node {
 	return node
 }
 
+func newConfigmap(namespace, name string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+}
+
 func fakeHubClient(clusterName string, labels map[string]string) client.Client {
 	clusterInfo := &clusterv1beta1.ManagedClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
@@ -421,6 +430,34 @@ func TestOpenshiftDedicated(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient}
 			rst := clusterClaimer.isOpenshiftDedicated()
+			assert.Equal(t, test.expectRet, rst)
+		})
+	}
+}
+
+func TestROSA(t *testing.T) {
+	tests := []struct {
+		name       string
+		kubeClient kubernetes.Interface
+		expectRet  bool
+	}{
+		{
+			name: "is ROSA",
+			kubeClient: newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource(), managedAPIResource()},
+				[]runtime.Object{newConfigmap("openshift-config", "rosa-brand-logo")}),
+			expectRet: true,
+		},
+		{
+			name:       "is openshift not ROSA",
+			kubeClient: newFakeKubeClient([]*metav1.APIResourceList{projectAPIResource()}, nil),
+			expectRet:  false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient}
+			rst := clusterClaimer.isROSA()
 			assert.Equal(t, test.expectRet, rst)
 		})
 	}
