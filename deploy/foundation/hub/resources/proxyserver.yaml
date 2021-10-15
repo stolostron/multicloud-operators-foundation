@@ -18,7 +18,7 @@ spec:
       serviceAccountName: foundation-hub-sa
       containers:
       - name: ocm-proxyserver
-        image: ocm-proxyserver
+        image: quay.io/open-cluster-management/multicloud-manager
         imagePullPolicy: Always
         args:
           - "/proxyserver"

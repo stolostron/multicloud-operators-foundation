@@ -21,7 +21,7 @@ spec:
             - /webhook
             - --tls-cert-file=/var/run/ocm-webhook/tls.crt
             - --tls-private-key-file=/var/run/ocm-webhook/tls.key
-          image: ocm-webhook
+          image: quay.io/open-cluster-management/multicloud-manager
           imagePullPolicy: Always
           ports:
             - containerPort: 8000

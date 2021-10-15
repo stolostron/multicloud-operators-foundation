@@ -32,6 +32,13 @@ BASE_DIR := $(shell basename $(PWD))
 DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 BINDIR ?= _output
 
+SED_CMD:=sed
+ifeq ($(GOHOSTOS),darwin)
+	ifeq ($(GOHOSTARCH),amd64)
+		SED_CMD:=gsed
+	endif
+endif
+
 # Controller runtime need use this variable as tmp cache dir. if not set, ut will fail in prow
 export XDG_CACHE_HOME ?= $(BASE_DIR)/.cache
 
@@ -65,29 +72,23 @@ deploy-klusterlet:
 
 deploy-foundation-hub: ensure-kustomize
 	cp deploy/foundation/hub/kustomization.yaml deploy/foundation/hub/kustomization.yaml.tmp
-	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image ocm-controller=$(FOUNDATION_IMAGE_NAME)
-	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image ocm-proxyserver=$(FOUNDATION_IMAGE_NAME)
+	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image 'quay.io/open-cluster-management/multicloud-manager'=$(FOUNDATION_IMAGE_NAME)
+	$(SED_CMD) -i.tmp "s,quay.io/open-cluster-management/multicloud-manager,$(FOUNDATION_IMAGE_NAME)," deploy/foundation/hub/patches.yaml
 	$(KUSTOMIZE) build deploy/foundation/hub | $(KUBECTL) apply -f -
 	mv deploy/foundation/hub/kustomization.yaml.tmp deploy/foundation/hub/kustomization.yaml
-
-deploy-foundation-webhook: ensure-kustomize
-	cp deploy/foundation/hub/resources/webhook/kustomization.yaml deploy/foundation/hub/resources/webhook/kustomization.yaml.tmp
-	cd deploy/foundation/hub/resources/webhook && ../../../../../$(KUSTOMIZE) edit set image ocm-webhook=$(FOUNDATION_IMAGE_NAME)
-	$(KUSTOMIZE) build deploy/foundation/hub/resources/webhook | $(KUBECTL) apply -f -
-	mv deploy/foundation/hub/resources/webhook/kustomization.yaml.tmp deploy/foundation/hub/resources/webhook/kustomization.yaml
+	mv deploy/foundation/hub/patches.yaml.tmp deploy/foundation/hub/patches.yaml
+clean-foundation-agent:
+	$(KUBECTL) delete -f deploy/foundation/hub/clustermanagementaddon.yaml
 
 clean-foundation-hub:
 	$(KUBECTL) delete -k deploy/foundation/hub
 
-clean-foundation-webhook:
-	$(KUBECTL) delete -k deploy/foundation/hub/resources/webhook
-
-clean-deploy: clean-foundation-agent clean-foundation-webhook clean-foundation-hub
+clean-deploy: clean-foundation-agent clean-foundation-hub
 
 build-e2e:
 	go test -c ./test/e2e
 
-test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-foundation-hub deploy-foundation-webhook
+test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-foundation-hub
 	deploy/foundation/scripts/install-check.sh
 	./e2e.test -test.v -ginkgo.v
 
