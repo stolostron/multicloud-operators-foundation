@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"testing"
 
@@ -11,7 +10,6 @@ import (
 	"github.com/onsi/gomega"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers/imageregistry"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
@@ -102,17 +100,10 @@ var _ = ginkgo.BeforeSuite(func() {
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	}
 
-	_, err = kubeClient.AppsV1().Deployments("open-cluster-management-agent").Get(context.TODO(), "klusterlet-addon-workmgr", metav1.GetOptions{})
-	switch {
-	case err == nil:
-		fmt.Println("deployed by Foundation")
-		deployedByACM = false
-	case errors.IsNotFound(err):
-		fmt.Println("deployed by ACM")
-		deployedByACM = true
-	default:
-		gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	}
+	gomega.Eventually(func() error {
+		_, err = kubeClient.AppsV1().Deployments("open-cluster-management-agent-addon").Get(context.TODO(), "klusterlet-addon-workmgr", metav1.GetOptions{})
+		return err
+	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 	gomega.Eventually(func() error {
 		managedClusterInfo, err := util.GetResource(dynamicClient, util.ClusterInfoGVR, defaultManagedCluster, defaultManagedCluster)

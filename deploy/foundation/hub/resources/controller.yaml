@@ -18,7 +18,7 @@ spec:
       serviceAccountName: foundation-hub-sa
       containers:
       - name: ocm-controller
-        image: ocm-controller
+        image: quay.io/open-cluster-management/multicloud-manager
         imagePullPolicy: Always
         args:
           - "/controller"

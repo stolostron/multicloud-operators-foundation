@@ -1,30 +1,15 @@
 resources:
-- resources/crds/action.open-cluster-management.io_managedclusteractions.yaml
-- resources/crds/internal.open-cluster-management.io_managedclusterinfos.yaml
-- resources/crds/imageregistry.open-cluster-management.io_managedclusterimageregistries.yaml
-- resources/crds/inventory.open-cluster-management.io_baremetalassets.yaml
-- resources/crds/view.open-cluster-management.io_managedclusterviews.yaml
-- resources/crds/hive.openshift.io_syncsets.yaml
-- resources/crds/hive.openshift.io_clusterdeployments.yaml
-- resources/crds/hiveinternal.openshift.io_clustersyncs.yaml
-- resources/crds/hive.openshift.io_clusterclaims.yaml
-- resources/crds/hive.openshift.io_clusterpools.yaml
-- resources/clusterrole.yaml
-- resources/agent-clusterrole.yaml
-- resources/proxyserver-apiservice.yaml
-- resources/proxyserver-service.yaml
-- resources/proxyserver.yaml
-- resources/controller.yaml
-- resources/clusterviewv1-apiservice.yaml
-- resources/clusterviewv1alpha1-apiservice.yaml
-- resources/clustermanagementaddon.yaml
+- resources
+
 
 images:
-- name: ocm-controller
+- name: quay.io/open-cluster-management/multicloud-manager
   newName: quay.io/open-cluster-management/multicloud-manager
   newTag: latest
-- name: ocm-proxyserver
-  newName: quay.io/open-cluster-management/multicloud-manager
-  newTag: latest
+
+
+patchesStrategicMerge:
+- patches.yaml
+
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization

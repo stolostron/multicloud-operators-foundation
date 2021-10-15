@@ -1,0 +1,27 @@
+resources:
+- crds/action.open-cluster-management.io_managedclusteractions.yaml
+- crds/internal.open-cluster-management.io_managedclusterinfos.yaml
+- crds/imageregistry.open-cluster-management.io_managedclusterimageregistries.yaml
+- crds/inventory.open-cluster-management.io_baremetalassets.yaml
+- crds/view.open-cluster-management.io_managedclusterviews.yaml
+- crds/hive.openshift.io_syncsets.yaml
+- crds/hive.openshift.io_clusterdeployments.yaml
+- crds/hiveinternal.openshift.io_clustersyncs.yaml
+- crds/hive.openshift.io_clusterclaims.yaml
+- crds/hive.openshift.io_clusterpools.yaml
+- clusterrole.yaml
+- agent-clusterrole.yaml
+- proxyserver-apiservice.yaml
+- proxyserver-service.yaml
+- proxyserver.yaml
+- controller.yaml
+- clusterviewv1-apiservice.yaml
+- clusterviewv1alpha1-apiservice.yaml
+- clustermanagementaddon.yaml
+- webhook.yaml
+- webhook-service.yaml
+- webhook-validating-config.yaml
+
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
