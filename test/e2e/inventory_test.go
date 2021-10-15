@@ -3,8 +3,9 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/hive/apis/hive/v1/aws"
 	"time"
+
+	"github.com/openshift/hive/apis/hive/v1/aws"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"

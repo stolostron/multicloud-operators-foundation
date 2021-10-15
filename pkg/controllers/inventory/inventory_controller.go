@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/client-go/util/retry"
 
-	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
 	bmaerrors "github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory/errors"
 	objectreferencesv1 "github.com/openshift/custom-resource-status/objectreferences/v1"
@@ -562,7 +562,7 @@ func (r *ReconcileBareMetalAsset) newHiveSyncSet(instance *inventoryv1alpha1.Bar
 		// Specify the BareMetalHost as a patch
 		hsc.Spec.SyncSetCommonSpec.Patches = []hivev1.SyncObjectPatch{
 			{
-				APIVersion: metal3v1alpha1.SchemeGroupVersion.String(),
+				APIVersion: metal3v1alpha1.GroupVersion.String(),
 				Kind:       BareMetalHostKind,
 				Name:       instance.Name,
 				Namespace:  inventoryv1alpha1.ManagedClusterResourceNamespace,
@@ -589,7 +589,7 @@ func newBareMetalHost(instance *inventoryv1alpha1.BareMetalAsset, assetSyncCompl
 
 	bmhJSON, err := json.Marshal(map[string]interface{}{
 		"kind":       BareMetalHostKind,
-		"apiVersion": metal3v1alpha1.SchemeGroupVersion.String(),
+		"apiVersion": metal3v1alpha1.GroupVersion.String(),
 		"metadata": map[string]interface{}{
 			"name":      instance.Name,
 			"namespace": inventoryv1alpha1.ManagedClusterResourceNamespace,

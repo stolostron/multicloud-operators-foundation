@@ -81,9 +81,10 @@ func InitializeTLS(s *options.AgentOptions) (*agent.TLSOptions, error) {
 }
 
 // ServeHealthProbes starts a server to check healthz and readyz probes
-func ServeHealthProbes(stop <-chan struct{}, healthProbeBindAddress string) {
+func ServeHealthProbes(stop <-chan struct{}, healthProbeBindAddress string, configCheck healthz.Checker) {
 	healthzHandler := &healthz.Handler{Checks: map[string]healthz.Checker{
 		"healthz-ping": healthz.Ping,
+		"configz-ping": configCheck,
 	}}
 	readyzHandler := &healthz.Handler{Checks: map[string]healthz.Checker{
 		"readyz-ping": healthz.Ping,
