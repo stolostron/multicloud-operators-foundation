@@ -316,7 +316,7 @@ func (r *ClusterInfoReconciler) getKubeVendor(product string) (kubeVendor cluste
 		kubeVendor = clusterv1beta1.KubeVendorIKS
 	case clusterclaim.ProductICP:
 		kubeVendor = clusterv1beta1.KubeVendorICP
-	case clusterclaim.ProductOpenShift:
+	case clusterclaim.ProductOpenShift, clusterclaim.ProductROSA, clusterclaim.ProductARO:
 		kubeVendor = clusterv1beta1.KubeVendorOpenShift
 	case clusterclaim.ProductOSD:
 		kubeVendor = clusterv1beta1.KubeVendorOSD
