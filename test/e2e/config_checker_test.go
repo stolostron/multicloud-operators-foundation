@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -42,9 +41,6 @@ var _ = Describe("Change the secret of hub-kubeconfig", func() {
 	})
 
 	It("shoud restart the container of work manager", func() {
-		// wait pod running for more than 30 seconds
-		time.Sleep(time.Second * 40)
-
 		// print currnet pod status
 		pod, err := kubeClient.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
 		Expect(err).To(BeNil())
