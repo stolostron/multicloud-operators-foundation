@@ -2,18 +2,14 @@ package useridentity
 
 import (
 	"encoding/json"
-	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/mattbaird/jsonpatch"
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
 	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	serve "github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/serve"
 	v1 "k8s.io/api/admission/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/klog/v2"
 )
@@ -23,88 +19,26 @@ type AdmissionHandler struct {
 	SkipOverwriteUserList []string
 }
 
-// toAdmissionResponse is a helper function to create an AdmissionResponse
-// with an embedded error
-func toAdmissionResponse(err error) *v1.AdmissionResponse {
-	return &v1.AdmissionResponse{
-		Result: &metav1.Status{
-			Message: err.Error(),
-		},
-	}
-}
-
-// admitFunc is the type we use for all of our validators and mutators
-type admitFunc func(v1.AdmissionReview) *v1.AdmissionResponse
-
-// serve handles the http portion of a request prior to handing to an admit
-// function
-func (a *AdmissionHandler) serve(w io.Writer, r *http.Request, admit admitFunc) {
-	var body []byte
-	if r.Body != nil {
-		if data, err := ioutil.ReadAll(r.Body); err == nil {
-			body = data
-		}
-	}
-	// verify the content type is accurate
-	contentType := r.Header.Get("Content-Type")
-	if contentType != "application/json" {
-		klog.Errorf("contentType=%s, expect application/json", contentType)
-		return
-	}
-
-	klog.V(2).Info(fmt.Sprintf("handling request: %s", body))
-
-	// The AdmissionReview that was sent to the webhook
-	requestedAdmissionReview := v1.AdmissionReview{}
-
-	// The AdmissionReview that will be returned
-	responseAdmissionReview := v1.AdmissionReview{}
-
-	deserializer := options.Codecs.UniversalDeserializer()
-	if _, _, err := deserializer.Decode(body, nil, &requestedAdmissionReview); err != nil {
-		klog.Error(err)
-		responseAdmissionReview.Response = toAdmissionResponse(err)
-	} else {
-		// pass to admitFunc
-		responseAdmissionReview.Response = admit(requestedAdmissionReview)
-	}
-
-	responseAdmissionReview.Kind = requestedAdmissionReview.Kind
-	responseAdmissionReview.APIVersion = requestedAdmissionReview.APIVersion
-	// Return the same UID
-	responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
-
-	klog.V(2).Info(fmt.Sprintf("sending response: %+v", responseAdmissionReview))
-
-	respBytes, err := json.Marshal(responseAdmissionReview)
-	if err != nil {
-		klog.Error(err)
-	}
-	if _, err := w.Write(respBytes); err != nil {
-		klog.Error(err)
-	}
-}
-
-func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionResponse {
+func (a *AdmissionHandler) mutateResource(ar *v1.AdmissionRequest) *v1.AdmissionResponse {
 	klog.V(4).Info("mutating custom resource")
 
 	obj := unstructured.Unstructured{}
-	err := obj.UnmarshalJSON(ar.Request.Object.Raw)
+	err := obj.UnmarshalJSON(ar.Object.Raw)
 	if err != nil {
 		klog.Error(err)
-		return toAdmissionResponse(err)
+		return serve.ToAdmissionResponse(err)
 	}
 
 	annotations := obj.GetAnnotations()
 
-	if utils.ContainsString(a.SkipOverwriteUserList, ar.Request.UserInfo.Username) {
-		klog.V(4).Infof("Skip add user and group for resource: %+v, name: %+v", ar.Request.Resource.Resource, obj.GetName())
+	if utils.ContainsString(a.SkipOverwriteUserList, ar.UserInfo.Username) {
+		klog.V(4).Infof("Skip add user and group for resource: %+v, name: %+v", ar.Resource.Resource, obj.GetName())
 		reviewResponse := v1.AdmissionResponse{}
 		reviewResponse.Allowed = true
 		return &reviewResponse
 	}
 
-	resAnnotations := MergeUserIdentityToAnnotations(ar.Request.UserInfo, annotations, obj.GetNamespace(), a.Lister)
+	resAnnotations := MergeUserIdentityToAnnotations(ar.UserInfo, annotations, obj.GetNamespace(), a.Lister)
 	obj.SetAnnotations(resAnnotations)
 
 	reviewResponse := v1.AdmissionResponse{}
@@ -115,7 +49,7 @@ func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionRe
 		klog.Errorf("marshal json error: %+v", err)
 		return nil
 	}
-	res, err := jsonpatch.CreatePatch(ar.Request.Object.Raw, updatedObj)
+	res, err := jsonpatch.CreatePatch(ar.Object.Raw, updatedObj)
 	if err != nil {
 		klog.Errorf("Create patch error: %+v", err)
 		return nil
@@ -131,10 +65,10 @@ func (a *AdmissionHandler) mutateResource(ar v1.AdmissionReview) *v1.AdmissionRe
 	pt := v1.PatchTypeJSONPatch
 	reviewResponse.PatchType = &pt
 
-	klog.V(2).Infof("Successfully Added user and group for resource: %+v, name: %+v", ar.Request.Resource.Resource, obj.GetName())
+	klog.V(2).Infof("Successfully Added user and group for resource: %+v, name: %+v", ar.Resource.Resource, obj.GetName())
 	return &reviewResponse
 }
 
 func (a *AdmissionHandler) ServeMutateResource(w http.ResponseWriter, r *http.Request) {
-	a.serve(w, r, a.mutateResource)
+	serve.Serve(w, r, a.mutateResource)
 }
