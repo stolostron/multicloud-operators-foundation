@@ -285,6 +285,16 @@ func newConfigmapConsoleConfig() *corev1.ConfigMap {
 	}
 }
 
+func newEndpoint() *corev1.Endpoints {
+	return &corev1.Endpoints{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "kubernetes",
+			Namespace: "default",
+		},
+	}
+}
+
 func newEndpointKubernetes() *corev1.Endpoints {
 	return &corev1.Endpoints{
 		ObjectMeta: metav1.ObjectMeta{
@@ -425,7 +435,7 @@ func TestClusterClaimerList(t *testing.T) {
 			name:           "claims of non-OCP",
 			clusterName:    "clusterNonOCP",
 			hubClient:      fakeHubClient("clusterNonOCP", map[string]string{}),
-			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformGCP), newConfigmapConsoleConfig()}),
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformGCP), newEndpoint()}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{}),
 			configV1Client: newConfigV1Client("3", ""),
 			expectClaims: map[string]string{
@@ -457,116 +467,133 @@ func TestClusterClaimerList(t *testing.T) {
 
 func TestIsOpenShift(t *testing.T) {
 	tests := []struct {
-		name      string
-		mapper    meta.RESTMapper
-		expectRet bool
+		name        string
+		mapper      meta.RESTMapper
+		expectedRet bool
+		expectedErr error
 	}{
 		{
-			name:      "is openshift",
-			mapper:    newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectRet: true,
+			name:        "is openshift",
+			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectedRet: true,
+			expectedErr: nil,
 		},
 		{
-			name:      "is not openshift",
-			mapper:    newFakeRestMapper([]*restmapper.APIGroupResources{}),
-			expectRet: false,
+			name:        "is not openshift",
+			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{}),
+			expectedRet: false,
+			expectedErr: nil,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clusterClaimer := ClusterClaimer{Mapper: test.mapper}
-			rst := clusterClaimer.isOpenShift()
-			assert.Equal(t, test.expectRet, rst)
+			rst, err := clusterClaimer.isOpenShift()
+			assert.Equal(t, test.expectedRet, rst)
+			assert.Equal(t, test.expectedErr, err)
 		})
 	}
 }
 
 func TestOpenshiftDedicated(t *testing.T) {
 	tests := []struct {
-		name      string
-		mapper    meta.RESTMapper
-		expectRet bool
+		name        string
+		mapper      meta.RESTMapper
+		expectedRet bool
+		expectedErr error
 	}{
 		{
-			name:      "is osd",
-			mapper:    newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources, osdAPIGroupResources}),
-			expectRet: true,
+			name:        "is osd",
+			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources, osdAPIGroupResources}),
+			expectedRet: true,
+			expectedErr: nil,
 		},
 		{
-			name:      "is openshift not osd",
-			mapper:    newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectRet: false,
+			name:        "is openshift not osd",
+			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectedRet: false,
+			expectedErr: nil,
 		},
 		{
-			name:      "is not openshift",
-			mapper:    newFakeRestMapper([]*restmapper.APIGroupResources{}),
-			expectRet: false,
+			name:        "is not openshift",
+			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{}),
+			expectedRet: false,
+			expectedErr: nil,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clusterClaimer := ClusterClaimer{Mapper: test.mapper}
-			rst := clusterClaimer.isOpenshiftDedicated()
-			assert.Equal(t, test.expectRet, rst)
+			rst, err := clusterClaimer.isOpenshiftDedicated()
+			assert.Equal(t, test.expectedRet, rst)
+			assert.Equal(t, test.expectedErr, err)
 		})
 	}
 }
 
 func TestROSA(t *testing.T) {
 	tests := []struct {
-		name       string
-		kubeClient kubernetes.Interface
-		mapper     meta.RESTMapper
-		expectRet  bool
+		name        string
+		kubeClient  kubernetes.Interface
+		mapper      meta.RESTMapper
+		expectedRet bool
+		expectedErr error
 	}{
 		{
-			name:       "is ROSA",
-			kubeClient: newFakeKubeClient([]runtime.Object{newConfigmap("openshift-config", "rosa-brand-logo")}),
-			mapper:     newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectRet:  true,
+			name:        "is ROSA",
+			kubeClient:  newFakeKubeClient([]runtime.Object{newConfigmap("openshift-config", "rosa-brand-logo")}),
+			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectedRet: true,
+			expectedErr: nil,
 		},
 		{
-			name:       "is openshift not ROSA",
-			kubeClient: newFakeKubeClient(nil),
-			mapper:     newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectRet:  false,
+			name:        "is openshift not ROSA",
+			kubeClient:  newFakeKubeClient(nil),
+			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectedRet: false,
+			expectedErr: nil,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, Mapper: test.mapper}
-			rst := clusterClaimer.isROSA()
-			assert.Equal(t, test.expectRet, rst)
+			rst, err := clusterClaimer.isROSA()
+			assert.Equal(t, test.expectedRet, rst)
+			assert.Equal(t, test.expectedErr, err)
 		})
 	}
 }
 
 func TestARO(t *testing.T) {
 	tests := []struct {
-		name      string
-		mapper    meta.RESTMapper
-		expectRet bool
+		name        string
+		mapper      meta.RESTMapper
+		expectedRet bool
+		expectedErr error
 	}{
 		{
-			name:      "is ARO",
-			mapper:    newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources, aroAPIGroupResources}),
-			expectRet: true,
+			name:        "is ARO",
+			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources, aroAPIGroupResources}),
+			expectedRet: true,
+			expectedErr: nil,
 		},
 		{
-			name:      "is openshift not ARO",
-			mapper:    newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectRet: false,
+			name:        "is openshift not ARO",
+			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectedRet: false,
+			expectedErr: nil,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clusterClaimer := ClusterClaimer{Mapper: test.mapper}
-			rst := clusterClaimer.isARO()
-			assert.Equal(t, test.expectRet, rst)
+			rst, err := clusterClaimer.isARO()
+			assert.Equal(t, test.expectedRet, rst)
+			assert.Equal(t, test.expectedErr, err)
 		})
 	}
 }
@@ -751,126 +778,113 @@ func TestGetMasterAddresses(t *testing.T) {
 	}
 }
 
-func TestGetKubeVersionPlatformProduct(t *testing.T) {
+func TestUpdatePlatformProduct(t *testing.T) {
 	tests := []struct {
-		name              string
-		kubeClient        kubernetes.Interface
-		dynamicClient     dynamic.Interface
-		mapper            meta.RESTMapper
-		expectKubeVersion string
-		expectPlatform    string
-		expectProduct     string
-		expectErr         error
+		name           string
+		kubeClient     kubernetes.Interface
+		dynamicClient  dynamic.Interface
+		mapper         meta.RESTMapper
+		expectPlatform string
+		expectProduct  string
+		expectErr      error
 	}{
 		{
-			name:              "is OCP on AWS",
-			kubeClient:        newFakeKubeClient([]runtime.Object{newNode(PlatformAWS)}),
-			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectKubeVersion: "v0.0.0-master+$Format:%H$",
-			expectPlatform:    PlatformAWS,
-			expectProduct:     ProductOpenShift,
-			expectErr:         nil,
+			name:           "is OCP on AWS",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAWS)}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectPlatform: PlatformAWS,
+			expectProduct:  ProductOpenShift,
+			expectErr:      nil,
 		},
 		{
-			name:              "is OCP on Azure",
-			kubeClient:        newFakeKubeClient([]runtime.Object{newNode(PlatformAzure)}),
-			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectKubeVersion: "v0.0.0-master+$Format:%H$",
-			expectPlatform:    PlatformAzure,
-			expectProduct:     ProductOpenShift,
-			expectErr:         nil,
+			name:           "is OCP on Azure",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAzure)}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectPlatform: PlatformAzure,
+			expectProduct:  ProductOpenShift,
+			expectErr:      nil,
 		},
 		{
-			name:              "is OCP on IBM",
-			kubeClient:        newFakeKubeClient([]runtime.Object{newNode(PlatformIBM)}),
-			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectKubeVersion: "v0.0.0-master+$Format:%H$",
-			expectPlatform:    PlatformIBM,
-			expectProduct:     ProductOpenShift,
-			expectErr:         nil,
+			name:           "is OCP on IBM",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformIBM)}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectPlatform: PlatformIBM,
+			expectProduct:  ProductOpenShift,
+			expectErr:      nil,
 		},
 		{
-			name:              "is OCP on IBMZ",
-			kubeClient:        newFakeKubeClient([]runtime.Object{newNode(PlatformIBMZ)}),
-			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectKubeVersion: "v0.0.0-master+$Format:%H$",
-			expectPlatform:    PlatformIBMZ,
-			expectProduct:     ProductOpenShift,
-			expectErr:         nil,
+			name:           "is OCP on IBMZ",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformIBMZ)}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectPlatform: PlatformIBMZ,
+			expectProduct:  ProductOpenShift,
+			expectErr:      nil,
 		},
 		{
-			name:              "is OCP on IBMP",
-			kubeClient:        newFakeKubeClient([]runtime.Object{newNode(PlatformIBMP)}),
-			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectKubeVersion: "v0.0.0-master+$Format:%H$",
-			expectPlatform:    PlatformIBMP,
-			expectProduct:     ProductOpenShift,
-			expectErr:         nil,
+			name:           "is OCP on IBMP",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformIBMP)}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectPlatform: PlatformIBMP,
+			expectProduct:  ProductOpenShift,
+			expectErr:      nil,
 		},
 		{
-			name:              "is OCP on GCP",
-			kubeClient:        newFakeKubeClient([]runtime.Object{newNode(PlatformGCP)}),
-			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectKubeVersion: "v0.0.0-master+$Format:%H$",
-			expectPlatform:    PlatformGCP,
-			expectProduct:     ProductOpenShift,
-			expectErr:         nil,
+			name:           "is OCP on GCP",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformGCP)}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectPlatform: PlatformGCP,
+			expectProduct:  ProductOpenShift,
+			expectErr:      nil,
 		},
 		{
-			name:              "is OCP on Openstack",
-			kubeClient:        newFakeKubeClient([]runtime.Object{newNode(PlatformOpenStack)}),
-			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectKubeVersion: "v0.0.0-master+$Format:%H$",
-			expectPlatform:    PlatformOpenStack,
-			expectProduct:     ProductOpenShift,
-			expectErr:         nil,
+			name:           "is OCP on Openstack",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformOpenStack)}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectPlatform: PlatformOpenStack,
+			expectProduct:  ProductOpenShift,
+			expectErr:      nil,
 		},
 		{
-			name:              "is OCP on VSphere",
-			kubeClient:        newFakeKubeClient([]runtime.Object{newNode(PlatformVSphere)}),
-			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectKubeVersion: "v0.0.0-master+$Format:%H$",
-			expectPlatform:    PlatformVSphere,
-			expectProduct:     ProductOpenShift,
-			expectErr:         nil,
+			name:           "is OCP on VSphere",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformVSphere)}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectPlatform: PlatformVSphere,
+			expectProduct:  ProductOpenShift,
+			expectErr:      nil,
 		},
 		{
-			name:              "is OCP on VSphere",
-			kubeClient:        newFakeKubeClient([]runtime.Object{newNode(PlatformVSphere)}),
-			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectKubeVersion: "v0.0.0-master+$Format:%H$",
-			expectPlatform:    PlatformVSphere,
-			expectProduct:     ProductOpenShift,
-			expectErr:         nil,
+			name:           "is OCP on VSphere",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformVSphere)}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectPlatform: PlatformVSphere,
+			expectProduct:  ProductOpenShift,
+			expectErr:      nil,
 		},
 		{
-			name:              "is AKS",
-			kubeClient:        newFakeKubeClient([]runtime.Object{newNode(PlatformAzure)}),
-			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{}),
-			expectKubeVersion: "v0.0.0-master+$Format:%H$",
-			expectPlatform:    PlatformAzure,
-			expectProduct:     ProductAKS,
-			expectErr:         nil,
+			name:           "is AKS",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAzure)}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{}),
+			expectPlatform: PlatformAzure,
+			expectProduct:  ProductAKS,
+			expectErr:      nil,
 		},
 		{
-			name:              "is OSD on AWS",
-			kubeClient:        newFakeKubeClient([]runtime.Object{newNode(PlatformAWS)}),
-			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources, osdAPIGroupResources}),
-			expectKubeVersion: "v0.0.0-master+$Format:%H$",
-			expectPlatform:    PlatformAWS,
-			expectProduct:     ProductOSD,
-			expectErr:         nil,
+			name:           "is OSD on AWS",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAWS)}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources, osdAPIGroupResources}),
+			expectPlatform: PlatformAWS,
+			expectProduct:  ProductOSD,
+			expectErr:      nil,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, Mapper: test.mapper}
-			kubeVersion, platform, product, err := clusterClaimer.getKubeVersionPlatformProduct()
+			err := clusterClaimer.updatePlatformProduct()
 			assert.Equal(t, test.expectErr, err)
-			assert.Equal(t, test.expectKubeVersion, kubeVersion)
-			assert.Equal(t, test.expectPlatform, platform)
-			assert.Equal(t, test.expectProduct, product)
+			assert.Equal(t, test.expectPlatform, clusterClaimer.Platform)
+			assert.Equal(t, test.expectProduct, clusterClaimer.Product)
 		})
 	}
 }
