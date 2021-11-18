@@ -85,6 +85,8 @@ func init() {
 
 type ClusterClaimer struct {
 	ClusterName    string
+	Product        string
+	Platform       string
 	HubClient      client.Client
 	KubeClient     kubernetes.Interface
 	ConfigV1Client openshiftclientset.Interface
@@ -93,10 +95,20 @@ type ClusterClaimer struct {
 
 func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 	var claims []*clusterv1alpha1.ClusterClaim
+	err := c.updatePlatformProduct()
+	if err != nil {
+		klog.Errorf("failed to update platform and product. err:%v", err)
+		return claims, err
+	}
+
+	claims = append(claims, newClusterClaim(ClaimOCMPlatform, c.Platform))
+	claims = append(claims, newClusterClaim(ClaimOCMProduct, c.Product))
+	claims = append(claims, newClusterClaim(ClaimK8sID, c.ClusterName))
 
 	version, clusterID, err := c.getOCPVersion()
 	if err != nil {
 		klog.Errorf("failed to get OCP version and clusterID, error: %v ", err)
+		return claims, err
 	}
 	if clusterID != "" {
 		claims = append(claims, newClusterClaim(ClaimOpenshiftID, clusterID))
@@ -108,6 +120,7 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 	infraConfig, err := c.getInfraConfig()
 	if err != nil {
 		klog.Errorf("failed to get infraConfig, error: %v ", err)
+		return claims, err
 	}
 	if infraConfig != "" {
 		claims = append(claims, newClusterClaim(ClaimOpenshiftInfrastructure, infraConfig))
@@ -116,28 +129,23 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 	_, _, consoleURL, err := c.getMasterAddresses()
 	if err != nil {
 		klog.Errorf("failed to get master Addresses, error: %v ", err)
+		return claims, err
 	}
 	if consoleURL != "" {
 		claims = append(claims, newClusterClaim(ClaimOCMConsoleURL, consoleURL))
 	}
 
-	claims = append(claims, newClusterClaim(ClaimK8sID, c.ClusterName))
-
-	kubeVersion, platform, product, err := c.getKubeVersionPlatformProduct()
+	kubeVersion, err := c.getKubeVersion()
 	if err != nil {
-		klog.Errorf("failed to get kubeVersion/platform/product: %v", err)
+		klog.Errorf("failed to get kubeVersion: %v", err)
+		return claims, err
 	}
 	claims = append(claims, newClusterClaim(ClaimOCMKubeVersion, kubeVersion))
-	if len(platform) > 0 {
-		claims = append(claims, newClusterClaim(ClaimOCMPlatform, platform))
-	}
-	if len(product) > 0 {
-		claims = append(claims, newClusterClaim(ClaimOCMProduct, product))
-	}
 
 	region, err := c.getClusterRegion()
 	if err != nil {
 		klog.Errorf("failed to get region, error: %v ", err)
+		return claims, err
 	}
 	if region != "" {
 		claims = append(claims, newClusterClaim(ClaimOCMRegion, region))
@@ -151,6 +159,7 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 	syncedClaims, err := c.syncLabelsToClaims()
 	if err != nil {
 		klog.Errorf("failed to sync labels to claims: %v", err)
+		return claims, err
 	}
 	if len(syncedClaims) != 0 {
 		claims = append(claims, syncedClaims...)
@@ -170,54 +179,56 @@ func newClusterClaim(name, value string) *clusterv1alpha1.ClusterClaim {
 	}
 }
 
-func (c *ClusterClaimer) isOpenShift() bool {
+func (c *ClusterClaimer) isOpenShift() (bool, error) {
 	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "project.openshift.io", Kind: "Project"}, "v1")
 	if err != nil {
-		return false
+		if meta.IsNoMatchError(err) {
+			return false, nil
+		}
+		klog.Errorf("failed to mapping project:%v", err)
+		return false, err
 	}
-	return true
+
+	return true, nil
 }
 
-func (c *ClusterClaimer) isOpenshiftDedicated() bool {
-	if !c.isOpenShift() {
-		return false
-	}
-
+func (c *ClusterClaimer) isOpenshiftDedicated() (bool, error) {
 	// this API group is created for the Openshift Dedicated platform to manage various permissions.
 	// defined in https://github.com/openshift/rbac-permissions-operator/blob/master/pkg/apis/managed/v1alpha1/subjectpermission_types.go
 	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "managed.openshift.io", Kind: "SubjectPermission"}, "v1alpha1")
 	if err != nil {
-		return false
+		if meta.IsNoMatchError(err) {
+			return false, nil
+		}
+		klog.Errorf("failed to mapping SubjectPermission:%v", err)
+		return false, err
 	}
-	return true
+	return true, nil
 }
 
-func (c *ClusterClaimer) isROSA() bool {
-	if !c.isOpenShift() {
-		return false
-	}
-
+func (c *ClusterClaimer) isROSA() (bool, error) {
 	_, err := c.KubeClient.CoreV1().ConfigMaps("openshift-config").Get(context.TODO(), "rosa-brand-logo", metav1.GetOptions{})
-	if err != nil && apierrors.IsNotFound(err) {
-		return false
-	}
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return false, nil
+		}
 		klog.Errorf("failed to get configmap openshift-config/rosa-brand-logo. err: %v", err)
-		return false
+		return false, err
 	}
 
-	return true
+	return true, nil
 }
 
-func (c *ClusterClaimer) isARO() bool {
-	if !c.isOpenShift() {
-		return false
-	}
+func (c *ClusterClaimer) isARO() (bool, error) {
 	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "aro.openshift.io", Kind: "Cluster"}, "v1alpha1")
 	if err != nil {
-		return false
+		if meta.IsNoMatchError(err) {
+			return false, nil
+		}
+		klog.Errorf("failed to mapping project:%v", err)
+		return false, err
 	}
-	return true
+	return true, nil
 }
 
 const (
@@ -225,7 +236,12 @@ const (
 )
 
 func (c *ClusterClaimer) getOCPVersion() (version, clusterID string, err error) {
-	if !c.isOpenShift() {
+	isOpenShift, err := c.isOpenShift()
+	if err != nil {
+		klog.Errorf("failed to check if the cluster is openshift.err:%v", err)
+		return "", "", err
+	}
+	if !isOpenShift {
 		return "", "", nil
 	}
 
@@ -256,7 +272,12 @@ type InfraConfig struct {
 }
 
 func (c *ClusterClaimer) getInfraConfig() (string, error) {
-	if !c.isOpenShift() {
+	isOpenShift, err := c.isOpenShift()
+	if err != nil {
+		klog.Errorf("failed to check if the cluster is openshift.err:%v", err)
+		return "", err
+	}
+	if !isOpenShift {
 		return "", nil
 	}
 
@@ -281,8 +302,14 @@ func (c *ClusterClaimer) getInfraConfig() (string, error) {
 func (c *ClusterClaimer) getClusterRegion() (string, error) {
 	var region = ""
 
+	isOpenShift, err := c.isOpenShift()
+	if err != nil {
+		klog.Errorf("failed to check if the cluster is openshift.err:%v", err)
+		return "", err
+	}
+
 	switch {
-	case c.isOpenShift():
+	case isOpenShift:
 		infrastructure, err := c.ConfigV1Client.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
 		if err != nil {
 			klog.Errorf("failed to get OCP infrastructures.config.openshift.io/cluster: %v", err)
@@ -345,8 +372,12 @@ func (c *ClusterClaimer) getMasterAddresses() ([]corev1.EndpointAddress, []corev
 	var masterAddresses []corev1.EndpointAddress
 	var masterPorts []corev1.EndpointPort
 	var err error
-
-	if c.isOpenShift() {
+	isOpenShift, err := c.isOpenShift()
+	if err != nil {
+		klog.Errorf("failed to check if the cluster is openshift.err:%v", err)
+		return masterAddresses, masterPorts, "", err
+	}
+	if isOpenShift {
 		return c.getMasterAddressesFromConsoleConfig()
 	}
 
@@ -384,76 +415,112 @@ func (c *ClusterClaimer) getNodeInfo() (architecture, providerID string, err err
 	return
 }
 
-func (c *ClusterClaimer) getKubeVersionPlatformProduct() (kubeVersion, platform, product string, err error) {
-	product = ProductOther
-	platform = PlatformOther
+func (c *ClusterClaimer) updatePlatformProduct() (err error) {
+	// platform and product are constant, update only when they are empty.
+	if c.Platform != "" && c.Product != "" {
+		return nil
+	}
 
-	if kubeVersion, err = c.getKubeVersion(); err != nil {
+	c.Product = ProductOther
+	c.Platform = PlatformOther
+
+	kubeVersion, err := c.getKubeVersion()
+	if err != nil {
 		klog.Errorf("failed to get kubeVersion: %v", err)
-		return
+		return err
 	}
 	gitVersion := strings.ToUpper(kubeVersion)
+
 	// deal with product and platform
 	switch {
 	case strings.Contains(gitVersion, ProductIKS):
-		platform = PlatformIBM
-		product = ProductIKS
-		return
+		c.Platform = PlatformIBM
+		c.Product = ProductIKS
+		return nil
 	case strings.Contains(gitVersion, ProductICP):
-		platform = PlatformIBM
-		product = ProductICP
-		return
+		c.Platform = PlatformIBM
+		c.Product = ProductICP
+		return nil
 	case strings.Contains(gitVersion, ProductEKS):
-		platform = PlatformAWS
-		product = ProductEKS
-		return
+		c.Platform = PlatformAWS
+		c.Product = ProductEKS
+		return nil
 	case strings.Contains(gitVersion, ProductGKE):
-		platform = PlatformGCP
-		product = ProductGKE
-		return
-	case c.isROSA():
-		platform = PlatformAWS
-		product = ProductROSA
-		return
-	case c.isARO():
-		platform = PlatformAzure
-		product = ProductARO
-		return
-	case c.isOpenshiftDedicated():
-		product = ProductOSD
-	case c.isOpenShift():
-		product = ProductOpenShift
+		c.Platform = PlatformGCP
+		c.Product = ProductGKE
+		return nil
+	}
+
+	isROSA, err := c.isROSA()
+	if err != nil {
+		klog.Errorf("failed to check if cluster is ROSA. %v", err)
+		return err
+	}
+	if isROSA {
+		c.Platform = PlatformAWS
+		c.Product = ProductROSA
+		return nil
+	}
+
+	isARO, err := c.isARO()
+	if err != nil {
+		klog.Errorf("failed to check if cluster is ARO. %v", err)
+		return err
+	}
+	if isARO {
+		c.Platform = PlatformAzure
+		c.Product = ProductARO
+		return nil
+	}
+
+	// OSD is also openshift, should check openshift firstly.
+	isOpenShift, err := c.isOpenShift()
+	if err != nil {
+		klog.Errorf("failed to check if cluster is openshift. %v", err)
+		return err
+	}
+	if isOpenShift {
+		c.Product = ProductOpenShift
+	}
+
+	isOpenshiftDedicated, err := c.isOpenshiftDedicated()
+	if err != nil {
+		klog.Errorf("failed to check if cluster is OSD. %v", err)
+		return err
+	}
+	if isOpenshiftDedicated {
+		c.Product = ProductOSD
 	}
 
 	var architecture, providerID string
 	if architecture, providerID, err = c.getNodeInfo(); err != nil {
 		klog.Errorf("failed to get node info: %v", err)
-		return
+		return err
 	}
 
 	switch {
 	case architecture == "s390x":
-		platform = PlatformIBMZ
+		c.Platform = PlatformIBMZ
 	case architecture == "ppc64le":
-		platform = PlatformIBMP
+		c.Platform = PlatformIBMP
 	case strings.HasPrefix(providerID, "ibm"):
-		platform = PlatformIBM
+		c.Platform = PlatformIBM
 	case strings.HasPrefix(providerID, "azure"):
-		platform = PlatformAzure
-		if product == ProductOther {
-			product = ProductAKS
+		c.Platform = PlatformAzure
+		if c.Product == ProductOther {
+			c.Product = ProductAKS
 		}
 	case strings.HasPrefix(providerID, "aws"):
-		platform = PlatformAWS
+		c.Platform = PlatformAWS
 	case strings.HasPrefix(providerID, "gce"):
-		platform = PlatformGCP
+		c.Platform = PlatformGCP
 	case strings.HasPrefix(providerID, "vsphere"):
-		platform = PlatformVSphere
+		c.Platform = PlatformVSphere
 	case strings.HasPrefix(providerID, "openstack"):
-		platform = PlatformOpenStack
+		c.Platform = PlatformOpenStack
 	}
 
-	return kubeVersion, platform, product, nil
+	return nil
 }
 
 func (c *ClusterClaimer) getControlPlaneTopology() configv1.TopologyMode {
