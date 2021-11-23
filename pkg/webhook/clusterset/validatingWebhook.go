@@ -4,90 +4,24 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
 	"net/http"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
+	serve "github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/serve"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
 	v1 "k8s.io/api/admission/v1"
-
 	authenticationv1 "k8s.io/api/authentication/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/klog/v2"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 type AdmissionHandler struct {
 	HiveClient hiveclient.Interface
 	KubeClient kubernetes.Interface
-}
-
-// toAdmissionResponse is a helper function to create an AdmissionResponse
-// with an embedded error
-func toAdmissionResponse(err error) *v1.AdmissionResponse {
-	return &v1.AdmissionResponse{
-		Result: &metav1.Status{
-			Message: err.Error(),
-		},
-	}
-}
-
-// admitFunc is the type we use for all of our validators and mutators
-type admitFunc func(request *v1.AdmissionRequest) *v1.AdmissionResponse
-
-// serve handles the http portion of a request prior to handing to an admit
-// function
-func (a *AdmissionHandler) serve(w io.Writer, r *http.Request, admit admitFunc) {
-	var body []byte
-	if r.Body != nil {
-		if data, err := ioutil.ReadAll(r.Body); err == nil {
-			body = data
-		}
-	}
-	// verify the content type is accurate
-	contentType := r.Header.Get("Content-Type")
-	if contentType != "application/json" {
-		klog.Errorf("contentType=%s, expect application/json", contentType)
-		return
-	}
-
-	klog.V(2).Info(fmt.Sprintf("handling request: %s", body))
-
-	// The AdmissionReview that was sent to the webhook
-	requestedAdmissionReview := v1.AdmissionReview{}
-
-	// The AdmissionReview that will be returned
-	responseAdmissionReview := v1.AdmissionReview{}
-
-	deserializer := options.Codecs.UniversalDeserializer()
-	if _, _, err := deserializer.Decode(body, nil, &requestedAdmissionReview); err != nil {
-		klog.Error(err)
-		responseAdmissionReview.Response = toAdmissionResponse(err)
-	} else {
-		// pass to admitFunc
-		responseAdmissionReview.Response = admit(requestedAdmissionReview.Request)
-	}
-
-	responseAdmissionReview.Kind = requestedAdmissionReview.Kind
-	responseAdmissionReview.APIVersion = requestedAdmissionReview.APIVersion
-	// Return the same UID
-	responseAdmissionReview.Response.UID = requestedAdmissionReview.Request.UID
-
-	klog.V(2).Info(fmt.Sprintf("sending response: %+v", responseAdmissionReview))
-
-	respBytes, err := json.Marshal(responseAdmissionReview)
-	if err != nil {
-		klog.Error(err)
-	}
-	if _, err := w.Write(respBytes); err != nil {
-		klog.Error(err)
-	}
 }
 
 var managedClustersGVR = metav1.GroupVersionResource{
@@ -337,5 +271,5 @@ func (a *AdmissionHandler) allowUpdateClusterSet(userInfo authenticationv1.UserI
 }
 
 func (a *AdmissionHandler) ServerValidateResource(w http.ResponseWriter, r *http.Request) {
-	a.serve(w, r, a.validateResource)
+	serve.Serve(w, r, a.validateResource)
 }
