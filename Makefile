@@ -25,7 +25,6 @@ IMAGE ?= multicloud-manager
 IMAGE_REGISTRY ?= quay.io/open-cluster-management
 IMAGE_TAG ?= latest
 FOUNDATION_IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
-MANAGED_CLUSTER_NAME ?= cluster1
 
 GIT_HOST ?= github.com/open-cluster-management
 BASE_DIR := $(shell basename $(PWD))
@@ -70,25 +69,26 @@ deploy-hub:
 deploy-klusterlet:
 	deploy/managedcluster/klusterlet/install.sh
 
-deploy-foundation-hub: ensure-kustomize
+deploy-foundation: ensure-kustomize
 	cp deploy/foundation/hub/kustomization.yaml deploy/foundation/hub/kustomization.yaml.tmp
 	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image 'quay.io/open-cluster-management/multicloud-manager'=$(FOUNDATION_IMAGE_NAME)
 	$(SED_CMD) -i.tmp "s,quay.io/open-cluster-management/multicloud-manager,$(FOUNDATION_IMAGE_NAME)," deploy/foundation/hub/patches.yaml
 	$(KUSTOMIZE) build deploy/foundation/hub | $(KUBECTL) apply -f -
 	mv deploy/foundation/hub/kustomization.yaml.tmp deploy/foundation/hub/kustomization.yaml
 	mv deploy/foundation/hub/patches.yaml.tmp deploy/foundation/hub/patches.yaml
+
 clean-foundation-agent:
-	$(KUBECTL) delete -f deploy/foundation/hub/clustermanagementaddon.yaml
+	$(KUBECTL) get managedclusteraddons -A | grep work-manager | awk '{print $$1" "$$2}' | xargs -n 2 $(KUBECTL) delete managedclusteraddons -n
 
 clean-foundation-hub:
 	$(KUBECTL) delete -k deploy/foundation/hub
 
-clean-deploy: clean-foundation-agent clean-foundation-hub
+clean-foundation: clean-foundation-hub clean-foundation-agent
 
 build-e2e:
 	go test -c ./test/e2e
 
-test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-foundation-hub
+test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-foundation
 	deploy/foundation/scripts/install-check.sh
 	./e2e.test -test.v -ginkgo.v
 

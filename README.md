@@ -45,18 +45,16 @@ Need to approve and accept the managed clusters registered to the Hub.
 
 ### Deploy Foundation
 
-1. Deploy foundation hub components on hub cluster.
+1. Deploy foundation hub components on hub cluster and deploy foundation agent components on all managed clusters.
 
     ```sh
-    make deploy-foundation-hub
+    make deploy-foundation
     ```
 
+### Clean up Foundation
 
-2. Deploy foundation agent components to the managed cluster from the hub cluster.
-   
     ```sh
-    export MANAGED_CLUSTER_NAME=<your managed cluster name, default is cluster1>
-    make deploy-foundation-agent
+    make clean-foundation
     ```
 
 ## Security Response
