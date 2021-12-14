@@ -283,6 +283,10 @@ func (c *ClusterClaimer) getInfraConfig() (string, error) {
 
 	infrastructure, err := c.ConfigV1Client.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
 	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil
+		}
+
 		klog.Errorf("failed to get OCP infrastructures.config.openshift.io/cluster: %v", err)
 		return "", err
 	}
@@ -312,6 +316,9 @@ func (c *ClusterClaimer) getClusterRegion() (string, error) {
 	case isOpenShift:
 		infrastructure, err := c.ConfigV1Client.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
 		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return "", nil
+			}
 			klog.Errorf("failed to get OCP infrastructures.config.openshift.io/cluster: %v", err)
 			return "", err
 		}
