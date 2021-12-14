@@ -1,22 +1,30 @@
 package e2e
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"strconv"
-	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("Change the secret of hub-kubeconfig", func() {
+var _ = XDescribe("Change the secret of hub-kubeconfig", func() {
 	namespace := "open-cluster-management-agent-addon"
 	var podName string
 	var containerRestartCount int
 
 	BeforeEach(func() {
+		// get ocm-controller's deployment
+		ocmControllerDeploy, err := kubeClient.AppsV1().Deployments("open-cluster-management").Get(context.TODO(), "ocm-controller", metav1.GetOptions{})
+		Expect(err).To(BeNil())
+		By("ocm-controller deployment:")
+		By(ocmControllerDeploy.String())
+
 		// get work-manager's pod
 		pods, err := kubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{
 			LabelSelector: "app=work-manager",
@@ -42,9 +50,6 @@ var _ = Describe("Change the secret of hub-kubeconfig", func() {
 	})
 
 	It("shoud restart the container of work manager", func() {
-		// wait pod running for more than 30 seconds
-		time.Sleep(time.Second * 40)
-
 		// print currnet pod status
 		pod, err := kubeClient.CoreV1().Pods(namespace).Get(context.TODO(), podName, metav1.GetOptions{})
 		Expect(err).To(BeNil())
@@ -67,7 +72,28 @@ var _ = Describe("Change the secret of hub-kubeconfig", func() {
 			Expect(err).To(BeNil())
 
 			By("latest container restart count: " + strconv.Itoa(int(pod.Status.ContainerStatuses[0].RestartCount)))
+			By(getPodLogs(pod))
+
 			return containerRestartCount < int(pod.Status.ContainerStatuses[0].RestartCount)
-		}, eventuallyTimeout, eventuallyInterval).Should(Equal(true))
+		}, eventuallyTimeout*2, 60).Should(Equal(true))
 	})
 })
+
+func getPodLogs(pod *corev1.Pod) string {
+	podLogOpts := corev1.PodLogOptions{}
+	req := kubeClient.CoreV1().Pods(pod.Namespace).GetLogs(pod.Name, &podLogOpts)
+	podLogs, err := req.Stream(context.Background())
+	if err != nil {
+		return "error in opening stream"
+	}
+	defer podLogs.Close()
+
+	buf := new(bytes.Buffer)
+	_, err = io.Copy(buf, podLogs)
+	if err != nil {
+		return "error in copy information from podLogs to buf"
+	}
+	str := buf.String()
+
+	return str
+}
