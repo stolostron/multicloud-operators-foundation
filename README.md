@@ -20,7 +20,7 @@ Run the following after cloning/pulling/making a change.
 make images
 ```
 
-`make images` will build a new image named `quay.io/open-cluster-management/multicloud-manager:latest`.
+`make images` will build a new image named `quay.io/stolostron/multicloud-manager:latest`.
 
 ### Prerequisites
 
