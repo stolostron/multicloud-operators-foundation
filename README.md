@@ -1,6 +1,6 @@
-# open-cluster-management Foundation
+# stolostron Foundation
 
-open-cluster-management Foundation supports some foundational components based ManagedCluster for ACM.
+stolostron Foundation supports some foundational components based ManagedCluster for ACM.
 
 ## Community, discussion, contribution, and support
 
@@ -10,7 +10,7 @@ Check the [CONTRIBUTING Doc](CONTRIBUTING.md) for how to contribute to the repo.
 
 ## Getting Started
 
-This is a guide on how to build and deploy open-cluster-management Foundation from code.
+This is a guide on how to build and deploy stolostron Foundation from code.
 
 ### Build images
 
