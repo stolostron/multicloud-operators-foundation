@@ -4,7 +4,7 @@
 
 syntax = "proto2";
 
-package github.com.open_cluster_management.multicloud_operators_foundation.pkg.proxyserver.apis.proxy.v1beta1;
+package github.com.stolostron.multicloud_operators_foundation.pkg.proxyserver.apis.proxy.v1beta1;
 
 import "k8s.io/apimachinery/pkg/apis/meta/v1/generated.proto";
 import "k8s.io/apimachinery/pkg/runtime/schema/generated.proto";
