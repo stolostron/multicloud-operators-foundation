@@ -26,7 +26,7 @@ IMAGE_REGISTRY ?= quay.io/stolostron
 IMAGE_TAG ?= latest
 FOUNDATION_IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
 
-GIT_HOST ?= github.com/open-cluster-management
+GIT_HOST ?= github.com/stolostron
 BASE_DIR := $(shell basename $(PWD))
 DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 BINDIR ?= _output

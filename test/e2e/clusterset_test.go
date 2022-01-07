@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	"k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

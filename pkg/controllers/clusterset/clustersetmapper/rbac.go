@@ -6,8 +6,8 @@
 package clustersetmapper
 
 import (
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
-	utils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
+	utils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

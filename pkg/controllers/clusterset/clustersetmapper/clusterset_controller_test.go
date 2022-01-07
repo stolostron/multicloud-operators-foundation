@@ -7,15 +7,15 @@ import (
 	"testing"
 	"time"
 
-	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/rest"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
+	"github.com/stolostron/multicloud-operators-foundation/cmd/webhook/app/options"
 	v1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
