@@ -14,10 +14,10 @@ resources:
 
 images:
 - name: foundation-controller
-  newName: quay.io/open-cluster-management/multicloud-manager
+  newName: quay.io/stolostron/multicloud-manager
   newTag: latest
 - name: foundation-proxyserver
-  newName: quay.io/open-cluster-management/multicloud-manager
+  newName: quay.io/stolostron/multicloud-manager
   newTag: latest
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
