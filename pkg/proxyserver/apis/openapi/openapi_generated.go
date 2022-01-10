@@ -16,9 +16,9 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1.ClusterStatus":             schema_pkg_proxyserver_apis_v1beta1_ClusterStatus(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1.ClusterStatusList":         schema_pkg_proxyserver_apis_v1beta1_ClusterStatusList(ref),
-		"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1.ClusterStatusProxyOptions": schema_pkg_proxyserver_apis_v1beta1_ClusterStatusProxyOptions(ref),
+		"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1.ClusterStatus":             schema_pkg_proxyserver_apis_v1beta1_ClusterStatus(ref),
+		"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1.ClusterStatusList":         schema_pkg_proxyserver_apis_v1beta1_ClusterStatusList(ref),
+		"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1.ClusterStatusProxyOptions": schema_pkg_proxyserver_apis_v1beta1_ClusterStatusProxyOptions(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroup":                                                                             schema_pkg_apis_meta_v1_APIGroup(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.APIGroupList":                                                                         schema_pkg_apis_meta_v1_APIGroupList(ref),
 		"k8s.io/apimachinery/pkg/apis/meta/v1.APIResource":                                                                          schema_pkg_apis_meta_v1_APIResource(ref),
@@ -139,7 +139,7 @@ func schema_pkg_proxyserver_apis_v1beta1_ClusterStatusList(ref common.ReferenceC
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
-										Ref: ref("github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1.ClusterStatus"),
+										Ref: ref("github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1.ClusterStatus"),
 									},
 								},
 							},
@@ -150,7 +150,7 @@ func schema_pkg_proxyserver_apis_v1beta1_ClusterStatusList(ref common.ReferenceC
 			},
 		},
 		Dependencies: []string{
-			"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1.ClusterStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
+			"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1.ClusterStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta"},
 	}
 }
 

@@ -16,7 +16,7 @@ realpath() {
 
 REPO_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")"/..)
 BINDIR="${REPO_ROOT}"/_output
-SC_PKG='github.com/open-cluster-management/multicloud-operators-foundation'
+SC_PKG='github.com/stolostron/multicloud-operators-foundation'
 
 if [[ "$(protoc --version)" != "libprotoc 3.0."* ]]; then
   echo "Generating protobuf requires protoc 3.0.x. Please download and

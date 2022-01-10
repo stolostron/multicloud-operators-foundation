@@ -8,9 +8,9 @@ import (
 	"net/http"
 
 	"github.com/mattbaird/jsonpatch"
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/denynamespace"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/useridentity"
+	"github.com/stolostron/multicloud-operators-foundation/cmd/webhook/app/options"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/denynamespace"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/useridentity"
 	"k8s.io/api/admission/v1beta1"
 	apiextensionsv1beta1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	restful "github.com/emicklei/go-restful"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/log/drivers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/log/drivers"
 	"k8s.io/apiserver/pkg/authentication/authenticator"
 	"k8s.io/apiserver/pkg/authorization/authorizer"
 	"k8s.io/apiserver/pkg/util/flushwriter"

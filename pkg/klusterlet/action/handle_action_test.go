@@ -3,8 +3,8 @@ package controllers
 import (
 	"testing"
 
-	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
-	restutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
+	actionv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/action/v1beta1"
+	restutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/rest"
 	corev1 "k8s.io/api/core/v1"
 	extensionv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"

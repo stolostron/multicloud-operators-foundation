@@ -11,10 +11,10 @@ import (
 
 	"github.com/go-logr/logr"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/prometheus/common/log"
+	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/agent"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
