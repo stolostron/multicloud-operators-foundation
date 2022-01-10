@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -15,7 +15,7 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/cache"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
 )
 
 //This controller apply clusterset related clusterrolebinding based on clustersetToClusters and clustersetAdminToSubject map

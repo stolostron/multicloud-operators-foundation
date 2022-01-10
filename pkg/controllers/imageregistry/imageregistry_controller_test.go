@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/imageregistry/v1alpha1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/apis/imageregistry/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"

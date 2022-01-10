@@ -7,9 +7,9 @@ import (
 	"path"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	"github.com/spf13/pflag"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/client-go/dynamic"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"

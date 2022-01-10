@@ -8,9 +8,9 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	e2eutil "github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 	configv1 "github.com/openshift/api/config/v1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	e2eutil "github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

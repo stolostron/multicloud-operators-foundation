@@ -7,8 +7,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	"github.com/mattbaird/jsonpatch"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	serve "github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/serve"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	serve "github.com/stolostron/multicloud-operators-foundation/pkg/webhook/serve"
 	v1 "k8s.io/api/admission/v1"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	"k8s.io/klog/v2"
