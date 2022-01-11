@@ -12,11 +12,11 @@ import (
 	"k8s.io/client-go/util/retry"
 
 	metal3v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
-	bmaerrors "github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/inventory/errors"
 	objectreferencesv1 "github.com/openshift/custom-resource-status/objectreferences/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveinternalv1alpha1 "github.com/openshift/hive/apis/hiveinternal/v1alpha1"
+	inventoryv1alpha1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
+	bmaerrors "github.com/stolostron/multicloud-operators-foundation/pkg/controllers/inventory/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	k8slabels "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	k8slabels "github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 )
 
 const (

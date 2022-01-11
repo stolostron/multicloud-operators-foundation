@@ -4,19 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"io/ioutil"
-	certutil "k8s.io/client-go/util/cert"
 	"net"
 	"os"
 	"testing"
 	"time"
 
+	certutil "k8s.io/client-go/util/cert"
+
 	"net/http"
 	"net/http/httptest"
 
 	clusterapiv1 "github.com/open-cluster-management/api/cluster/v1"
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
+	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/resource"

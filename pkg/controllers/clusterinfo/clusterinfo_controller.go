@@ -2,13 +2,14 @@ package clusterinfo
 
 import (
 	"context"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/client-go/tools/cache"
 	"reflect"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/tools/cache"
 
-	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+
+	clusterinfov1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

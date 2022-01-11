@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
-	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
+	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -15,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/dynamic"
-	"time"
 )
 
 var (

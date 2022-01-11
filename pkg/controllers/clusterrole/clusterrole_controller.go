@@ -4,7 +4,7 @@ import (
 	"context"
 
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"

@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	utils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
+	utils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 
 	clusterv1alapha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -1,10 +1,12 @@
 package clusterclaim
 
 import (
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	"testing"
+
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	configfake "github.com/openshift/client-go/config/clientset/versioned/fake"
+	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,7 +17,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
 )
 
 func newClusterVersion() *apiconfigv1.ClusterVersion {
