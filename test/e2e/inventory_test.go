@@ -3,14 +3,15 @@ package e2e
 import (
 	"context"
 	"fmt"
-	"github.com/openshift/hive/apis/hive/v1/aws"
 	"time"
+
+	"github.com/openshift/hive/apis/hive/v1/aws"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveinternalv1alpha1 "github.com/openshift/hive/apis/hiveinternal/v1alpha1"
+	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

@@ -3,15 +3,16 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"os"
+	"testing"
+
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"os"
-	"testing"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
+	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 
 	addonv1alpha1client "github.com/open-cluster-management/api/client/addon/clientset/versioned"
 	clusterclient "github.com/open-cluster-management/api/client/cluster/clientset/versioned"

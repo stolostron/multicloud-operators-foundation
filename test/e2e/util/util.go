@@ -3,12 +3,13 @@ package util
 import (
 	"context"
 	"fmt"
-	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
-	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
-	"k8s.io/apimachinery/pkg/util/rand"
 	"os"
 	"os/user"
 	"path"
+
+	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
+	clusterinfov1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	"k8s.io/apimachinery/pkg/util/rand"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

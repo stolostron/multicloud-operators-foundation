@@ -10,8 +10,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	actionv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/action/v1beta1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/rest"
+	actionv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/action/v1beta1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils/rest"
 )
 
 var c client.Client

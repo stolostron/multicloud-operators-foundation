@@ -5,10 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/clusterset"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/useridentity"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/clusterset"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/useridentity"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
+	"github.com/stolostron/multicloud-operators-foundation/cmd/webhook/app/options"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
