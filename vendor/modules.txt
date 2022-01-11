@@ -255,10 +255,10 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
-# github.com/open-cluster-management/addon-framework v0.0.0-20210621074027-a81f712c10c2
+# github.com/open-cluster-management/addon-framework v0.0.0-00010101000000-000000000000 => github.com/stolostron/addon-framework v0.0.0-20210621074027-a81f712c10c2
 ## explicit; go 1.15
 github.com/open-cluster-management/addon-framework/pkg/lease
-# github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f
+# github.com/open-cluster-management/api v0.0.0-20210409125704-06f2aec1a73f => open-cluster-management.io/api v0.3.1-0.20210409125704-06f2aec1a73f
 ## explicit; go 1.15
 github.com/open-cluster-management/api/addon/v1alpha1
 github.com/open-cluster-management/api/client/addon/clientset/versioned
@@ -1336,7 +1336,6 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.2.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
-# k8s.io/client-go => k8s.io/client-go v0.21.0
 # github.com/Azure/go-autorest/autorest/adal => github.com/Azure/go-autorest/autorest/adal v0.8.2
 # github.com/Azure/go-autorest/autorest/azure/cli => github.com/Azure/go-autorest/autorest/azure/cli v0.3.1
 # github.com/Azure/go-autorest/autorest/date => github.com/Azure/go-autorest/autorest/date v0.2.0
@@ -1361,4 +1360,7 @@ sigs.k8s.io/yaml
 # sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20201016155852-4090a6970205
 # sigs.k8s.io/cluster-api-provider-openstack => github.com/openshift/cluster-api-provider-openstack v0.0.0-20201116051540-155384b859c5
 # github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1
+# github.com/open-cluster-management/addon-framework => github.com/stolostron/addon-framework v0.0.0-20210621074027-a81f712c10c2
+# github.com/open-cluster-management/api => open-cluster-management.io/api v0.3.1-0.20210409125704-06f2aec1a73f
 # github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20200918101923-1e4c94603efe
+# k8s.io/client-go => k8s.io/client-go v0.21.0
