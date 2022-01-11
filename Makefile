@@ -20,7 +20,7 @@ kustomize_dir:=$(dir $(KUSTOMIZE))
 
 # Image URL to use all building/pushing image targets;
 IMAGE ?= multicloud-manager
-IMAGE_REGISTRY ?= quay.io/open-cluster-management
+IMAGE_REGISTRY ?= quay.io/stolostron
 IMAGE_TAG ?= latest
 FOUNDATION_IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
 MANAGED_CLUSTER_NAME ?= cluster1
