@@ -7,18 +7,18 @@ import (
 	"sort"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	clusterv1alpha1informer "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1alpha1"
 	clusterv1alpha1lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1"
 
 	"github.com/go-logr/logr"
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/prometheus/common/log"
+	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/agent"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"

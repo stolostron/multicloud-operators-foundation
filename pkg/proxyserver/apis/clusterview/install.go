@@ -1,8 +1,8 @@
 package clusterview
 
 import (
-	clusterviewv1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1"
-	clusterviewv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1alpha1"
+	clusterviewv1 "github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1"
+	clusterviewv1alpha1 "github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1alpha1"
 
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

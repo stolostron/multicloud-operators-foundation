@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/printers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/printers"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )

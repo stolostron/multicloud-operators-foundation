@@ -22,12 +22,12 @@ kustomize_dir:=$(dir $(KUSTOMIZE))
 
 # Image URL to use all building/pushing image targets;
 IMAGE ?= multicloud-manager
-IMAGE_REGISTRY ?= quay.io/open-cluster-management
+IMAGE_REGISTRY ?= quay.io/stolostron
 IMAGE_TAG ?= latest
 FOUNDATION_IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
 MANAGED_CLUSTER_NAME ?= cluster1
 
-GIT_HOST ?= github.com/open-cluster-management
+GIT_HOST ?= github.com/stolostron
 BASE_DIR := $(shell basename $(PWD))
 DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
 BINDIR ?= _output
@@ -72,8 +72,8 @@ deploy-klusterlet:
 
 deploy-foundation-hub: ensure-kustomize
 	cp deploy/foundation/hub/kustomization.yaml deploy/foundation/hub/kustomization.yaml.tmp
-	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image 'quay.io/open-cluster-management/multicloud-manager'=$(FOUNDATION_IMAGE_NAME)
-	$(SED_CMD) -i.tmp "s,quay.io/open-cluster-management/multicloud-manager,$(FOUNDATION_IMAGE_NAME)," deploy/foundation/hub/patches.yaml
+	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image 'quay.io/stolostron/multicloud-manager'=$(FOUNDATION_IMAGE_NAME)
+	$(SED_CMD) -i.tmp "s,quay.io/stolostron/multicloud-manager,$(FOUNDATION_IMAGE_NAME)," deploy/foundation/hub/patches.yaml
 	$(KUSTOMIZE) build deploy/foundation/hub | $(KUBECTL) apply -f -
 	mv deploy/foundation/hub/kustomization.yaml.tmp deploy/foundation/hub/kustomization.yaml
 	mv deploy/foundation/hub/patches.yaml.tmp deploy/foundation/hub/patches.yaml

@@ -5,9 +5,9 @@ package options
 import (
 	"fmt"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/api"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/openapi"
 	"github.com/spf13/pflag"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/api"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/openapi"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"

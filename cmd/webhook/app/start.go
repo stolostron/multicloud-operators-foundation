@@ -5,11 +5,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/clusterset"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/webhook/useridentity"
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/clusterset"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/useridentity"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
+	"github.com/stolostron/multicloud-operators-foundation/cmd/webhook/app/options"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 

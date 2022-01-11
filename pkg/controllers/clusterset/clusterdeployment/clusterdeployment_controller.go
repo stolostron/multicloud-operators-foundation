@@ -3,8 +3,8 @@ package clusterdeployment
 import (
 	"context"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"k8s.io/apimachinery/pkg/api/errors"

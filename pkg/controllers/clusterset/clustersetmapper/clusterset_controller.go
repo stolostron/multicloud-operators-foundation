@@ -3,9 +3,9 @@ package clustersetmapper
 import (
 	"context"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 

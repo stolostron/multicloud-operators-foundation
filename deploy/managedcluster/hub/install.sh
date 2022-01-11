@@ -14,7 +14,7 @@ fi
 rm -rf registration-operator
 
 echo "############  Cloning registration-operator"
-git clone https://github.com/open-cluster-management-io/registration-operator.git
+git clone --depth 1 --branch v0.5.0 https://github.com/open-cluster-management-io/registration-operator.git
 
 cd registration-operator || {
   printf "cd failed, registration-operator does not exist"

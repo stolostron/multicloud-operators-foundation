@@ -5,7 +5,7 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
+	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 )
 
 var _ = ginkgo.Describe("Testing ManagedClusterImageRegistry", func() {
