@@ -3,9 +3,9 @@ package inventory
 import (
 	"context"
 
-	inventoryv1alpha1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	inventoryv1alpha1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"

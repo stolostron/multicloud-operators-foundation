@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/log/drivers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/log/drivers"
 	"k8s.io/klog"
 )
 

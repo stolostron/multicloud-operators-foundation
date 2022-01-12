@@ -31,7 +31,7 @@ func NewControllerRunOptions() *ControllerRunOptions {
 		EnableAddonDeploy:     false,
 		QPS:                   100.0,
 		Burst:                 200,
-		AddonImage:            "quay.io/open-cluster-management/multicloud-manager:latest",
+		AddonImage:            "quay.io/stolostron/multicloud-manager:latest",
 		AddonInstallNamespace: "open-cluster-management-agent-addon",
 	}
 }

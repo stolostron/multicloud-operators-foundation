@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/proxyserver/app/options"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/controller"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
+	"github.com/stolostron/multicloud-operators-foundation/cmd/proxyserver/app/options"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/controller"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter"
 	apilabels "k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/dynamic"

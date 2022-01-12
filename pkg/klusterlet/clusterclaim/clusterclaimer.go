@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	clusterv1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	configv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
+	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"

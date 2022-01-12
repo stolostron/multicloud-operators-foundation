@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"path"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/agent/app/options"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/agent"
+	"github.com/stolostron/multicloud-operators-foundation/cmd/agent/app/options"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/agent"
 	"k8s.io/client-go/kubernetes"
 	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/client-go/util/keyutil"

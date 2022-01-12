@@ -4,8 +4,8 @@ import (
 	"context"
 	"reflect"
 
-	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
-	clusterclaims "github.com/open-cluster-management/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
+	clusterinfov1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterclaims "github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
