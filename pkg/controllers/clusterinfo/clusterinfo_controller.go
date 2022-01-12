@@ -4,9 +4,9 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 
-	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterinfov1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

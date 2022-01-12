@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
+	"github.com/stolostron/multicloud-operators-foundation/cmd/webhook/app/options"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"

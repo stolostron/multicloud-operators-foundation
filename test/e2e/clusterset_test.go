@@ -3,9 +3,9 @@ package e2e
 import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"

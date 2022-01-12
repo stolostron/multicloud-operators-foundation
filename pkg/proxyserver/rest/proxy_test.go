@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 )

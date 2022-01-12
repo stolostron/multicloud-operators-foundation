@@ -3,10 +3,10 @@ package api
 import (
 	"context"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis"
-	v1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
-	proxyrest "github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/rest"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis"
+	v1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter"
+	proxyrest "github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

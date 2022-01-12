@@ -17,8 +17,8 @@ import (
 
 	clusterv1client "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterv1 "github.com/open-cluster-management/api/cluster/v1"
-	clusterinfov1beta1 "github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
+	clusterinfov1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	"k8s.io/apimachinery/pkg/api/errors"

@@ -1,8 +1,6 @@
-module github.com/open-cluster-management/multicloud-operators-foundation
+module github.com/stolostron/multicloud-operators-foundation
 
 go 1.14
-
-replace k8s.io/client-go => k8s.io/client-go v0.19.0
 
 // Determined by go.mod in github.com/openshift/hive
 replace (
@@ -19,9 +17,12 @@ replace (
 	sigs.k8s.io/cluster-api-provider-openstack => github.com/openshift/cluster-api-provider-openstack v0.0.0-20200526112135-319a35b2e38e
 )
 
-replace github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1 // ensure compatible between controller-runtime and kube-openapi
-
-replace github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20200918101923-1e4c94603efe
+replace (
+	github.com/googleapis/gnostic => github.com/googleapis/gnostic v0.4.1 // ensure compatible between controller-runtime and kube-openapi
+	github.com/open-cluster-management/api => open-cluster-management.io/api v0.2.1-0.20201126023000-353dd8370f4d
+	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20200918101923-1e4c94603efe
+	k8s.io/client-go => k8s.io/client-go v0.19.0
+)
 
 require (
 	github.com/emicklei/go-restful v2.13.0+incompatible
@@ -38,7 +39,7 @@ require (
 	github.com/metal3-io/baremetal-operator v0.0.0
 	github.com/onsi/ginkgo v1.14.0
 	github.com/onsi/gomega v1.10.1
-	github.com/open-cluster-management/api v0.0.0-20201126023000-353dd8370f4d
+	github.com/open-cluster-management/api v0.0.0-00010101000000-000000000000
 	github.com/openshift/build-machinery-go v0.0.0-20200819073603-48aa266c95f7
 	github.com/openshift/client-go v0.0.0-20200827190008-3062137373b5
 	github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca

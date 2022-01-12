@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

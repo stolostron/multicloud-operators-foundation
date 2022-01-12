@@ -16,7 +16,7 @@ realpath() {
 
 REPO_ROOT=$(realpath "$(dirname "${BASH_SOURCE[0]}")"/..)
 BINDIR="${REPO_ROOT}"/_output
-SC_PKG='github.com/open-cluster-management/multicloud-operators-foundation'
+SC_PKG='github.com/stolostron/multicloud-operators-foundation'
 
 # Generate defaults
 "${BINDIR}"/defaulter-gen "$@" \

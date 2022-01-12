@@ -10,7 +10,7 @@ import (
 	clusterclientset "github.com/open-cluster-management/api/client/cluster/clientset/versioned"
 	clusterinformers "github.com/open-cluster-management/api/client/cluster/informers/externalversions"
 	clusterv1alpha1 "github.com/open-cluster-management/api/cluster/v1alpha1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/cache"

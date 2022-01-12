@@ -8,8 +8,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/getter"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/v1beta1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter"
 	"k8s.io/apimachinery/pkg/runtime"
 	netutil "k8s.io/apimachinery/pkg/util/net"
 	"k8s.io/apimachinery/pkg/util/proxy"

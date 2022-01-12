@@ -1,6 +1,6 @@
-# open-cluster-management Foundation
+# stolostron Foundation
 
-open-cluster-management Foundation supports some foundational components based ManagedCluster for ACM.
+stolostron Foundation supports some foundational components based ManagedCluster for ACM.
 
 ## Community, discussion, contribution, and support
 
@@ -10,11 +10,11 @@ Check the [CONTRIBUTING Doc](CONTRIBUTING.md) for how to contribute to the repo.
 
 ## Getting Started
 
-This is a guide on how to build and deploy open-cluster-management Foundation from code.
+This is a guide on how to build and deploy stolostron Foundation from code.
 
 ### Setup
 
-Create a directory `$GOPATH/src/github.com/open-cluster-management`, and clone the code into the directory. Since the build process will use (eventually installing) some `golang` tools, makes sure you have `$GOPATH/bin` added to your `$PATH`. 
+Create a directory `$GOPATH/src/github.com/stolostron`, and clone the code into the directory. Since the build process will use (eventually installing) some `golang` tools, makes sure you have `$GOPATH/bin` added to your `$PATH`. 
 
 Populate the vendor directory. If necessary, set environment variable `GO111MODULE=on`.
 
@@ -34,7 +34,7 @@ make build will build all the binaries in the current directory.
 
 ### Prerequisites
 
-Need to install ManagedCluster before deploy open-cluster-management Foundation.
+Need to install ManagedCluster before deploy stolostron Foundation.
 
 1. Install Cluster Manager on Hub cluster.
 
@@ -66,7 +66,7 @@ Need to install ManagedCluster before deploy open-cluster-management Foundation.
     kubectl patch managedclusters $MANAGED_CLUSTER  --type merge --patch '{"spec":{"hubAcceptsClient":true}}'
     ```
 
-### Deploy open-cluster-management Foundation from the quay.io
+### Deploy stolostron Foundation from the quay.io
 
 1. Deploy hub components on hub cluster.
 
