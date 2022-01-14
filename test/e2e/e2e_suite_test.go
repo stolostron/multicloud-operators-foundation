@@ -8,11 +8,11 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers/imageregistry"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers/imageregistry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/test/e2e/util"
+	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
 	"k8s.io/client-go/dynamic"

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/apis/imageregistry/v1alpha1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/apis/imageregistry/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

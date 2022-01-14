@@ -1,4 +1,4 @@
-module github.com/open-cluster-management/multicloud-operators-foundation
+module github.com/stolostron/multicloud-operators-foundation
 
 go 1.16
 

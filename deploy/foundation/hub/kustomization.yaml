@@ -3,8 +3,8 @@ resources:
 
 
 images:
-- name: quay.io/open-cluster-management/multicloud-manager
-  newName: quay.io/open-cluster-management/multicloud-manager
+- name: quay.io/stolostron/multicloud-manager
+  newName: quay.io/stolostron/multicloud-manager
   newTag: latest
 
 

@@ -8,9 +8,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/cmd/webhook/app/options"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
+	"github.com/stolostron/multicloud-operators-foundation/cmd/webhook/app/options"
 	v1 "k8s.io/api/admission/v1"
 
 	authenticationv1 "k8s.io/api/authentication/v1"
@@ -181,7 +181,7 @@ func (a *AdmissionHandler) validateCreateRequest(request *v1.AdmissionRequest) *
 //      2.3.1 if the managedcluster is claimed from clusterpool, do not allow to update clusterset.
 //      2.3.2 if the managedcluster is not claimed from clusterpool, check if user has permission to update clusterset.
 // Notes: clusterclaims-controller will auto create a mangedcluster with the clusterpool's clusterset label if there is a clusterclaim ref to this clusterpool.
-// https://github.com/open-cluster-management/clusterclaims-controller/blob/main/controllers/clusterclaims/clusterclaims-controller.go
+// https://github.com/stolostron/clusterclaims-controller/blob/main/controllers/clusterclaims/clusterclaims-controller.go
 
 // Permission Check:
 // 1. the user must have managedClusterSet/join <clusterSet-A/clusterSet-B> permission if update resource to change
