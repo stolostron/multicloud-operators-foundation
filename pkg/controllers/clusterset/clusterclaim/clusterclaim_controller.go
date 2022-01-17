@@ -3,9 +3,9 @@ package clusterclaim
 import (
 	"context"
 
-	utils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils"
-	clustersetutils "github.com/open-cluster-management/multicloud-operators-foundation/pkg/utils/clusterset"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	utils "github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"

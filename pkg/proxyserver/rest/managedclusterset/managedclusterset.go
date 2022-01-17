@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/cache"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/helpers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/helpers"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

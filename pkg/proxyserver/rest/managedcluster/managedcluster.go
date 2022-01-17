@@ -3,12 +3,12 @@ package managedcluster
 import (
 	"context"
 	"fmt"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/printers/internalversion"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/printers/internalversion"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/cache"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/helpers"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/printers"
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/proxyserver/printers/storage"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/helpers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/printers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/printers/storage"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

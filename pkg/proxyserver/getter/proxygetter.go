@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/open-cluster-management/multicloud-operators-foundation/pkg/helpers/certificate"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers/certificate"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog"
 )

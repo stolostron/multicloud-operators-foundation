@@ -11,4 +11,4 @@ spec:
           args:
             - "/controller"
             - "--enable-agent-deploy=true"
-            - "--agent-addon-image=quay.io/open-cluster-management/multicloud-manager"
+            - "--agent-addon-image=quay.io/stolostron/multicloud-manager"
