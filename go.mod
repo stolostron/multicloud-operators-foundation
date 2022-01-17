@@ -48,7 +48,7 @@ require (
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.6.1
-	golang.org/x/net v0.0.0-20201021035429-f5854403a974
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
 	k8s.io/api v0.19.0
 	k8s.io/apiextensions-apiserver v0.19.0
 	k8s.io/apimachinery v0.19.0
