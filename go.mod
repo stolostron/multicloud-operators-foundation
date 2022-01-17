@@ -53,7 +53,7 @@ require (
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/net v0.0.0-20210520170846-37e1c6afe023
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
 	k8s.io/api v0.22.1
 	k8s.io/apimachinery v0.22.1
 	k8s.io/apiserver v0.22.1
@@ -150,7 +150,7 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.19.0 // indirect
-	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
+	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/oauth2 v0.0.0-20200902213428-5d25da1a8d43 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
