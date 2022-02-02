@@ -16,6 +16,7 @@ var managedclusterGroup = "cluster.open-cluster-management.io"
 var hiveGroup = "hive.openshift.io"
 var managedClusterViewGroup = "clusterview.open-cluster-management.io"
 var registerGroup = "register.open-cluster-management.io"
+var submarinerGroup = "submariner.io"
 
 // buildAdminRoleRules builds the clustesetadminroles
 func buildAdminRole(clustersetName, clusteroleName string) *rbacv1.ClusterRole {
@@ -56,6 +57,11 @@ func buildAdminRole(clustersetName, clusteroleName string) *rbacv1.ClusterRole {
 			helpers.NewRule("get", "list", "watch").
 				Groups(managedClusterViewGroup).
 				Resources("managedclustersets").
+				RuleOrDie(),
+			helpers.NewRule("create", "get", "update").
+				Groups(submarinerGroup).
+				Resources("brokers").
+				Names(clustersetName).
 				RuleOrDie(),
 		},
 	}
