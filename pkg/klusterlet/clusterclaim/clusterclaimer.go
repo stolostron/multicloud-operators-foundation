@@ -40,8 +40,13 @@ const (
 	ClaimOCMProduct     = "product.open-cluster-management.io"
 )
 
-const labelCustomizedOnly = "open-cluster-management.io/spoke-only"
-const labelHubManaged = "open-cluster-management.io/hub-managed"
+const (
+	labelCustomizedOnly = "open-cluster-management.io/spoke-only"
+	labelHubManaged     = "open-cluster-management.io/hub-managed"
+
+	// labelExcludeBackup is true for the local-cluster will be not backed up into velero
+	labelExcludeBackup = "velero.io/exclude-from-backup"
+)
 
 // should be the type defined in infrastructure.config.openshift.io
 const (
@@ -171,7 +176,7 @@ func newClusterClaim(name, value string) *clusterv1alpha1.ClusterClaim {
 	return &clusterv1alpha1.ClusterClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
-			Labels: map[string]string{labelHubManaged: ""},
+			Labels: map[string]string{labelHubManaged: "", labelExcludeBackup: "true"},
 		},
 		Spec: clusterv1alpha1.ClusterClaimSpec{
 			Value: value,
