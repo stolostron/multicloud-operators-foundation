@@ -9,12 +9,12 @@ import (
 	"time"
 
 	ocinfrav1 "github.com/openshift/api/config/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 
-	tlog "github.com/go-logr/logr/testing"
 	configfake "github.com/openshift/client-go/config/clientset/versioned/fake"
 	routefake "github.com/openshift/client-go/route/clientset/versioned/fake"
 	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
@@ -161,7 +161,7 @@ func NewClusterInfoReconciler() *ClusterInfoReconciler {
 		clusterStore.Add(item)
 	}
 	return &ClusterInfoReconciler{
-		Log:           tlog.NullLogger{},
+		Log:           ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
 		NodeLister:    informerFactory.Core().V1().Nodes().Lister(),
 		KubeClient:    fakeKubeClient,
 		ClusterName:   clusterName,
@@ -181,7 +181,7 @@ func NewFailedClusterInfoReconciler() *ClusterInfoReconciler {
 	informerFactory := informers.NewSharedInformerFactory(fakeKubeClient, 10*time.Minute)
 	clusterInformerFactory := clusterinformers.NewSharedInformerFactory(fakeClusterClient, 10*time.Minute)
 	return &ClusterInfoReconciler{
-		Log:           tlog.NullLogger{},
+		Log:           ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
 		NodeLister:    informerFactory.Core().V1().Nodes().Lister(),
 		KubeClient:    fakeKubeClient,
 		ClusterName:   clusterName,

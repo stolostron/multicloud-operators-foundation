@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
 
-	tlog "github.com/go-logr/logr/testing"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
@@ -16,7 +16,7 @@ import (
 
 func newClusterClaimReconciler(clusterClient clusterclientset.Interface, listFunc ListClusterClaimsFunc) *ClusterClaimReconciler {
 	return &ClusterClaimReconciler{
-		Log:               tlog.NullLogger{},
+		Log:               ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
 		ClusterClient:     clusterClient,
 		ListClusterClaims: listFunc,
 	}

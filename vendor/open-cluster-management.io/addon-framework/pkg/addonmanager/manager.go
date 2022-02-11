@@ -13,6 +13,7 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/addonhealthcheck"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/addoninstall"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/agentdeploy"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/certificate"
@@ -79,7 +80,7 @@ func (a *addonManager) Start(ctx context.Context) error {
 	if err != nil {
 		klog.Warningf("unable to identify the current namespace for events: %v", err)
 	}
-	controllerRef, err := events.GetControllerReferenceForCurrentPod(kubeClient, namespace, nil)
+	controllerRef, err := events.GetControllerReferenceForCurrentPod(ctx, kubeClient, namespace, nil)
 	if err != nil {
 		klog.Warningf("unable to get owner reference (falling back to namespace): %v", err)
 	}
@@ -123,6 +124,15 @@ func (a *addonManager) Start(ctx context.Context) error {
 	)
 
 	deployController := agentdeploy.NewAddonDeployController(
+		workClient,
+		addonClient,
+		clusterInformers.Cluster().V1().ManagedClusters(),
+		addonInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+		workInformers.Work().V1().ManifestWorks(),
+		a.addonAgents,
+		eventRecorder,
+	)
+	hookDeployController := agentdeploy.NewAddonHookDeployController(
 		workClient,
 		addonClient,
 		clusterInformers.Cluster().V1().ManagedClusters(),
@@ -175,17 +185,25 @@ func (a *addonManager) Start(ctx context.Context) error {
 		eventRecorder,
 	)
 
+	addonHealthCheckController := addonhealthcheck.NewAddonHealthCheckController(
+		addonClient,
+		addonInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+		a.addonAgents,
+		eventRecorder)
+
 	go addonInformers.Start(ctx.Done())
 	go workInformers.Start(ctx.Done())
 	go clusterInformers.Start(ctx.Done())
 	go kubeInfomers.Start(ctx.Done())
 
 	go deployController.Run(ctx, 1)
+	go hookDeployController.Run(ctx, 1)
 	go registrationController.Run(ctx, 1)
 	go csrApproveController.Run(ctx, 1)
 	go csrSignController.Run(ctx, 1)
 	go clusterManagementController.Run(ctx, 1)
 	go addonInstallController.Run(ctx, 1)
+	go addonHealthCheckController.Run(ctx, 1)
 	return nil
 }
 

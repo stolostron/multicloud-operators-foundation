@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
-	tlog "github.com/go-logr/logr/testing"
 	"github.com/onsi/gomega"
 	"golang.org/x/net/context"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -33,7 +33,7 @@ func TestControllerReconcile(t *testing.T) {
 
 	kubework := NewKubeWorkSpec()
 	action := NewAction(actionName, actionNamespace, actionv1beta1.DeleteActionType, kubework)
-	ar := NewActionReconciler(c, tlog.NullLogger{}, mgr.GetScheme(), nil, rest.NewFakeKubeControl(), false)
+	ar := NewActionReconciler(c, ctrl.Log.WithName("controllers").WithName("ManagedClusterAction"), mgr.GetScheme(), nil, rest.NewFakeKubeControl(), false)
 
 	ar.SetupWithManager(mgr)
 

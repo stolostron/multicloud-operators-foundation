@@ -81,7 +81,7 @@ clean-foundation-agent:
 	$(KUBECTL) get managedclusteraddons -A | grep work-manager | awk '{print $$1" "$$2}' | xargs -n 2 $(KUBECTL) delete managedclusteraddons -n
 
 clean-foundation-hub:
-	$(KUBECTL) delete -k deploy/foundation/hub
+	$(KUBECTL) delete -k deploy/foundation/hub/resource
 
 clean-foundation: clean-foundation-hub clean-foundation-agent
 
