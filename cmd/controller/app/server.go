@@ -43,7 +43,6 @@ import (
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	ctrlruntimelog "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
 var (
@@ -65,10 +64,10 @@ func init() {
 
 func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 
-	//clusterset to cluster map
+	// clusterset to cluster map
 	clusterSetClusterMapper := helpers.NewClusterSetMapper()
 
-	//clusterset to namespace resource map, like clusterdeployment, clusterpool, clusterclaim. the map value format is "<ResourceType>/<Namespace>/<Name>"
+	// clusterset to namespace resource map, like clusterdeployment, clusterpool, clusterclaim. the map value format is "<ResourceType>/<Namespace>/<Name>"
 	clusterSetNamespaceMapper := helpers.NewClusterSetMapper()
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", o.KubeConfig)
@@ -99,7 +98,6 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		LeaderElectionID:       "foundation-controller",
 		LeaderElection:         o.EnableLeaderElection,
 		HealthProbeBindAddress: ":8000",
-		Logger:                 ctrlruntimelog.NullLogger{},
 	})
 	if err != nil {
 		klog.Errorf("unable to start manager: %v", err)

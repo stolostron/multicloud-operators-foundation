@@ -7,18 +7,13 @@ import (
 	"sort"
 	"time"
 
-	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
-
-	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
-	clusterv1alpha1informer "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1alpha1"
-	clusterv1alpha1lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1"
-
 	"github.com/go-logr/logr"
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
-	"github.com/prometheus/common/log"
 	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/agent"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -32,7 +27,9 @@ import (
 	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"k8s.io/klog"
+	"k8s.io/klog/v2"
+	clusterv1alpha1informer "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1alpha1"
+	clusterv1alpha1lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -266,14 +263,14 @@ func (r *ClusterInfoReconciler) setEndpointAddressFromService(endpoint *corev1.E
 func (r *ClusterInfoReconciler) setEndpointAddressFromRoute(endpoint *corev1.EndpointAddress) error {
 	klNamespace, klName, err := cache.SplitMetaNamespaceKey(r.AgentRoute)
 	if err != nil {
-		log.Error(err, "Route name input error")
+		klog.Error(err, "Route name input error")
 		return err
 	}
 
 	route, err := r.RouteV1Client.RouteV1().Routes(klNamespace).Get(context.TODO(), klName, metav1.GetOptions{})
 
 	if err != nil {
-		log.Error(err, "Failed to get the route")
+		klog.Error(err, "Failed to get the route")
 		return err
 	}
 
@@ -397,14 +394,14 @@ func (r *ClusterInfoReconciler) getOCPDistributionInfo(ctx context.Context) (clu
 }
 
 func (r *ClusterInfoReconciler) getClientConfig(ctx context.Context) clusterv1beta1.ClientConfig {
-	//get ocp apiserver url
+	// get ocp apiserver url
 	kubeAPIServer, err := utils.GetKubeAPIServerAddress(ctx, r.ConfigV1Client)
 	if err != nil {
 		klog.Errorf("Failed to get kube Apiserver. err:%v", err)
 		return clusterv1beta1.ClientConfig{}
 	}
 
-	//get ocp ca
+	// get ocp ca
 	clusterca := r.getClusterCA(ctx, kubeAPIServer)
 	if len(clusterca) <= 0 {
 		klog.Errorf("Failed to get clusterca.")
@@ -420,14 +417,14 @@ func (r *ClusterInfoReconciler) getClientConfig(ctx context.Context) clusterv1be
 }
 
 func (r *ClusterInfoReconciler) getClusterCA(ctx context.Context, kubeAPIServer string) []byte {
-	//Get ca from apiserver
+	// Get ca from apiserver
 	certData, err := utils.GetCAFromApiserver(ctx, r.ConfigV1Client, r.KubeClient, kubeAPIServer)
 	if err == nil && len(certData) > 0 {
 		return certData
 	}
 	klog.V(3).Infof("Failed to get ca from apiserver, error:%v", err)
 
-	//Get ca from configmap in kube-public namespace
+	// Get ca from configmap in kube-public namespace
 	certData, err = utils.GetCAFromConfigMap(ctx, r.KubeClient)
 	if err == nil && len(certData) > 0 {
 		return certData
@@ -435,7 +432,7 @@ func (r *ClusterInfoReconciler) getClusterCA(ctx context.Context, kubeAPIServer 
 
 	klog.V(3).Infof("Failed to get ca from kubepublic namespace configmap, error:%v", err)
 
-	//Fallback to service account token ca.crt
+	// Fallback to service account token ca.crt
 	certData, err = utils.GetCAFromServiceAccount(ctx, r.KubeClient)
 	if err == nil && len(certData) > 0 {
 		// check if it's roks

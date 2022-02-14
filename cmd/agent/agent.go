@@ -42,7 +42,6 @@ import (
 	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
-	ctrlruntimelog "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
@@ -138,7 +137,6 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		Scheme:             scheme,
 		MetricsBindAddress: o.MetricsAddr,
 		Namespace:          o.ClusterName,
-		Logger:             ctrlruntimelog.NullLogger{},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

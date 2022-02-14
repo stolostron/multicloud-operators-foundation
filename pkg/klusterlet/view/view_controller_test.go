@@ -7,7 +7,6 @@ import (
 	"testing"
 	"time"
 
-	tlog "github.com/go-logr/logr/testing"
 	viewv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -18,6 +17,7 @@ import (
 	dynamicfake "k8s.io/client-go/dynamic/fake"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/klog"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -132,7 +132,7 @@ func newTestReconciler(existingObjs []runtime.Object) *ViewReconciler {
 
 	viewReconciler := &ViewReconciler{
 		Client:                      fake.NewFakeClientWithScheme(scheme, existingObjs...),
-		Log:                         tlog.NullLogger{},
+		Log:                         ctrl.Log.WithName("controllers").WithName("ManagedClusterView"),
 		Scheme:                      scheme,
 		ManagedClusterDynamicClient: dynamicfake.NewSimpleDynamicClient(scheme, newUnstructured()),
 		Mapper:                      newFakeRestMapper(resources),
