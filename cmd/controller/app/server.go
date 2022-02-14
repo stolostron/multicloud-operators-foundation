@@ -6,6 +6,7 @@ import (
 	"context"
 	"time"
 
+	routev1 "github.com/openshift/api/route/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveinternalv1alpha1 "github.com/openshift/hive/apis/hiveinternal/v1alpha1"
 	"github.com/stolostron/multicloud-operators-foundation/cmd/controller/app/options"
@@ -35,7 +36,9 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
+	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
+	addonagent "open-cluster-management.io/addon-framework/pkg/agent"
 	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -60,6 +63,7 @@ func init() {
 	_ = clusterv1alaph1.Install(scheme)
 	_ = clusterv1beta1.Install(scheme)
 	_ = v1alpha1.AddToScheme(scheme)
+	_ = routev1.Install(scheme)
 }
 
 func Run(o *options.ControllerRunOptions, ctx context.Context) error {
@@ -134,7 +138,22 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 	if o.EnableAddonDeploy {
-		addonMgr.AddAgent(addon.NewAgent(kubeClient, "work-manager", o.AddonImage, o.AddonInstallNamespace))
+		registrationOption := addon.NewRegistrationOption(kubeClient, addon.WorkManagerAddonName)
+		getValuesFunc := addon.NewGetValuesFunc(o.AddonImage)
+		agentAddon, err := addonfactory.NewAgentAddonFactory(addon.WorkManagerAddonName, addon.ChartFS, addon.ChartDir).
+			WithScheme(scheme).
+			WithGetValuesFuncs(getValuesFunc, addonfactory.GetValuesFromAddonAnnotation).
+			WithAgentRegistrationOption(registrationOption).
+			WithInstallStrategy(addonagent.InstallAllStrategy(o.AddonInstallNamespace)).
+			BuildHelmAgentAddon()
+		if err != nil {
+			klog.Errorf("failed to build agent %v", err)
+			return err
+		}
+		err = addonMgr.AddAgent(agentAddon)
+		if err != nil {
+			klog.Fatal(err)
+		}
 	}
 
 	// Setup reconciler

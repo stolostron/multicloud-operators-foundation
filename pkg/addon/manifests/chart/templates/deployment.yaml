@@ -1,0 +1,94 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: {{ template "work-manager.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    component: "work-manager"
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      component: "work-manager"
+  template:
+    metadata:
+      annotations:
+        target.workload.openshift.io/management: '{"effect": "PreferredDuringScheduling"}'
+      labels:
+        component: "work-manager"
+    spec:
+      serviceAccountName: {{ template "work-manager.fullname" . }}
+      containers:
+      - name: acm-agent
+        image: "{{ .Values.global.imageOverrides.multicloud_manager }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop:
+            - ALL
+          privileged: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
+        args:
+          - "/agent"
+          - "--port=4443"
+          - "--hub-kubeconfig=/var/run/klusterlet/kubeconfig"
+          - "--cluster-name={{ .Values.clusterName }}"
+        {{- if eq .Values.clusterName "local-cluster" }}
+          - "--agent-address={{ template "work-manager.fullname" . }}.{{ .Release.Namespace }}.svc"
+          - "--agent-port=443"
+        {{- else if .Values.isOCP }}
+          - "--agent-route={{ .Release.Namespace }}/{{ template "work-manager.fullname" . }}"
+        {{- else  }}
+          - "--agent-service={{ .Release.Namespace }}/{{ template "work-manager.fullname" . }}"
+        {{- end }}
+        env:
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 8000
+          failureThreshold: 3
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8000
+          failureThreshold: 3
+          periodSeconds: 10
+        volumeMounts:
+          - name: tmp
+            mountPath: /tmp
+          - name: klusterlet-config
+            mountPath: /var/run/klusterlet
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: klusterlet-config
+          secret:
+            secretName: {{ .Values.hubKubeConfigSecret }}
+      {{- if .Values.global.imagePullSecret }}
+      imagePullSecrets:
+      - name: "{{ .Values.global.imagePullSecret }}"
+      {{- end }}
+      {{- with .Values.global.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+      {{- end }}

@@ -1,7 +1,0 @@
-kind: ServiceAccount
-apiVersion: v1
-metadata:
-  name: klusterlet-addon-workmgr-sa
-  namespace: {{ .Namespace }}
-imagePullSecrets:
-- name: open-cluster-management-image-pull-credentials
