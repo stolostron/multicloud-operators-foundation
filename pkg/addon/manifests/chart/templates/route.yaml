@@ -1,0 +1,23 @@
+---
+{{- if not (eq .Values.clusterName "local-cluster") }}
+{{- if eq .Values.isOCP true }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ template "work-manager.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    component: "work-manager"
+spec:
+  host: ""
+  tls:
+    termination: passthrough
+  to:
+    kind: Service
+    name: {{ template "work-manager.fullname" . }}
+    weight: 100
+  wildcardPolicy: None
+status:
+  ingress: []
+{{- end }}
+{{- end }}

@@ -1,0 +1,15 @@
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.org }}:{{ template "work-manager.fullname" . }}
+  labels:
+    component: "work-manager"
+subjects:
+- kind: ServiceAccount
+  name: {{ template "work-manager.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Values.org }}:{{ template "work-manager.fullname" . }}
+  apiGroup: rbac.authorization.k8s.io

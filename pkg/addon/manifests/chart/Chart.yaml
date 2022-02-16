@@ -1,0 +1,5 @@
+---
+apiVersion: v1
+description: A helm chart of work-manager addon
+name: work-manager
+version: 2.5.0
