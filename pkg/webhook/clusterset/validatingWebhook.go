@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
@@ -38,6 +39,11 @@ var clusterDeploymentsGVR = metav1.GroupVersionResource{
 	Group:    "hive.openshift.io",
 	Version:  "v1",
 	Resource: "clusterdeployments",
+}
+
+var agentClusterOwnerRef = metav1.OwnerReference{
+	Kind:       "AgentCluster",
+	APIVersion: "capi-provider.agent-install.openshift.io/v1alpha1",
 }
 
 const (
@@ -81,6 +87,10 @@ func (a *AdmissionHandler) validateCreateRequest(request *v1.AdmissionRequest) *
 			return status
 		}
 		if clusterDeployment.Spec.ClusterPoolRef != nil {
+			return status
+		}
+		//Requirment from AI integrate with hypershift https://github.com/openshift/cluster-api-provider-agent/pull/38/files
+		if hasOwnerRef(clusterDeployment.ObjectMeta.OwnerReferences, agentClusterOwnerRef) {
 			return status
 		}
 	}
@@ -272,4 +282,23 @@ func (a *AdmissionHandler) allowUpdateClusterSet(userInfo authenticationv1.UserI
 
 func (a *AdmissionHandler) ServerValidateResource(w http.ResponseWriter, r *http.Request) {
 	serve.Serve(w, r, a.validateResource)
+}
+
+func hasOwnerRef(ownerRefs []metav1.OwnerReference, wantRef metav1.OwnerReference) bool {
+	if len(ownerRefs) <= 0 {
+		return false
+	}
+	for _, ownerRef := range ownerRefs {
+		if ownerRef.Kind != wantRef.Kind {
+			continue
+		}
+
+		curGroupVersion, _ := schema.ParseGroupVersion(ownerRef.APIVersion)
+		wantGroupVersion, _ := schema.ParseGroupVersion(wantRef.APIVersion)
+		if curGroupVersion.Group != wantGroupVersion.Group {
+			continue
+		}
+		return true
+	}
+	return false
 }

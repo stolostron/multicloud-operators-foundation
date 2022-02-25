@@ -17,12 +17,15 @@ import (
 )
 
 const (
-	clusterPool                = `{"apiVersion": "hive.openshift.io/v1","kind": "ClusterPool","metadata": {"name": "test","namespace": "default","labels": {"cluster.open-cluster-management.io/clusterset":"clusterset1"}}}`
-	updateClusterPoolSet       = `{"apiVersion": "hive.openshift.io/v1","kind": "ClusterPool","metadata": {"name": "test","namespace": "default","labels": {"cluster.open-cluster-management.io/clusterset":"clusterset2"}}}`
-	updateClusterPoolNotSet    = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterPool","metadata":{"name":"test","namespace":"default","labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1","a":"b"}}}`
-	managedcluster             = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1"},"name":"c0"},"spec":{}}`
-	updateManagedclusterSet    = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"cluster.open-cluster-management.io/clusterset":"clusterset2"},"name":"c0"},"spec":{}}`
-	updateManagedclusterNotSet = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1","a":"b"},"name":"c0"},"spec":{}}`
+	clusterPool                             = `{"apiVersion": "hive.openshift.io/v1","kind": "ClusterPool","metadata": {"name": "test","namespace": "default","labels": {"cluster.open-cluster-management.io/clusterset":"clusterset1"}}}`
+	updateClusterPoolSet                    = `{"apiVersion": "hive.openshift.io/v1","kind": "ClusterPool","metadata": {"name": "test","namespace": "default","labels": {"cluster.open-cluster-management.io/clusterset":"clusterset2"}}}`
+	updateClusterPoolNotSet                 = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterPool","metadata":{"name":"test","namespace":"default","labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1","a":"b"}}}`
+	managedcluster                          = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1"},"name":"c0"},"spec":{}}`
+	updateManagedclusterSet                 = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"cluster.open-cluster-management.io/clusterset":"clusterset2"},"name":"c0"},"spec":{}}`
+	updateManagedclusterNotSet              = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1","a":"b"},"name":"c0"},"spec":{}}`
+	createClusterDeploymentFromPool         = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterDeployment","metadata":{"name":"cd-pool","namespace":"cd-pool"},"spec":{"clusterName":"gcp-pool-9m688","clusterPoolRef":{"namespace":"pool","poolName":"gcp-pool"}}}`
+	createClusterDeploymentInSet            = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterDeployment","metadata":{"name":"cd-pool","namespace":"cd-pool","labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1"}},"spec":{"clusterName":"gcp-pool-9m688"}}`
+	createClusterDeploymentFromAgentCluster = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterDeployment","metadata":{"name":"cd-pool","namespace":"cd-pool","ownerReferences":[{"apiVersion":"capi-provider.agent-install.openshift.io/v1","kind":"AgentCluster"}]},"spec":{"clusterName":"gcp-pool-9m688"}}`
 )
 
 func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
@@ -182,6 +185,45 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 			allowUpdateClusterSets: map[string]bool{"clusterset1": true, "clusterset2": true},
 			expectedResponse: &v1.AdmissionResponse{
 				Allowed: false,
+			},
+		},
+		{
+			name: "allow create clusterdeployment if from pool",
+			request: &v1.AdmissionRequest{
+				Resource:  clusterDeploymentsGVR,
+				Operation: v1.Create,
+				Object: runtime.RawExtension{
+					Raw: []byte(createClusterDeploymentFromPool),
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "deny create clusterdeployment if has set",
+			request: &v1.AdmissionRequest{
+				Resource:  clusterDeploymentsGVR,
+				Operation: v1.Create,
+				Object: runtime.RawExtension{
+					Raw: []byte(createClusterDeploymentInSet),
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: false,
+			},
+		},
+		{
+			name: "allow create clusterdeployment from agentcluster",
+			request: &v1.AdmissionRequest{
+				Resource:  clusterDeploymentsGVR,
+				Operation: v1.Create,
+				Object: runtime.RawExtension{
+					Raw: []byte(createClusterDeploymentFromAgentCluster),
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
 			},
 		},
 	}
