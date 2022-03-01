@@ -440,111 +440,110 @@ func (c *ClusterClaimer) getNodeInfo() (architecture, providerID string, err err
 }
 
 func (c *ClusterClaimer) updatePlatformProduct() (err error) {
-	// platform and product are constant, update only when they are empty.
-	if c.Platform != "" && c.Product != "" {
+	// platform and product are constant, update only when they are empty or Other.
+	// there is a case cannot get project api using RESTMapping during the OCP is failed to upgrade. in this case the OCP
+	// is detected Other, we need to retry to detect the product type.
+	if c.Platform != "" && c.Platform != PlatformOther && c.Product != "" && c.Product != ProductOther {
 		return nil
 	}
 
-	c.Product = ProductOther
-	c.Platform = PlatformOther
+	platform, product, err := c.getPlatformProduct()
+	if err != nil {
+		return err
+	}
+	c.Product = product
+	c.Platform = platform
+	return
+}
 
+func (c *ClusterClaimer) getPlatformProduct() (string, string, error) {
 	kubeVersion, err := c.getKubeVersion()
 	if err != nil {
 		klog.Errorf("failed to get kubeVersion: %v", err)
-		return err
+		return "", "", err
 	}
 	gitVersion := strings.ToUpper(kubeVersion)
 
 	// deal with product and platform
 	switch {
 	case strings.Contains(gitVersion, ProductIKS):
-		c.Platform = PlatformIBM
-		c.Product = ProductIKS
-		return nil
+		return PlatformIBM, ProductIKS, nil
 	case strings.Contains(gitVersion, ProductICP):
-		c.Platform = PlatformIBM
-		c.Product = ProductICP
-		return nil
+		return PlatformIBM, ProductICP, nil
 	case strings.Contains(gitVersion, ProductEKS):
-		c.Platform = PlatformAWS
-		c.Product = ProductEKS
-		return nil
+		return PlatformAWS, ProductEKS, nil
 	case strings.Contains(gitVersion, ProductGKE):
-		c.Platform = PlatformGCP
-		c.Product = ProductGKE
-		return nil
+		return PlatformGCP, ProductGKE, nil
 	}
 
 	isROSA, err := c.isROSA()
 	if err != nil {
 		klog.Errorf("failed to check if cluster is ROSA. %v", err)
-		return err
+		return "", "", err
 	}
 	if isROSA {
-		c.Platform = PlatformAWS
-		c.Product = ProductROSA
-		return nil
+		return PlatformAWS, ProductROSA, nil
 	}
 
 	isARO, err := c.isARO()
 	if err != nil {
 		klog.Errorf("failed to check if cluster is ARO. %v", err)
-		return err
+		return "", "", err
 	}
 	if isARO {
-		c.Platform = PlatformAzure
-		c.Product = ProductARO
-		return nil
+		return PlatformAzure, ProductARO, nil
 	}
 
+	product := ProductOther
+	platform := PlatformOther
 	// OSD is also openshift, should check openshift firstly.
 	isOpenShift, err := c.isOpenShift()
 	if err != nil {
 		klog.Errorf("failed to check if cluster is openshift. %v", err)
-		return err
+		return "", "", err
 	}
 	if isOpenShift {
-		c.Product = ProductOpenShift
+		product = ProductOpenShift
 	}
 
 	isOpenshiftDedicated, err := c.isOpenshiftDedicated()
 	if err != nil {
 		klog.Errorf("failed to check if cluster is OSD. %v", err)
-		return err
+		return "", "", err
 	}
 	if isOpenshiftDedicated {
-		c.Product = ProductOSD
+		product = ProductOSD
 	}
 
 	var architecture, providerID string
 	if architecture, providerID, err = c.getNodeInfo(); err != nil {
 		klog.Errorf("failed to get node info: %v", err)
-		return err
+		return "", "", err
 	}
 
 	switch {
 	case architecture == "s390x":
-		c.Platform = PlatformIBMZ
+		platform = PlatformIBMZ
 	case architecture == "ppc64le":
-		c.Platform = PlatformIBMP
+		platform = PlatformIBMP
 	case strings.HasPrefix(providerID, "ibm"):
-		c.Platform = PlatformIBM
+		platform = PlatformIBM
 	case strings.HasPrefix(providerID, "azure"):
-		c.Platform = PlatformAzure
-		if c.Product == ProductOther {
-			c.Product = ProductAKS
+		platform = PlatformAzure
+		if product == ProductOther {
+			return PlatformAzure, ProductAKS, nil
 		}
 	case strings.HasPrefix(providerID, "aws"):
-		c.Platform = PlatformAWS
+		platform = PlatformAWS
 	case strings.HasPrefix(providerID, "gce"):
-		c.Platform = PlatformGCP
+		platform = PlatformGCP
 	case strings.HasPrefix(providerID, "vsphere"):
-		c.Platform = PlatformVSphere
+		platform = PlatformVSphere
 	case strings.HasPrefix(providerID, "openstack"):
-		c.Platform = PlatformOpenStack
+		platform = PlatformOpenStack
 	}
 
-	return nil
+	return platform, product, nil
 }
 
 func (c *ClusterClaimer) getControlPlaneTopology() configv1.TopologyMode {
