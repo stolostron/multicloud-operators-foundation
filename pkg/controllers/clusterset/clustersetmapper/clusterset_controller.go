@@ -183,6 +183,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	// ignore the non-legacy clusterset
+	selectorType := clusterset.Spec.ClusterSelector.SelectorType
+	if len(selectorType) > 0 && selectorType != clusterv1beta1.LegacyClusterSetLabel {
+		return ctrl.Result{}, nil
+	}
+
 	// Check DeletionTimestamp to determine if object is under deletion
 	if !clusterset.GetDeletionTimestamp().IsZero() {
 		// The object is being deleted
