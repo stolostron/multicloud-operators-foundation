@@ -338,41 +338,53 @@ func (c *ClusterClaimer) getClusterRegion() (string, error) {
 }
 
 // for OpenShift, read endpoint address from console-config in openshift-console
+// note: SNO has no console
 func (c *ClusterClaimer) getMasterAddressesFromConsoleConfig() ([]corev1.EndpointAddress, []corev1.EndpointPort, string, error) {
 	var masterAddresses []corev1.EndpointAddress
 	var masterPorts []corev1.EndpointPort
 	clusterURL := ""
 
 	cfg, err := c.KubeClient.CoreV1().ConfigMaps("openshift-console").Get(context.TODO(), "console-config", metav1.GetOptions{})
-	if err == nil && cfg.Data != nil {
-		consoleConfigString, ok := cfg.Data["console-config.yaml"]
-		if ok {
-			consoleConfigList := strings.Split(consoleConfigString, "\n")
-			eu := ""
-			cu := ""
-			for _, configInfo := range consoleConfigList {
-				parse := strings.Split(strings.Trim(configInfo, " "), ": ")
-				if parse[0] == "masterPublicURL" {
-					eu = strings.Trim(parse[1], " ")
-				}
-				if parse[0] == "consoleBaseAddress" {
-					cu = strings.Trim(parse[1], " ")
-				}
-			}
-			if eu != "" {
-				euArray := strings.Split(strings.Trim(eu, "https:/"), ":")
-				if len(euArray) == 2 {
-					masterAddresses = append(masterAddresses, corev1.EndpointAddress{IP: euArray[0]})
-					port, _ := strconv.ParseInt(euArray[1], 10, 32)
-					masterPorts = append(masterPorts, corev1.EndpointPort{Port: int32(port)})
-				}
-			}
-			if cu != "" {
-				clusterURL = cu
-			}
+	if apierrors.IsNotFound(err) {
+		return masterAddresses, masterPorts, clusterURL, nil
+	}
+	if err != nil {
+		return masterAddresses, masterPorts, clusterURL, err
+	}
+	if cfg.Data == nil {
+		return masterAddresses, masterPorts, clusterURL, nil
+	}
+
+	consoleConfigString, ok := cfg.Data["console-config.yaml"]
+	if !ok {
+		return masterAddresses, masterPorts, clusterURL, nil
+	}
+
+	consoleConfigList := strings.Split(consoleConfigString, "\n")
+	eu := ""
+	cu := ""
+	for _, configInfo := range consoleConfigList {
+		parse := strings.Split(strings.Trim(configInfo, " "), ": ")
+		if parse[0] == "masterPublicURL" {
+			eu = strings.Trim(parse[1], " ")
+		}
+		if parse[0] == "consoleBaseAddress" {
+			cu = strings.Trim(parse[1], " ")
 		}
 	}
-	return masterAddresses, masterPorts, clusterURL, err
+	if eu != "" {
+		euArray := strings.Split(strings.Trim(eu, "https:/"), ":")
+		if len(euArray) == 2 {
+			masterAddresses = append(masterAddresses, corev1.EndpointAddress{IP: euArray[0]})
+			port, _ := strconv.ParseInt(euArray[1], 10, 32)
+			masterPorts = append(masterPorts, corev1.EndpointPort{Port: int32(port)})
+		}
+	}
+	if cu != "" {
+		clusterURL = cu
+	}
+
+	return masterAddresses, masterPorts, clusterURL, nil
 }
 
 func (c *ClusterClaimer) getMasterAddresses() ([]corev1.EndpointAddress, []corev1.EndpointPort, string, error) {
