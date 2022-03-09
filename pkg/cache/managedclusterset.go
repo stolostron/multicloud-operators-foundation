@@ -54,6 +54,11 @@ func (c *ClusterSetCache) ListResources() (sets.String, error) {
 	}
 
 	for _, clusterSet := range clusterSets {
+		// ignore the non-legacy clusterset
+		selectorType := clusterSet.Spec.ClusterSelector.SelectorType
+		if len(selectorType) > 0 && selectorType != clusterv1beta1.LegacyClusterSetLabel {
+			continue
+		}
 		allClusterSets.Insert(clusterSet.Name)
 	}
 	return allClusterSets, nil

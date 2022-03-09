@@ -2,7 +2,6 @@ package e2e
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/onsi/ginkgo"
@@ -117,18 +116,16 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 	ginkgo.It("should create and update the managedCluster successfully", func() {
 		cluster := util.NewManagedCluster(clusterName)
 		// case 1: cannot create managedCluster without managedClusterSet label
-		expectError := fmt.Sprintf("admission webhook \"ocm.validating.webhook.admission.open-cluster-management.io\" denied the request: user \"%s\" cannot add/remove the resource to/from ManagedClusterSet \"\"", userName)
 		gomega.Eventually(func() error {
 			err := util.CreateManagedCluster(userClusterClient, cluster)
 			if err != nil {
 				return fmt.Errorf(err.Error())
 			}
 			return nil
-		}, eventuallyTimeout, eventuallyInterval).Should(gomega.Equal(errors.New(expectError)))
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
 
 		// case 2: cannot create managedCluster with wrong managedClusterSet label
 		wrongLabel := "wrong-clusterSet"
-		expectError = fmt.Sprintf("admission webhook \"ocm.validating.webhook.admission.open-cluster-management.io\" denied the request: user \"%s\" cannot add/remove the resource to/from ManagedClusterSet \"%s\"", userName, wrongLabel)
 
 		labels := map[string]string{
 			"cluster.open-cluster-management.io/clusterset": wrongLabel,
@@ -140,7 +137,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 				return fmt.Errorf(err.Error())
 			}
 			return nil
-		}, eventuallyTimeout, eventuallyInterval).Should(gomega.Equal(errors.New(expectError)))
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
 
 		// case 3: can create managedCluster with right managedClusterSet label
 		labels = map[string]string{
@@ -160,7 +157,6 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 		// case 5: cannot update managedCluster to remove managedClusterSet label
-		expectError = fmt.Sprintf("admission webhook \"ocm.validating.webhook.admission.open-cluster-management.io\" denied the request: user \"%s\" cannot add/remove the resource to/from ManagedClusterSet \"\"", userName)
 		labels = map[string]string{
 			"cluster.open-cluster-management.io/clusterset": "",
 		}
@@ -170,7 +166,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 				return fmt.Errorf(err.Error())
 			}
 			return nil
-		}, eventuallyTimeout, eventuallyInterval).Should(gomega.Equal(errors.New(expectError)))
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
 	})
 })
 
