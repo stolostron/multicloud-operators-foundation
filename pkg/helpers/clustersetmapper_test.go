@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -114,4 +115,70 @@ func TestClusterSetMapper_UpdateObjectInClusterSet(t *testing.T) {
 	clusterSetMapper.UpdateObjectInClusterSet("cluster22", "clusterSet4")
 	assert.Equal(t, len(expectClustermap), len(initMap))
 
+}
+
+func TestClusterSetMapper_UnionObjectsInClusterSet(t *testing.T) {
+	tests := []struct {
+		name                   string
+		curClusterSetMapper    *ClusterSetMapper
+		newClusterSetMapper    *ClusterSetMapper
+		expectClusterSetMapper *ClusterSetMapper
+	}{
+		{
+			name: "seperate mapper",
+			curClusterSetMapper: initClustersetmap(map[string]sets.String{
+				"clusterSet1": {"cluster12": {}, "cluster13": {}},
+				"clusterSet2": {"cluster21": {}, "cluster22": {}},
+			}),
+			newClusterSetMapper: initClustersetmap(map[string]sets.String{
+				"clusterSet3": {"cluster31": {}},
+				"clusterSet4": {"cluster41": {}, "cluster42": {}},
+			}),
+			expectClusterSetMapper: initClustersetmap(map[string]sets.String{
+				"clusterSet1": {"cluster12": {}, "cluster13": {}},
+				"clusterSet2": {"cluster21": {}, "cluster22": {}},
+				"clusterSet3": {"cluster31": {}},
+				"clusterSet4": {"cluster41": {}, "cluster42": {}},
+			}),
+		},
+		{
+			name: "key equal mapper",
+			curClusterSetMapper: initClustersetmap(map[string]sets.String{
+				"clusterSet1": {"cluster12": {}, "cluster13": {}},
+				"clusterSet2": {"cluster21": {}, "cluster22": {}},
+			}),
+			newClusterSetMapper: initClustersetmap(map[string]sets.String{
+				"clusterSet2": {"cluster31": {}},
+				"clusterSet4": {"cluster41": {}, "cluster42": {}},
+			}),
+			expectClusterSetMapper: initClustersetmap(map[string]sets.String{
+				"clusterSet1": {"cluster12": {}, "cluster13": {}},
+				"clusterSet2": {"cluster21": {}, "cluster22": {}, "cluster31": {}},
+				"clusterSet4": {"cluster41": {}, "cluster42": {}},
+			}),
+		},
+		{
+			name: "key and value equal mapper",
+			curClusterSetMapper: initClustersetmap(map[string]sets.String{
+				"clusterSet1": {"cluster12": {}, "cluster13": {}},
+				"clusterSet2": {"cluster21": {}, "cluster22": {}},
+			}),
+			newClusterSetMapper: initClustersetmap(map[string]sets.String{
+				"clusterSet2": {"cluster21": {}, "cluster22": {}},
+				"clusterSet4": {"cluster41": {}, "cluster42": {}},
+			}),
+			expectClusterSetMapper: initClustersetmap(map[string]sets.String{
+				"clusterSet1": {"cluster12": {}, "cluster13": {}},
+				"clusterSet2": {"cluster21": {}, "cluster22": {}},
+				"clusterSet4": {"cluster41": {}, "cluster42": {}},
+			}),
+		},
+	}
+
+	for _, test := range tests {
+		returnMapper := test.curClusterSetMapper.UnionObjectsInClusterSet(test.newClusterSetMapper)
+		if !reflect.DeepEqual(returnMapper, test.expectClusterSetMapper) {
+			t.Errorf("Failed to get union clusterset mapper. returnMapper:%v, expectMapper:%v", returnMapper, test.expectClusterSetMapper)
+		}
+	}
 }
