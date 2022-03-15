@@ -163,6 +163,13 @@ func (c *ClusterSetMapper) UnionObjectsInClusterSet(newClustersetToObjects *Clus
 		}
 		unionSetToObjMapper.UpdateClusterSetByObjects(set, objs)
 	}
+
+	for newSet, newObjs := range newSetToObjMap {
+		if _, ok := curSetToObjMap[newSet]; ok {
+			continue
+		}
+		unionSetToObjMapper.UpdateClusterSetByObjects(newSet, newObjs)
+	}
 	return unionSetToObjMapper
 }
 
