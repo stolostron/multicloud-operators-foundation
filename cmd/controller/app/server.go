@@ -29,6 +29,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/imageregistry"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/inventory"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
+	helperimageregistry "github.com/stolostron/multicloud-operators-foundation/pkg/helpers/imageregistry"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/runtime"
 	kubeinformers "k8s.io/client-go/informers"
@@ -138,8 +139,9 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 	if o.EnableAddonDeploy {
+		imageRegistryClient := helperimageregistry.NewDefaultClient(mgr.GetClient())
 		registrationOption := addon.NewRegistrationOption(kubeClient, addon.WorkManagerAddonName)
-		getValuesFunc := addon.NewGetValuesFunc(o.AddonImage)
+		getValuesFunc := addon.NewGetValuesFunc(o.AddonImage, imageRegistryClient)
 		agentAddon, err := addonfactory.NewAgentAddonFactory(addon.WorkManagerAddonName, addon.ChartFS, addon.ChartDir).
 			WithScheme(scheme).
 			WithGetValuesFuncs(getValuesFunc, addonfactory.GetValuesFromAddonAnnotation).

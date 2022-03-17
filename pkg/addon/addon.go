@@ -3,13 +3,16 @@ package addon
 import (
 	"context"
 	"embed"
+	"encoding/json"
 	"reflect"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers/imageregistry"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	"open-cluster-management.io/addon-framework/pkg/utils"
@@ -22,6 +25,9 @@ const (
 	// the clusterRole has been installed with the ocm-controller deployment
 	clusterRoleName = "managed-cluster-workmgr"
 	roleBindingName = "managed-cluster-workmgr"
+
+	// annotationNodeSelector is key name of nodeSelector annotation synced from mch
+	annotationNodeSelector = "open-cluster-management/nodeSelector"
 )
 
 //go:embed manifests
@@ -43,24 +49,40 @@ type Values struct {
 	GlobalValues GlobalValues `json:"global,omitempty,omitempty"`
 }
 
-func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
+func NewGetValuesFunc(imageName string, imageRegistryClient imageregistry.Client) addonfactory.GetValuesFunc {
 	return func(cluster *clusterv1.ManagedCluster,
 		addon *addonapiv1alpha1.ManagedClusterAddOn) (addonfactory.Values, error) {
+		overrideName, err := imageRegistryClient.Cluster(cluster.Name).ImageOverride(imageName)
+		if err != nil {
+			klog.Errorf("failed to override the image %v. err %v", imageName, err)
+			return nil, err
+		}
 		addonValues := Values{
 			GlobalValues: GlobalValues{
 				ImagePullPolicy: corev1.PullIfNotPresent,
 				ImagePullSecret: "open-cluster-management-image-pull-credentials",
 				ImageOverrides: map[string]string{
-					"multicloud_manager": imageName,
+					"multicloud_manager": overrideName,
 				},
 				NodeSelector: map[string]string{},
 			},
 		}
+
 		for _, claim := range cluster.Status.ClusterClaims {
 			if claim.Name == "product.open-cluster-management.io" && claim.Value == "OpenShift" {
 				addonValues.IsOCP = true
 			}
 		}
+
+		nodeSelector, err := getNodeSelector(cluster)
+		if err != nil {
+			klog.Errorf("failed to get nodeSelector from managedCluster. %v", err)
+			return nil, err
+		}
+		if len(nodeSelector) != 0 {
+			addonValues.GlobalValues.NodeSelector = nodeSelector
+		}
+
 		values, err := addonfactory.JsonStructToValues(addonValues)
 		if err != nil {
 			return nil, err
@@ -108,4 +130,19 @@ func createOrUpdateRoleBinding(kubeClient kubernetes.Interface, addonName, clust
 	}
 
 	return nil
+}
+
+func getNodeSelector(managedCluster *clusterv1.ManagedCluster) (map[string]string, error) {
+	nodeSelector := map[string]string{}
+	if managedCluster.GetName() == "local-cluster" {
+		annotations := managedCluster.GetAnnotations()
+		if nodeSelectorString, ok := annotations[annotationNodeSelector]; ok {
+			if err := json.Unmarshal([]byte(nodeSelectorString), &nodeSelector); err != nil {
+				klog.Error(err, "failed to unmarshal nodeSelector annotation of cluster %v", managedCluster.GetName())
+				return nodeSelector, err
+			}
+		}
+	}
+
+	return nodeSelector, nil
 }
