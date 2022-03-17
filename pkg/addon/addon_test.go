@@ -7,7 +7,10 @@ import (
 	"testing"
 
 	routev1 "github.com/openshift/api/route/v1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/apis/imageregistry/v1alpha1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers/imageregistry"
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +22,7 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
 )
 
@@ -29,12 +33,19 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = routev1.Install(scheme)
+	_ = imageregistry.AddToScheme(scheme)
 }
 
-func newCluster(name string, ocp bool) *clusterv1.ManagedCluster {
+const (
+	addonImage = "quay.io/stolostron/multicloud-manager:2.5.0"
+)
+
+func newCluster(name string, ocp bool, labels map[string]string, annotations map[string]string) *clusterv1.ManagedCluster {
 	cluster := &clusterv1.ManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:        name,
+			Labels:      labels,
+			Annotations: annotations,
 		},
 	}
 	if ocp {
@@ -66,9 +77,36 @@ func newAddon(name, cluster, installNamespace string, annotationValues string) *
 	return addon
 }
 
-func newAgentAddon(t *testing.T) agent.AgentAddon {
+func newImageRegistry(name, namespace, registryAddress string) *v1alpha1.ManagedClusterImageRegistry {
+	return &v1alpha1.ManagedClusterImageRegistry{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: v1alpha1.ImageRegistrySpec{
+			Registry:     registryAddress,
+			PullSecret:   corev1.LocalObjectReference{Name: "pullSecret"},
+			PlacementRef: v1alpha1.PlacementRef{},
+		},
+	}
+}
+
+func fakeImageRegistryClient(cluster *clusterv1.ManagedCluster, imageRegistry *v1alpha1.ManagedClusterImageRegistry) imageregistry.Client {
+	fakeClient := fake.NewClientBuilder()
+	objs := []runtime.Object{}
+	if cluster != nil {
+		objs = append(objs, cluster)
+	}
+	if imageRegistry != nil {
+		objs = append(objs, imageRegistry)
+	}
+	return imageregistry.NewDefaultClient(fakeClient.WithScheme(scheme).WithRuntimeObjects(objs...).Build())
+}
+
+func newAgentAddon(t *testing.T, cluster *clusterv1.ManagedCluster, imageRegistry *v1alpha1.ManagedClusterImageRegistry) agent.AgentAddon {
 	registrationOption := NewRegistrationOption(nil, WorkManagerAddonName)
-	getValuesFunc := NewGetValuesFunc("quay.io/stolostron/multicloud-manager:2.5.0")
+	imageRegistryClient := fakeImageRegistryClient(cluster, imageRegistry)
+	getValuesFunc := NewGetValuesFunc(addonImage, imageRegistryClient)
 	agentAddon, err := addonfactory.NewAgentAddonFactory(WorkManagerAddonName, ChartFS, ChartDir).
 		WithScheme(scheme).
 		WithGetValuesFuncs(getValuesFunc, addonfactory.GetValuesFromAddonAnnotation).
@@ -104,44 +142,70 @@ func output(t *testing.T, name string, objects ...runtime.Object) {
 
 func TestManifest(t *testing.T) {
 	tests := []struct {
-		name              string
-		cluster           *clusterv1.ManagedCluster
-		addon             *addonapiv1alpha1.ManagedClusterAddOn
-		expectedNamespace string
-		expectedImage     string
-		expectServiceType v1.ServiceType
-		expectedCount     int
+		name                 string
+		cluster              *clusterv1.ManagedCluster
+		addon                *addonapiv1alpha1.ManagedClusterAddOn
+		imageRegistry        *v1alpha1.ManagedClusterImageRegistry
+		expectedNamespace    string
+		expectedImage        string
+		expectServiceType    v1.ServiceType
+		expectedNodeSelector bool
+		expectedCount        int
 	}{
 		{
 			name:              "is OCP",
-			cluster:           newCluster("cluster1", true),
+			cluster:           newCluster("cluster1", true, map[string]string{}, map[string]string{}),
 			addon:             newAddon("work-manager", "cluster1", "", `{"global":{"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
 			expectedNamespace: "open-cluster-management-agent-addon",
 			expectedImage:     "quay.io/test/multicloud_manager:test",
 			expectedCount:     6,
 		},
 		{
-			name:              "is OCP but hub cluster",
-			cluster:           newCluster("local-cluster", true),
-			addon:             newAddon("work-manager", "cluster1", "", `{"global":{"nodeSelector":{"node-role.kubernetes.io/infra":""},"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
-			expectedNamespace: "open-cluster-management-agent-addon",
-			expectedImage:     "quay.io/test/multicloud_manager:test",
-			expectedCount:     5,
+			name:                 "is OCP but hub cluster",
+			cluster:              newCluster("local-cluster", true, map[string]string{}, map[string]string{}),
+			addon:                newAddon("work-manager", "cluster1", "", `{"global":{"nodeSelector":{"node-role.kubernetes.io/infra":""},"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
+			expectedNamespace:    "open-cluster-management-agent-addon",
+			expectedImage:        "quay.io/test/multicloud_manager:test",
+			expectedNodeSelector: true,
+			expectedCount:        5,
 		},
 		{
 			name:              "is not OCP",
-			cluster:           newCluster("cluster1", false),
+			cluster:           newCluster("cluster1", false, map[string]string{}, map[string]string{}),
 			addon:             newAddon("work-manager", "cluster1", "test", ""),
 			expectedNamespace: "test",
 			expectedImage:     "quay.io/stolostron/multicloud-manager:2.5.0",
 			expectServiceType: v1.ServiceTypeLoadBalancer,
 			expectedCount:     5,
 		},
+		{
+			name: "imageOverride",
+			cluster: newCluster("cluster1", true,
+				map[string]string{v1alpha1.ClusterImageRegistryLabel: "ns1.imageRegistry1"},
+				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}"}),
+			imageRegistry:     newImageRegistry("imageRegistry1", "ns1", "quay.io/test"),
+			addon:             newAddon("work-manager", "cluster1", "", ""),
+			expectedNamespace: "open-cluster-management-agent-addon",
+			expectedImage:     "quay.io/test/multicloud-manager:2.5.0",
+			expectedCount:     6,
+		},
+		{
+			name: "local cluster imageOverride",
+			cluster: newCluster("local-cluster", true,
+				map[string]string{v1alpha1.ClusterImageRegistryLabel: "ns1.imageRegistry1"},
+				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}"}),
+			imageRegistry:        newImageRegistry("imageRegistry1", "ns1", "quay.io/test"),
+			addon:                newAddon("work-manager", "local-cluster", "", ""),
+			expectedNamespace:    "open-cluster-management-agent-addon",
+			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
+			expectedNodeSelector: true,
+			expectedCount:        5,
+		},
 	}
 
-	agentAddon := newAgentAddon(t)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			agentAddon := newAgentAddon(t, test.cluster, test.imageRegistry)
 			objects, err := agentAddon.Manifests(test.cluster, test.addon)
 			if err != nil {
 				t.Errorf("failed to get manifests with error %v", err)
@@ -159,6 +223,12 @@ func TestManifest(t *testing.T) {
 					}
 					if object.Spec.Template.Spec.Containers[0].Image != test.expectedImage {
 						t.Errorf("expected image is %s, but got %s", test.expectedImage, object.Spec.Template.Spec.Containers[0].Image)
+					}
+					if test.expectedNodeSelector && len(object.Spec.Template.Spec.NodeSelector) == 0 {
+						t.Errorf("expected nodeSelector, but got empty")
+					}
+					if !test.expectedNodeSelector && len(object.Spec.Template.Spec.NodeSelector) != 0 {
+						t.Errorf("expected no nodeSelector, but got it.")
 					}
 				case *v1.Service:
 					if object.Spec.Type != test.expectServiceType {
