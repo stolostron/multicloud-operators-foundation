@@ -8,6 +8,7 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 	appsv1 "k8s.io/api/apps/v1"
+	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -108,6 +109,7 @@ func TestManifest(t *testing.T) {
 		addon             *addonapiv1alpha1.ManagedClusterAddOn
 		expectedNamespace string
 		expectedImage     string
+		expectServiceType v1.ServiceType
 		expectedCount     int
 	}{
 		{
@@ -132,6 +134,7 @@ func TestManifest(t *testing.T) {
 			addon:             newAddon("work-manager", "cluster1", "test", ""),
 			expectedNamespace: "test",
 			expectedImage:     "quay.io/stolostron/multicloud-manager:2.5.0",
+			expectServiceType: v1.ServiceTypeLoadBalancer,
 			expectedCount:     5,
 		},
 	}
@@ -156,6 +159,10 @@ func TestManifest(t *testing.T) {
 					}
 					if object.Spec.Template.Spec.Containers[0].Image != test.expectedImage {
 						t.Errorf("expected image is %s, but got %s", test.expectedImage, object.Spec.Template.Spec.Containers[0].Image)
+					}
+				case *v1.Service:
+					if object.Spec.Type != test.expectServiceType {
+						t.Errorf("expected service type is %s, but got %s ", test.expectServiceType, object.Spec.Type)
 					}
 				}
 			}
