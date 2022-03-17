@@ -50,14 +50,17 @@ const (
 
 // should be the type defined in infrastructure.config.openshift.io
 const (
-	PlatformAWS       = "AWS"
-	PlatformGCP       = "GCP"
-	PlatformAzure     = "Azure"
-	PlatformIBM       = "IBM"
-	PlatformIBMP      = "IBMPowerPlatform"
-	PlatformIBMZ      = "IBMZPlatform"
-	PlatformOpenStack = "OpenStack"
-	PlatformVSphere   = "VSphere"
+	PlatformAWS          = "AWS"
+	PlatformGCP          = "GCP"
+	PlatformAzure        = "Azure"
+	PlatformIBM          = "IBM"
+	PlatformIBMP         = "IBMPowerPlatform"
+	PlatformIBMZ         = "IBMZPlatform"
+	PlatformOpenStack    = "OpenStack"
+	PlatformVSphere      = "VSphere"
+	PlatformRHV          = "RHV"
+	PlatformAlibabaCloud = "AlibabaCloud"
+	PlatformBareMetal    = "BareMetal"
 	// PlatformOther other (unable to auto detect)
 	PlatformOther = "Other"
 )
@@ -513,6 +516,35 @@ func (c *ClusterClaimer) getPlatformProduct() (string, string, error) {
 	}
 	if isOpenshiftDedicated {
 		product = ProductOSD
+	}
+
+	if isOpenShift {
+		infrastructure, err := c.ConfigV1Client.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			klog.Errorf("failed to get OCP infrastructures.config.openshift.io/cluster: %v", err)
+			return "", "", err
+		}
+		if err == nil {
+			platformType := infrastructure.Status.PlatformStatus.Type
+			switch platformType {
+			case configv1.AWSPlatformType:
+				return PlatformAWS, product, nil
+			case configv1.AzurePlatformType:
+				return PlatformAzure, product, nil
+			case configv1.AlibabaCloudPlatformType:
+				return PlatformAlibabaCloud, product, nil
+			case configv1.OvirtPlatformType:
+				return PlatformRHV, product, nil
+			case configv1.GCPPlatformType:
+				return PlatformGCP, product, nil
+			case configv1.VSpherePlatformType:
+				return PlatformVSphere, product, nil
+			case configv1.OpenStackPlatformType:
+				return PlatformOpenStack, product, nil
+			case configv1.BareMetalPlatformType:
+				return PlatformBareMetal, product, nil
+			}
+		}
 	}
 
 	var architecture, providerID string

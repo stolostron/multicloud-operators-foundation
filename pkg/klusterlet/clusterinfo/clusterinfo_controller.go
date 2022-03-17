@@ -296,6 +296,12 @@ func (r *ClusterInfoReconciler) getCloudVendor(platform string) (cloudVendor clu
 		cloudVendor = clusterv1beta1.CloudVendorVSphere
 	case clusterclaim.PlatformOpenStack:
 		cloudVendor = clusterv1beta1.CloudVendorOpenStack
+	case clusterclaim.PlatformRHV:
+		cloudVendor = clusterv1beta1.CloudVendorRHV
+	case clusterclaim.PlatformAlibabaCloud:
+		cloudVendor = clusterv1beta1.CloudVendorAlibabaCloud
+	case clusterclaim.PlatformBareMetal:
+		cloudVendor = clusterv1beta1.CloudVendorBareMetal
 	default:
 		cloudVendor = clusterv1beta1.CloudVendorOther
 	}

@@ -139,6 +139,27 @@ func newGCPInfrastructure() *apiconfigv1.Infrastructure {
 		},
 	}
 }
+func newOtherInfrastructure() *apiconfigv1.Infrastructure {
+	return &apiconfigv1.Infrastructure{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster",
+		},
+		Spec: apiconfigv1.InfrastructureSpec{
+			CloudConfig: apiconfigv1.ConfigMapFileReference{},
+			PlatformSpec: apiconfigv1.PlatformSpec{
+				Type: "Other",
+				GCP:  &apiconfigv1.GCPPlatformSpec{},
+			},
+		},
+		Status: apiconfigv1.InfrastructureStatus{
+			InfrastructureName: "Other",
+			Platform:           "Other",
+			PlatformStatus: &apiconfigv1.PlatformStatus{
+				Type: "Other",
+			},
+		},
+	}
+}
 
 func newConfigV1Client(version string, platformType string) openshiftclientset.Interface {
 	clusterVersion := &apiconfigv1.ClusterVersion{}
@@ -154,6 +175,8 @@ func newConfigV1Client(version string, platformType string) openshiftclientset.I
 		infrastructure = newAWSInfrastructure()
 	case PlatformGCP:
 		infrastructure = newGCPInfrastructure()
+	default:
+		infrastructure = newOtherInfrastructure()
 	}
 
 	return configfake.NewSimpleClientset(clusterVersion, infrastructure)
@@ -784,6 +807,7 @@ func TestUpdatePlatformProduct(t *testing.T) {
 		kubeClient     kubernetes.Interface
 		dynamicClient  dynamic.Interface
 		mapper         meta.RESTMapper
+		configV1Client openshiftclientset.Interface
 		expectPlatform string
 		expectProduct  string
 		expectErr      error
@@ -792,6 +816,7 @@ func TestUpdatePlatformProduct(t *testing.T) {
 			name:           "is OCP on AWS",
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAWS)}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", PlatformAWS),
 			expectPlatform: PlatformAWS,
 			expectProduct:  ProductOpenShift,
 			expectErr:      nil,
@@ -800,6 +825,7 @@ func TestUpdatePlatformProduct(t *testing.T) {
 			name:           "is OCP on Azure",
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAzure)}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", ""),
 			expectPlatform: PlatformAzure,
 			expectProduct:  ProductOpenShift,
 			expectErr:      nil,
@@ -808,6 +834,7 @@ func TestUpdatePlatformProduct(t *testing.T) {
 			name:           "is OCP on IBM",
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformIBM)}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", ""),
 			expectPlatform: PlatformIBM,
 			expectProduct:  ProductOpenShift,
 			expectErr:      nil,
@@ -816,6 +843,7 @@ func TestUpdatePlatformProduct(t *testing.T) {
 			name:           "is OCP on IBMZ",
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformIBMZ)}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", ""),
 			expectPlatform: PlatformIBMZ,
 			expectProduct:  ProductOpenShift,
 			expectErr:      nil,
@@ -824,6 +852,7 @@ func TestUpdatePlatformProduct(t *testing.T) {
 			name:           "is OCP on IBMP",
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformIBMP)}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", ""),
 			expectPlatform: PlatformIBMP,
 			expectProduct:  ProductOpenShift,
 			expectErr:      nil,
@@ -832,6 +861,7 @@ func TestUpdatePlatformProduct(t *testing.T) {
 			name:           "is OCP on GCP",
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformGCP)}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", PlatformGCP),
 			expectPlatform: PlatformGCP,
 			expectProduct:  ProductOpenShift,
 			expectErr:      nil,
@@ -840,6 +870,7 @@ func TestUpdatePlatformProduct(t *testing.T) {
 			name:           "is OCP on Openstack",
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformOpenStack)}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", ""),
 			expectPlatform: PlatformOpenStack,
 			expectProduct:  ProductOpenShift,
 			expectErr:      nil,
@@ -848,6 +879,7 @@ func TestUpdatePlatformProduct(t *testing.T) {
 			name:           "is OCP on VSphere",
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformVSphere)}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", ""),
 			expectPlatform: PlatformVSphere,
 			expectProduct:  ProductOpenShift,
 			expectErr:      nil,
@@ -856,6 +888,7 @@ func TestUpdatePlatformProduct(t *testing.T) {
 			name:           "is OCP on VSphere",
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformVSphere)}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", ""),
 			expectPlatform: PlatformVSphere,
 			expectProduct:  ProductOpenShift,
 			expectErr:      nil,
@@ -872,6 +905,7 @@ func TestUpdatePlatformProduct(t *testing.T) {
 			name:           "is OSD on AWS",
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAWS)}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources, osdAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", PlatformAWS),
 			expectPlatform: PlatformAWS,
 			expectProduct:  ProductOSD,
 			expectErr:      nil,
@@ -880,7 +914,7 @@ func TestUpdatePlatformProduct(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, Mapper: test.mapper}
+			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, Mapper: test.mapper, ConfigV1Client: test.configV1Client}
 			err := clusterClaimer.updatePlatformProduct()
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, test.expectPlatform, clusterClaimer.Platform)

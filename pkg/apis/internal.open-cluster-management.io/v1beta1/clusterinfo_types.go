@@ -215,7 +215,7 @@ type OCPDistributionInfo struct {
 	// is preserved.
 	VersionHistory []OCPVersionUpdateHistory `json:"versionHistory,omitempty"`
 
-	//Controller will sync this field to managedcluster's ManagedClusterClientConfigs
+	// Controller will sync this field to managedcluster's ManagedClusterClientConfigs
 	// +optional
 	ManagedClusterClientConfig ClientConfig `json:"managedClusterClientConfig,omitempty"`
 }
@@ -271,6 +271,12 @@ const (
 	CloudVendorVSphere CloudVendorType = "VSphere"
 	// CloudVendorOpenStack OpenStack
 	CloudVendorOpenStack CloudVendorType = "OpenStack"
+	// CloudVendorRHV RHV
+	CloudVendorRHV CloudVendorType = "RHV"
+	// CloudVendorAlibabaCloud AlibabaCloud
+	CloudVendorAlibabaCloud = "AlibabaCloud"
+	// CloudVendorBareMetal BareMetal
+	CloudVendorBareMetal = "BareMetal"
 	// CloudVendorOther other (unable to auto detect)
 	CloudVendorOther CloudVendorType = "Other"
 )
