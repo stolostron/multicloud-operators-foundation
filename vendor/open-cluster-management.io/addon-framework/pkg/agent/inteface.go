@@ -4,9 +4,11 @@ import (
 	"fmt"
 
 	certificatesv1 "k8s.io/api/certificates/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	workapiv1 "open-cluster-management.io/api/work/v1"
 )
 
 // AgentAddon is a mandatory interface for implementing a custom addon.
@@ -62,6 +64,8 @@ type CSRSignerFunc func(csr *certificatesv1.CertificateSigningRequest) []byte
 
 type CSRApproveFunc func(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn, csr *certificatesv1.CertificateSigningRequest) bool
 
+type PermissionConfigFunc func(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) error
+
 // RegistrationOption defines how agent is registered to the hub cluster. It needs to define:
 // 1. csr with what subject/signer should be created
 // 2. how csr is approved
@@ -92,7 +96,7 @@ type RegistrationOption struct {
 	// cluster by calling the kubernetes api explicitly. Additionally we can also extend arbitrary third-party
 	// permission setup in this callback.
 	// +optional
-	PermissionConfig func(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) error
+	PermissionConfig PermissionConfigFunc
 
 	// CSRSign signs a csr and returns a certificate. It is used when the addon has its own customized signer.
 	// The returned byte array shall be a valid non-nil PEM encoded x509 certificate.
@@ -102,7 +106,13 @@ type RegistrationOption struct {
 
 type StrategyType string
 
-const InstallAll StrategyType = "*"
+const (
+	// InstallAll indicate to install addon to all clusters
+	InstallAll StrategyType = "*"
+
+	// InstallByLabel indicate to install addon based on clusters' label
+	InstallByLabel StrategyType = "LabelSelector"
+)
 
 // InstallStrategy is the installation strategy of the manifests prescribed by Manifests(..).
 type InstallStrategy struct {
@@ -111,10 +121,34 @@ type InstallStrategy struct {
 	Type StrategyType
 	// InstallNamespace is target deploying namespace in the managed cluster upon automatic addon installation.
 	InstallNamespace string
+
+	// LabelSelector is used to filter clusters based on label. It is only used when strategyType is InstallByLabel
+	LabelSelector *metav1.LabelSelector
 }
 
 type HealthProber struct {
 	Type HealthProberType
+
+	WorkProber *WorkHealthProber
+}
+
+type AddonHealthCheckFunc func(workapiv1.ResourceIdentifier, workapiv1.StatusFeedbackResult) error
+
+type WorkHealthProber struct {
+	// ProbeFields tells addon framework what field to probe
+	ProbeFields []ProbeField
+
+	// HealthCheck check status of the addon based on probe result.
+	HealthCheck AddonHealthCheckFunc
+}
+
+// ProbeField defines the field of a resource to be probed
+type ProbeField struct {
+	// ResourceIdentifier sets what resource shoule be probed
+	ResourceIdentifier workapiv1.ResourceIdentifier
+
+	// ProbeRules sets the rules to probe the field
+	ProbeRules []workapiv1.FeedbackRule
 }
 
 type HealthProberType string
@@ -128,12 +162,12 @@ const (
 	// Note that the lease object is expected to periodically refresh by a local agent
 	// deployed in the managed cluster implementing lease.LeaseUpdater interface.
 	HealthProberTypeLease HealthProberType = "Lease"
-	// TODO(yue9944882): implement work api health checker
 	// HealthProberTypeWork indicates the healthiness of the addon is equal to the overall
 	// dispatching status of the corresponding ManifestWork resource.
 	// It's applicable to those addons that don't have a local agent instance in the managed
-	// clusters.
-	//HealthProberTypeWork HealthProberType = "Work"
+	// clusters. The addon framework will check if the work is Available on the spoke. In addition
+	// user can define a prober to check more detailed status based on status feedback from work.
+	HealthProberTypeWork HealthProberType = "Work"
 )
 
 func KubeClientSignerConfigurations(addonName, agentName string) func(cluster *clusterv1.ManagedCluster) []addonapiv1alpha1.RegistrationConfig {
@@ -168,6 +202,14 @@ func InstallAllStrategy(installNamespace string) *InstallStrategy {
 	return &InstallStrategy{
 		Type:             InstallAll,
 		InstallNamespace: installNamespace,
+	}
+}
+
+func InstallByLabelStrategy(installNamespace string, selector metav1.LabelSelector) *InstallStrategy {
+	return &InstallStrategy{
+		Type:             InstallByLabel,
+		InstallNamespace: installNamespace,
+		LabelSelector:    &selector,
 	}
 }
 

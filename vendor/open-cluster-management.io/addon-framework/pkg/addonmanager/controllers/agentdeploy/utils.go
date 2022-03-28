@@ -16,10 +16,6 @@ import (
 	workapiv1 "open-cluster-management.io/api/work/v1"
 )
 
-func deployWorkName(addonName string) string {
-	return fmt.Sprintf("addon-%s-deploy", addonName)
-}
-
 func preDeleteHookWorkName(addonName string) string {
 	return fmt.Sprintf("addon-%s-pre-delete", addonName)
 }
@@ -154,7 +150,7 @@ func buildManifestWorkFromObject(
 		}
 	}
 
-	deployManifestWork = newManifestWork(deployWorkName(addonName), addonName, cluster, deployManifests)
+	deployManifestWork = newManifestWork(constants.DeployWorkName(addonName), addonName, cluster, deployManifests)
 	hookManifestWork = newManifestWork(preDeleteHookWorkName(addonName), addonName, cluster, hookManifests)
 	if hookManifestWork != nil {
 		hookManifestWork.Spec.ManifestConfigs = manifestConfigs
@@ -164,11 +160,11 @@ func buildManifestWorkFromObject(
 }
 
 func applyWork(
+	ctx context.Context,
 	workClient workv1client.Interface,
 	workLister worklister.ManifestWorkLister,
 	cache *workCache,
 	eventRecorder events.Recorder,
-	ctx context.Context,
 	required *workapiv1.ManifestWork) (*workapiv1.ManifestWork, error) {
 	existingWork, err := workLister.ManifestWorks(required.Namespace).Get(required.Name)
 	existingWork = existingWork.DeepCopy()
@@ -194,7 +190,7 @@ func applyWork(
 		return existingWork, nil
 	}
 
-	existingWork.Spec.Workload = required.Spec.Workload
+	existingWork.Spec = required.Spec
 	existingWork, err = workClient.WorkV1().ManifestWorks(existingWork.Namespace).Update(ctx, existingWork, metav1.UpdateOptions{})
 	if err == nil {
 		cache.updateCache(required, existingWork)

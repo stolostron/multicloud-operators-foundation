@@ -128,11 +128,7 @@ func (c *addonHookDeployController) sync(ctx context.Context, syncCtx factory.Sy
 		return err
 	}
 
-	if !managedCluster.DeletionTimestamp.IsZero() {
-		// managed cluster is deleting, remove cache.
-		c.cache.removeCache(preDeleteHookWorkName(addonName), clusterName)
-		return nil
-	}
+	// should continue to apply pre-delete hook when the managedCluster is deleting.
 
 	managedClusterAddon, err := c.managedClusterAddonLister.ManagedClusterAddOns(clusterName).Get(addonName)
 	if errors.IsNotFound(err) {
@@ -180,7 +176,7 @@ func (c *addonHookDeployController) sync(ctx context.Context, syncCtx factory.Sy
 
 	// apply hookWork when addon is deleting
 	hookWork.OwnerReferences = []metav1.OwnerReference{*owner}
-	hookWork, applyErr := applyWork(c.workClient, c.workLister, c.cache, c.eventRecorder, ctx, hookWork)
+	hookWork, applyErr := applyWork(ctx, c.workClient, c.workLister, c.cache, c.eventRecorder, hookWork)
 	completed := hookWorkIsCompleted(hookWork)
 	if completed && hasFinalizer(managedClusterAddonCopy.Finalizers, constants.PreDeleteHookFinalizer) {
 		finalizer := removeFinalizer(managedClusterAddonCopy.Finalizers, constants.PreDeleteHookFinalizer)

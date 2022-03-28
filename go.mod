@@ -35,7 +35,7 @@ replace (
 
 // pin kube and hive version
 replace (
-	github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20220210162524-665b268161d8
+	github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20220326152255-f42617c99ca1
 	k8s.io/api => k8s.io/api v0.23.3
 	k8s.io/apimachinery => k8s.io/apimachinery v0.23.3
 	k8s.io/apiserver => k8s.io/apiserver v0.23.3
@@ -49,25 +49,25 @@ replace (
 require (
 	github.com/emicklei/go-restful v2.15.0+incompatible
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
-	github.com/go-logr/logr v1.2.2
+	github.com/go-logr/logr v1.2.3
 	github.com/gogo/protobuf v1.3.2
-	github.com/mattbaird/jsonpatch v0.0.0-20171005235357-81af80346b1a
+	github.com/mattbaird/jsonpatch v0.0.0-20200820163806-098863c1fc24
 	github.com/metal3-io/baremetal-operator/apis v0.0.0
 	github.com/onsi/ginkgo v1.16.5
-	github.com/onsi/gomega v1.17.0
-	github.com/openshift/api v0.0.0-20211209135129-c58d9f695577
-	github.com/openshift/build-machinery-go v0.0.0-20211213093930-7e33a7eb4ce3
+	github.com/onsi/gomega v1.19.0
+	github.com/openshift/api v0.0.0-20220315184754-d7c10d0b647e
+	github.com/openshift/build-machinery-go v0.0.0-20220121085309-f94edc2d6874
 	github.com/openshift/client-go v0.0.0-20211209144617-7385dd6338e3
-	github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca
-	github.com/openshift/hive v1.1.17-0.20220221213338-6dec9c34e8ac
+	github.com/openshift/custom-resource-status v1.1.2
+	github.com/openshift/hive v1.1.17-0.20220326152255-f42617c99ca1
 	github.com/openshift/hive/apis v0.0.0
-	github.com/openshift/library-go v0.0.0-20220112153822-ac82336bd076
+	github.com/openshift/library-go v0.0.0-20220325115610-a4cbaa780274
 	github.com/prometheus/client_golang v1.12.1
 	github.com/prometheus/common v0.32.1
-	github.com/smartystreets/goconvey v1.6.4
+	github.com/smartystreets/goconvey v1.7.2
 	github.com/spf13/pflag v1.0.5
-	github.com/stretchr/testify v1.7.0
-	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd
+	github.com/stretchr/testify v1.7.1
+	golang.org/x/net v0.0.0-20220325170049-de3da57026de
 	k8s.io/api v0.23.3
 	k8s.io/apimachinery v0.23.3
 	k8s.io/apiserver v0.23.3
@@ -76,15 +76,18 @@ require (
 	k8s.io/code-generator v0.24.0-alpha.2
 	k8s.io/component-base v0.23.3
 	k8s.io/klog v1.0.0
-	k8s.io/klog/v2 v2.40.1
-	k8s.io/kube-aggregator v0.23.0
+	k8s.io/klog/v2 v2.60.1
+	k8s.io/kube-aggregator v0.23.3
 	k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf
-	open-cluster-management.io/addon-framework v0.2.1-0.20220207065614-325cd9f6e402
-	open-cluster-management.io/api v0.6.1-0.20220302050849-83dafb2a3afd
-	sigs.k8s.io/controller-runtime v0.11.0
+	open-cluster-management.io/addon-framework v0.3.0
+	open-cluster-management.io/api v0.7.0
+	sigs.k8s.io/controller-runtime v0.11.1
 	sigs.k8s.io/yaml v1.3.0
 )
 
+require sigs.k8s.io/kube-storage-version-migrator v0.0.4 // indirect
+
+// golang
 require (
 	cloud.google.com/go v0.81.0 // indirect
 	github.com/Azure/go-autorest v14.2.0+incompatible // indirect
@@ -152,7 +155,7 @@ require (
 	github.com/prometheus/procfs v0.7.3 // indirect
 	github.com/robfig/cron v1.2.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
-	github.com/smartystreets/assertions v1.1.0 // indirect
+	github.com/smartystreets/assertions v1.2.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/spf13/cobra v1.2.1 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20180127040702-4e3ac2762d5f // indirect
@@ -181,7 +184,7 @@ require (
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27 // indirect
+	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/time v0.0.0-20211116232009-f0f3c7e86c11 // indirect
@@ -200,8 +203,8 @@ require (
 	helm.sh/helm/v3 v3.7.2 // indirect
 	k8s.io/apiextensions-apiserver v0.23.3 // indirect
 	k8s.io/gengo v0.0.0-20211129171323-c02415ce4185 // indirect
-	k8s.io/utils v0.0.0-20220127004650-9b3446523e65 // indirect
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.27 // indirect
+	k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 // indirect
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.30 // indirect
 	sigs.k8s.io/json v0.0.0-20211208200746-9f7c6b3444d2 // indirect
 	sigs.k8s.io/kustomize/api v0.10.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.13.0 // indirect
