@@ -55,15 +55,15 @@ require (
 	github.com/metal3-io/baremetal-operator/apis v0.0.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
-	github.com/openshift/api v0.0.0-20220315184754-d7c10d0b647e
+	github.com/openshift/api v0.0.0-20220329125147-1a6fa2913810
 	github.com/openshift/build-machinery-go v0.0.0-20220121085309-f94edc2d6874
 	github.com/openshift/client-go v0.0.0-20211209144617-7385dd6338e3
 	github.com/openshift/custom-resource-status v1.1.2
 	github.com/openshift/hive v1.1.17-0.20220326152255-f42617c99ca1
 	github.com/openshift/hive/apis v0.0.0
-	github.com/openshift/library-go v0.0.0-20220325115610-a4cbaa780274
+	github.com/openshift/library-go v0.0.0-20220329193146-715792ed530d
 	github.com/prometheus/client_golang v1.12.1
-	github.com/prometheus/common v0.32.1
+	github.com/prometheus/common v0.33.0
 	github.com/smartystreets/goconvey v1.7.2
 	github.com/spf13/pflag v1.0.5
 	github.com/stretchr/testify v1.7.1
@@ -78,14 +78,17 @@ require (
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.60.1
 	k8s.io/kube-aggregator v0.23.3
-	k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf
+	k8s.io/kube-openapi v0.0.0-20220328201542-3ee0da9b0b42
 	open-cluster-management.io/addon-framework v0.3.0
 	open-cluster-management.io/api v0.7.0
 	sigs.k8s.io/controller-runtime v0.11.1
 	sigs.k8s.io/yaml v1.3.0
 )
 
-require sigs.k8s.io/kube-storage-version-migrator v0.0.4 // indirect
+require (
+	github.com/google/gnostic v0.5.7-v3refs // indirect
+	sigs.k8s.io/kube-storage-version-migrator v0.0.4 // indirect
+)
 
 // golang
 require (
@@ -182,7 +185,7 @@ require (
 	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce // indirect
 	golang.org/x/mod v0.5.1 // indirect
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
+	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
