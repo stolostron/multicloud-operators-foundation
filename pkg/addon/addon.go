@@ -45,7 +45,7 @@ type GlobalValues struct {
 }
 
 type Values struct {
-	IsOCP        bool         `json:"isOCP,omitempty"`
+	HasRoute     bool         `json:"hasRoute,omitempty"`
 	GlobalValues GlobalValues `json:"global,omitempty,omitempty"`
 }
 
@@ -69,8 +69,9 @@ func NewGetValuesFunc(imageName string, imageRegistryClient imageregistry.Client
 		}
 
 		for _, claim := range cluster.Status.ClusterClaims {
-			if claim.Name == "product.open-cluster-management.io" && claim.Value == "OpenShift" {
-				addonValues.IsOCP = true
+			if claim.Name == "version.openshift.io" && claim.Value != "3" {
+				addonValues.HasRoute = true
+				break
 			}
 		}
 

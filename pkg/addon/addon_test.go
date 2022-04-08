@@ -40,7 +40,7 @@ const (
 	addonImage = "quay.io/stolostron/multicloud-manager:2.5.0"
 )
 
-func newCluster(name string, ocp bool, labels map[string]string, annotations map[string]string) *clusterv1.ManagedCluster {
+func newCluster(name string, ocp4 bool, labels map[string]string, annotations map[string]string) *clusterv1.ManagedCluster {
 	cluster := &clusterv1.ManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -48,12 +48,12 @@ func newCluster(name string, ocp bool, labels map[string]string, annotations map
 			Annotations: annotations,
 		},
 	}
-	if ocp {
+	if ocp4 {
 		cluster.Status = clusterv1.ManagedClusterStatus{
 			ClusterClaims: []clusterv1.ManagedClusterClaim{
 				{
-					Name:  "product.open-cluster-management.io",
-					Value: "OpenShift",
+					Name:  "version.openshift.io",
+					Value: "4.9.7",
 				},
 			},
 		}
@@ -153,7 +153,7 @@ func TestManifest(t *testing.T) {
 		expectedCount        int
 	}{
 		{
-			name:              "is OCP",
+			name:              "is OCP4",
 			cluster:           newCluster("cluster1", true, map[string]string{}, map[string]string{}),
 			addon:             newAddon("work-manager", "cluster1", "", `{"global":{"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
 			expectedNamespace: "open-cluster-management-agent-addon",
@@ -161,7 +161,7 @@ func TestManifest(t *testing.T) {
 			expectedCount:     6,
 		},
 		{
-			name:                 "is OCP but hub cluster",
+			name:                 "is OCP4 but hub cluster",
 			cluster:              newCluster("local-cluster", true, map[string]string{}, map[string]string{}),
 			addon:                newAddon("work-manager", "cluster1", "", `{"global":{"nodeSelector":{"node-role.kubernetes.io/infra":""},"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
 			expectedNamespace:    "open-cluster-management-agent-addon",
@@ -170,7 +170,7 @@ func TestManifest(t *testing.T) {
 			expectedCount:        5,
 		},
 		{
-			name:              "is not OCP",
+			name:              "is not OCP4",
 			cluster:           newCluster("cluster1", false, map[string]string{}, map[string]string{}),
 			addon:             newAddon("work-manager", "cluster1", "test", ""),
 			expectedNamespace: "test",

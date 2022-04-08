@@ -42,7 +42,7 @@ spec:
         {{- if eq .Values.clusterName "local-cluster" }}
           - "--agent-address={{ template "work-manager.fullname" . }}.{{ .Release.Namespace }}.svc"
           - "--agent-port=443"
-        {{- else if .Values.isOCP }}
+        {{- else if .Values.hasRoute }}
           - "--agent-route={{ .Release.Namespace }}/{{ template "work-manager.fullname" . }}"
         {{- else  }}
           - "--agent-service={{ .Release.Namespace }}/{{ template "work-manager.fullname" . }}"
