@@ -1,6 +1,6 @@
 ---
 {{- if not (eq .Values.clusterName "local-cluster") }}
-{{- if eq .Values.isOCP true }}
+{{- if eq .Values.hasRoute true }}
 apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
