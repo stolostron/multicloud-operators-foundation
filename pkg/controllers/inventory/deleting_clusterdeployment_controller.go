@@ -61,6 +61,9 @@ func addCDReconciler(mgr manager.Manager, r reconcile.Reconciler) error {
 				return requests
 			}),
 		))
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -15,6 +15,7 @@ import (
 	objectreferencesv1 "github.com/openshift/custom-resource-status/objectreferences/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveinternalv1alpha1 "github.com/openshift/hive/apis/hiveinternal/v1alpha1"
+	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
 	inventoryv1alpha1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
 	bmaerrors "github.com/stolostron/multicloud-operators-foundation/pkg/controllers/inventory/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -342,15 +343,23 @@ func (r *ReconcileBareMetalAsset) checkAssetSecret(ctx context.Context, instance
 	})
 
 	// Set BaremetalAsset instance as the owner and controller
+	modified := false
 	if secret.OwnerReferences == nil || len(secret.OwnerReferences) == 0 {
+		modified = true
 		if err := controllerutil.SetControllerReference(instance, secret, r.scheme); err != nil {
 			klog.Errorf("Failed to set ControllerReference, %v", err)
 			return err
 		}
-		if err := r.client.Update(ctx, secret); err != nil {
-			klog.Errorf("Failed to update secret with OwnerReferences, %v", err)
-			return err
-		}
+	}
+
+	secretTypeLabel := map[string]string{
+		"cluster.open-cluster-management.io/backup": "",
+	}
+
+	resourcemerge.MergeMap(&modified, &secret.Labels, secretTypeLabel)
+
+	if modified {
+		return r.client.Update(ctx, secret)
 	}
 	return nil
 }
