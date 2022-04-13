@@ -9,7 +9,6 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	inventoryv1alpha1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -17,8 +16,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func newTestCDReconciler(existingObjs []runtime.Object) (*ReconcileClusterDeployment, client.Client) {
-	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, existingObjs...)
+func newTestCDReconciler(existingObjs []client.Object) (*ReconcileClusterDeployment, client.Client) {
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(existingObjs...).Build()
 	rbma := &ReconcileClusterDeployment{
 		client: fakeClient,
 		scheme: scheme.Scheme,
@@ -30,7 +29,7 @@ func TestCDReconcile(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name              string
-		existingObjs      []runtime.Object
+		existingObjs      []client.Object
 		expectedErrorType error
 		expectedFinalizer []string
 		req               reconcile.Request
@@ -38,7 +37,7 @@ func TestCDReconcile(t *testing.T) {
 	}{
 		{
 			name: "do not add finalizer",
-			existingObjs: []runtime.Object{
+			existingObjs: []client.Object{
 				newClusterDeployment(),
 			},
 			expectedErrorType: nil,
@@ -52,7 +51,7 @@ func TestCDReconcile(t *testing.T) {
 		},
 		{
 			name: "add finalizer",
-			existingObjs: []runtime.Object{
+			existingObjs: []client.Object{
 				newClusterDeployment(),
 				func() *inventoryv1alpha1.BareMetalAsset {
 					bma := newBMAWithClusterDeployment()
@@ -74,7 +73,7 @@ func TestCDReconcile(t *testing.T) {
 		},
 		{
 			name: "remove finalizer with no bma",
-			existingObjs: []runtime.Object{
+			existingObjs: []client.Object{
 				func() *hivev1.ClusterDeployment {
 					cd := newClusterDeployment()
 					now := metav1.Now()
@@ -93,7 +92,7 @@ func TestCDReconcile(t *testing.T) {
 		},
 		{
 			name: "remove finalizer with bma",
-			existingObjs: []runtime.Object{
+			existingObjs: []client.Object{
 				func() *hivev1.ClusterDeployment {
 					cd := newClusterDeployment()
 					now := metav1.Now()

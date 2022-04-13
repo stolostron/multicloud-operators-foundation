@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -57,14 +58,14 @@ func TestReconcile(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name              string
-		existingObjs      []runtime.Object
+		existingObjs      []client.Object
 		expectedErrorType error
 		req               reconcile.Request
 		requeue           bool
 	}{
 		{
 			name:         "BareMetalAssetNotFound",
-			existingObjs: []runtime.Object{},
+			existingObjs: []client.Object{},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      testName,
@@ -74,7 +75,7 @@ func TestReconcile(t *testing.T) {
 		},
 		{
 			name:         "BareMetalAssetFound",
-			existingObjs: []runtime.Object{newBMA()},
+			existingObjs: []client.Object{newBMA()},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      testName,
@@ -85,7 +86,7 @@ func TestReconcile(t *testing.T) {
 		},
 		{
 			name: "All found",
-			existingObjs: []runtime.Object{
+			existingObjs: []client.Object{
 				newBMAWithClusterDeployment(),
 				newSecret(),
 				newClusterDeployment(),
@@ -100,7 +101,7 @@ func TestReconcile(t *testing.T) {
 		},
 		{
 			name: "ClusterDeploymentsNotFound",
-			existingObjs: []runtime.Object{
+			existingObjs: []client.Object{
 				newBMAWithClusterDeployment(),
 				newSecret(),
 			},
@@ -114,7 +115,7 @@ func TestReconcile(t *testing.T) {
 		},
 		{
 			name: "BareMetalAssetWithDeletionTimestampAndFinalizer",
-			existingObjs: []runtime.Object{
+			existingObjs: []client.Object{
 				func() *inventoryv1alpha1.BareMetalAsset {
 					bma := newBMA()
 					bma.SetDeletionTimestamp(&metav1.Time{Time: time.Now()})
@@ -149,29 +150,38 @@ func TestCheckAssetSecret(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name               string
-		existingObjs       []runtime.Object
+		existingObjs       []client.Object
 		expectedErrorType  error
 		expectedConditions []metav1.Condition
 		bma                *inventoryv1alpha1.BareMetalAsset
+		validateSecret     func(*testing.T, client.Client)
 	}{
 		{
 			name:              "SecretNotFound",
-			existingObjs:      []runtime.Object{},
+			existingObjs:      []client.Object{},
 			expectedErrorType: bmaerrors.NewAssetSecretNotFoundError(testName, testNamespace),
 			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionCredentialsFound,
 				Status: metav1.ConditionFalse,
 			}},
-			bma: newBMA(),
+			bma:            newBMA(),
+			validateSecret: func(t *testing.T, c client.Client) {},
 		},
 		{
 			name:         "SecretFound",
-			existingObjs: []runtime.Object{newSecret()},
+			existingObjs: []client.Object{newSecret()},
 			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionCredentialsFound,
 				Status: metav1.ConditionTrue,
 			}},
 			bma: newBMA(),
+			validateSecret: func(t *testing.T, c client.Client) {
+				secret := newSecret()
+				c.Get(context.TODO(), types.NamespacedName{Namespace: secret.Namespace, Name: secret.Name}, secret)
+				if len(secret.Labels) != 1 {
+					t.Errorf("expect two labels on secrets")
+				}
+			},
 		},
 	}
 	for _, test := range tests {
@@ -179,6 +189,7 @@ func TestCheckAssetSecret(t *testing.T) {
 			rbma := newTestReconciler(test.existingObjs)
 			err := rbma.checkAssetSecret(ctx, test.bma)
 			validateErrorAndStatusConditions(t, err, test.expectedErrorType, test.expectedConditions, test.bma)
+			test.validateSecret(t, rbma.client)
 		})
 	}
 }
@@ -187,18 +198,18 @@ func TestEnsureLabels(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name              string
-		existingObjs      []runtime.Object
+		existingObjs      []client.Object
 		expectedErrorType error
 		bma               *inventoryv1alpha1.BareMetalAsset
 	}{
 		{
 			name:         "EnsureLabelsSuccess",
-			existingObjs: []runtime.Object{newBMA()},
+			existingObjs: []client.Object{newBMA()},
 			bma:          newBMAWithClusterDeployment(),
 		},
 		{
 			name:         "EnsureLabelsSuccessNoClusterDeployment",
-			existingObjs: []runtime.Object{newBMA()},
+			existingObjs: []client.Object{newBMA()},
 			bma:          newBMA(),
 		},
 	}
@@ -215,14 +226,14 @@ func TestCheckClusterDeployment(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name               string
-		existingObjs       []runtime.Object
+		existingObjs       []client.Object
 		expectedErrorType  error
 		expectedConditions []metav1.Condition
 		bma                *inventoryv1alpha1.BareMetalAsset
 	}{
 		{
 			name:              "No cluster specified",
-			existingObjs:      []runtime.Object{},
+			existingObjs:      []client.Object{},
 			expectedErrorType: bmaerrors.NewNoClusterError(),
 			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionClusterDeploymentFound,
@@ -232,7 +243,7 @@ func TestCheckClusterDeployment(t *testing.T) {
 		},
 		{
 			name:              "ClusterDeploymentNotFound",
-			existingObjs:      []runtime.Object{},
+			existingObjs:      []client.Object{},
 			expectedErrorType: fmt.Errorf("clusterdeployments.hive.openshift.io \"%s\" not found", testName),
 			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionClusterDeploymentFound,
@@ -242,7 +253,7 @@ func TestCheckClusterDeployment(t *testing.T) {
 		},
 		{
 			name:         "ClusterDeploymentFound",
-			existingObjs: []runtime.Object{newClusterDeployment()},
+			existingObjs: []client.Object{newClusterDeployment()},
 			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionClusterDeploymentFound,
 				Status: metav1.ConditionTrue,
@@ -263,13 +274,13 @@ func TestEnsureHiveSyncSet(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name               string
-		existingObjs       []runtime.Object
+		existingObjs       []client.Object
 		expectedConditions []metav1.Condition
 		bma                *inventoryv1alpha1.BareMetalAsset
 	}{
 		{
 			name:         "SyncSetCreate",
-			existingObjs: []runtime.Object{},
+			existingObjs: []client.Object{},
 			expectedConditions: []metav1.Condition{
 				{
 					Type:   inventoryv1alpha1.ConditionAssetSyncStarted,
@@ -284,7 +295,7 @@ func TestEnsureHiveSyncSet(t *testing.T) {
 		},
 		{
 			name: "SyncSetUpdate",
-			existingObjs: []runtime.Object{func() *hivev1.SyncSet {
+			existingObjs: []client.Object{func() *hivev1.SyncSet {
 				return &hivev1.SyncSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      testName,
@@ -339,14 +350,14 @@ func TestCheckClusterSync(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name               string
-		existingObjs       []runtime.Object
+		existingObjs       []client.Object
 		returnValue        bool
 		expectedConditions []metav1.Condition
 		bma                *inventoryv1alpha1.BareMetalAsset
 	}{
 		{
 			name:         "ClusterSyncNotFound",
-			existingObjs: []runtime.Object{newBMA()},
+			existingObjs: []client.Object{newBMA()},
 			returnValue:  false,
 			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
@@ -356,7 +367,7 @@ func TestCheckClusterSync(t *testing.T) {
 		},
 		{
 			name:         "UnexpectedResourceCount",
-			existingObjs: []runtime.Object{newBMA(), newClusterSync()},
+			existingObjs: []client.Object{newBMA(), newClusterSync()},
 			returnValue:  false,
 			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
@@ -366,7 +377,7 @@ func TestCheckClusterSync(t *testing.T) {
 		},
 		{
 			name:         "SecretApplySuccessSyncCondition",
-			existingObjs: []runtime.Object{newBMAWithClusterDeployment(), newSyncSet(), newClusterSyncInstanceResources()},
+			existingObjs: []client.Object{newBMAWithClusterDeployment(), newSyncSet(), newClusterSyncInstanceResources()},
 			returnValue:  true,
 			expectedConditions: []metav1.Condition{{
 				Type:   inventoryv1alpha1.ConditionAssetSyncCompleted,
@@ -389,17 +400,17 @@ func TestDeleteSyncSet(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name         string
-		existingObjs []runtime.Object
+		existingObjs []client.Object
 		bma          *inventoryv1alpha1.BareMetalAsset
 	}{
 		{
 			name:         "ClusterDeploymentWithEmptyNamespace",
-			existingObjs: []runtime.Object{newBMA()},
+			existingObjs: []client.Object{newBMA()},
 			bma:          newBMA(),
 		},
 		{
 			name:         "ClusterDeploymentWithNamespace",
-			existingObjs: []runtime.Object{newBMA()},
+			existingObjs: []client.Object{newBMA()},
 			bma:          newBMAWithClusterDeployment(),
 		},
 	}
@@ -503,12 +514,13 @@ func newClusterSyncInstanceResources() *hiveinternalv1alpha1.ClusterSync {
 	return ssi
 }
 
-func newTestReconciler(existingObjs []runtime.Object) *ReconcileBareMetalAsset {
-	fakeClient := fake.NewFakeClientWithScheme(scheme.Scheme, existingObjs...)
+func newTestReconciler(existingObjs []client.Object) *ReconcileBareMetalAsset {
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(existingObjs...).Build()
 	rbma := &ReconcileBareMetalAsset{
 		client: fakeClient,
 		scheme: scheme.Scheme,
 	}
+
 	return rbma
 }
 
