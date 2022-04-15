@@ -49,14 +49,10 @@ type Values struct {
 	GlobalValues GlobalValues `json:"global,omitempty,omitempty"`
 }
 
-func NewGetValuesFunc(imageName string, imageRegistryClient imageregistry.Client) addonfactory.GetValuesFunc {
+func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 	return func(cluster *clusterv1.ManagedCluster,
 		addon *addonapiv1alpha1.ManagedClusterAddOn) (addonfactory.Values, error) {
-		overrideName, err := imageRegistryClient.Cluster(cluster.Name).ImageOverride(imageName)
-		if err != nil {
-			klog.Errorf("failed to override the image %v. err %v", imageName, err)
-			return nil, err
-		}
+		overrideName := imageregistry.OverrideImageByAnnotation(cluster.GetAnnotations(), imageName)
 		addonValues := Values{
 			GlobalValues: GlobalValues{
 				ImagePullPolicy: corev1.PullIfNotPresent,

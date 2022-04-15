@@ -25,12 +25,18 @@ spec:
   pullSecret:
     name: <pullSecretName>
   registry: <registryAddress>
+  registries:
+    - mirror: localhost:5000/rhacm2/
+        source: registry.redhat.io/rhacm2
+    - mirror: localhost:5000/multicluster-engine
+        source: registry.redhat.io/multicluster-engine
 ```
 In the `spec` section:
 
 - `placementRef` refers a placement in the same namespace to select a set of managed clusters.
 - `pullSecret` is the name of pullSecret used to pull images from the custom image registry.
-- `registry` is the custom registry address.
+- `registry` is the custom registry address which is used to override all images. And will be ignored if `registries` is not empty.
+- `reigistries` is a list of registry includes `source` and `mirror` registries. the source registry in the images will be overridden by `mirror`.
 
 
 ## Example
@@ -89,8 +95,13 @@ spec:
     name: myPlacement
   pullSecret:
     name: myPullSecret
-  registry: myRegistryAddress
+  registries:
+    - mirror: localhost:5000/rhacm2/
+        source: registry.redhat.io/rhacm2
+    - mirror: localhost:5000/multicluster-engine
+        source: registry.redhat.io/multicluster-engine
 ```
 
 5. Import a managed cluster from ACM console and add it into ManagedClusterSet `myClusterSet`.
 6. Copy and run the import commands on managed cluster after the label `open-cluster-management.io/image-registry=myNamespace.myImageRegistry` is added to the ManagedCluster.
+7. There is an annotation named `open-cluster-management.io/image-registries` will be added to the managedCluster too.

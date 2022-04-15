@@ -164,23 +164,12 @@ func NewDynamicClientWithImpersonate(user string, groups []string) (dynamic.Inte
 }
 
 func NewImageRegistryClient() (imageregistry.Client, error) {
-	kubeConfigFile, err := getKubeConfigFile()
-	if err != nil {
-		return nil, err
-	}
-	fmt.Printf("Use kubeconfig file: %s\n", kubeConfigFile)
-
-	clusterCfg, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	kubeClient, err := NewKubeClient()
 	if err != nil {
 		return nil, err
 	}
 
-	imageRegistryClient, err := imageregistry.NewDynamicClient(clusterCfg)
-	if err != nil {
-		return nil, err
-	}
-
-	return imageRegistryClient, nil
+	return imageregistry.NewClient(kubeClient), nil
 }
 
 func LoadResourceFromJSON(json string) (*unstructured.Unstructured, error) {
@@ -334,7 +323,7 @@ func CheckNodeList(obj *unstructured.Unstructured) error {
 	return nil
 }
 
-//Check if the current cluster is ocp by managedclusterinfo
+// Check if the current cluster is ocp by managedclusterinfo
 func IsOCP(obj *unstructured.Unstructured) (bool, error) {
 	distributionInfo, found, err := unstructured.NestedMap(obj.Object, "status", "distributionInfo")
 	if err != nil || !found {

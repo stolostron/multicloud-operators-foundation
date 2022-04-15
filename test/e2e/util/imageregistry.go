@@ -27,7 +27,17 @@ const imageRegistryTemplate = `{
         "pullSecret": {
             "name": "pullSecret"
         },
-        "registry": "quay.io/image"
+        "registry": "quay.io/image",
+        "registries": [
+            {
+                "mirror": "quay.io/rhacm2",
+                "source": "registry.redhat.io/rhacm2"
+            },
+            {
+                "mirror": "quay.io/multicluster-engine",
+                "source": "registry.redhat.io/multicluster-engine"
+            }
+        ]
     }
 }`
 
@@ -37,7 +47,7 @@ var imageRegistryGVR = schema.GroupVersionResource{
 	Resource: "managedclusterimageregistries",
 }
 
-func CreateImageRegistry(dynamicClient dynamic.Interface, namespace, name, placement, pullSecret, registry string) error {
+func CreateImageRegistry(dynamicClient dynamic.Interface, namespace, name, placement, pullSecret string) error {
 	obj, err := LoadResourceFromJSON(imageRegistryTemplate)
 	if err != nil {
 		return err
@@ -55,10 +65,6 @@ func CreateImageRegistry(dynamicClient dynamic.Interface, namespace, name, place
 		return err
 	}
 	err = unstructured.SetNestedField(obj.Object, pullSecret, "spec", "pullSecret", "name")
-	if err != nil {
-		return err
-	}
-	err = unstructured.SetNestedField(obj.Object, registry, "spec", "registry")
 	if err != nil {
 		return err
 	}

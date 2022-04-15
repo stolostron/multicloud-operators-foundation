@@ -7,10 +7,15 @@ import (
 
 // ImageRegistrySpec is the spec of managedClusterImageRegistry.
 type ImageRegistrySpec struct {
-	// Registry is the address of overridden image registry
-	// +kubebuilder:validation:Required
-	// +required
+	// Registry is the Mirror registry which will replace all images registries.
+	// will be ignored if Registries is not empty.
+	// +optional
 	Registry string `json:"registry"`
+
+	// Registries includes the mirror and source registries. The source registry will be replaced by the Mirror.
+	// The larger index will work if the Sources are the same.
+	// +optional
+	Registries []Registries `json:"registries"`
 
 	// PullSecret is the name of image pull secret which should be in the same namespace with the managedClusterImageRegistry.
 	// +kubebuilder:validation:Required
@@ -21,6 +26,17 @@ type ImageRegistrySpec struct {
 	// +kubebuilder:validation:Required
 	// +required
 	PlacementRef PlacementRef `json:"placementRef"`
+}
+
+type Registries struct {
+	// Mirror is the mirrored registry of the Source. Will be ignored if Mirror is empty.
+	// +kubebuilder:validation:Required
+	// +required
+	Mirror string `json:"mirror"`
+
+	// Source is the source registry. All image registries will be replaced by Mirror if Source is empty.
+	// +optional
+	Source string `json:"source"`
 }
 
 // PlacementRef is the referred placement
@@ -84,11 +100,6 @@ const (
 	ConditionReasonClusterSelected        string = "ClusterSelected"
 	ConditionReasonClustersUpdatedFailure string = "ClustersUpdatedFailure"
 	ConditionReasonClustersUpdated        string = "ClustersUpdated"
-)
-
-const (
-	// ClusterImageRegistryLabel value is namespace.managedClusterImageRegistry
-	ClusterImageRegistryLabel = "open-cluster-management.io/image-registry"
 )
 
 // +kubebuilder:object:root=true
