@@ -2,6 +2,7 @@ package imageregistry
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -16,7 +17,7 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/retry"
 	v1 "open-cluster-management.io/api/cluster/v1"
-	clusterapiv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -72,10 +73,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	// watch for the changes of PlacementDecision.
 	// queue all ManagedClusterImageRegistries if a Placement is referred to multi ManagedClusterImageRegistry.
-	err = c.Watch(&source.Kind{Type: &clusterapiv1alpha1.PlacementDecision{}},
+	err = c.Watch(&source.Kind{Type: &clusterv1beta1.PlacementDecision{}},
 		handler.EnqueueRequestsFromMapFunc(
 			handler.MapFunc(func(a client.Object) []reconcile.Request {
-				placementDecision, ok := a.(*clusterapiv1alpha1.PlacementDecision)
+				placementDecision, ok := a.(*clusterv1beta1.PlacementDecision)
 				if !ok {
 					// not a placementDecision, returning empty
 					klog.Error("imageRegistry handler received non-placementDecision object")
@@ -89,7 +90,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					return []reconcile.Request{}
 				}
 				labels := placementDecision.GetLabels()
-				placementName := labels[clusterapiv1alpha1.PlacementLabel]
+				placementName := labels[clusterv1beta1.PlacementLabel]
 				if placementName == "" {
 					klog.Errorf("Could not get placement label in placementDecision %v", placementDecision.Name)
 					return []reconcile.Request{}
@@ -97,7 +98,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 				var requests []reconcile.Request
 				for _, imageRegistry := range imageRegistryList.Items {
 					switch imageRegistry.Spec.PlacementRef.Group {
-					case clusterapiv1alpha1.GroupName:
+					case clusterv1beta1.GroupName:
 						if imageRegistry.Spec.PlacementRef.Name == placementName {
 							requests = append(requests, reconcile.Request{
 								NamespacedName: types.NamespacedName{
@@ -126,7 +127,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if !imageRegistry.GetDeletionTimestamp().IsZero() {
 		// The object is being deleted
 		if utils.ContainsString(imageRegistry.GetFinalizers(), imageRegistryFinalizerName) {
-			err := r.cleanImageRegistryLabel(ctx, req.Namespace, req.Name)
+			err := r.cleanAllClustersImageRegistry(ctx, req.Namespace, req.Name)
 			if err != nil {
 				return reconcile.Result{}, err
 			}
@@ -147,7 +148,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	var conditions []metav1.Condition
 	switch imageRegistry.Spec.PlacementRef.Group {
-	case clusterapiv1alpha1.GroupName:
+	case clusterv1beta1.GroupName:
 		selectedClusters, err := r.getSelectedClusters(ctx, imageRegistry.Namespace, imageRegistry.Spec.PlacementRef.Name)
 		if err != nil {
 			conditions = append(conditions, metav1.Condition{
@@ -171,7 +172,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			Message: fmt.Sprintf("the clusters are selected by the placement %v", imageRegistry.Spec.PlacementRef.Name),
 		})
 
-		err = r.updateImageRegistryLabel(ctx, selectedClusters, imageRegistry.Namespace, imageRegistry.Name)
+		err = r.updateAllClustersImageRegistry(ctx, selectedClusters, imageRegistry)
 		if err != nil {
 			klog.Errorf("failed to update image registry %v", req.Name)
 			conditions = append(conditions, metav1.Condition{
@@ -199,8 +200,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, r.updateImageRegistryCondition(ctx, imageRegistry.Namespace, imageRegistry.Name, conditions)
 }
 
-// cleanImageRegistryLabel remove the label 'open-cluster-management.io/image-registry: namespace.imageRegistry' of clusters
-func (r *Reconciler) cleanImageRegistryLabel(ctx context.Context, namespace, imageRegistry string) error {
+// cleanAllClustersImageRegistry remove the label and annotation of clusters
+func (r *Reconciler) cleanAllClustersImageRegistry(ctx context.Context, namespace, imageRegistry string) error {
 	imageRegistryLabelValue := generateImageRegistryLabelValue(namespace, imageRegistry)
 	clusterList := &v1.ManagedClusterList{}
 	err := r.client.List(ctx, clusterList, client.MatchingLabels{v1alpha1.ClusterImageRegistryLabel: imageRegistryLabelValue})
@@ -209,7 +210,7 @@ func (r *Reconciler) cleanImageRegistryLabel(ctx context.Context, namespace, ima
 	}
 
 	for _, cluster := range clusterList.Items {
-		err := r.removeClusterImageRegistryLabel(ctx, cluster.Name, imageRegistryLabelValue)
+		err := r.removeClusterImageRegistry(ctx, cluster.Name)
 		if err != nil {
 			klog.Errorf("failed to remove cluster %v image registry label", cluster.Name)
 		}
@@ -218,16 +219,17 @@ func (r *Reconciler) cleanImageRegistryLabel(ctx context.Context, namespace, ima
 	return nil
 }
 
-// updateImageRegistryLabel will update the label 'open-cluster-management.io/image-registry: namespace.imageRegistry' of clusters.
-// 1. remove the label if the labeled cluster is not selected.
-// 2. update the label of selected clusters.
-// 2.1 add the label if the selected cluster has not the ClusterImageRegistryLabel.
+// updateAllClustersImageRegistry will update the label and annotation of clusters.
+// 1. remove the label and annotation from the cluster if the labeled cluster is not selected by placement.
+// 2. update the label and annotation of selected clusters.
+// 2.1 add the label and annotation if the selected cluster does not have the ClusterImageRegistryLabel.
 // 2.2 send warning event if the selected cluster has another ClusterImageRegistryLabel.
-func (r *Reconciler) updateImageRegistryLabel(ctx context.Context, selectedClusters []string, namespace, imageRegistry string) error {
+func (r *Reconciler) updateAllClustersImageRegistry(ctx context.Context,
+	selectedClusters []string, imageRegistry *v1alpha1.ManagedClusterImageRegistry) error {
 	var errs []error
 	needUpdateClustersMap := sets.NewString(selectedClusters...)
 
-	imageRegistryLabelValue := generateImageRegistryLabelValue(namespace, imageRegistry)
+	imageRegistryLabelValue := generateImageRegistryLabelValue(imageRegistry.Namespace, imageRegistry.Name)
 	clusterList := &v1.ManagedClusterList{}
 	err := r.client.List(ctx, clusterList, client.MatchingLabels{v1alpha1.ClusterImageRegistryLabel: imageRegistryLabelValue})
 	if err != nil {
@@ -235,12 +237,9 @@ func (r *Reconciler) updateImageRegistryLabel(ctx context.Context, selectedClust
 	}
 
 	for _, cluster := range clusterList.Items {
-		if needUpdateClustersMap.Has(cluster.Name) {
-			// remove cluster from need update clusters
-			needUpdateClustersMap.Delete(cluster.Name)
-		} else {
-			// remove the label of cluster since the cluster is not selected
-			err := r.removeClusterImageRegistryLabel(ctx, cluster.Name, imageRegistryLabelValue)
+		if !needUpdateClustersMap.Has(cluster.Name) {
+			// remove the label and annotation from the cluster since the cluster is not selected by the placement.
+			err := r.removeClusterImageRegistry(ctx, cluster.Name)
 			if err != nil && !errors.IsNotFound(err) {
 				errs = append(errs, err)
 			}
@@ -248,7 +247,7 @@ func (r *Reconciler) updateImageRegistryLabel(ctx context.Context, selectedClust
 	}
 
 	for cluster := range needUpdateClustersMap {
-		err := r.updateClusterImageRegistryLabel(ctx, cluster, imageRegistryLabelValue)
+		err := r.updateClusterImageRegistry(ctx, cluster, imageRegistry)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -260,7 +259,7 @@ func (r *Reconciler) updateImageRegistryLabel(ctx context.Context, selectedClust
 	return nil
 }
 
-func (r *Reconciler) removeClusterImageRegistryLabel(ctx context.Context, clusterName, imageRegistryLabelValue string) error {
+func (r *Reconciler) removeClusterImageRegistry(ctx context.Context, clusterName string) error {
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		cluster := &v1.ManagedCluster{}
 		err := r.client.Get(ctx, types.NamespacedName{Name: clusterName}, cluster)
@@ -268,30 +267,32 @@ func (r *Reconciler) removeClusterImageRegistryLabel(ctx context.Context, cluste
 			return client.IgnoreNotFound(err)
 		}
 
-		if cluster.Labels[v1alpha1.ClusterImageRegistryLabel] == imageRegistryLabelValue {
-			modified := false
-			utils.MergeMap(&modified, &cluster.Labels, map[string]string{v1alpha1.ClusterImageRegistryLabel + "-": ""})
-			if !modified {
-				return nil
-			}
-			err := r.client.Update(ctx, cluster, &client.UpdateOptions{})
-			if err != nil {
-				return err
-			}
-			r.recorder.Eventf(cluster, "Normal", "imageRegistryDelete",
-				"Delete imageRegistry label %v for mangedCluster %v",
-				imageRegistryLabelValue, cluster.Name)
+		modified := false
+		utils.MergeMap(&modified, &cluster.Labels, map[string]string{v1alpha1.ClusterImageRegistryLabel + "-": ""})
+		utils.MergeMap(&modified, &cluster.Annotations,
+			map[string]string{v1alpha1.ClusterImageRegistriesAnnotation + "-": ""})
+		if !modified {
 			return nil
 		}
+		err = r.client.Update(ctx, cluster, &client.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+		r.recorder.Eventf(cluster, "Normal", "imageRegistryDelete",
+			"Delete %s label for mangedCluster %v", v1alpha1.ClusterImageRegistryLabel, cluster.Name)
 		return nil
 	})
 	return err
 }
 
-// updateClusterImageRegistryLabel will update the label 'open-cluster-management.io/image-registry: namespace.imageRegistry' of clusters.
-// 1. add the label if the selected cluster has not the ClusterImageRegistryLabel.
+// updateClusterImageRegistry will update the label 'open-cluster-management.io/image-registry: namespace.imageRegistry'
+// and annotation 'open-cluster-management.io/registries:"{pullSecret:namespace.pullSecret,
+// [{mirror:xxx,source:xxx},{mirror:xxx,source:xxx}]}" ' to clusters.
+// 1. add/update the label/annotation if the selected cluster has not the ClusterImageRegistryLabel.
 // 2. send warning event if the selected cluster has another ClusterImageRegistryLabel.
-func (r *Reconciler) updateClusterImageRegistryLabel(ctx context.Context, clusterName, imageRegistryLabelValue string) error {
+func (r *Reconciler) updateClusterImageRegistry(ctx context.Context,
+	clusterName string, imageRegistry *v1alpha1.ManagedClusterImageRegistry) error {
+	imageRegistryLabelValue := generateImageRegistryLabelValue(imageRegistry.Namespace, imageRegistry.Name)
 	err := retry.RetryOnConflict(retry.DefaultBackoff, func() error {
 		cluster := &v1.ManagedCluster{}
 		err := r.client.Get(ctx, types.NamespacedName{Name: clusterName}, cluster)
@@ -311,7 +312,12 @@ func (r *Reconciler) updateClusterImageRegistryLabel(ctx context.Context, cluste
 		}
 
 		modified := false
-		utils.MergeMap(&modified, &cluster.Labels, map[string]string{v1alpha1.ClusterImageRegistryLabel: imageRegistryLabelValue})
+		utils.MergeMap(&modified, &cluster.Annotations,
+			map[string]string{
+				v1alpha1.ClusterImageRegistriesAnnotation: getAnnotationRegistries(imageRegistry)})
+
+		utils.MergeMap(&modified, &cluster.Labels,
+			map[string]string{v1alpha1.ClusterImageRegistryLabel: imageRegistryLabelValue})
 		if !modified {
 			return nil
 		}
@@ -343,10 +349,10 @@ func (r *Reconciler) getImageRegistry(ctx context.Context, imageRegistryLabelVal
 
 func (r *Reconciler) getSelectedClusters(ctx context.Context, namespace, placementName string) ([]string, error) {
 	var clusters []string
-	placementDecisionList := &clusterapiv1alpha1.PlacementDecisionList{}
+	placementDecisionList := &clusterv1beta1.PlacementDecisionList{}
 
 	err := r.client.List(ctx, placementDecisionList,
-		client.InNamespace(namespace), client.MatchingLabels{clusterapiv1alpha1.PlacementLabel: placementName})
+		client.InNamespace(namespace), client.MatchingLabels{clusterv1beta1.PlacementLabel: placementName})
 	if err != nil {
 		return clusters, client.IgnoreNotFound(err)
 	}
@@ -383,4 +389,31 @@ func (r *Reconciler) updateImageRegistryCondition(ctx context.Context, namespace
 
 func generateImageRegistryLabelValue(namespace, imageRegistry string) string {
 	return namespace + "." + imageRegistry
+}
+
+// getAnnotationRegistries generate the registries' annotation values.
+// ignore Registry if Registries is not empty
+// transfer Registry to Registries if Registries is empty.
+// the empty Source means the Mirror registry can override all source registry.
+func getAnnotationRegistries(imageRegistry *v1alpha1.ManagedClusterImageRegistry) string {
+	if len(imageRegistry.Spec.Registries) == 0 && len(imageRegistry.Spec.Registry) == 0 {
+		return ""
+	}
+
+	registriesData := v1alpha1.ImageRegistries{
+		PullSecret: fmt.Sprintf("%s.%s", imageRegistry.Namespace, imageRegistry.Spec.PullSecret.Name),
+		Registries: imageRegistry.Spec.Registries,
+	}
+
+	if len(registriesData.Registries) == 0 {
+		registriesData.Registries = []v1alpha1.Registries{
+			{
+				Mirror: imageRegistry.Spec.Registry,
+				Source: "",
+			},
+		}
+	}
+
+	registriesDataStr, _ := json.Marshal(registriesData)
+	return string(registriesDataStr)
 }

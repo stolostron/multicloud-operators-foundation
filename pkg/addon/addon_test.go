@@ -1,6 +1,7 @@
 package addon
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -8,9 +9,7 @@ import (
 
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/apis/imageregistry/v1alpha1"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers/imageregistry"
 	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,7 +21,6 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/yaml"
 )
 
@@ -33,12 +31,21 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = routev1.Install(scheme)
-	_ = imageregistry.AddToScheme(scheme)
 }
 
 const (
 	addonImage = "quay.io/stolostron/multicloud-manager:2.5.0"
 )
+
+func newAnnotationRegistries(registries []v1alpha1.Registries, namespacePullSecret string) string {
+	registriesData := v1alpha1.ImageRegistries{
+		PullSecret: namespacePullSecret,
+		Registries: registries,
+	}
+
+	registriesDataStr, _ := json.Marshal(registriesData)
+	return string(registriesDataStr)
+}
 
 func newCluster(name string, ocp4 bool, labels map[string]string, annotations map[string]string) *clusterv1.ManagedCluster {
 	cluster := &clusterv1.ManagedCluster{
@@ -77,36 +84,9 @@ func newAddon(name, cluster, installNamespace string, annotationValues string) *
 	return addon
 }
 
-func newImageRegistry(name, namespace, registryAddress string) *v1alpha1.ManagedClusterImageRegistry {
-	return &v1alpha1.ManagedClusterImageRegistry{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: v1alpha1.ImageRegistrySpec{
-			Registry:     registryAddress,
-			PullSecret:   corev1.LocalObjectReference{Name: "pullSecret"},
-			PlacementRef: v1alpha1.PlacementRef{},
-		},
-	}
-}
-
-func fakeImageRegistryClient(cluster *clusterv1.ManagedCluster, imageRegistry *v1alpha1.ManagedClusterImageRegistry) imageregistry.Client {
-	fakeClient := fake.NewClientBuilder()
-	objs := []runtime.Object{}
-	if cluster != nil {
-		objs = append(objs, cluster)
-	}
-	if imageRegistry != nil {
-		objs = append(objs, imageRegistry)
-	}
-	return imageregistry.NewDefaultClient(fakeClient.WithScheme(scheme).WithRuntimeObjects(objs...).Build())
-}
-
-func newAgentAddon(t *testing.T, cluster *clusterv1.ManagedCluster, imageRegistry *v1alpha1.ManagedClusterImageRegistry) agent.AgentAddon {
+func newAgentAddon(t *testing.T) agent.AgentAddon {
 	registrationOption := NewRegistrationOption(nil, WorkManagerAddonName)
-	imageRegistryClient := fakeImageRegistryClient(cluster, imageRegistry)
-	getValuesFunc := NewGetValuesFunc(addonImage, imageRegistryClient)
+	getValuesFunc := NewGetValuesFunc(addonImage)
 	agentAddon, err := addonfactory.NewAgentAddonFactory(WorkManagerAddonName, ChartFS, ChartDir).
 		WithScheme(scheme).
 		WithGetValuesFuncs(getValuesFunc, addonfactory.GetValuesFromAddonAnnotation).
@@ -182,8 +162,10 @@ func TestManifest(t *testing.T) {
 			name: "imageOverride",
 			cluster: newCluster("cluster1", true,
 				map[string]string{v1alpha1.ClusterImageRegistryLabel: "ns1.imageRegistry1"},
-				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}"}),
-			imageRegistry:     newImageRegistry("imageRegistry1", "ns1", "quay.io/test"),
+				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}",
+					v1alpha1.ClusterImageRegistriesAnnotation: newAnnotationRegistries([]v1alpha1.Registries{
+						{Source: "quay.io/stolostron", Mirror: "quay.io/test"},
+					}, "")}),
 			addon:             newAddon("work-manager", "cluster1", "", ""),
 			expectedNamespace: "open-cluster-management-agent-addon",
 			expectedImage:     "quay.io/test/multicloud-manager:2.5.0",
@@ -193,8 +175,10 @@ func TestManifest(t *testing.T) {
 			name: "local cluster imageOverride",
 			cluster: newCluster("local-cluster", true,
 				map[string]string{v1alpha1.ClusterImageRegistryLabel: "ns1.imageRegistry1"},
-				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}"}),
-			imageRegistry:        newImageRegistry("imageRegistry1", "ns1", "quay.io/test"),
+				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}",
+					v1alpha1.ClusterImageRegistriesAnnotation: newAnnotationRegistries([]v1alpha1.Registries{
+						{Source: "quay.io/stolostron", Mirror: "quay.io/test"},
+					}, "")}),
 			addon:                newAddon("work-manager", "local-cluster", "", ""),
 			expectedNamespace:    "open-cluster-management-agent-addon",
 			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
@@ -205,7 +189,7 @@ func TestManifest(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			agentAddon := newAgentAddon(t, test.cluster, test.imageRegistry)
+			agentAddon := newAgentAddon(t)
 			objects, err := agentAddon.Manifests(test.cluster, test.addon)
 			if err != nil {
 				t.Errorf("failed to get manifests with error %v", err)
