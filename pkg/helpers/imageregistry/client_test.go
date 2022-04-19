@@ -8,13 +8,8 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/apis/imageregistry/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	fakekube "k8s.io/client-go/kubernetes/fake"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-)
-
-var (
-	scheme = runtime.NewScheme()
 )
 
 func newCluster(name, imageRegistryAnnotation string) *clusterv1.ManagedCluster {
@@ -57,7 +52,7 @@ func newPullSecret(namespace, name string) *corev1.Secret {
 	}
 }
 
-func fakeClient(secret *corev1.Secret) Client {
+func fakeClient(secret *corev1.Secret) Interface {
 	fakeKubeClient := fakekube.NewSimpleClientset(secret)
 
 	return NewClient(fakeKubeClient)
@@ -66,7 +61,7 @@ func fakeClient(secret *corev1.Secret) Client {
 func Test_ClientPullSecret(t *testing.T) {
 	testCases := []struct {
 		name               string
-		client             Client
+		client             Interface
 		cluster            *clusterv1.ManagedCluster
 		expectedErr        error
 		expectedPullSecret *corev1.Secret
