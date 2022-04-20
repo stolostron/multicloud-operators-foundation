@@ -34,6 +34,9 @@ func NewOptions() *Options {
 		Authorization: genericapiserveroptions.NewDelegatingAuthorizationOptions().WithAlwaysAllowGroups(
 			"system:serviceaccounts:kube-system",
 			"system:serviceaccounts:openshift-infra",
+			"system:serviceaccounts:openshift-cluster-version",
+		).WithAlwaysAllowPaths(
+			"/openapi/v2",
 		),
 		ClientOptions: NewClientOptions(),
 	}
