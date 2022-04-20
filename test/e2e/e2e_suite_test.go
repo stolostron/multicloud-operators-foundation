@@ -46,7 +46,7 @@ var (
 	ocpClient             openshiftclientset.Interface
 	addonClient           addonv1alpha1client.Interface
 	apiRegistrationClient *apiregistrationclient.ApiregistrationV1Client
-	imageRegistryClient   imageregistry.Client
+	imageRegistryClient   imageregistry.Interface
 	defaultManagedCluster string
 	foundationNS          string
 	deployedByACM         = false

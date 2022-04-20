@@ -163,7 +163,7 @@ func NewDynamicClientWithImpersonate(user string, groups []string) (dynamic.Inte
 	return dynamic.NewForConfig(cfg)
 }
 
-func NewImageRegistryClient() (imageregistry.Client, error) {
+func NewImageRegistryClient() (imageregistry.Interface, error) {
 	kubeClient, err := NewKubeClient()
 	if err != nil {
 		return nil, err

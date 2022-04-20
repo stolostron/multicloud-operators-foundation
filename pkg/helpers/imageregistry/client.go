@@ -14,25 +14,25 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
-type Client interface {
-	Cluster(cluster *clusterv1.ManagedCluster) Client
+type Interface interface {
+	Cluster(cluster *clusterv1.ManagedCluster) Interface
 	PullSecret() (*corev1.Secret, error)
 	ImageOverride(imageName string) string
 }
 
-type ImageRegistryClient struct {
+type Client struct {
 	kubeClient      kubernetes.Interface
 	imageRegistries v1alpha1.ImageRegistries
 }
 
-func NewClient(kubeClient kubernetes.Interface) Client {
-	return &ImageRegistryClient{
+func NewClient(kubeClient kubernetes.Interface) Interface {
+	return &Client{
 		kubeClient:      kubeClient,
 		imageRegistries: v1alpha1.ImageRegistries{},
 	}
 }
 
-func (c *ImageRegistryClient) Cluster(cluster *clusterv1.ManagedCluster) Client {
+func (c *Client) Cluster(cluster *clusterv1.ManagedCluster) Interface {
 	annotations := cluster.GetAnnotations()
 	if len(annotations) == 0 {
 		c.imageRegistries = v1alpha1.ImageRegistries{}
@@ -43,9 +43,9 @@ func (c *ImageRegistryClient) Cluster(cluster *clusterv1.ManagedCluster) Client 
 	return c
 }
 
-func (c *ImageRegistryClient) PullSecret() (*corev1.Secret, error) {
+func (c *Client) PullSecret() (*corev1.Secret, error) {
 	if c.imageRegistries.PullSecret == "" {
-		return nil, fmt.Errorf("invalid pullSecret in the annotation %s", v1alpha1.ClusterImageRegistriesAnnotation)
+		return nil, nil
 	}
 	segs := strings.Split(c.imageRegistries.PullSecret, ".")
 	if len(segs) != 2 {
@@ -57,7 +57,7 @@ func (c *ImageRegistryClient) PullSecret() (*corev1.Secret, error) {
 	return c.kubeClient.CoreV1().Secrets(namespace).Get(context.TODO(), pullSecret, metav1.GetOptions{})
 }
 
-func (c *ImageRegistryClient) ImageOverride(imageName string) string {
+func (c *Client) ImageOverride(imageName string) string {
 	if len(c.imageRegistries.Registries) == 0 {
 		return imageName
 	}
@@ -94,6 +94,10 @@ func imageOverride(source, mirror, imageName string) string {
 
 func OverrideImageByAnnotation(annotations map[string]string, imageName string) string {
 	if len(annotations) == 0 {
+		return imageName
+	}
+
+	if annotations[v1alpha1.ClusterImageRegistriesAnnotation] == "" {
 		return imageName
 	}
 
