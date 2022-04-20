@@ -31,8 +31,11 @@ func NewOptions() *Options {
 		ServerRun:       genericapiserveroptions.NewServerRunOptions(),
 		SecureServing:   genericapiserveroptions.NewSecureServingOptions().WithLoopback(),
 		Authentication:  genericapiserveroptions.NewDelegatingAuthenticationOptions(),
-		Authorization:   genericapiserveroptions.NewDelegatingAuthorizationOptions(),
-		ClientOptions:   NewClientOptions(),
+		Authorization: genericapiserveroptions.NewDelegatingAuthorizationOptions().WithAlwaysAllowGroups(
+			"system:serviceaccounts:kube-system",
+			"system:serviceaccounts:openshift-infra",
+		),
+		ClientOptions: NewClientOptions(),
 	}
 }
 
