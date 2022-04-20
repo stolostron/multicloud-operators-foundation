@@ -74,14 +74,21 @@ func Test_ClientPullSecret(t *testing.T) {
 			expectedPullSecret: newPullSecret("ns1", "pullSecret"),
 		},
 		{
-			name:               "get cluster without annotation",
+			name:               "failed to get pullSecret pullSecret without annotation",
 			client:             fakeClient(newPullSecret("ns1", "pullSecret")),
 			cluster:            newCluster("cluster1", ""),
 			expectedErr:        fmt.Errorf("invalid pullSecret in the annotation %s", v1alpha1.ClusterImageRegistriesAnnotation),
 			expectedPullSecret: nil,
 		},
 		{
-			name:               "failed to get secret",
+			name:               "failed to get pullSecret pullSecret with wrong annotation",
+			client:             fakeClient(newPullSecret("ns1", "pullSecret")),
+			cluster:            newCluster("cluster1", "abc"),
+			expectedErr:        fmt.Errorf("invalid pullSecret in the annotation %s", v1alpha1.ClusterImageRegistriesAnnotation),
+			expectedPullSecret: nil,
+		},
+		{
+			name:               "failed to get pullSecret without pullSecret",
 			client:             fakeClient(newPullSecret("ns1", "pullSecret")),
 			cluster:            newCluster("cluster1", newAnnotationRegistries(nil, "ns.test")),
 			expectedErr:        fmt.Errorf("secrets \"test\" not found"),
@@ -108,64 +115,75 @@ func Test_ClientPullSecret(t *testing.T) {
 
 func Test_ClientImageOverride(t *testing.T) {
 	testCases := []struct {
-		name                 string
-		image                string
-		annotationRegistries string
-		expectedImage        string
+		name          string
+		image         string
+		cluster       *clusterv1.ManagedCluster
+		expectedImage string
 	}{
 		{
 			name: "override rhacm2 image ",
-			annotationRegistries: newAnnotationRegistries([]v1alpha1.Registries{
+			cluster: newCluster("c1", newAnnotationRegistries([]v1alpha1.Registries{
 				{Source: "registry.redhat.io/rhacm2", Mirror: "quay.io/rhacm2"},
-				{Source: "registry.redhat.io/multicluster-engine", Mirror: "quay.io/multicluster-engine"}}, ""),
+				{Source: "registry.redhat.io/multicluster-engine", Mirror: "quay.io/multicluster-engine"}}, "")),
 			image:         "registry.redhat.io/rhacm2/registration@SHA256abc",
 			expectedImage: "quay.io/rhacm2/registration@SHA256abc",
 		},
 		{
 			name: "override acm-d image",
-			annotationRegistries: newAnnotationRegistries([]v1alpha1.Registries{
+			cluster: newCluster("c1", newAnnotationRegistries([]v1alpha1.Registries{
 				{Source: "registry.redhat.io/rhacm2", Mirror: "quay.io/rhacm2"},
-				{Source: "registry.redhat.io/multicluster-engine", Mirror: "quay.io/multicluster-engine"}}, ""),
+				{Source: "registry.redhat.io/multicluster-engine", Mirror: "quay.io/multicluster-engine"}}, "")),
 			image:         "registry.redhat.io/acm-d/registration@SHA256abc",
 			expectedImage: "registry.redhat.io/acm-d/registration@SHA256abc",
 		},
 		{
 			name: "override multicluster-engine image",
-			annotationRegistries: newAnnotationRegistries([]v1alpha1.Registries{
+			cluster: newCluster("c1", newAnnotationRegistries([]v1alpha1.Registries{
 				{Source: "registry.redhat.io/rhacm2", Mirror: "quay.io/rhacm2"},
-				{Source: "registry.redhat.io/multicluster-engine", Mirror: "quay.io/multicluster-engine"}}, ""),
+				{Source: "registry.redhat.io/multicluster-engine", Mirror: "quay.io/multicluster-engine"}}, "")),
 			image:         "registry.redhat.io/multicluster-engine/registration@SHA256abc",
 			expectedImage: "quay.io/multicluster-engine/registration@SHA256abc",
 		},
 		{
 			name: "override image without source ",
-			annotationRegistries: newAnnotationRegistries([]v1alpha1.Registries{
-				{Source: "", Mirror: "quay.io/rhacm2"}}, ""),
+			cluster: newCluster("c1", newAnnotationRegistries([]v1alpha1.Registries{
+				{Source: "", Mirror: "quay.io/rhacm2"}}, "")),
 			image:         "registry.redhat.io/multicluster-engine/registration@SHA256abc",
 			expectedImage: "quay.io/rhacm2/registration@SHA256abc",
 		},
 		{
 			name: "override image",
-			annotationRegistries: newAnnotationRegistries([]v1alpha1.Registries{
+			cluster: newCluster("c1", newAnnotationRegistries([]v1alpha1.Registries{
 				{Source: "registry.redhat.io/rhacm2", Mirror: "quay.io/rhacm2"},
 				{Source: "registry.redhat.io/rhacm2/registration@SHA256abc",
-					Mirror: "quay.io/acm-d/registration:latest"}}, ""),
+					Mirror: "quay.io/acm-d/registration:latest"}}, "")),
 			image:         "registry.redhat.io/rhacm2/registration@SHA256abc",
 			expectedImage: "quay.io/acm-d/registration:latest",
+		},
+		{
+			name:          "return image without annotation",
+			cluster:       newCluster("c1", ""),
+			image:         "registry.redhat.io/rhacm2/registration@SHA256abc",
+			expectedImage: "registry.redhat.io/rhacm2/registration@SHA256abc",
+		},
+		{
+			name:          "return image with wrong annotation",
+			cluster:       newCluster("c1", "abc"),
+			image:         "registry.redhat.io/rhacm2/registration@SHA256abc",
+			expectedImage: "registry.redhat.io/rhacm2/registration@SHA256abc",
 		},
 	}
 	client := fakeClient(newPullSecret("n1", "s1"))
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
-			cluster := newCluster("n1", c.annotationRegistries)
-			if client.Cluster(cluster).ImageOverride(c.image) != c.expectedImage {
+			if client.Cluster(c.cluster).ImageOverride(c.image) != c.expectedImage {
 				t.Errorf("expected image %v but got %v", c.expectedImage,
-					client.Cluster(newCluster("n1", c.annotationRegistries)).ImageOverride(c.image))
+					client.Cluster(c.cluster).ImageOverride(c.image))
 			}
 
-			if OverrideImageByAnnotation(cluster.GetAnnotations(), c.image) != c.expectedImage {
+			if OverrideImageByAnnotation(c.cluster.GetAnnotations(), c.image) != c.expectedImage {
 				t.Errorf("expected image %v but got %v", c.expectedImage,
-					OverrideImageByAnnotation(cluster.GetAnnotations(), c.image))
+					OverrideImageByAnnotation(c.cluster.GetAnnotations(), c.image))
 			}
 		})
 	}

@@ -33,13 +33,19 @@ func NewClient(kubeClient kubernetes.Interface) Interface {
 }
 
 func (c *Client) Cluster(cluster *clusterv1.ManagedCluster) Interface {
+	c.imageRegistries = v1alpha1.ImageRegistries{}
+	if cluster == nil {
+		return c
+	}
 	annotations := cluster.GetAnnotations()
 	if len(annotations) == 0 {
-		c.imageRegistries = v1alpha1.ImageRegistries{}
 		return c
 	}
 
-	_ = json.Unmarshal([]byte(annotations[v1alpha1.ClusterImageRegistriesAnnotation]), &c.imageRegistries)
+	err := json.Unmarshal([]byte(annotations[v1alpha1.ClusterImageRegistriesAnnotation]), &c.imageRegistries)
+	if err != nil {
+		klog.Errorf("failed to unmarshal imageRegistries from annotation. err: %v", err)
+	}
 	return c
 }
 
@@ -57,6 +63,9 @@ func (c *Client) PullSecret() (*corev1.Secret, error) {
 	return c.kubeClient.CoreV1().Secrets(namespace).Get(context.TODO(), pullSecret, metav1.GetOptions{})
 }
 
+// ImageOverride is to override the image by image-registries annotation of managedCluster.
+// The source registry will be replaced by the Mirror.
+// The larger index will work if the Sources are the same.
 func (c *Client) ImageOverride(imageName string) string {
 	if len(c.imageRegistries.Registries) == 0 {
 		return imageName
@@ -92,6 +101,9 @@ func imageOverride(source, mirror, imageName string) string {
 	return fmt.Sprintf("%s%s", mirror, trimSegment)
 }
 
+// OverrideImageByAnnotation is to override the image by image-registries annotation of managedCluster.
+// The source registry will be replaced by the Mirror.
+// The larger index will work if the Sources are the same.
 func OverrideImageByAnnotation(annotations map[string]string, imageName string) string {
 	if len(annotations) == 0 {
 		return imageName
