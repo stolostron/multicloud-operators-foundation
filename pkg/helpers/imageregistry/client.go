@@ -17,46 +17,38 @@ import (
 type Interface interface {
 	Cluster(cluster *clusterv1.ManagedCluster) Interface
 	PullSecret() (*corev1.Secret, error)
-	ImageOverride(imageName string) string
+	ImageOverride(imageName string) (string, error)
 }
 
 type Client struct {
-	kubeClient      kubernetes.Interface
-	imageRegistries v1alpha1.ImageRegistries
+	kubeClient kubernetes.Interface
+	cluster    *clusterv1.ManagedCluster
 }
 
 func NewClient(kubeClient kubernetes.Interface) Interface {
 	return &Client{
-		kubeClient:      kubeClient,
-		imageRegistries: v1alpha1.ImageRegistries{},
+		kubeClient: kubeClient,
 	}
 }
 
 func (c *Client) Cluster(cluster *clusterv1.ManagedCluster) Interface {
-	c.imageRegistries = v1alpha1.ImageRegistries{}
-	if cluster == nil {
-		return c
-	}
-	annotations := cluster.GetAnnotations()
-	if len(annotations) == 0 {
-		return c
-	}
-
-	err := json.Unmarshal([]byte(annotations[v1alpha1.ClusterImageRegistriesAnnotation]), &c.imageRegistries)
-	if err != nil {
-		klog.Errorf("failed to unmarshal imageRegistries from annotation. err: %v", err)
-	}
-	return c
+	return &Client{kubeClient: c.kubeClient, cluster: cluster}
 }
 
 func (c *Client) PullSecret() (*corev1.Secret, error) {
-	if c.imageRegistries.PullSecret == "" {
+	imageRegistries, err := c.getImageRegistries()
+	if err != nil {
+		return nil, err
+	}
+
+	if imageRegistries.PullSecret == "" {
 		return nil, nil
 	}
-	segs := strings.Split(c.imageRegistries.PullSecret, ".")
+
+	segs := strings.Split(imageRegistries.PullSecret, ".")
 	if len(segs) != 2 {
 		return nil, fmt.Errorf("wrong pullSecret format %v in the annotation %s",
-			c.imageRegistries.PullSecret, v1alpha1.ClusterImageRegistriesAnnotation)
+			imageRegistries.PullSecret, v1alpha1.ClusterImageRegistriesAnnotation)
 	}
 	namespace := segs[0]
 	pullSecret := segs[1]
@@ -66,19 +58,24 @@ func (c *Client) PullSecret() (*corev1.Secret, error) {
 // ImageOverride is to override the image by image-registries annotation of managedCluster.
 // The source registry will be replaced by the Mirror.
 // The larger index will work if the Sources are the same.
-func (c *Client) ImageOverride(imageName string) string {
-	if len(c.imageRegistries.Registries) == 0 {
-		return imageName
+func (c *Client) ImageOverride(imageName string) (string, error) {
+	imageRegistries, err := c.getImageRegistries()
+	if err != nil {
+		return imageName, err
+	}
+
+	if len(imageRegistries.Registries) == 0 {
+		return imageName, nil
 	}
 	overrideImageName := imageName
-	for i := 0; i < len(c.imageRegistries.Registries); i++ {
-		registry := c.imageRegistries.Registries[i]
+	for i := 0; i < len(imageRegistries.Registries); i++ {
+		registry := imageRegistries.Registries[i]
 		name := imageOverride(registry.Source, registry.Mirror, imageName)
 		if name != imageName {
 			overrideImageName = name
 		}
 	}
-	return overrideImageName
+	return overrideImageName, nil
 }
 
 func imageOverride(source, mirror, imageName string) string {
@@ -101,27 +98,45 @@ func imageOverride(source, mirror, imageName string) string {
 	return fmt.Sprintf("%s%s", mirror, trimSegment)
 }
 
+func (c *Client) getImageRegistries() (v1alpha1.ImageRegistries, error) {
+	imageRegistries := v1alpha1.ImageRegistries{}
+	if c.cluster == nil {
+		return imageRegistries, fmt.Errorf("the managedCluster cannot be nil")
+	}
+	annotations := c.cluster.GetAnnotations()
+	if len(annotations) == 0 {
+		return imageRegistries, nil
+	}
+
+	if _, ok := annotations[v1alpha1.ClusterImageRegistriesAnnotation]; !ok {
+		return imageRegistries, nil
+	}
+
+	err := json.Unmarshal([]byte(annotations[v1alpha1.ClusterImageRegistriesAnnotation]), &imageRegistries)
+	return imageRegistries, err
+}
+
 // OverrideImageByAnnotation is to override the image by image-registries annotation of managedCluster.
 // The source registry will be replaced by the Mirror.
 // The larger index will work if the Sources are the same.
-func OverrideImageByAnnotation(annotations map[string]string, imageName string) string {
+func OverrideImageByAnnotation(annotations map[string]string, imageName string) (string, error) {
 	if len(annotations) == 0 {
-		return imageName
+		return imageName, nil
 	}
 
-	if annotations[v1alpha1.ClusterImageRegistriesAnnotation] == "" {
-		return imageName
+	if _, ok := annotations[v1alpha1.ClusterImageRegistriesAnnotation]; !ok {
+		return imageName, nil
 	}
 
 	imageRegistries := v1alpha1.ImageRegistries{}
 	err := json.Unmarshal([]byte(annotations[v1alpha1.ClusterImageRegistriesAnnotation]), &imageRegistries)
 	if err != nil {
-		klog.Errorf("failed to unmarshal the annotation %v,err %v", v1alpha1.ClusterImageRegistriesAnnotation, err)
-		return imageName
+		klog.Errorf("failed to unmarshal the annotation %v,err %v", annotations[v1alpha1.ClusterImageRegistriesAnnotation], err)
+		return imageName, err
 	}
 
 	if len(imageRegistries.Registries) == 0 {
-		return imageName
+		return imageName, nil
 	}
 	overrideImageName := imageName
 	for i := 0; i < len(imageRegistries.Registries); i++ {
@@ -131,5 +146,5 @@ func OverrideImageByAnnotation(annotations map[string]string, imageName string) 
 			overrideImageName = name
 		}
 	}
-	return overrideImageName
+	return overrideImageName, nil
 }

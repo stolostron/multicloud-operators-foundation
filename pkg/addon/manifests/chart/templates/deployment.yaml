@@ -42,7 +42,7 @@ spec:
         {{- if eq .Values.clusterName "local-cluster" }}
           - "--agent-address={{ template "work-manager.fullname" . }}.{{ .Release.Namespace }}.svc"
           - "--agent-port=443"
-        {{- else if .Values.hasRoute }}
+        {{- else if eq .Values.product "OpenShift" }}
           - "--agent-route={{ .Release.Namespace }}/{{ template "work-manager.fullname" . }}"
         {{- else  }}
           - "--agent-service={{ .Release.Namespace }}/{{ template "work-manager.fullname" . }}"

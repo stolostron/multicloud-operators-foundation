@@ -77,14 +77,14 @@ func Test_ClientPullSecret(t *testing.T) {
 			name:               "failed to get pullSecret pullSecret without annotation",
 			client:             fakeClient(newPullSecret("ns1", "pullSecret")),
 			cluster:            newCluster("cluster1", ""),
-			expectedErr:        fmt.Errorf("invalid pullSecret in the annotation %s", v1alpha1.ClusterImageRegistriesAnnotation),
+			expectedErr:        nil,
 			expectedPullSecret: nil,
 		},
 		{
 			name:               "failed to get pullSecret pullSecret with wrong annotation",
 			client:             fakeClient(newPullSecret("ns1", "pullSecret")),
 			cluster:            newCluster("cluster1", "abc"),
-			expectedErr:        fmt.Errorf("invalid pullSecret in the annotation %s", v1alpha1.ClusterImageRegistriesAnnotation),
+			expectedErr:        fmt.Errorf("invalid character 'a' looking for beginning of value"),
 			expectedPullSecret: nil,
 		},
 		{
@@ -99,10 +99,12 @@ func Test_ClientPullSecret(t *testing.T) {
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
 			pullSecret, err := c.client.Cluster(c.cluster).PullSecret()
-			if err != nil && c.expectedErr != nil {
-				if err.Error() != c.expectedErr.Error() {
-					t.Errorf("expected err %v, but got %v", c.expectedErr, err)
-				}
+			if (err != nil && c.expectedErr == nil) || (err == nil && c.expectedErr != nil) {
+				t.Errorf("expected error %v, but got %v", c.expectedErr, err)
+			}
+
+			if err != nil && c.expectedErr != nil && err.Error() != c.expectedErr.Error() {
+				t.Errorf("expected err %v, but got %v", c.expectedErr, err)
 			}
 			if pullSecret != nil && c.expectedPullSecret != nil {
 				if pullSecret.Name != c.expectedPullSecret.Name {
@@ -119,6 +121,7 @@ func Test_ClientImageOverride(t *testing.T) {
 		image         string
 		cluster       *clusterv1.ManagedCluster
 		expectedImage string
+		expectedErr   error
 	}{
 		{
 			name: "override rhacm2 image ",
@@ -127,6 +130,7 @@ func Test_ClientImageOverride(t *testing.T) {
 				{Source: "registry.redhat.io/multicluster-engine", Mirror: "quay.io/multicluster-engine"}}, "")),
 			image:         "registry.redhat.io/rhacm2/registration@SHA256abc",
 			expectedImage: "quay.io/rhacm2/registration@SHA256abc",
+			expectedErr:   nil,
 		},
 		{
 			name: "override acm-d image",
@@ -135,6 +139,7 @@ func Test_ClientImageOverride(t *testing.T) {
 				{Source: "registry.redhat.io/multicluster-engine", Mirror: "quay.io/multicluster-engine"}}, "")),
 			image:         "registry.redhat.io/acm-d/registration@SHA256abc",
 			expectedImage: "registry.redhat.io/acm-d/registration@SHA256abc",
+			expectedErr:   nil,
 		},
 		{
 			name: "override multicluster-engine image",
@@ -143,6 +148,7 @@ func Test_ClientImageOverride(t *testing.T) {
 				{Source: "registry.redhat.io/multicluster-engine", Mirror: "quay.io/multicluster-engine"}}, "")),
 			image:         "registry.redhat.io/multicluster-engine/registration@SHA256abc",
 			expectedImage: "quay.io/multicluster-engine/registration@SHA256abc",
+			expectedErr:   nil,
 		},
 		{
 			name: "override image without source ",
@@ -150,6 +156,7 @@ func Test_ClientImageOverride(t *testing.T) {
 				{Source: "", Mirror: "quay.io/rhacm2"}}, "")),
 			image:         "registry.redhat.io/multicluster-engine/registration@SHA256abc",
 			expectedImage: "quay.io/rhacm2/registration@SHA256abc",
+			expectedErr:   nil,
 		},
 		{
 			name: "override image",
@@ -159,31 +166,48 @@ func Test_ClientImageOverride(t *testing.T) {
 					Mirror: "quay.io/acm-d/registration:latest"}}, "")),
 			image:         "registry.redhat.io/rhacm2/registration@SHA256abc",
 			expectedImage: "quay.io/acm-d/registration:latest",
+			expectedErr:   nil,
 		},
 		{
 			name:          "return image without annotation",
 			cluster:       newCluster("c1", ""),
 			image:         "registry.redhat.io/rhacm2/registration@SHA256abc",
 			expectedImage: "registry.redhat.io/rhacm2/registration@SHA256abc",
+			expectedErr:   nil,
 		},
 		{
 			name:          "return image with wrong annotation",
 			cluster:       newCluster("c1", "abc"),
 			image:         "registry.redhat.io/rhacm2/registration@SHA256abc",
 			expectedImage: "registry.redhat.io/rhacm2/registration@SHA256abc",
+			expectedErr:   fmt.Errorf("invalid character 'a' looking for beginning of value"),
 		},
 	}
 	client := fakeClient(newPullSecret("n1", "s1"))
 	for _, c := range testCases {
 		t.Run(c.name, func(t *testing.T) {
-			if client.Cluster(c.cluster).ImageOverride(c.image) != c.expectedImage {
-				t.Errorf("expected image %v but got %v", c.expectedImage,
-					client.Cluster(c.cluster).ImageOverride(c.image))
+			image, err := client.Cluster(c.cluster).ImageOverride(c.image)
+			if image != c.expectedImage {
+				t.Errorf("expected image %v but got %v", c.expectedImage, image)
 			}
 
-			if OverrideImageByAnnotation(c.cluster.GetAnnotations(), c.image) != c.expectedImage {
-				t.Errorf("expected image %v but got %v", c.expectedImage,
-					OverrideImageByAnnotation(c.cluster.GetAnnotations(), c.image))
+			if (err != nil && c.expectedErr == nil) || (err == nil && c.expectedErr != nil) {
+				t.Errorf("expected error %v, but got %v", c.expectedErr, err)
+			}
+
+			if err != nil && c.expectedErr != nil && err.Error() != c.expectedErr.Error() {
+				t.Errorf("expected error %v, but got %v", c.expectedErr, err)
+			}
+
+			image, err = OverrideImageByAnnotation(c.cluster.GetAnnotations(), c.image)
+			if image != c.expectedImage {
+				t.Errorf("expected image %v but got %v", c.expectedImage, image)
+			}
+			if (err != nil && c.expectedErr == nil) || (err == nil && c.expectedErr != nil) {
+				t.Errorf("expected error %v, but got %v", c.expectedErr, err)
+			}
+			if err != nil && c.expectedErr != nil && err.Error() != c.expectedErr.Error() {
+				t.Errorf("expected error %v, but got %v", c.expectedErr, err)
 			}
 		})
 	}

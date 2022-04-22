@@ -113,9 +113,11 @@ var _ = ginkgo.Describe("Testing ManagedClusterImageRegistry", func() {
 		// should override the image successfully
 		imageName := "registry.redhat.io/multicluster-engine/registration@SHA256abc"
 		expectedImageName := "quay.io/multicluster-engine/registration@SHA256abc"
-		overrideImageName := imageRegistryClient.Cluster(cluster).ImageOverride(imageName)
+		overrideImageName, err := imageRegistryClient.Cluster(cluster).ImageOverride(imageName)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		gomega.Expect(overrideImageName).Should(gomega.Equal(expectedImageName))
-		overrideImageName = imageregistry.OverrideImageByAnnotation(cluster.GetAnnotations(), imageName)
+		overrideImageName, err = imageregistry.OverrideImageByAnnotation(cluster.GetAnnotations(), imageName)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		gomega.Expect(overrideImageName).Should(gomega.Equal(expectedImageName))
 
 		// remove the cluster from the placement
@@ -154,7 +156,8 @@ var _ = ginkgo.Describe("Testing ManagedClusterImageRegistry", func() {
 		// override the image successfully
 		imageName = "registry.redhat.io/multicluster-engine/registration@SHA256abc"
 		expectedImageName = "registry.redhat.io/multicluster-engine/registration@SHA256abc"
-		overrideImageName = imageRegistryClient.Cluster(cluster).ImageOverride(imageName)
+		overrideImageName, err = imageRegistryClient.Cluster(cluster).ImageOverride(imageName)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		gomega.Expect(overrideImageName).Should(gomega.Equal(expectedImageName))
 	})
 })

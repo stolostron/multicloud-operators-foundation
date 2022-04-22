@@ -45,14 +45,17 @@ type GlobalValues struct {
 }
 
 type Values struct {
-	HasRoute     bool         `json:"hasRoute,omitempty"`
+	Product      string       `json:"product,omitempty"`
 	GlobalValues GlobalValues `json:"global,omitempty,omitempty"`
 }
 
 func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 	return func(cluster *clusterv1.ManagedCluster,
 		addon *addonapiv1alpha1.ManagedClusterAddOn) (addonfactory.Values, error) {
-		overrideName := imageregistry.OverrideImageByAnnotation(cluster.GetAnnotations(), imageName)
+		overrideName, err := imageregistry.OverrideImageByAnnotation(cluster.GetAnnotations(), imageName)
+		if err != nil {
+			return nil, err
+		}
 		addonValues := Values{
 			GlobalValues: GlobalValues{
 				ImagePullPolicy: corev1.PullIfNotPresent,
@@ -65,8 +68,8 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 		}
 
 		for _, claim := range cluster.Status.ClusterClaims {
-			if claim.Name == "version.openshift.io" && claim.Value != "3" {
-				addonValues.HasRoute = true
+			if claim.Name == "product.open-cluster-management.io" {
+				addonValues.Product = claim.Value
 				break
 			}
 		}
