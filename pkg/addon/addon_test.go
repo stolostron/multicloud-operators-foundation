@@ -47,7 +47,7 @@ func newAnnotationRegistries(registries []v1alpha1.Registries, namespacePullSecr
 	return string(registriesDataStr)
 }
 
-func newCluster(name string, ocp4 bool, labels map[string]string, annotations map[string]string) *clusterv1.ManagedCluster {
+func newCluster(name string, product string, labels map[string]string, annotations map[string]string) *clusterv1.ManagedCluster {
 	cluster := &clusterv1.ManagedCluster{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        name,
@@ -55,12 +55,12 @@ func newCluster(name string, ocp4 bool, labels map[string]string, annotations ma
 			Annotations: annotations,
 		},
 	}
-	if ocp4 {
+	if product != "" {
 		cluster.Status = clusterv1.ManagedClusterStatus{
 			ClusterClaims: []clusterv1.ManagedClusterClaim{
 				{
-					Name:  "version.openshift.io",
-					Value: "4.9.7",
+					Name:  "product.open-cluster-management.io",
+					Value: product,
 				},
 			},
 		}
@@ -133,16 +133,16 @@ func TestManifest(t *testing.T) {
 		expectedCount        int
 	}{
 		{
-			name:              "is OCP4",
-			cluster:           newCluster("cluster1", true, map[string]string{}, map[string]string{}),
+			name:              "is OCP",
+			cluster:           newCluster("cluster1", "OpenShift", map[string]string{}, map[string]string{}),
 			addon:             newAddon("work-manager", "cluster1", "", `{"global":{"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
 			expectedNamespace: "open-cluster-management-agent-addon",
 			expectedImage:     "quay.io/test/multicloud_manager:test",
 			expectedCount:     6,
 		},
 		{
-			name:                 "is OCP4 but hub cluster",
-			cluster:              newCluster("local-cluster", true, map[string]string{}, map[string]string{}),
+			name:                 "is OCP but hub cluster",
+			cluster:              newCluster("local-cluster", "OpenShift", map[string]string{}, map[string]string{}),
 			addon:                newAddon("work-manager", "cluster1", "", `{"global":{"nodeSelector":{"node-role.kubernetes.io/infra":""},"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
 			expectedNamespace:    "open-cluster-management-agent-addon",
 			expectedImage:        "quay.io/test/multicloud_manager:test",
@@ -150,8 +150,16 @@ func TestManifest(t *testing.T) {
 			expectedCount:        5,
 		},
 		{
-			name:              "is not OCP4",
-			cluster:           newCluster("cluster1", false, map[string]string{}, map[string]string{}),
+			name:              "no product",
+			cluster:           newCluster("cluster1", "", map[string]string{}, map[string]string{}),
+			addon:             newAddon("work-manager", "cluster1", "test", ""),
+			expectedNamespace: "test",
+			expectedImage:     "quay.io/stolostron/multicloud-manager:2.5.0",
+			expectedCount:     4,
+		},
+		{
+			name:              "is not OCP",
+			cluster:           newCluster("cluster1", "IKS", map[string]string{}, map[string]string{}),
 			addon:             newAddon("work-manager", "cluster1", "test", ""),
 			expectedNamespace: "test",
 			expectedImage:     "quay.io/stolostron/multicloud-manager:2.5.0",
@@ -160,7 +168,7 @@ func TestManifest(t *testing.T) {
 		},
 		{
 			name: "imageOverride",
-			cluster: newCluster("cluster1", true,
+			cluster: newCluster("cluster1", "OpenShift",
 				map[string]string{v1alpha1.ClusterImageRegistryLabel: "ns1.imageRegistry1"},
 				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}",
 					v1alpha1.ClusterImageRegistriesAnnotation: newAnnotationRegistries([]v1alpha1.Registries{
@@ -173,7 +181,7 @@ func TestManifest(t *testing.T) {
 		},
 		{
 			name: "local cluster imageOverride",
-			cluster: newCluster("local-cluster", true,
+			cluster: newCluster("local-cluster", "OpenShift",
 				map[string]string{v1alpha1.ClusterImageRegistryLabel: "ns1.imageRegistry1"},
 				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}",
 					v1alpha1.ClusterImageRegistriesAnnotation: newAnnotationRegistries([]v1alpha1.Registries{
