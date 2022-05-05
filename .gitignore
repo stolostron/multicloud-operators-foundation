@@ -13,3 +13,6 @@ proxyserver
 webhook
 registration-operator
 e2e.test
+
+# editor and IDE paraphernalia
+.vscode
