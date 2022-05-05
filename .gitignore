@@ -18,3 +18,6 @@ webhook
 registration-operator
 e2e.test
 .DS_Store
+
+# editor and IDE paraphernalia
+.vscode
