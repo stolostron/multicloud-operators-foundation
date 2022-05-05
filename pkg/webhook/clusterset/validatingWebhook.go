@@ -48,6 +48,7 @@ var agentClusterOwnerRef = metav1.OwnerReference{
 
 const (
 	clusterSetLabel = "cluster.open-cluster-management.io/clusterset"
+	defaultSetName  = "default"
 )
 
 // validateResource validate:
@@ -179,6 +180,11 @@ func (a *AdmissionHandler) validateUpdateRequest(request *v1.AdmissionRequest) *
 
 		// the cluster is claimed from clusterpool, do not allow to update clustersetlabel.
 		if clusterDeployment != nil && clusterDeployment.Spec.ClusterPoolRef != nil {
+			//For upgrade from 2.4 to 2.5, we need to move all clusters from empty set to "default" set.
+			if currentClusterSetName == defaultSetName && len(originalClusterSetName) == 0 {
+				return a.allowUpdate(request.UserInfo, originalClusterSetName, currentClusterSetName)
+			}
+
 			rejectStatus.Result.Message = "Do not allow to update claimed cluster's clusterset."
 			return rejectStatus
 		}
@@ -201,6 +207,7 @@ func (a *AdmissionHandler) allowUpdate(userInfo authenticationv1.UserInfo, origi
 	}
 	return a.allowUpdateClusterSet(userInfo, currentClusterSetName)
 }
+
 func (a *AdmissionHandler) isUpdateClusterset(request *v1.AdmissionRequest) (bool, string, string, error) {
 	oldObj := unstructured.Unstructured{}
 	err := oldObj.UnmarshalJSON(request.OldObject.Raw)
