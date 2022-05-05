@@ -4,8 +4,11 @@ import (
 	"testing"
 
 	apiconfigv1 "github.com/openshift/api/config/v1"
+	apioauthv1 "github.com/openshift/api/oauth/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	configfake "github.com/openshift/client-go/config/clientset/versioned/fake"
+	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
+	oauthfake "github.com/openshift/client-go/oauth/clientset/versioned/fake"
 	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
@@ -180,6 +183,23 @@ func newConfigV1Client(version string, platformType string) openshiftclientset.I
 	}
 
 	return configfake.NewSimpleClientset(clusterVersion, infrastructure)
+}
+
+func newChallengingOauthclient(redirectURIs []string) *apioauthv1.OAuthClient {
+	return &apioauthv1.OAuthClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "openshift-challenging-client",
+		},
+		RedirectURIs:          redirectURIs,
+		RespondWithChallenges: true,
+	}
+}
+
+func newOauthV1Client(redirectURIs []string) openshiftoauthclientset.Interface {
+	if redirectURIs != nil {
+		return oauthfake.NewSimpleClientset(newChallengingOauthclient(redirectURIs))
+	}
+	return oauthfake.NewSimpleClientset()
 }
 
 var projectAPIGroupResources = &restmapper.APIGroupResources{
@@ -407,6 +427,7 @@ func TestClusterClaimerList(t *testing.T) {
 		hubClient      client.Client
 		kubeClient     kubernetes.Interface
 		configV1Client openshiftclientset.Interface
+		oauthV1Client  openshiftoauthclientset.Interface
 		mapper         meta.RESTMapper
 		expectClaims   map[string]string
 		expectErr      error
@@ -418,18 +439,22 @@ func TestClusterClaimerList(t *testing.T) {
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAWS), newConfigmapConsoleConfig()}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
 			configV1Client: newConfigV1Client("4.x", PlatformAWS),
+			oauthV1Client: newOauthV1Client([]string{
+				"https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
+			}),
 			expectClaims: map[string]string{
-				ClaimK8sID:                   "clusterAWS",
-				ClaimOpenshiftVersion:        "4.5.11",
-				ClaimOpenshiftID:             "ffd989a0-8391-426d-98ac-86ae6d051433",
-				ClaimOpenshiftInfrastructure: "{\"infraName\":\"ocp-aws\"}",
-				ClaimOCMPlatform:             PlatformAWS,
-				ClaimOCMProduct:              ProductOpenShift,
-				ClaimOCMConsoleURL:           "https://console-openshift-console.apps.daliu-clu428.dev04.red-chesterfield.com",
-				ClaimOCMKubeVersion:          "v0.0.0-master+$Format:%H$",
-				ClaimOCMRegion:               "region-aws",
-				ClaimControlPlaneTopology:    "HighlyAvailable",
-				"abc.testLabel":              "testLabel",
+				ClaimK8sID:                      "clusterAWS",
+				ClaimOpenshiftVersion:           "4.5.11",
+				ClaimOpenshiftID:                "ffd989a0-8391-426d-98ac-86ae6d051433",
+				ClaimOpenshiftInfrastructure:    "{\"infraName\":\"ocp-aws\"}",
+				ClaimOCMPlatform:                PlatformAWS,
+				ClaimOCMProduct:                 ProductOpenShift,
+				ClaimOCMConsoleURL:              "https://console-openshift-console.apps.daliu-clu428.dev04.red-chesterfield.com",
+				ClaimOCMKubeVersion:             "v0.0.0-master+$Format:%H$",
+				ClaimOCMRegion:                  "region-aws",
+				ClaimControlPlaneTopology:       "HighlyAvailable",
+				ClaimOpenshiftOauthRedirectURIs: "https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
+				"abc.testLabel":                 "testLabel",
 			},
 			expectErr: nil,
 		},
@@ -440,6 +465,7 @@ func TestClusterClaimerList(t *testing.T) {
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformGCP), newConfigmapConsoleConfig()}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources, osdAPIGroupResources}),
 			configV1Client: newConfigV1Client("4.x", PlatformGCP),
+			oauthV1Client:  newOauthV1Client(nil),
 			expectClaims: map[string]string{
 				ClaimK8sID:                   "clusterOSDGCP",
 				ClaimOpenshiftVersion:        "4.5.11",
@@ -461,6 +487,7 @@ func TestClusterClaimerList(t *testing.T) {
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformGCP), newEndpoint()}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{}),
 			configV1Client: newConfigV1Client("3", ""),
+			oauthV1Client:  newOauthV1Client(nil),
 			expectClaims: map[string]string{
 				ClaimK8sID:          "clusterNonOCP",
 				ClaimOCMPlatform:    PlatformGCP,
@@ -477,7 +504,9 @@ func TestClusterClaimerList(t *testing.T) {
 				HubClient:      test.hubClient,
 				KubeClient:     test.kubeClient,
 				Mapper:         test.mapper,
-				ConfigV1Client: test.configV1Client}
+				ConfigV1Client: test.configV1Client,
+				OauthV1Client:  test.oauthV1Client,
+			}
 			claims, err := clusterClaimer.List()
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, len(claims), len(test.expectClaims))
