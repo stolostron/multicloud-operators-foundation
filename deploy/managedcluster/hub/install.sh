@@ -5,6 +5,7 @@ set -o nounset
 set -o pipefail
 
 KUBECTL=${KUBECTL:-kubectl}
+REGISTRATION_OPERATOR_BRANCH=${REGISTRATION_OPERATOR_BRANCH:-main}
 
 # On openshift, OLM is installed into openshift-operator-lifecycle-manager
 $KUBECTL get namespace openshift-operator-lifecycle-manager 1>/dev/null 2>&1
@@ -15,7 +16,7 @@ fi
 rm -rf registration-operator
 
 echo "############  Cloning registration-operator"
-git clone https://github.com/open-cluster-management-io/registration-operator.git
+git clone --depth 1 --branch "$REGISTRATION_OPERATOR_BRANCH" https://github.com/stolostron/registration-operator.git
 
 cd registration-operator || {
   printf "cd failed, registration-operator does not exist"
