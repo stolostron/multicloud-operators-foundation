@@ -7,9 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+
 	configv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
-	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -24,11 +26,11 @@ import (
 )
 
 const (
-	ClaimK8sID                   = "id.k8s.io"
-	ClaimOpenshiftID             = "id.openshift.io"
-	ClaimOpenshiftVersion        = "version.openshift.io"
-	ClaimOpenshiftInfrastructure = "infrastructure.openshift.io"
-
+	ClaimK8sID                      = "id.k8s.io"
+	ClaimOpenshiftID                = "id.openshift.io"
+	ClaimOpenshiftVersion           = "version.openshift.io"
+	ClaimOpenshiftInfrastructure    = "infrastructure.openshift.io"
+	ClaimOpenshiftOauthRedirectURIs = "oauthredirecturis.openshift.io"
 	// ClaimControlPlaneTopology expresses the expectations for operands that normally run on control nodes of Openshift.
 	// have 2 modes: `HighlyAvailable` and `SingleReplica`.
 	ClaimControlPlaneTopology = "controlplanetopology.openshift.io"
@@ -98,6 +100,7 @@ type ClusterClaimer struct {
 	HubClient      client.Client
 	KubeClient     kubernetes.Interface
 	ConfigV1Client openshiftclientset.Interface
+	OauthV1Client  openshiftoauthclientset.Interface
 	Mapper         meta.RESTMapper
 }
 
@@ -123,6 +126,14 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 	}
 	if version != "" {
 		claims = append(claims, newClusterClaim(ClaimOpenshiftVersion, version))
+	}
+
+	redirectURIs, err := c.getOCPOauthRedirectURIs()
+	if err != nil {
+		return claims, err
+	}
+	if redirectURIs != "" {
+		claims = append(claims, newClusterClaim(ClaimOpenshiftOauthRedirectURIs, redirectURIs))
 	}
 
 	infraConfig, err := c.getInfraConfig()
@@ -273,6 +284,30 @@ func (c *ClusterClaimer) getOCPVersion() (version, clusterID string, err error) 
 	}
 
 	return version, clusterID, nil
+}
+
+func (c *ClusterClaimer) getOCPOauthRedirectURIs() (string, error) {
+	isOpenShift, err := c.isOpenShift()
+	if err != nil {
+		klog.Errorf("failed to check if the cluster is openshift.err:%v", err)
+		return "", err
+	}
+	if !isOpenShift {
+		return "", nil
+	}
+
+	oauthclient, err := c.OauthV1Client.OauthV1().OAuthClients().Get(
+		context.TODO(), "openshift-challenging-client", metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", nil
+		}
+
+		klog.Errorf("failed to get OCP cluster oauth redirect URIs: %v", err)
+		return "", err
+	}
+
+	return strings.Join(oauthclient.RedirectURIs, ","), nil
 }
 
 type InfraConfig struct {

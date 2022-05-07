@@ -7,29 +7,29 @@ import (
 	"os"
 	"time"
 
-	"k8s.io/component-base/logs"
-
-	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
-
 	"github.com/stolostron/multicloud-operators-foundation/cmd/agent/app"
 	"github.com/stolostron/multicloud-operators-foundation/cmd/agent/app/options"
 	actionv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/action/v1beta1"
 	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
 	viewv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/view/v1beta1"
 	actionctrl "github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/action"
-	"open-cluster-management.io/addon-framework/pkg/lease"
-	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
-	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
-	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
-
-	routev1 "github.com/openshift/client-go/route/clientset/versioned"
-	"github.com/spf13/pflag"
 	clusterclaimctl "github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	clusterinfoctl "github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterinfo"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/nodecollector"
 	viewctrl "github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/view"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	restutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/rest"
+
+	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
+	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
+	routev1 "github.com/openshift/client-go/route/clientset/versioned"
+	"open-cluster-management.io/addon-framework/pkg/lease"
+	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
+	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
+
+	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
@@ -39,7 +39,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/leaderelection"
-	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
+	"k8s.io/component-base/logs"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -108,7 +108,13 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 
 	openshiftClient, err := openshiftclientset.NewForConfig(managedClusterConfig)
 	if err != nil {
-		setupLog.Error(err, "Unable to create managed cluster openshift clientset.")
+		setupLog.Error(err, "Unable to create managed cluster openshift config clientset.")
+		os.Exit(1)
+	}
+
+	osOauthClient, err := openshiftoauthclientset.NewForConfig(managedClusterConfig)
+	if err != nil {
+		setupLog.Error(err, "Unable to create managed cluster openshift oauth clientset.")
 		os.Exit(1)
 	}
 
@@ -215,6 +221,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			HubClient:      mgr.GetClient(),
 			KubeClient:     managedClusterKubeClient,
 			ConfigV1Client: openshiftClient,
+			OauthV1Client:  osOauthClient,
 			Mapper:         restMapper,
 		}
 
