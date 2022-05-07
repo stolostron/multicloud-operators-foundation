@@ -4,8 +4,10 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/IBM/controller-filtered-cache/filteredcache"
 	routev1 "github.com/openshift/api/route/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveinternalv1alpha1 "github.com/openshift/hive/apis/hiveinternal/v1alpha1"
@@ -30,10 +32,13 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/inventory"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
@@ -97,11 +102,34 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	clusterInformers := clusterv1informers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
 	kubeInfomers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
 
+	// Get the LogCertSecret namespace
+	logCertSecretNamespace, _, err := k8scache.SplitMetaNamespaceKey(
+		o.LogCertSecret,
+	)
+	if err != nil {
+		return err
+	}
+	if logCertSecretNamespace == "" {
+		logCertSecretNamespace, err = utils.GetComponentNamespace()
+		if err != nil {
+			return err
+		}
+	}
+
+	// Filter and cache the specific namespace's secret
+	// Update the filteredcache.Selector if you want to watch other namespace's secret or want to filter other resouce.
+	gvkLabelMap := map[schema.GroupVersionKind]filteredcache.Selector{
+		corev1.SchemeGroupVersion.WithKind("Secret"): {
+			FieldSelector: fmt.Sprintf("metadata.namespace==%s", logCertSecretNamespace),
+		},
+	}
+
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
 		Scheme:                 scheme,
 		LeaderElectionID:       "foundation-controller",
 		LeaderElection:         o.EnableLeaderElection,
 		HealthProbeBindAddress: ":8000",
+		NewCache:               filteredcache.NewFilteredCacheBuilder(gvkLabelMap),
 	})
 	if err != nil {
 		klog.Errorf("unable to start manager: %v", err)
@@ -186,9 +214,20 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 
-	clusterrolebindingSync := syncclusterrolebinding.NewReconciler(kubeClient, clusterSetAdminCache.Cache, clusterSetViewCache.Cache, clusterSetClusterMapper)
+	clusterrolebindingSync := syncclusterrolebinding.NewReconciler(
+		kubeClient,
+		clusterSetAdminCache.Cache,
+		clusterSetViewCache.Cache,
+		clusterSetClusterMapper,
+	)
 
-	rolebindingSync := syncrolebinding.NewReconciler(kubeClient, clusterSetAdminCache.Cache, clusterSetViewCache.Cache, clusterSetClusterMapper, clusterSetNamespaceMapper)
+	rolebindingSync := syncrolebinding.NewReconciler(
+		kubeClient,
+		clusterSetAdminCache.Cache,
+		clusterSetViewCache.Cache,
+		clusterSetClusterMapper,
+		clusterSetNamespaceMapper,
+	)
 
 	if err = clusterrole.SetupWithManager(mgr, kubeClient); err != nil {
 		klog.Errorf("unable to setup clusterrole reconciler: %v", err)
