@@ -20,6 +20,8 @@ spec:
         component: "work-manager"
     spec:
       serviceAccountName: {{ template "work-manager.fullname" . }}
+      securityContext:
+        runAsNonRoot: true
       containers:
       - name: acm-agent
         image: "{{ .Values.global.imageOverrides.multicloud_manager }}"
@@ -31,7 +33,6 @@ spec:
             - ALL
           privileged: false
           readOnlyRootFilesystem: true
-          runAsNonRoot: true
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
         args:
