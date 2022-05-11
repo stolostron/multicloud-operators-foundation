@@ -47,6 +47,7 @@ replace (
 )
 
 require (
+	github.com/IBM/controller-filtered-cache v0.3.4
 	github.com/emicklei/go-restful v2.15.0+incompatible
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/go-logr/logr v1.2.3
@@ -85,7 +86,10 @@ require (
 	sigs.k8s.io/yaml v1.3.0
 )
 
-require sigs.k8s.io/kube-storage-version-migrator v0.0.4 // indirect
+require (
+	github.com/gobuffalo/flect v0.2.3 // indirect
+	sigs.k8s.io/kube-storage-version-migrator v0.0.4 // indirect
+)
 
 // golang
 require (
