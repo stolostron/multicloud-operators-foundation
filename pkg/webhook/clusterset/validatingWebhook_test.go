@@ -23,6 +23,8 @@ const (
 	managedcluster                          = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1"},"name":"c0"},"spec":{}}`
 	updateManagedclusterSet                 = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"cluster.open-cluster-management.io/clusterset":"clusterset2"},"name":"c0"},"spec":{}}`
 	updateManagedclusterNotSet              = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1","a":"b"},"name":"c0"},"spec":{}}`
+	managedclusterDefaultSet                = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"cluster.open-cluster-management.io/clusterset":"default"},"name":"c0"},"spec":{}}`
+	managedclusterNoSet                     = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"name":"c0"},"spec":{}}`
 	createClusterDeploymentFromPool         = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterDeployment","metadata":{"name":"cd-pool","namespace":"cd-pool"},"spec":{"clusterName":"gcp-pool-9m688","clusterPoolRef":{"namespace":"pool","poolName":"gcp-pool"}}}`
 	createClusterDeploymentInSet            = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterDeployment","metadata":{"name":"cd-pool","namespace":"cd-pool","labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1"}},"spec":{"clusterName":"gcp-pool-9m688"}}`
 	createClusterDeploymentFromAgentCluster = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterDeployment","metadata":{"name":"cd-pool","namespace":"cd-pool","ownerReferences":[{"apiVersion":"capi-provider.agent-install.openshift.io/v1","kind":"AgentCluster"}]},"spec":{"clusterName":"gcp-pool-9m688"}}`
@@ -211,6 +213,37 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 			},
 			expectedResponse: &v1.AdmissionResponse{
 				Allowed: false,
+			},
+		},
+		{
+			name: "allow to update cluster to default if there is a clusterdeployment from pool",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Update,
+				Object: runtime.RawExtension{
+					Raw: []byte(managedclusterDefaultSet),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(managedclusterNoSet),
+				},
+			},
+			existingClusterdeployment: []runtime.Object{
+				&hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "c0",
+						Namespace: "c0",
+					},
+					Spec: hivev1.ClusterDeploymentSpec{
+						ClusterPoolRef: &hivev1.ClusterPoolReference{
+							PoolName:  "p1",
+							Namespace: "ns1",
+						},
+					},
+				},
+			},
+			allowUpdateClusterSets: map[string]bool{"*": true, "default": true},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
 			},
 		},
 		{
