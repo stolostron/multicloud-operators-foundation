@@ -19,12 +19,12 @@ import (
 	viewctrl "github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/view"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	restutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/rest"
+	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
 
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 	"open-cluster-management.io/addon-framework/pkg/lease"
-	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
@@ -139,6 +139,16 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		}
 	}
 
+	cc, err := addonutils.NewConfigChecker("work manager", o.HubKubeConfig)
+	if err != nil {
+		setupLog.Error(err, "unable to setup a configChecker")
+		os.Exit(1)
+	}
+
+	// run healthProbes server before newManager, because it may take a long time to discover the APIs of Hub cluster in newManager.
+	// the agent pods will be restarted if failed to check healthz/liveness in 30s.
+	go app.ServeHealthProbes(ctx.Done(), ":8000", cc.Check)
+
 	mgr, err := ctrl.NewManager(hubConfig, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: o.MetricsAddr,
@@ -148,14 +158,6 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-
-	cc, err := addonutils.NewConfigChecker("work manager", o.HubKubeConfig)
-	if err != nil {
-		setupLog.Error(err, "unable to setup a configChecker")
-		os.Exit(1)
-	}
-
-	go app.ServeHealthProbes(ctx.Done(), ":8000", cc.Check)
 
 	run := func(ctx context.Context) {
 		// run agent server
