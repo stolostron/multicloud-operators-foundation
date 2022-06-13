@@ -238,7 +238,7 @@ func GetViewResourceFromClusterRole(clusterRole *rbacv1.ClusterRole, group, reso
 	return names, all
 }
 
-// GetViewResourceFromClusterRole match the "update" permission of resource,
+// GetAdminResourceFromClusterRole match the "update" permission of resource,
 // which means this role has admin permission to this resource
 func GetAdminResourceFromClusterRole(clusterRole *rbacv1.ClusterRole, group, resource string) (sets.String, bool) {
 	names := sets.NewString()
