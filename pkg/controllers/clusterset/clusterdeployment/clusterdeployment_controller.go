@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
-	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -191,7 +191,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	var isModified = false
-	utils.SyncMapField(&isModified, &clusterdeployment.Labels, targetLabels, clustersetutils.ClusterSetLabel)
+	utils.SyncMapField(&isModified, &clusterdeployment.Labels, targetLabels, clusterv1beta1.ClusterSetLabel)
 
 	if isModified {
 		err = r.client.Update(ctx, clusterdeployment, &client.UpdateOptions{})

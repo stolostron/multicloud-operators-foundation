@@ -28,6 +28,10 @@ const (
 	createClusterDeploymentFromPool         = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterDeployment","metadata":{"name":"cd-pool","namespace":"cd-pool"},"spec":{"clusterName":"gcp-pool-9m688","clusterPoolRef":{"namespace":"pool","poolName":"gcp-pool"}}}`
 	createClusterDeploymentInSet            = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterDeployment","metadata":{"name":"cd-pool","namespace":"cd-pool","labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1"}},"spec":{"clusterName":"gcp-pool-9m688"}}`
 	createClusterDeploymentFromAgentCluster = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterDeployment","metadata":{"name":"cd-pool","namespace":"cd-pool","ownerReferences":[{"apiVersion":"capi-provider.agent-install.openshift.io/v1","kind":"AgentCluster"}]},"spec":{"clusterName":"gcp-pool-9m688"}}`
+	labelSelectorSet                        = `{"apiVersion":"cluster.open-cluster-management.io/v1beta1","kind":"ManagedClusterSet","metadata":{"name":"te-label-set"},"spec":{"clusterSelector":{"labelSelector":{"matchLabels":{"vendor":"ocp"}},"selectorType":"LabelSelector"}}}`
+	globalSet                               = `{"apiVersion":"cluster.open-cluster-management.io/v1beta1","kind":"ManagedClusterSet","metadata":{"name":"global"},"spec":{"clusterSelector":{"labelSelector":{},"selectorType":"LabelSelector"}}}`
+	defaultSet                              = `{"apiVersion":"cluster.open-cluster-management.io/v1beta1","kind":"ManagedClusterSet","metadata":{"name":"default"},"spec":{"clusterSelector":{"selectorType":"LegacyClusterSetLabel"}}}`
+	errorDefaultSet                         = `{"apiVersion":"cluster.open-cluster-management.io/v1beta1","kind":"ManagedClusterSet","metadata":{name":"default"},"spec":{"clusterSelector":{"selectorType":"LegacyClusterSetLabel"}}}`
 )
 
 func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
@@ -52,7 +56,6 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 				Allowed: true,
 			},
 		},
-
 		{
 			name: "allow to create clusterpool in clusterset1",
 			request: &v1.AdmissionRequest{
@@ -257,6 +260,71 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 			},
 			expectedResponse: &v1.AdmissionResponse{
 				Allowed: true,
+			},
+		},
+		{
+			name: "allow create default clusterset",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClusterSetsGVR,
+				Operation: v1.Create,
+				Object: runtime.RawExtension{
+					Raw: []byte(defaultSet),
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "allow create global clusterset",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClusterSetsGVR,
+				Operation: v1.Create,
+				Object: runtime.RawExtension{
+					Raw: []byte(globalSet),
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "allow delete global clusterset",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClusterSetsGVR,
+				Operation: v1.Delete,
+				Object: runtime.RawExtension{
+					Raw: []byte(globalSet),
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "do not allow create label selector clusterset",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClusterSetsGVR,
+				Operation: v1.Create,
+				Object: runtime.RawExtension{
+					Raw: []byte(labelSelectorSet),
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: false,
+			},
+		},
+		{
+			name: "request error for clusterset",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClusterSetsGVR,
+				Operation: v1.Create,
+				Object: runtime.RawExtension{
+					Raw: []byte(errorDefaultSet),
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: false,
 			},
 		},
 	}

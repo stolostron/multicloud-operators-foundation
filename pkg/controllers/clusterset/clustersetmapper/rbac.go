@@ -10,6 +10,7 @@ import (
 	utils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 )
 
 var managedclusterGroup = "cluster.open-cluster-management.io"
@@ -23,8 +24,8 @@ func buildAdminRole(clustersetName, clusteroleName string) *rbacv1.ClusterRole {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusteroleName,
 			Labels: map[string]string{
-				utils.ClusterSetLabel: clustersetName,
-				utils.ClusterSetRole:  "admin",
+				clusterv1beta1.ClusterSetLabel: clustersetName,
+				utils.ClusterSetRole:           "admin",
 			},
 		},
 		Rules: []rbacv1.PolicyRule{
@@ -67,8 +68,8 @@ func buildViewRole(clustersetName, clusteroleName string) *rbacv1.ClusterRole {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clusteroleName,
 			Labels: map[string]string{
-				utils.ClusterSetLabel: clustersetName,
-				utils.ClusterSetRole:  "view",
+				clusterv1beta1.ClusterSetLabel: clustersetName,
+				utils.ClusterSetRole:           "view",
 			},
 		},
 		Rules: []rbacv1.PolicyRule{

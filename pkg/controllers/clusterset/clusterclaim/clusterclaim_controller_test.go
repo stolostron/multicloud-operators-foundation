@@ -5,7 +5,8 @@ import (
 	"os"
 	"testing"
 
-	utils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -77,7 +78,7 @@ func TestReconcile(t *testing.T) {
 						Name:      "dep1",
 						Namespace: "dep1",
 						Labels: map[string]string{
-							utils.ClusterSetLabel: "clusterSet1",
+							clusterv1beta1.ClusterSetLabel: "clusterSet1",
 						},
 					},
 					Spec: hivev1.ClusterDeploymentSpec{},
@@ -90,7 +91,7 @@ func TestReconcile(t *testing.T) {
 				},
 			},
 			expectedlabel: map[string]string{
-				utils.ClusterSetLabel: "clusterSet1",
+				clusterv1beta1.ClusterSetLabel: "clusterSet1",
 			},
 		},
 		{
@@ -101,7 +102,7 @@ func TestReconcile(t *testing.T) {
 						Name:      "clusterClaim1",
 						Namespace: "ns1",
 						Labels: map[string]string{
-							utils.ClusterSetLabel: "clusterSet1",
+							clusterv1beta1.ClusterSetLabel: "clusterSet1",
 						},
 					},
 					Spec: hivev1.ClusterClaimSpec{
