@@ -4,7 +4,7 @@ import (
 	"context"
 	"reflect"
 
-	clusterinfov1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
@@ -84,9 +84,9 @@ func (r *ClusterCaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{}, nil
 }
 
-//updateClientConfig merge config from clusterinfoconfigs to clusterconfigs
+// updateClientConfig merge config from clusterinfoconfigs to clusterconfigs
 func updateClientConfig(clusterConfigs []clusterv1.ClientConfig, clusterinfoConfig clusterinfov1beta1.ClientConfig) ([]clusterv1.ClientConfig, bool) {
-	//If clusterinfo config is null return clusterconfigs
+	// If clusterinfo config is null return clusterconfigs
 	if len(clusterinfoConfig.URL) == 0 {
 		return clusterConfigs, false
 	}
@@ -102,7 +102,7 @@ func updateClientConfig(clusterConfigs []clusterv1.ClientConfig, clusterinfoConf
 		return clusterConfigs, false
 	}
 
-	//do not have ca bundle in cluster config, append it to managedcluster config
+	// do not have ca bundle in cluster config, append it to managedcluster config
 	tempConfig := clusterv1.ClientConfig{
 		URL:      clusterinfoConfig.URL,
 		CABundle: clusterinfoConfig.CABundle,

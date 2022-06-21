@@ -9,7 +9,7 @@ import (
 	"github.com/onsi/ginkgo/reporters"
 	"github.com/onsi/gomega"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers/imageregistry"
+	"github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"

@@ -9,7 +9,7 @@ import (
 	configfake "github.com/openshift/client-go/config/clientset/versioned/fake"
 	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
 	oauthfake "github.com/openshift/client-go/oauth/clientset/versioned/fake"
-	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -414,7 +414,7 @@ func fakeHubClient(clusterName string, labels map[string]string) client.Client {
 	}
 	clusterInfo.SetLabels(labels)
 	s := scheme.Scheme
-	s.AddKnownTypes(clusterv1beta1.GroupVersion, &clusterv1beta1.ManagedClusterInfo{})
+	s.AddKnownTypes(clusterv1beta1.SchemeGroupVersion, &clusterv1beta1.ManagedClusterInfo{})
 	clusterv1beta1.AddToScheme(s)
 
 	return fake.NewFakeClientWithScheme(s, clusterInfo)

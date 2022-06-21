@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	"github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilnet "k8s.io/apimachinery/pkg/util/net"
@@ -54,7 +54,7 @@ type ConnectionInfo struct {
 	UseID     bool
 }
 
-var clusterInfoGVR = v1beta1.GroupVersion.WithResource("managedclusterinfos")
+var clusterInfoGVR = v1beta1.SchemeGroupVersion.WithResource("managedclusterinfos")
 
 // ConnectionInfoGetter provides ConnectionInfo for the kubelet running on a named node
 type ConnectionInfoGetter interface {
