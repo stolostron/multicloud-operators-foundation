@@ -2,8 +2,8 @@
 
 This document is to summarise ManagedClusterAction CRD. ManagedClusterAction is defined as a certain action job executed on a certain managed cluster to Create/Update/Delete a resource.
 
-- ManagedClusterAction is a namespace-scoped CRD, and the definition is [here](/deploy/dev/hub/resources/crds/action.open-cluster-management.io_managedclusteractions.yaml).
-- ManagedClusterAction should be applied in the namespace of a certain managed cluster, and the usage examples is [here](/examples/action).
+- ManagedClusterAction is a namespace-scoped CRD, and the definition is [here](../../deploy/foundation/hub/resources/crds/action.open-cluster-management.io_managedclusteractions.crd.yaml).
+- ManagedClusterAction should be applied in the namespace of a certain managed cluster, and the usage examples is [here](../../examples/action).
 
 ## CRD Spec
 

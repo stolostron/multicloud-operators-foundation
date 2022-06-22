@@ -360,7 +360,7 @@ github.com/openshift/api/template
 github.com/openshift/api/template/v1
 github.com/openshift/api/user
 github.com/openshift/api/user/v1
-# github.com/openshift/build-machinery-go v0.0.0-20220121085309-f94edc2d6874
+# github.com/openshift/build-machinery-go v0.0.0-20220429084610-baff9f8d23b3
 ## explicit; go 1.13
 github.com/openshift/build-machinery-go
 github.com/openshift/build-machinery-go/make
@@ -480,6 +480,14 @@ github.com/spf13/cobra
 # github.com/spf13/pflag v1.0.5
 ## explicit; go 1.12
 github.com/spf13/pflag
+# github.com/stolostron/cluster-lifecycle-api v0.0.0-20220621134646-8b67f2e6afed
+## explicit; go 1.18
+github.com/stolostron/cluster-lifecycle-api/action/v1beta1
+github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1
+github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry
+github.com/stolostron/cluster-lifecycle-api/imageregistry/v1alpha1
+github.com/stolostron/cluster-lifecycle-api/inventory/v1alpha1
+github.com/stolostron/cluster-lifecycle-api/view/v1beta1
 # github.com/stretchr/testify v1.7.1
 ## explicit; go 1.13
 github.com/stretchr/testify/assert

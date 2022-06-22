@@ -10,7 +10,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	actionv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/action/v1beta1"
+	actionv1beta1 "github.com/stolostron/cluster-lifecycle-api/action/v1beta1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils/rest"
 )
 

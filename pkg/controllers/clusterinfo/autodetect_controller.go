@@ -4,7 +4,7 @@ import (
 	"context"
 	"reflect"
 
-	clusterinfov1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	clusterclaims "github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 
 	"k8s.io/apimachinery/pkg/api/errors"

@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	routev1 "github.com/openshift/api/route/v1"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/apis/imageregistry/v1alpha1"
+	"github.com/stolostron/cluster-lifecycle-api/imageregistry/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"

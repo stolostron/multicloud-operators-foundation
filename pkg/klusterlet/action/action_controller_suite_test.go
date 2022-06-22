@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/onsi/gomega"
-	actionv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/action/v1beta1"
+	actionv1beta1 "github.com/stolostron/cluster-lifecycle-api/action/v1beta1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"

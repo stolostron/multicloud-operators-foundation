@@ -3,7 +3,7 @@ package helpers
 import (
 	"testing"
 
-	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 )
 
 func TestRule(t *testing.T) {

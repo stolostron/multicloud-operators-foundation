@@ -6,8 +6,8 @@ import (
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/apis/imageregistry/v1alpha1"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers/imageregistry"
+	"github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry"
+	"github.com/stolostron/cluster-lifecycle-api/imageregistry/v1alpha1"
 	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )

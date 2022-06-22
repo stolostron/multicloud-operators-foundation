@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	clusterinfov1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 

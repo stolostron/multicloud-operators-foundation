@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	actionv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/action/v1beta1"
+	actionv1beta1 "github.com/stolostron/cluster-lifecycle-api/action/v1beta1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

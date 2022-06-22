@@ -3,7 +3,7 @@ package e2e
 import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
-	clusterinfov1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 )
 

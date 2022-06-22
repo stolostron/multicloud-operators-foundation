@@ -7,7 +7,7 @@ import (
 	"net"
 	"reflect"
 
-	"github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	"github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/log/drivers"
 	"k8s.io/client-go/kubernetes"
 	certutil "k8s.io/client-go/util/cert"

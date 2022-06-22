@@ -16,7 +16,7 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveinternalv1alpha1 "github.com/openshift/hive/apis/hiveinternal/v1alpha1"
 	"github.com/openshift/library-go/pkg/operator/resource/resourcemerge"
-	inventoryv1alpha1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/inventory/v1alpha1"
+	inventoryv1alpha1 "github.com/stolostron/cluster-lifecycle-api/inventory/v1alpha1"
 	bmaerrors "github.com/stolostron/multicloud-operators-foundation/pkg/controllers/inventory/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -618,7 +618,7 @@ func newBareMetalHost(instance *inventoryv1alpha1.BareMetalAsset, assetSyncCompl
 }
 
 func (r *ReconcileBareMetalAsset) checkHiveClusterSync(ctx context.Context, instance *inventoryv1alpha1.BareMetalAsset) bool {
-	//get related syncSet
+	// get related syncSet
 	syncSetNsN := types.NamespacedName{
 		Name:      instance.Name,
 		Namespace: instance.Spec.ClusterDeployment.Namespace,
@@ -636,7 +636,7 @@ func (r *ReconcileBareMetalAsset) checkHiveClusterSync(ctx context.Context, inst
 		return false
 	}
 
-	//get related clusterSync
+	// get related clusterSync
 	clusterSyncNsN := types.NamespacedName{
 		Name:      instance.Spec.ClusterDeployment.Name,
 		Namespace: instance.Spec.ClusterDeployment.Namespace,
@@ -654,7 +654,7 @@ func (r *ReconcileBareMetalAsset) checkHiveClusterSync(ctx context.Context, inst
 		return false
 	}
 
-	//find locate the correct syncstatus
+	// find locate the correct syncstatus
 	foundSyncStatuses := []hiveinternalv1alpha1.SyncStatus{}
 	for _, syncStatus := range foundClusterSync.Status.SyncSets {
 		if syncStatus.Name == instance.Name {

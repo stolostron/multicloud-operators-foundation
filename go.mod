@@ -57,7 +57,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
 	github.com/openshift/api v0.0.0-20220315184754-d7c10d0b647e
-	github.com/openshift/build-machinery-go v0.0.0-20220121085309-f94edc2d6874
+	github.com/openshift/build-machinery-go v0.0.0-20220429084610-baff9f8d23b3
 	github.com/openshift/client-go v0.0.0-20211209144617-7385dd6338e3
 	github.com/openshift/custom-resource-status v1.1.2
 	github.com/openshift/hive v1.1.17-0.20220326152255-f42617c99ca1
@@ -67,6 +67,7 @@ require (
 	github.com/prometheus/common v0.32.1
 	github.com/smartystreets/goconvey v1.7.2
 	github.com/spf13/pflag v1.0.5
+	github.com/stolostron/cluster-lifecycle-api v0.0.0-20220621134646-8b67f2e6afed
 	github.com/stretchr/testify v1.7.1
 	golang.org/x/net v0.0.0-20220325170049-de3da57026de
 	k8s.io/api v0.23.3

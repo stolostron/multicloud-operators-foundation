@@ -14,14 +14,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 func newTestCapacityReconciler(existingObjs ...runtime.Object) (*CapacityReconciler, client.Client) {
 	s := kubescheme.Scheme
-	s.AddKnownTypes(clusterv1beta1.GroupVersion, &clusterv1beta1.ManagedClusterInfo{})
+	s.AddKnownTypes(clusterv1beta1.SchemeGroupVersion, &clusterv1beta1.ManagedClusterInfo{})
 	client := fake.NewFakeClientWithScheme(s, existingObjs...)
 	return &CapacityReconciler{
 		client: client,

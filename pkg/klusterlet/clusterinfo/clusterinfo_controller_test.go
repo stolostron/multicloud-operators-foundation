@@ -17,7 +17,7 @@ import (
 
 	configfake "github.com/openshift/client-go/config/clientset/versioned/fake"
 	routefake "github.com/openshift/client-go/route/clientset/versioned/fake"
-	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/agent"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	"github.com/stretchr/testify/assert"
@@ -215,7 +215,7 @@ func TestClusterInfoReconcile(t *testing.T) {
 	}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(clusterv1beta1.GroupVersion, &clusterv1beta1.ManagedClusterInfo{})
+	s.AddKnownTypes(clusterv1beta1.SchemeGroupVersion, &clusterv1beta1.ManagedClusterInfo{})
 	clusterv1beta1.AddToScheme(s)
 
 	c := fake.NewFakeClientWithScheme(s, clusterInfo)
@@ -265,7 +265,7 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 	}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(clusterv1beta1.GroupVersion, &clusterv1beta1.ManagedClusterInfo{})
+	s.AddKnownTypes(clusterv1beta1.SchemeGroupVersion, &clusterv1beta1.ManagedClusterInfo{})
 	clusterv1beta1.AddToScheme(s)
 
 	c := fake.NewFakeClientWithScheme(s, clusterInfo)
@@ -801,7 +801,7 @@ func TestOcpDistributionInfoUpdated(t *testing.T) {
 
 func newTestClusterInfoReconciler(existingCluster, existingKubeOjb, existingOcpOjb []runtime.Object) *ClusterInfoReconciler {
 	s := scheme.Scheme
-	s.AddKnownTypes(clusterv1beta1.GroupVersion, &clusterv1beta1.ManagedClusterInfo{})
+	s.AddKnownTypes(clusterv1beta1.SchemeGroupVersion, &clusterv1beta1.ManagedClusterInfo{})
 	clusterv1beta1.AddToScheme(s)
 
 	return &ClusterInfoReconciler{

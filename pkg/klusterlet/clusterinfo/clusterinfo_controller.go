@@ -10,7 +10,7 @@ import (
 	"github.com/go-logr/logr"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
-	clusterv1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/apis/internal.open-cluster-management.io/v1beta1"
+	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/agent"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
