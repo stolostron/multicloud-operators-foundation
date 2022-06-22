@@ -6,12 +6,28 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 )
 
 const (
-	ClusterSetLabel string = "cluster.open-cluster-management.io/clusterset"
-	ClusterSetRole  string = "cluster.open-cluster-management.io/role"
+	ClusterSetRole string = "cluster.open-cluster-management.io/role"
+
+	DefaultSetName = "default"
+	GlobalSetName  = "global"
 )
+
+var GlobalSet = &clusterv1beta1.ManagedClusterSet{
+	ObjectMeta: metav1.ObjectMeta{
+		Name: GlobalSetName,
+	},
+	Spec: clusterv1beta1.ManagedClusterSetSpec{
+		ClusterSelector: clusterv1beta1.ManagedClusterSelector{
+			SelectorType:  clusterv1beta1.LabelSelector,
+			LabelSelector: &metav1.LabelSelector{},
+		},
+	},
+}
 
 // GenerateObjectSubjectMap generate the map which key is object and value is subjects, which means these users/groups in subjects has permission for this object.
 func GenerateObjectSubjectMap(clustersetToObjects *helpers.ClusterSetMapper, clustersetToSubject map[string][]rbacv1.Subject) map[string][]rbacv1.Subject {

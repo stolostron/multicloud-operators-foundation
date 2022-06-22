@@ -8,16 +8,20 @@ import (
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	serve "github.com/stolostron/multicloud-operators-foundation/pkg/webhook/serve"
 	v1 "k8s.io/api/admission/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 )
 
 type AdmissionHandler struct {
@@ -30,6 +34,13 @@ var managedClustersGVR = metav1.GroupVersionResource{
 	Version:  "v1",
 	Resource: "managedclusters",
 }
+
+var managedClusterSetsGVR = metav1.GroupVersionResource{
+	Group:    "cluster.open-cluster-management.io",
+	Version:  "v1beta1",
+	Resource: "managedclustersets",
+}
+
 var clusterPoolsGVR = metav1.GroupVersionResource{
 	Group:    "hive.openshift.io",
 	Version:  "v1",
@@ -46,11 +57,6 @@ var agentClusterOwnerRef = metav1.OwnerReference{
 	APIVersion: "capi-provider.agent-install.openshift.io/v1alpha1",
 }
 
-const (
-	clusterSetLabel = "cluster.open-cluster-management.io/clusterset"
-	defaultSetName  = "default"
-)
-
 // validateResource validate:
 // 1. allow requests if the user has managedClusterSet/join all resources permission.
 // 2. if user has permission to create/update resources.
@@ -58,6 +64,41 @@ func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.Ad
 	status := &v1.AdmissionResponse{
 		Allowed: true,
 	}
+
+	//Only allow create/update global clusterset and legacy clusterset
+	if request.Resource == managedClusterSetsGVR {
+		//Only handle clusterset create/update request
+		if request.Operation != v1.Create && request.Operation != v1.Update {
+			return status
+		}
+
+		clusterset := &clusterv1beta1.ManagedClusterSet{}
+		if err := json.Unmarshal(request.Object.Raw, clusterset); err != nil {
+			status.Allowed = false
+			status.Result = &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: err.Error(),
+			}
+			return status
+		}
+		//allow create/update legacy clusterset
+		if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel {
+			return status
+		}
+
+		//allow create/update global clusterset
+		if clusterset.Name == clustersetutils.GlobalSetName && equality.Semantic.DeepEqual(clusterset.Spec, clustersetutils.GlobalSet.Spec) {
+			return status
+		}
+
+		status.Allowed = false
+		status.Result = &metav1.Status{
+			Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+			Message: fmt.Sprintf("Do not allow to create/update this kind of clusterset."),
+		}
+		return status
+	}
+
 	switch request.Operation {
 	case v1.Create:
 		return a.validateCreateRequest(request)
@@ -110,7 +151,7 @@ func (a *AdmissionHandler) validateCreateRequest(request *v1.AdmissionRequest) *
 	labels := obj.GetLabels()
 	clusterSetName := ""
 	if len(labels) > 0 {
-		clusterSetName = labels[clusterSetLabel]
+		clusterSetName = labels[clusterv1beta1.ClusterSetLabel]
 	}
 
 	return a.allowUpdateClusterSet(request.UserInfo, clusterSetName)
@@ -181,7 +222,7 @@ func (a *AdmissionHandler) validateUpdateRequest(request *v1.AdmissionRequest) *
 		// the cluster is claimed from clusterpool, do not allow to update clustersetlabel.
 		if clusterDeployment != nil && clusterDeployment.Spec.ClusterPoolRef != nil {
 			//For upgrade from 2.4 to 2.5, we need to move all clusters from empty set to "default" set.
-			if currentClusterSetName == defaultSetName && len(originalClusterSetName) == 0 {
+			if currentClusterSetName == clustersetutils.DefaultSetName && len(originalClusterSetName) == 0 {
 				return a.allowUpdate(request.UserInfo, originalClusterSetName, currentClusterSetName)
 			}
 
@@ -226,10 +267,10 @@ func (a *AdmissionHandler) isUpdateClusterset(request *v1.AdmissionRequest) (boo
 	originalClusterSetName := ""
 	currentClusterSetName := ""
 	if len(oldLabels) > 0 {
-		originalClusterSetName = oldLabels[clusterSetLabel]
+		originalClusterSetName = oldLabels[clusterv1beta1.ClusterSetLabel]
 	}
 	if len(newLabels) > 0 {
-		currentClusterSetName = newLabels[clusterSetLabel]
+		currentClusterSetName = newLabels[clusterv1beta1.ClusterSetLabel]
 	}
 
 	// allow if managedClusterSet label is not updated

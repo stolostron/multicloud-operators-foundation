@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	"k8s.io/apimachinery/pkg/api/errors"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -64,7 +64,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 
 		// set managedClusterSet for managedCluster
 		clusterSetLabel := map[string]string{
-			clustersetutils.ClusterSetLabel: managedClusterSet,
+			clusterv1beta1.ClusterSetLabel: managedClusterSet,
 		}
 		err = util.UpdateManagedClusterLabels(clusterClient, managedCluster, clusterSetLabel)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
@@ -479,7 +479,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				if err != nil {
 					return err
 				}
-				clusterDeploymentSet := clusterDeployment.Labels[clustersetutils.ClusterSetLabel]
+				clusterDeploymentSet := clusterDeployment.Labels[clusterv1beta1.ClusterSetLabel]
 				if clusterDeploymentSet == managedClusterSet {
 					return nil
 				}
@@ -492,7 +492,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			// set managedClusterSet for managedCluster
 			managedClusterSet1 := util.RandomName()
 			clusterSetLabel := map[string]string{
-				clustersetutils.ClusterSetLabel: managedClusterSet1,
+				clusterv1beta1.ClusterSetLabel: managedClusterSet1,
 			}
 			err = util.UpdateManagedClusterLabels(clusterClient, managedCluster, clusterSetLabel)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
@@ -502,7 +502,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				if err != nil {
 					return err
 				}
-				clusterDeploymentSet := clusterDeployment.Labels[clustersetutils.ClusterSetLabel]
+				clusterDeploymentSet := clusterDeployment.Labels[clusterv1beta1.ClusterSetLabel]
 				if clusterDeploymentSet == managedClusterSet1 {
 					return nil
 				}
@@ -556,7 +556,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			ginkgo.By("Try to update clusterpool clusterset, and it should fail")
 			managedClusterSet1 := util.RandomName()
 			clusterSetLabel := map[string]string{
-				clustersetutils.ClusterSetLabel: managedClusterSet1,
+				clusterv1beta1.ClusterSetLabel: managedClusterSet1,
 			}
 			err = util.UpdateClusterPoolLabel(hiveClient, clusterPool, clusterPoolNamespace, clusterSetLabel)
 			gomega.Expect(err).Should(gomega.HaveOccurred())
@@ -566,7 +566,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			ginkgo.By("Try to update claimed managedcluster clusterset, and it should fail")
 			managedClusterSet1 := util.RandomName()
 			clusterSetLabel := map[string]string{
-				clustersetutils.ClusterSetLabel: managedClusterSet1,
+				clusterv1beta1.ClusterSetLabel: managedClusterSet1,
 			}
 			err = util.UpdateManagedClusterLabels(clusterClient, managedCluster, clusterSetLabel)
 			gomega.Expect(err).Should(gomega.HaveOccurred())

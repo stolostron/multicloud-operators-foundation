@@ -7,6 +7,7 @@ import (
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -227,5 +228,44 @@ var _ = ginkgo.Describe("Testing webhook cert rotation", func() {
 		gomega.Eventually(func() error {
 			return util.CreateManagedCluster(userClusterClient, cluster)
 		}, eventuallyTimeout, eventuallyInterval*5).ShouldNot(gomega.HaveOccurred())
+	})
+})
+
+var _ = ginkgo.Describe("Testing clusterset create and update", func() {
+	ginkgo.It("should get global Clusterset successfully", func() {
+		gomega.Eventually(func() error {
+			_, err := clusterClient.ClusterV1beta1().ManagedClusterSets().Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
+			return err
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.It("should not update global Clusterset successfully", func() {
+		updateGlobalSet := clustersetutils.GlobalSet
+		updateGlobalSet.Name = "updateset"
+		updateGlobalSet.Spec.ClusterSelector.LabelSelector.MatchLabels = map[string]string{
+			"vendor": "ocp",
+		}
+		_, err := clusterClient.ClusterV1beta1().ManagedClusterSets().Update(context.Background(), updateGlobalSet, metav1.UpdateOptions{})
+		gomega.Expect(err).To(gomega.HaveOccurred())
+	})
+
+	ginkgo.It("should not create other labelselector based Clusterset successfully", func() {
+		labelSelectorSet := &clusterv1beta1.ManagedClusterSet{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "ocpset",
+			},
+			Spec: clusterv1beta1.ManagedClusterSetSpec{
+				ClusterSelector: clusterv1beta1.ManagedClusterSelector{
+					SelectorType: clusterv1beta1.LabelSelector,
+					LabelSelector: &metav1.LabelSelector{
+						MatchLabels: map[string]string{
+							"vendor": "openshift",
+						},
+					},
+				},
+			},
+		}
+		_, err := clusterClient.ClusterV1beta1().ManagedClusterSets().Create(context.Background(), labelSelectorSet, metav1.CreateOptions{})
+		gomega.Expect(err).To(gomega.HaveOccurred())
 	})
 })

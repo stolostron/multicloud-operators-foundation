@@ -5,7 +5,6 @@ import (
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
-	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 
@@ -152,14 +151,14 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 func getRequiredClusterSet(labels map[string]string, clusterSetMapper *helpers.ClusterSetMapper, namespace string) []reconcile.Request {
 	var currentSet string
 	var requests []reconcile.Request
-	if labels != nil && len(labels[clustersetutils.ClusterSetLabel]) != 0 {
+	if labels != nil && len(labels[clusterv1beta1.ClusterSetLabel]) != 0 {
 		request := reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name: labels[clustersetutils.ClusterSetLabel],
+				Name: labels[clusterv1beta1.ClusterSetLabel],
 			},
 		}
 		requests = append(requests, request)
-		currentSet = labels[clustersetutils.ClusterSetLabel]
+		currentSet = labels[clusterv1beta1.ClusterSetLabel]
 	}
 
 	managedClusterset := clusterSetMapper.GetObjectClusterset(namespace)
@@ -267,9 +266,9 @@ func (r *Reconciler) cleanClusterSetResource(clustersetName string) error {
 }
 
 func (r *Reconciler) syncClustersetMapper(clustersetName string) error {
-	//List Clusterset related resource by utils.ClusterSetLabel
+	//List Clusterset related resource by ClusterSetLabel
 	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{
-		clustersetutils.ClusterSetLabel: clustersetName,
+		clusterv1beta1.ClusterSetLabel: clustersetName,
 	}}
 	selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
 	if err != nil {

@@ -5,11 +5,11 @@ import (
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	utils "github.com/stolostron/multicloud-operators-foundation/pkg/utils"
-	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// This controller sync the clusterclaim's utils.ClusterSetLabel with releated clusterpool's utils.ClusterSetLabel
+// This controller sync the clusterclaim's ClusterSetLabel with releated clusterpool's ClusterSetLabel
 // if the clusterpool did not exist, do nothing.
 type Reconciler struct {
 	client client.Client
@@ -133,7 +133,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	klog.V(5).Infof("Clusterclaim's clusterdeployment: %+v", clusterDeployment)
 
 	var isModified = false
-	utils.SyncMapField(&isModified, &clusterclaim.Labels, clusterDeployment.Labels, clustersetutils.ClusterSetLabel)
+	utils.SyncMapField(&isModified, &clusterclaim.Labels, clusterDeployment.Labels, clusterv1beta1.ClusterSetLabel)
 
 	if isModified {
 		err = r.client.Update(ctx, clusterclaim, &client.UpdateOptions{})

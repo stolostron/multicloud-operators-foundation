@@ -7,8 +7,6 @@ import (
 	"testing"
 	"time"
 
-	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
-
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/client-go/rest"
@@ -169,7 +167,7 @@ func TestReconcile(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: ManagedClusterName,
 						Labels: map[string]string{
-							clustersetutils.ClusterSetLabel: ManagedClusterSetName,
+							clusterv1beta1.ClusterSetLabel: ManagedClusterSetName,
 						},
 					},
 				},

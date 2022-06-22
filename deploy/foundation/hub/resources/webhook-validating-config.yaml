@@ -41,5 +41,6 @@ webhooks:
           - "*"
         resources:
           - managedclusters
+          - managedclustersets
     sideEffects: None
     timeoutSeconds: 10
