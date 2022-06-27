@@ -25,6 +25,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clusterclaim"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clusterdeployment"
 	clustersetmapper "github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
+	globalclusterset "github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/globalclusterset"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncclusterrolebinding"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncrolebinding"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/gc"
@@ -201,6 +202,12 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		klog.Errorf("unable to setup clustersetmapper reconciler: %v", err)
 		return err
 	}
+
+	if err = globalclusterset.SetupWithManager(mgr, kubeClient); err != nil {
+		klog.Errorf("unable to setup globalclusterset reconciler: %v", err)
+		return err
+	}
+
 	if err = clusterdeployment.SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to setup clusterdeployment reconciler: %v", err)
 		return err
