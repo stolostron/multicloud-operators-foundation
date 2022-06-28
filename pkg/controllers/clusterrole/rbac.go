@@ -7,6 +7,7 @@ package clusterrole
 
 import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,11 +15,13 @@ import (
 var managedclusterGroup = "cluster.open-cluster-management.io"
 var managedClusterViewGroup = "clusterview.open-cluster-management.io"
 
-// buildAdminRoleRules builds the clusteadminroles
-func buildAdminRole(clusterName, clusteroleName string) *rbacv1.ClusterRole {
+// buildAdminRole builds the admin clusterrole for the cluster.
+// The users with this clusterrole has admin permission(create/update/delete/...) for the cluster.
+func buildAdminRole(clusterName string) *rbacv1.ClusterRole {
+	adminRoleName := utils.GenerateClusterRoleName(clusterName, "admin")
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: clusteroleName,
+			Name: adminRoleName,
 		},
 		Rules: []rbacv1.PolicyRule{
 			helpers.NewRule("create", "get", "list", "watch", "update", "patch", "delete").
@@ -35,11 +38,13 @@ func buildAdminRole(clusterName, clusteroleName string) *rbacv1.ClusterRole {
 
 }
 
-// buildViewRoleRules builds the clusteviewroles
-func buildViewRole(clusterName, clusteroleName string) *rbacv1.ClusterRole {
+// buildViewRole builds the view clusterrole for the cluster.
+// The users with this clusterrole has admin permission(get/list/watch...) for the cluster.
+func buildViewRole(clusterName string) *rbacv1.ClusterRole {
+	viewRoleName := utils.GenerateClusterRoleName(clusterName, "view")
 	return &rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: clusteroleName,
+			Name: viewRoleName,
 		},
 		Rules: []rbacv1.PolicyRule{
 			helpers.NewRule("get", "list", "watch").

@@ -113,3 +113,10 @@ func generateClustersetToObjects(ms map[string]sets.String) *helpers.ClusterSetM
 	}
 	return clustersetToClusters
 }
+
+func Test_GenerateClustersetSubjects(t *testing.T) {
+	GenerateClustersetSubjects(nil)
+
+	BuildAdminRole("s1")
+	BuildViewRole("s1")
+}

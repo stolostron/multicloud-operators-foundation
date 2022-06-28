@@ -5,6 +5,7 @@ import (
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 
@@ -23,10 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-)
-
-const (
-	clustersetRoleFinalizerName = "cluster.open-cluster-management.io/managedclusterset-clusterrole"
 )
 
 //This controller apply the clusterset clusterrole and sync clusterSetClusterMapper and clusterSetNamespaceMapper
@@ -183,24 +180,18 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// ignore the non-legacy clusterset
-	selectorType := clusterset.Spec.ClusterSelector.SelectorType
-	if len(selectorType) > 0 && selectorType != clusterv1beta1.LegacyClusterSetLabel {
-		return ctrl.Result{}, nil
-	}
-
 	// Check DeletionTimestamp to determine if object is under deletion
 	if !clusterset.GetDeletionTimestamp().IsZero() {
 		// The object is being deleted
-		if utils.ContainsString(clusterset.GetFinalizers(), clustersetRoleFinalizerName) {
+		if utils.ContainsString(clusterset.GetFinalizers(), clustersetutils.ClustersetRoleFinalizerName) {
 			klog.Infof("deleting ManagedClusterset %v", clusterset.Name)
-			err := r.cleanClusterSetResource(clusterset.Name)
+			err := r.cleanClusterSetResource(clusterset)
 			if err != nil {
 				klog.Warningf("will reconcile since failed to delete ManagedClusterSet %v : %v", clusterset.Name, err)
 				return ctrl.Result{}, err
 			}
 			klog.Infof("removing Clusterrole Finalizer in ManagedClusterset %v", clusterset.Name)
-			clusterset.ObjectMeta.Finalizers = utils.RemoveString(clusterset.ObjectMeta.Finalizers, clustersetRoleFinalizerName)
+			clusterset.ObjectMeta.Finalizers = utils.RemoveString(clusterset.ObjectMeta.Finalizers, clustersetutils.ClustersetRoleFinalizerName)
 			if err := r.client.Update(context.TODO(), clusterset); err != nil {
 				klog.Warningf("will reconcile since failed to remove Finalizer from ManagedClusterset %v, %v", clusterset.Name, err)
 				return ctrl.Result{}, err
@@ -209,30 +200,30 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	if !utils.ContainsString(clusterset.GetFinalizers(), clustersetRoleFinalizerName) {
+	if !utils.ContainsString(clusterset.GetFinalizers(), clustersetutils.ClustersetRoleFinalizerName) {
 		klog.Infof("adding Clusterrole Finalizer to ManagedClusterset %v", clusterset.Name)
-		clusterset.ObjectMeta.Finalizers = append(clusterset.ObjectMeta.Finalizers, clustersetRoleFinalizerName)
+		clusterset.ObjectMeta.Finalizers = append(clusterset.ObjectMeta.Finalizers, clustersetutils.ClustersetRoleFinalizerName)
 		if err := r.client.Update(context.TODO(), clusterset); err != nil {
 			klog.Warningf("will reconcile since failed to add finalizer to ManagedClusterset %v, %v", clusterset.Name, err)
 			return ctrl.Result{}, err
 		}
 	}
 
-	//add clusterset clusterrole
-	adminroleName := utils.GenerateClustersetClusterroleName(clusterset.Name, "admin")
-	adminRole := buildAdminRole(clusterset.Name, adminroleName)
-	err = utils.ApplyClusterRole(r.kubeClient, adminRole)
+	err = r.applyClusterSetClusterRoles(clusterset)
 	if err != nil {
-		klog.Warningf("will reconcile since failed to create/update clusterrole %v, %v", clusterset.Name, err)
+		klog.Warningf("will reconcile since failed to apply clusterset clusterrole. clusterset: %v, err: %v", clusterset.Name, err)
 		return ctrl.Result{}, err
 	}
 
-	viewroleName := utils.GenerateClustersetClusterroleName(clusterset.Name, "view")
-	viewRole := buildViewRole(clusterset.Name, viewroleName)
-	err = utils.ApplyClusterRole(r.kubeClient, viewRole)
-	if err != nil {
-		klog.Warningf("will reconcile since failed to create/update clusterrole %v, %v", clusterset.Name, err)
-		return ctrl.Result{}, err
+	//The following code is used to sync the r.clusterSetClusterMapper and r.clusterSetNamespaceMapper
+	//r.clusterSetClusterMapper(map[string]sets.String) stores the map of <ClusterSet Name> to <Clusters Name>, each item in the map means the clusterset include these clusters
+	//r.clusterSetNamespaceMapper (map[string]sets.String) stores the map of <ClusterSet Name> to <namespaces>, the namespaces are the namespace of clusterpools/clusterclaims/clusterdeployments which are in this clusterset.
+	//These two Mappers are used to propagate the clusterset admin/bind/view permission to managedclusters/managedclusters namespaces/clusterpools namespace/clusterclaims namespace/clusterdeployments namespaces which are in the clusterset.
+	//Currentlly, global clusterset is mainly used for scheduling, So there is no need to propoagate the clusterpools/clusterclaims/clusterdeployments permissions.
+
+	//TODO: Will propagate global clusterset view permission to all managedclusters and managedclusters namespaces later.
+	if clusterset.Spec.ClusterSelector.SelectorType != clusterv1beta1.LegacyClusterSetLabel {
+		return ctrl.Result{}, nil
 	}
 
 	err = r.syncClustersetMapper(clusterset.Name)
@@ -243,24 +234,62 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
+//applyClusterSetClusterRoles apply the clusterset clusterrole(admin/bind/view)
+func (r *Reconciler) applyClusterSetClusterRoles(clusterset *clusterv1beta1.ManagedClusterSet) error {
+	errs := []error{}
+	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel {
+		adminRole := clustersetutils.BuildAdminRole(clusterset.Name)
+		err := utils.ApplyClusterRole(r.kubeClient, adminRole)
+		if err != nil {
+			klog.Warningf("will reconcile since failed to create/update admin clusterrole %v, %v", clusterset.Name, err)
+			errs = append(errs, err)
+		}
+	}
+
+	bindRole := clustersetutils.BuildBindRole(clusterset.Name)
+	err := utils.ApplyClusterRole(r.kubeClient, bindRole)
+	if err != nil {
+		klog.Warningf("will reconcile since failed to create/update bind clusterrole %v, %v", clusterset.Name, err)
+		errs = append(errs, err)
+	}
+
+	viewRole := clustersetutils.BuildViewRole(clusterset.Name)
+	err = utils.ApplyClusterRole(r.kubeClient, viewRole)
+	if err != nil {
+		klog.Warningf("will reconcile since failed to create/update view clusterrole %v, %v", clusterset.Name, err)
+		errs = append(errs, err)
+	}
+	return utils.NewMultiLineAggregate(errs)
+}
+
 //cleanClusterSetResource clean the clusterrole
 //and delete clusterset related resource in clusterSetClusterMapper and clusterSetNamespaceMapper
-func (r *Reconciler) cleanClusterSetResource(clustersetName string) error {
-	//Delete clusterset clusterrole
-	err := utils.DeleteClusterRole(r.kubeClient, utils.GenerateClustersetClusterroleName(clustersetName, "admin"))
+func (r *Reconciler) cleanClusterSetResource(clusterset *clusterv1beta1.ManagedClusterSet) error {
+
+	err := utils.DeleteClusterRole(r.kubeClient, utils.GenerateClustersetClusterroleName(clusterset.Name, "bind"))
 	if err != nil {
-		klog.Warningf("will reconcile since failed to delete clusterrole. clusterset: %v, err: %v", clustersetName, err)
-		return err
-	}
-	err = utils.DeleteClusterRole(r.kubeClient, utils.GenerateClustersetClusterroleName(clustersetName, "view"))
-	if err != nil {
-		klog.Warningf("will reconcile since failed to delete clusterrole. clusterset: %v, err: %v", clustersetName, err)
+		klog.Warningf("will reconcile since failed to delete clusterrole. clusterset: %v, err: %v", clusterset.Name, err)
 		return err
 	}
 
-	//Delete clusterset which in clustersetMapper
-	r.clusterSetClusterMapper.DeleteClusterSet(clustersetName)
-	r.clusterSetNamespaceMapper.DeleteClusterSet(clustersetName)
+	err = utils.DeleteClusterRole(r.kubeClient, utils.GenerateClustersetClusterroleName(clusterset.Name, "view"))
+	if err != nil {
+		klog.Warningf("will reconcile since failed to delete clusterrole. clusterset: %v, err: %v", clusterset.Name, err)
+		return err
+	}
+
+	//Only LegacyClusterSet has admin clusterrole, so only LegacyClusterSet need to delete it here.
+	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel {
+		err := utils.DeleteClusterRole(r.kubeClient, utils.GenerateClustersetClusterroleName(clusterset.Name, "admin"))
+		if err != nil {
+			klog.Warningf("will reconcile since failed to delete clusterrole. clusterset: %v, err: %v", clusterset.Name, err)
+			return err
+		}
+		//Delete clusterset which in clustersetMapper
+		r.clusterSetClusterMapper.DeleteClusterSet(clusterset.Name)
+		r.clusterSetNamespaceMapper.DeleteClusterSet(clusterset.Name)
+
+	}
 
 	return nil
 }
