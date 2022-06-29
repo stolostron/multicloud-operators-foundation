@@ -134,6 +134,14 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		}
 	}
 
+	cc, err := addonutils.NewConfigChecker("work manager", o.HubKubeConfig)
+	if err != nil {
+		setupLog.Error(err, "unable to setup a configChecker")
+		os.Exit(1)
+	}
+
+	go app.ServeHealthProbes(ctx.Done(), ":8000", cc.Check)
+
 	mgr, err := ctrl.NewManager(hubConfig, ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: o.MetricsAddr,
@@ -144,14 +152,6 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-
-	cc, err := addonutils.NewConfigChecker("work manager", o.HubKubeConfig)
-	if err != nil {
-		setupLog.Error(err, "unable to setup a configChecker")
-		os.Exit(1)
-	}
-
-	go app.ServeHealthProbes(ctx.Done(), ":8000", cc.Check)
 
 	run := func(ctx context.Context) {
 		// run agent server
