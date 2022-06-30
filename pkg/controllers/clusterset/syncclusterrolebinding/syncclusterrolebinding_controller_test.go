@@ -99,7 +99,7 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 	for _, test := range tests {
 		ctx := context.Background()
 		r := newTestReconciler(test.clustersetToClusters, test.clusterSetCache)
-		r.syncManagedClusterClusterroleBinding(ctx, test.clustersetToSubject, "admin")
+		r.syncManagedClusterClusterroleBinding(ctx, test.clustersetToClusters, test.clustersetToSubject, "admin")
 		validateResult(t, r, test.clusterrolebindingName, test.exist)
 	}
 }

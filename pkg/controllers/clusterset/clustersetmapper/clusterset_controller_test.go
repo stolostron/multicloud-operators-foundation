@@ -115,7 +115,7 @@ func TestControllerReconcile(t *testing.T) {
 	c = mgr.GetClient()
 
 	kubeClient := k8sfake.NewSimpleClientset()
-	SetupWithManager(mgr, kubeClient, nil, nil)
+	SetupWithManager(mgr, kubeClient, nil, nil, nil)
 
 	cancel, mgrStopped := StartTestManager(mgr, g)
 

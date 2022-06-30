@@ -76,6 +76,8 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	// clusterset to cluster map
 	clusterSetClusterMapper := helpers.NewClusterSetMapper()
 
+	globalClusterSetClusterMapper := helpers.NewClusterSetMapper()
+
 	// clusterset to namespace resource map, like clusterdeployment, clusterpool, clusterclaim. the map value format is "<ResourceType>/<Namespace>/<Name>"
 	clusterSetNamespaceMapper := helpers.NewClusterSetMapper()
 
@@ -197,7 +199,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 
-	if err = clustersetmapper.SetupWithManager(mgr, kubeClient, clusterSetClusterMapper, clusterSetNamespaceMapper); err != nil {
+	if err = clustersetmapper.SetupWithManager(mgr, kubeClient, globalClusterSetClusterMapper, clusterSetClusterMapper, clusterSetNamespaceMapper); err != nil {
 		klog.Errorf("unable to setup clustersetmapper reconciler: %v", err)
 		return err
 	}
@@ -218,6 +220,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		kubeClient,
 		clusterSetAdminCache.Cache,
 		clusterSetViewCache.Cache,
+		globalClusterSetClusterMapper,
 		clusterSetClusterMapper,
 	)
 
@@ -225,6 +228,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		kubeClient,
 		clusterSetAdminCache.Cache,
 		clusterSetViewCache.Cache,
+		globalClusterSetClusterMapper,
 		clusterSetClusterMapper,
 		clusterSetNamespaceMapper,
 	)
