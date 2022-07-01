@@ -291,11 +291,11 @@ func (r *Reconciler) cleanClusterSetResource(clusterset *clusterv1beta1.ManagedC
 	return nil
 }
 
-//syncClustersetMapper sync the r.clusterSetClusterMapper and r.clusterSetNamespaceMapper
+//syncClustersetMapper sync the r.globalClusterSetClusterMapper, r.clusterSetClusterMapper and r.clusterSetNamespaceMapper
+//r.globalClusterSetClusterMapper (map[string]sets.String) stores the map of "global" to <Clusters Name>, only one item in this map, and the value is all managedclusters names.
 //r.clusterSetClusterMapper(map[string]sets.String) stores the map of <ClusterSet Name> to <Clusters Name>, each item in the map means the clusterset include these clusters
 //r.clusterSetNamespaceMapper (map[string]sets.String) stores the map of <ClusterSet Name> to <namespaces>, the namespaces are the namespace of clusterpools/clusterclaims/clusterdeployments which are in this clusterset.
-//These two Mappers are used to propagate the clusterset admin/bind/view permission to managedclusters/managedclusters namespaces/clusterpools namespace/clusterclaims namespace/clusterdeployments namespaces which are in the clusterset.
-//Currentlly, global clusterset is mainly used for scheduling, So there is no need to propoagate the clusterpools/clusterclaims/clusterdeployments permissions.
+//These three Mappers are used to propagate the clusterset admin/bind/view permission to managedclusters/managedclusters namespaces/clusterpools namespace/clusterclaims namespace/clusterdeployments namespaces which are in the clusterset.
 func (r *Reconciler) syncClustersetMapper(clusterset *clusterv1beta1.ManagedClusterSet) error {
 	selector, err := clusterv1beta1.BuildClusterSelector(clusterset)
 	if err != nil {

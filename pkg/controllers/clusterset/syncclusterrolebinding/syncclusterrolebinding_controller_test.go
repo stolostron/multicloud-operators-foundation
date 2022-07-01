@@ -19,20 +19,6 @@ var (
 	scheme = runtime.NewScheme()
 )
 
-func newTestReconciler(clustersetToClusters *helpers.ClusterSetMapper, clusterSetCache *cache.AuthCache) *Reconciler {
-	ca0 := generateRequiredClusterRoleBinding("c0", nil, "cs0", "admin")
-	cv0 := generateRequiredClusterRoleBinding("c0", nil, "cs1", "view")
-	cv1 := generateRequiredClusterRoleBinding("c1", nil, "cs2", "view")
-	objs := []runtime.Object{ca0, cv0, cv1}
-	r := &Reconciler{
-		kubeClient:           k8sfake.NewSimpleClientset(objs...),
-		clustersetToClusters: clustersetToClusters,
-		clusterSetAdminCache: clusterSetCache,
-		clusterSetViewCache:  clusterSetCache,
-	}
-	return r
-}
-
 func generateClustersetToClusters(ms map[string]sets.String) *helpers.ClusterSetMapper {
 	clustersetToClusters := helpers.NewClusterSetMapper()
 	for s, c := range ms {
@@ -42,14 +28,22 @@ func generateClustersetToClusters(ms map[string]sets.String) *helpers.ClusterSet
 }
 
 func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
+	ca0 := generateRequiredClusterRoleBinding("c0", nil, "cs0", "admin")
+	cv0 := generateRequiredClusterRoleBinding("c0", nil, "cs1", "view")
+	cv1 := generateRequiredClusterRoleBinding("c1", nil, "cs2", "view")
+	objs := []runtime.Object{ca0, cv0, cv1}
+	kubeClient := k8sfake.NewSimpleClientset(objs...)
+
 	ctc1 := generateClustersetToClusters(nil)
 
 	ms2 := map[string]sets.String{"cs1": sets.NewString("c1", "c2")}
 	ctc2 := generateClustersetToClusters(ms2)
-
+	gs := map[string]sets.String{"global": sets.NewString("c1", "c2")}
+	gsm := generateClustersetToClusters(gs)
 	tests := []struct {
 		name                   string
 		clustersetToClusters   *helpers.ClusterSetMapper
+		globalsetToClusters    *helpers.ClusterSetMapper
 		clusterSetCache        *cache.AuthCache
 		clustersetToSubject    map[string][]rbacv1.Subject
 		clusterrolebindingName string
@@ -58,6 +52,7 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 		{
 			name:                 "no cluster",
 			clustersetToClusters: ctc1,
+			globalsetToClusters:  gsm,
 			clustersetToSubject: map[string][]rbacv1.Subject{
 				"cs1": {
 					{
@@ -71,6 +66,7 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 		{
 			name:                 "delete c0:",
 			clustersetToClusters: ctc1,
+			globalsetToClusters:  gsm,
 			clustersetToSubject: map[string][]rbacv1.Subject{
 				"cs1": {
 					{
@@ -84,6 +80,7 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 		{
 			name:                 "need create:",
 			clustersetToClusters: ctc2,
+			globalsetToClusters:  gsm,
 			clustersetToSubject: map[string][]rbacv1.Subject{
 				"cs1": {
 					{
@@ -98,17 +95,19 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 
 	for _, test := range tests {
 		ctx := context.Background()
-		r := newTestReconciler(test.clustersetToClusters, test.clusterSetCache)
+
+		r := NewReconciler(kubeClient, test.clusterSetCache, test.clusterSetCache, test.globalsetToClusters, test.clustersetToClusters)
+		r.reconcile()
 		r.syncManagedClusterClusterroleBinding(ctx, test.clustersetToClusters, test.clustersetToSubject, "admin")
-		validateResult(t, r, test.clusterrolebindingName, test.exist)
+		validateResult(t, test.name, &r, test.clusterrolebindingName, test.exist)
 	}
 }
 
-func validateResult(t *testing.T, r *Reconciler, clusterrolebindingName string, exist bool) {
+func validateResult(t *testing.T, caseName string, r *Reconciler, clusterrolebindingName string, exist bool) {
 	ctx := context.Background()
 	clusterrolebinding, _ := r.kubeClient.RbacV1().ClusterRoleBindings().Get(ctx, clusterrolebindingName, metav1.GetOptions{})
 	if exist && clusterrolebinding == nil {
-		t.Errorf("Failed to apply clusterrolebinding")
+		t.Errorf("Case: %v, Failed to apply clusterrolebinding", caseName)
 	}
 }
 

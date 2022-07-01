@@ -74,7 +74,10 @@ func (r *Reconciler) reconcile() {
 // and these resources are in the clusterset.
 //In current acm design, if a user has admin/view permissions to a clusterset, he/she should also has admin/view permissions to the clusterpools/clusterclaims/clusterdeployments/managedclusters which are in the set.
 //So we will generate two(admin/view) rolebindings which grant the namespace admin/view permissions to clusterset users.
+//For namespace, it will have two rolebindings, so if there are 2k clusters(namespaces), 4k rolebindings will be created.
 func (r *Reconciler) syncRoleBinding(ctx context.Context, clustersetToNamespace *helpers.ClusterSetMapper, clustersetToSubject map[string][]rbacv1.Subject, role string) []error {
+	//namespaceToSubject(map[<namespace>][]rbacv1.Subject) means the users/groups in subject has permission for this namespace.
+	//for each item, we will create a rrolebinding
 	namespaceToSubject := clustersetutils.GenerateObjectSubjectMap(clustersetToNamespace, clustersetToSubject)
 	//apply all disired clusterrolebinding
 	errs := []error{}

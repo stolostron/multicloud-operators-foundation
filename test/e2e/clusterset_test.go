@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	"k8s.io/apimachinery/pkg/api/errors"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 
@@ -30,14 +31,28 @@ var updatedSubjectView = rbacv1.Subject{
 	Kind:     "User",
 	Name:     "view2",
 }
+var updatedGlobalSubjectBind = rbacv1.Subject{
+	APIGroup: "rbac.authorization.k8s.io",
+	Kind:     "User",
+	Name:     "globalBind1",
+}
+var updatedGlobalSubjectView = rbacv1.Subject{
+	APIGroup: "rbac.authorization.k8s.io",
+	Kind:     "User",
+	Name:     "globalView1",
+}
 
 var (
-	adminUser1               = "admin1"
-	bindUser1                = "bind1"
-	viewUser1                = "view1"
-	clusterRoleBindingAdmin1 = "clusterSetRoleBindingAdmin1"
-	clusterRoleBindingBind1  = "clusterSetRoleBindingBind1"
-	clusterRoleBindingView1  = "clusterSetRoleBindingView1"
+	adminUser1                       = "admin1"
+	bindUser1                        = "bind1"
+	viewUser1                        = "view1"
+	globalBindUser1                  = "globalBind1"
+	globalViewUser1                  = "globalView1"
+	clusterRoleBindingAdmin1         = "clusterSetRoleBindingAdmin1"
+	clusterRoleBindingBind1          = "clusterSetRoleBindingBind1"
+	clusterRoleBindingView1          = "clusterSetRoleBindingView1"
+	globalSetClusterRoleBindingBind1 = "globalClusterSetRoleBindingBind1"
+	globalSetClusterRoleBindingView1 = "globalClusterSetRoleBindingView1"
 )
 
 var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
@@ -47,6 +62,8 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 		adminClusterSetClusterRole         string
 		bindClusterSetClusterRole          string
 		viewClusterSetClusterRole          string
+		globalBindClusterSetClusterRole    string
+		globalViewClusterSetClusterRole    string
 		adminRoleBindingName               string
 		viewRoleBindingName                string
 		adminClusterClusterRoleBindingName string
@@ -57,10 +74,6 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 	ginkgo.BeforeEach(func() {
 		managedCluster = util.RandomName()
 		managedClusterSet = util.RandomName()
-		//auto created admin/bind/view clusteroles for each set
-		adminClusterSetClusterRole = utils.GenerateClustersetClusterroleName(managedClusterSet, "admin")
-		bindClusterSetClusterRole = utils.GenerateClustersetClusterroleName(managedClusterSet, "bind")
-		viewClusterSetClusterRole = utils.GenerateClustersetClusterroleName(managedClusterSet, "view")
 
 		//permission propagate created clusterroles and roles
 		adminRoleBindingName = utils.GenerateClustersetResourceRoleBindingName("admin")
@@ -81,11 +94,27 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 		err = util.UpdateManagedClusterLabels(clusterClient, managedCluster, clusterSetLabel)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
+		//auto created admin/bind/view clusteroles for each set
+		adminClusterSetClusterRole = utils.GenerateClustersetClusterroleName(managedClusterSet, "admin")
+		bindClusterSetClusterRole = utils.GenerateClustersetClusterroleName(managedClusterSet, "bind")
+		viewClusterSetClusterRole = utils.GenerateClustersetClusterroleName(managedClusterSet, "view")
+
+		//Create clusterrolebinding for user adminUser1  bindUser1 and viewUser1 to grant cluster set admin bind and view permission
 		err = util.CreateClusterRoleBindingForUser(kubeClient, clusterRoleBindingAdmin1, adminClusterSetClusterRole, adminUser1)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 		err = util.CreateClusterRoleBindingForUser(kubeClient, clusterRoleBindingBind1, bindClusterSetClusterRole, bindUser1)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 		err = util.CreateClusterRoleBindingForUser(kubeClient, clusterRoleBindingView1, viewClusterSetClusterRole, viewUser1)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+		//Global set clusterrole
+		globalBindClusterSetClusterRole = utils.GenerateClustersetClusterroleName(clustersetutils.GlobalSetName, "bind")
+		globalViewClusterSetClusterRole = utils.GenerateClustersetClusterroleName(clustersetutils.GlobalSetName, "view")
+
+		//Create clusterrolebinding for user globalBindUser1 and globalViewUser1 to grant global set bind and view permission
+		err = util.CreateClusterRoleBindingForUser(kubeClient, globalSetClusterRoleBindingBind1, globalBindClusterSetClusterRole, globalBindUser1)
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+		err = util.CreateClusterRoleBindingForUser(kubeClient, globalSetClusterRoleBindingView1, globalViewClusterSetClusterRole, globalViewUser1)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	})
 
@@ -101,6 +130,11 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 		err = util.DeleteClusterRoleBinding(kubeClient, clusterRoleBindingBind1)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		err = util.DeleteClusterRoleBinding(kubeClient, clusterRoleBindingView1)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.DeleteClusterRoleBinding(kubeClient, globalSetClusterRoleBindingBind1)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		err = util.DeleteClusterRoleBinding(kubeClient, globalSetClusterRoleBindingView1)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
 
@@ -148,10 +182,10 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 		})
 	})
 
-	ginkgo.Context("globalClusterSet bind/view clusterRole should be created automatically.", func() {
+	ginkgo.Context("globalClusterSet rbac check.", func() {
 		ginkgo.It("globalClusterSet bind/view clusterRole should be created automatically", func() {
-			globalBindClusterSetClusterRole := utils.GenerateClustersetClusterroleName(managedClusterSet, "bind")
-			globalViewClusterSetClusterRole := utils.GenerateClustersetClusterroleName(managedClusterSet, "view")
+			globalBindClusterSetClusterRole := utils.GenerateClustersetClusterroleName(clustersetutils.GlobalSetName, "bind")
+			globalViewClusterSetClusterRole := utils.GenerateClustersetClusterroleName(clustersetutils.GlobalSetName, "view")
 
 			ginkgo.By("globalClusterSet bind clusterRole should be created")
 			gomega.Eventually(func() error {
@@ -165,6 +199,107 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 		})
+		ginkgo.It("globalClusterSet bind/view user should be in managedcluster clusterRolebinding", func() {
+			//Update global set bind clusterrolebinding subject and the related managedcluster clusterrolebinding should be updated
+			ginkgo.By("update clusterSet bind clusterRoleBinding subject")
+			updateBindClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.TODO(), globalSetClusterRoleBindingBind1, metav1.GetOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			updatedBindSubject := append(updateBindClusterRoleBinding.Subjects, updatedGlobalSubjectBind)
+			updateBindClusterRoleBinding.Subjects = updatedBindSubject
+
+			_, err = kubeClient.RbacV1().ClusterRoleBindings().Update(context.Background(), updateBindClusterRoleBinding, metav1.UpdateOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("clusterrolebinding for clusters view permission should be updated")
+			gomega.Eventually(func() bool {
+				generatedClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), viewClusterClusterRoleBindingName, metav1.GetOptions{})
+				if err != nil {
+					return false
+				}
+				for _, subject := range generatedClusterRoleBinding.Subjects {
+					if subject.Kind == updatedGlobalSubjectBind.Kind &&
+						subject.Name == updatedGlobalSubjectBind.Name {
+						return true
+					}
+				}
+				return false
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			//Update global set view clusterrolebinding subject and the related managedcluster clusterrolebinding should be updated
+			ginkgo.By("update clusterSet bind clusterRoleBinding subject")
+			updateViewClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.TODO(), globalSetClusterRoleBindingView1, metav1.GetOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			updatedViewSubject := append(updateViewClusterRoleBinding.Subjects, updatedGlobalSubjectView)
+			updateViewClusterRoleBinding.Subjects = updatedViewSubject
+
+			_, err = kubeClient.RbacV1().ClusterRoleBindings().Update(context.Background(), updateViewClusterRoleBinding, metav1.UpdateOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("clusterrolebinding for clusters view permission should be updated")
+			gomega.Eventually(func() bool {
+				generatedClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), viewClusterClusterRoleBindingName, metav1.GetOptions{})
+				if err != nil {
+					return false
+				}
+				for _, subject := range generatedClusterRoleBinding.Subjects {
+					if subject.Kind == updatedGlobalSubjectView.Kind &&
+						subject.Name == updatedGlobalSubjectView.Name {
+						return true
+					}
+				}
+				return false
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+		})
+		ginkgo.It("globalClusterSet bind/view user should be in managedcluster namespace rolebinding", func() {
+			//Update global set bind clusterrolebinding subject and the related managedcluster namespace rolebinding should be updated
+			ginkgo.By("update clusterSet bind clusterRoleBinding subject")
+			updateBindClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.TODO(), globalSetClusterRoleBindingBind1, metav1.GetOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			updatedBindSubject := append(updateBindClusterRoleBinding.Subjects, updatedGlobalSubjectBind)
+			updateBindClusterRoleBinding.Subjects = updatedBindSubject
+
+			_, err = kubeClient.RbacV1().ClusterRoleBindings().Update(context.Background(), updateBindClusterRoleBinding, metav1.UpdateOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("rolebinding for cluster view permission in cluster namespace should be updated")
+			gomega.Eventually(func() bool {
+				generatedRoleBinding, err := kubeClient.RbacV1().RoleBindings(managedCluster).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
+				if err != nil {
+					return false
+				}
+				for _, subject := range generatedRoleBinding.Subjects {
+					if subject.Kind == updatedGlobalSubjectBind.Kind &&
+						subject.Name == updatedGlobalSubjectBind.Name {
+						return true
+					}
+				}
+				return false
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+			//Update global set view clusterrolebinding subject and the related managedcluster clusterrolebinding should be updated
+			ginkgo.By("update clusterSet bind clusterRoleBinding subject")
+			updateViewClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.TODO(), globalSetClusterRoleBindingView1, metav1.GetOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			updatedViewSubject := append(updateViewClusterRoleBinding.Subjects, updatedGlobalSubjectView)
+			updateViewClusterRoleBinding.Subjects = updatedViewSubject
+
+			_, err = kubeClient.RbacV1().ClusterRoleBindings().Update(context.Background(), updateViewClusterRoleBinding, metav1.UpdateOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("rolebinding for cluster view permission in cluster namespace should be updated")
+			gomega.Eventually(func() bool {
+				generatedRoleBinding, err := kubeClient.RbacV1().RoleBindings(managedCluster).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				for _, subject := range generatedRoleBinding.Subjects {
+					if subject.Kind == updatedGlobalSubjectView.Kind &&
+						subject.Name == updatedGlobalSubjectView.Name {
+						return true
+					}
+				}
+				return false
+			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+		})
+
 	})
 
 	ginkgo.Context("managedCluster clusterRoleBinding should be created/updated automatically.", func() {
@@ -188,7 +323,9 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			ginkgo.By("clusterSet admin clusterRoleBinding should be updated")
 			gomega.Eventually(func() bool {
 				generatedClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), adminClusterClusterRoleBindingName, metav1.GetOptions{})
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				if err != nil {
+					return false
+				}
 				for _, subject := range generatedClusterRoleBinding.Subjects {
 					if subject.Kind == updatedSubjectAdmin.Kind &&
 						subject.Name == updatedSubjectAdmin.Name {
@@ -217,7 +354,9 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			ginkgo.By("clusterSet bind clusterRoleBinding should be updated")
 			gomega.Eventually(func() bool {
 				generatedClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), viewClusterClusterRoleBindingName, metav1.GetOptions{})
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				if err != nil {
+					return false
+				}
 				for _, subject := range generatedClusterRoleBinding.Subjects {
 					if subject.Kind == updatedSubjectBind.Kind &&
 						subject.Name == updatedSubjectBind.Name {
@@ -246,7 +385,9 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			ginkgo.By("clusterSet view clusterRoleBinding should be updated")
 			gomega.Eventually(func() bool {
 				generatedClusterRoleBinding, err := kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), viewClusterClusterRoleBindingName, metav1.GetOptions{})
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				if err != nil {
+					return false
+				}
 				for _, subject := range generatedClusterRoleBinding.Subjects {
 					if subject.Kind == updatedSubjectView.Kind &&
 						subject.Name == updatedSubjectView.Name {
@@ -280,7 +421,9 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			ginkgo.By("clusterSet admin roleBinding should be updated")
 			gomega.Eventually(func() bool {
 				generatedRoleBinding, err := kubeClient.RbacV1().RoleBindings(managedCluster).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				if err != nil {
+					return false
+				}
 				for _, subject := range generatedRoleBinding.Subjects {
 					if subject.Kind == updatedSubjectAdmin.Kind &&
 						subject.Name == updatedSubjectAdmin.Name {
@@ -309,7 +452,9 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			ginkgo.By("clusterSet view roleBinding should be updated")
 			gomega.Eventually(func() bool {
 				generatedRoleBinding, err := kubeClient.RbacV1().RoleBindings(managedCluster).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				if err != nil {
+					return false
+				}
 				for _, subject := range generatedRoleBinding.Subjects {
 					if subject.Kind == updatedSubjectBind.Kind &&
 						subject.Name == updatedSubjectBind.Name {
@@ -338,7 +483,9 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			ginkgo.By("clusterSet view roleBinding should be updated")
 			gomega.Eventually(func() bool {
 				generatedRoleBinding, err := kubeClient.RbacV1().RoleBindings(managedCluster).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				if err != nil {
+					return false
+				}
 				for _, subject := range generatedRoleBinding.Subjects {
 					if subject.Kind == updatedSubjectView.Kind &&
 						subject.Name == updatedSubjectView.Name {
@@ -434,7 +581,9 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			ginkgo.By("clusterSet admin roleBinding should be updated")
 			gomega.Eventually(func() bool {
 				generatedRoleBinding, err := kubeClient.RbacV1().RoleBindings(clusterDeployment).Get(context.Background(), adminRoleBindingName, metav1.GetOptions{})
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				if err != nil {
+					return false
+				}
 				for _, subject := range generatedRoleBinding.Subjects {
 					if subject.Kind == updatedSubjectAdmin.Kind &&
 						subject.Name == updatedSubjectAdmin.Name {
@@ -456,7 +605,9 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			ginkgo.By("clusterSet view roleBinding should be updated")
 			gomega.Eventually(func() bool {
 				generatedRoleBinding, err := kubeClient.RbacV1().RoleBindings(clusterDeployment).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
-				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+				if err != nil {
+					return false
+				}
 				for _, subject := range generatedRoleBinding.Subjects {
 					if subject.Kind == updatedSubjectView.Kind &&
 						subject.Name == updatedSubjectView.Name {

@@ -54,7 +54,6 @@ func (r *Reconciler) reconcile() {
 
 	//Sync clusters view permission to the global clusterset users
 	unionGlobalClustersetToCluster := r.clustersetToClusters.UnionObjectsInClusterSet(r.globalClustersetToClusters)
-
 	r.syncManagedClusterClusterroleBinding(ctx, unionGlobalClustersetToCluster, clustersetToViewSubjects, "view")
 }
 
@@ -63,7 +62,10 @@ func (r *Reconciler) reconcile() {
 //r.clustersetToClusters(map[string]sets.String) means the clusterset include these clusters
 //In current acm design, if a user has admin/view permissions to a clusterset, he/she should also has admin/view permissions to the clusters in the set.
 //So we will generate two(admin/view) clusterrolebindings which grant the clusters admin/view permissions to clusterset users.
+//For each cluster, it will have two clusterrolebindings, so if there are 2k clusters, 4k clusterrolebindings will be created.
 func (r *Reconciler) syncManagedClusterClusterroleBinding(ctx context.Context, clustersetToClusters *helpers.ClusterSetMapper, clustersetToSubject map[string][]rbacv1.Subject, role string) {
+	//clusterToSubject(map[<clusterName>][]rbacv1.Subject) means the users/groups in subject has permission for this cluster.
+	//for each item, we will create a clusterrolebinding
 	clusterToSubject := clustersetutils.GenerateObjectSubjectMap(clustersetToClusters, clustersetToSubject)
 
 	//apply all disired clusterrolebinding
