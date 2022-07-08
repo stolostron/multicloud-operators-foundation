@@ -8,49 +8,51 @@ import (
 )
 
 type AgentOptions struct {
-	LeaseDurationSeconds int
-	MetricsAddr          string
-	KubeConfig           string
-	HubKubeConfig        string
-	ManagedKubeConfig    string
-	ClusterName          string
-	AgentAddress         string
-	AgentIngress         string
-	AgentRoute           string
-	AgentService         string
-	Address              string
-	CertDir              string
-	TLSCertFile          string
-	TLSPrivateKeyFile    string
-	ClientCAFile         string
-	Port                 int
-	AgentPort            int
-	EnableLeaderElection bool
-	EnableImpersonation  bool
-	InSecure             bool
-	ComponentNamespace   string
-	QPS                  float32
-	Burst                int
+	LeaseDurationSeconds            int
+	MetricsAddr                     string
+	KubeConfig                      string
+	HubKubeConfig                   string
+	ManagedKubeConfig               string
+	ClusterName                     string
+	AgentAddress                    string
+	AgentIngress                    string
+	AgentRoute                      string
+	AgentService                    string
+	Address                         string
+	CertDir                         string
+	TLSCertFile                     string
+	TLSPrivateKeyFile               string
+	ClientCAFile                    string
+	Port                            int
+	AgentPort                       int
+	EnableLeaderElection            bool
+	EnableImpersonation             bool
+	EnableSyncLabelsToClusterClaims bool
+	InSecure                        bool
+	ComponentNamespace              string
+	QPS                             float32
+	Burst                           int
 }
 
 func NewAgentOptions() *AgentOptions {
 	return &AgentOptions{
-		LeaseDurationSeconds: 60,
-		MetricsAddr:          ":8080",
-		KubeConfig:           "",
-		HubKubeConfig:        "/var/run/hub/kubeconfig",
-		ClusterName:          "",
-		EnableLeaderElection: false,
-		EnableImpersonation:  false,
-		Address:              "0.0.0.0",
-		Port:                 443,
-		CertDir:              "/tmp/acm/cert",
-		InSecure:             false,
-		TLSCertFile:          "",
-		TLSPrivateKeyFile:    "",
-		ClientCAFile:         "",
-		QPS:                  50,
-		Burst:                100,
+		LeaseDurationSeconds:            60,
+		MetricsAddr:                     ":8080",
+		KubeConfig:                      "",
+		HubKubeConfig:                   "/var/run/hub/kubeconfig",
+		ClusterName:                     "",
+		EnableLeaderElection:            false,
+		EnableImpersonation:             false,
+		EnableSyncLabelsToClusterClaims: true,
+		Address:                         "0.0.0.0",
+		Port:                            443,
+		CertDir:                         "/tmp/acm/cert",
+		InSecure:                        false,
+		TLSCertFile:                     "",
+		TLSPrivateKeyFile:               "",
+		ClientCAFile:                    "",
+		QPS:                             50,
+		Burst:                           100,
 	}
 }
 
@@ -68,6 +70,7 @@ func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
 		"This flag is deprecated, you should not use this flag any more")
 	fs.BoolVar(&o.EnableImpersonation, "enable-impersonation", o.EnableImpersonation, "Enable impersonation.")
+	fs.BoolVar(&o.EnableSyncLabelsToClusterClaims, "enable-sync-labels-to-clusterclaims", o.EnableSyncLabelsToClusterClaims, "Enable to create clusterclaims on the managed cluster")
 	fs.IntVar(&o.AgentPort, "agent-port", o.AgentPort, ""+
 		"Port that is agent service port for hub cluster to access")
 	fs.StringVar(&o.AgentAddress, "agent-address", o.AgentAddress,

@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
+	addonconstants "open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	"open-cluster-management.io/addon-framework/pkg/utils"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
@@ -52,9 +53,10 @@ type GlobalValues struct {
 }
 
 type Values struct {
-	Product      string              `json:"product,omitempty"`
-	Tolerations  []corev1.Toleration `json:"tolerations,omitempty"`
-	GlobalValues GlobalValues        `json:"global,omitempty"`
+	Product                         string              `json:"product,omitempty"`
+	Tolerations                     []corev1.Toleration `json:"tolerations,omitempty"`
+	GlobalValues                    GlobalValues        `json:"global,omitempty,omitempty"`
+	EnableSyncLabelsToClusterClaims bool                `json:"enableSyncLabelsToClusterClaims"`
 }
 
 func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
@@ -64,6 +66,13 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 		if err != nil {
 			return nil, err
 		}
+
+		// if addon is hosed mode, the enableSyncLabelsToClusterClaims is false
+		enableSyncLabelsToClusterClaims := true
+		if value, ok := addon.GetAnnotations()[addonconstants.HostingClusterNameAnnotationKey]; ok && value != "" {
+			enableSyncLabelsToClusterClaims = false
+		}
+
 		addonValues := Values{
 			GlobalValues: GlobalValues{
 				ImagePullPolicy: corev1.PullIfNotPresent,
@@ -73,6 +82,7 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 				},
 				NodeSelector: map[string]string{},
 			},
+			EnableSyncLabelsToClusterClaims: enableSyncLabelsToClusterClaims,
 		}
 
 		for _, claim := range cluster.Status.ClusterClaims {

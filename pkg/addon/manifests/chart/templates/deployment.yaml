@@ -51,6 +51,9 @@ spec:
         {{- if eq .Values.installMode "Hosted" }}
           - "--managed-kubeconfig=/managed/config/kubeconfig"
         {{- end }}
+        {{- if eq .Values.enableSyncLabelsToClusterClaims false }}
+          - "--enable-sync-labels-to-clusterclaims=false"
+        {{- end }}
         env:
         - name: POD_NAMESPACE
           valueFrom:

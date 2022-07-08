@@ -268,9 +268,11 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			os.Exit(1)
 		}
 
-		if err = clusterClaimReconciler.SetupWithManager(mgr); err != nil {
-			setupLog.Error(err, "unable to create controller", "controller", "ClusterClaim")
-			os.Exit(1)
+		if o.EnableSyncLabelsToClusterClaims == true {
+			if err = clusterClaimReconciler.SetupWithManager(mgr); err != nil {
+				setupLog.Error(err, "unable to create controller", "controller", "ClusterClaim")
+				os.Exit(1)
+			}
 		}
 
 		go kubeInformerFactory.Start(ctx.Done())

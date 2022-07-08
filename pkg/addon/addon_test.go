@@ -18,6 +18,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clienttesting "k8s.io/client-go/testing"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
+	addonconstants "open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -80,6 +81,20 @@ func newAddon(name, cluster, installNamespace string, annotationValues string) *
 	}
 	if annotationValues != "" {
 		addon.SetAnnotations(map[string]string{"addon.open-cluster-management.io/values": annotationValues})
+	}
+	return addon
+}
+
+func newAddonWithCustomizedAnnotation(name, cluster, installNamespace string, annotations map[string]string) *addonapiv1alpha1.ManagedClusterAddOn {
+	addon := &addonapiv1alpha1.ManagedClusterAddOn{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        name,
+			Namespace:   cluster,
+			Annotations: annotations,
+		},
+		Spec: *&addonapiv1alpha1.ManagedClusterAddOnSpec{
+			InstallNamespace: installNamespace,
+		},
 	}
 	return addon
 }
@@ -194,6 +209,22 @@ func TestManifest(t *testing.T) {
 			expectedNodeSelector: true,
 			expectedCount:        7,
 		},
+		{
+			name: "hosted mode",
+			cluster: newCluster("local-cluster", "OpenShift",
+				map[string]string{v1alpha1.ClusterImageRegistryLabel: "ns1.imageRegistry1"},
+				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}",
+					v1alpha1.ClusterImageRegistriesAnnotation: newAnnotationRegistries([]v1alpha1.Registries{
+						{Source: "quay.io/stolostron", Mirror: "quay.io/test"},
+					}, "")}),
+			addon: newAddonWithCustomizedAnnotation("work-manager", "local-cluster", "", map[string]string{
+				addonconstants.HostingClusterNameAnnotationKey: "cluster2",
+			}),
+			expectedNamespace:    "open-cluster-management-agent-addon",
+			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
+			expectedNodeSelector: true,
+			expectedCount:        8,
+		},
 	}
 
 	for _, test := range tests {
@@ -205,7 +236,7 @@ func TestManifest(t *testing.T) {
 			}
 
 			if len(objects) != test.expectedCount {
-				t.Errorf("expected objects number is %d, got %d", test.expectedCount, len(objects))
+				t.Errorf("expected objects number is %d, got %d, %v", test.expectedCount, len(objects), objects)
 			}
 
 			for _, o := range objects {
@@ -222,6 +253,22 @@ func TestManifest(t *testing.T) {
 					}
 					if !test.expectedNodeSelector && len(object.Spec.Template.Spec.NodeSelector) != 0 {
 						t.Errorf("expected no nodeSelector, but got it.")
+					}
+
+					hostedMode := false
+					if v, ok := test.cluster.GetAnnotations()[addonconstants.HostingClusterNameAnnotationKey]; ok && v != "" {
+						hostedMode = true
+					}
+					if hostedMode {
+						enabelSyncLabelsToClusterclaims := true
+						for _, arg := range object.Spec.Template.Spec.Containers[0].Args {
+							if arg == "--enable-sync-labels-to-clusterclaims=false" {
+								enabelSyncLabelsToClusterclaims = false
+							}
+						}
+						if enabelSyncLabelsToClusterclaims {
+							t.Errorf("%s expected --enable-sync-labels-to-clusterclaims=false, but got true.", test.name)
+						}
 					}
 				case *v1.Service:
 					if object.Spec.Type != test.expectServiceType {
