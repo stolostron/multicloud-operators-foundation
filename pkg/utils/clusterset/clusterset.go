@@ -19,6 +19,7 @@ const (
 	registerGroup               string = "register.open-cluster-management.io"
 	DefaultSetName              string = "default"
 	GlobalSetName               string = "global"
+	GlobalSetNameSpace          string = "open-cluster-management-global-set"
 )
 
 var GlobalSet = &clusterv1beta1.ManagedClusterSet{

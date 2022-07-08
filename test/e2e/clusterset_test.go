@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	"k8s.io/apimachinery/pkg/api/errors"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 
@@ -162,6 +163,50 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			ginkgo.By("globalClusterSet view clusterRole should be created")
 			gomega.Eventually(func() error {
 				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), globalViewClusterSetClusterRole, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		})
+	})
+
+	ginkgo.Context("globalClusterSet ns and setbinding should be created automatically.", func() {
+		ginkgo.It("globalClusterSet  ns and setbinding should be created automatically", func() {
+			ginkgo.By("globalClusterSet ns should be created")
+			gomega.Eventually(func() error {
+				_, err := kubeClient.CoreV1().Namespaces().Get(context.Background(), clustersetutils.GlobalSetNameSpace, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+			ginkgo.By("globalClusterSet set binding should be created")
+			gomega.Eventually(func() error {
+				_, err := clusterClient.ClusterV1beta1().ManagedClusterSetBindings(clustersetutils.GlobalSetNameSpace).Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		})
+		ginkgo.It("globalClusterSet ns should be created automatically after delete it", func() {
+			ginkgo.By("globalClusterSet ns should be created after deleted")
+			gomega.Eventually(func() error {
+				_, err := kubeClient.CoreV1().Namespaces().Get(context.Background(), clustersetutils.GlobalSetNameSpace, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+			err = kubeClient.CoreV1().Namespaces().Delete(context.Background(), clustersetutils.GlobalSetNameSpace, metav1.DeleteOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+			gomega.Eventually(func() error {
+				_, err := kubeClient.CoreV1().Namespaces().Get(context.Background(), clustersetutils.GlobalSetNameSpace, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		})
+
+		ginkgo.It("globalClusterSet binding should be created automatically after delete it", func() {
+			ginkgo.By("globalClusterSet binding should be created after deleted")
+			gomega.Eventually(func() error {
+				_, err := clusterClient.ClusterV1beta1().ManagedClusterSetBindings(clustersetutils.GlobalSetNameSpace).Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+			err = clusterClient.ClusterV1beta1().ManagedClusterSetBindings(clustersetutils.GlobalSetNameSpace).Delete(context.Background(), clustersetutils.GlobalSetName, metav1.DeleteOptions{})
+			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Eventually(func() error {
+				_, err := clusterClient.ClusterV1beta1().ManagedClusterSetBindings(clustersetutils.GlobalSetNameSpace).Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
 				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 		})
