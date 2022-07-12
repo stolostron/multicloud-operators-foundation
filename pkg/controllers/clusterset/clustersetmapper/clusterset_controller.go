@@ -10,7 +10,6 @@ import (
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -28,15 +27,16 @@ import (
 
 //This controller apply the clusterset clusterrole and sync clusterSetClusterMapper and clusterSetNamespaceMapper
 type Reconciler struct {
-	client                    client.Client
-	scheme                    *runtime.Scheme
-	kubeClient                kubernetes.Interface
-	clusterSetClusterMapper   *helpers.ClusterSetMapper
-	clusterSetNamespaceMapper *helpers.ClusterSetMapper
+	client                        client.Client
+	scheme                        *runtime.Scheme
+	kubeClient                    kubernetes.Interface
+	clusterSetClusterMapper       *helpers.ClusterSetMapper
+	globalClusterSetClusterMapper *helpers.ClusterSetMapper
+	clusterSetNamespaceMapper     *helpers.ClusterSetMapper
 }
 
-func SetupWithManager(mgr manager.Manager, kubeClient kubernetes.Interface, clusterSetClusterMapper *helpers.ClusterSetMapper, clusterSetNamespaceMapper *helpers.ClusterSetMapper) error {
-	if err := add(mgr, clusterSetClusterMapper, clusterSetNamespaceMapper, newReconciler(mgr, kubeClient, clusterSetClusterMapper, clusterSetNamespaceMapper)); err != nil {
+func SetupWithManager(mgr manager.Manager, kubeClient kubernetes.Interface, globalClusterSetClusterMapper *helpers.ClusterSetMapper, clusterSetClusterMapper *helpers.ClusterSetMapper, clusterSetNamespaceMapper *helpers.ClusterSetMapper) error {
+	if err := add(mgr, clusterSetClusterMapper, clusterSetNamespaceMapper, newReconciler(mgr, kubeClient, globalClusterSetClusterMapper, clusterSetClusterMapper, clusterSetNamespaceMapper)); err != nil {
 		klog.Errorf("Failed to create clusterrole controller, %v", err)
 		return err
 	}
@@ -44,13 +44,14 @@ func SetupWithManager(mgr manager.Manager, kubeClient kubernetes.Interface, clus
 }
 
 // newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager, kubeClient kubernetes.Interface, clusterSetClusterMapper *helpers.ClusterSetMapper, clusterSetNamespaceMapper *helpers.ClusterSetMapper) reconcile.Reconciler {
+func newReconciler(mgr manager.Manager, kubeClient kubernetes.Interface, globalClusterSetClusterMapper *helpers.ClusterSetMapper, clusterSetClusterMapper *helpers.ClusterSetMapper, clusterSetNamespaceMapper *helpers.ClusterSetMapper) reconcile.Reconciler {
 	return &Reconciler{
-		client:                    mgr.GetClient(),
-		scheme:                    mgr.GetScheme(),
-		kubeClient:                kubeClient,
-		clusterSetClusterMapper:   clusterSetClusterMapper,
-		clusterSetNamespaceMapper: clusterSetNamespaceMapper,
+		client:                        mgr.GetClient(),
+		scheme:                        mgr.GetScheme(),
+		kubeClient:                    kubeClient,
+		globalClusterSetClusterMapper: globalClusterSetClusterMapper,
+		clusterSetClusterMapper:       clusterSetClusterMapper,
+		clusterSetNamespaceMapper:     clusterSetNamespaceMapper,
 	}
 }
 
@@ -134,6 +135,12 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 					return []reconcile.Request{}
 				}
 				requests := getRequiredClusterSet(managedCluster.Labels, clusterSetClusterMapper, managedCluster.Name)
+				//add global clusterset to queue if managedcluster changed
+				requests = append(requests, reconcile.Request{
+					NamespacedName: types.NamespacedName{
+						Name: clustersetutils.GlobalSetName,
+					},
+				})
 				return requests
 			}),
 		))
@@ -215,18 +222,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	//The following code is used to sync the r.clusterSetClusterMapper and r.clusterSetNamespaceMapper
-	//r.clusterSetClusterMapper(map[string]sets.String) stores the map of <ClusterSet Name> to <Clusters Name>, each item in the map means the clusterset include these clusters
-	//r.clusterSetNamespaceMapper (map[string]sets.String) stores the map of <ClusterSet Name> to <namespaces>, the namespaces are the namespace of clusterpools/clusterclaims/clusterdeployments which are in this clusterset.
-	//These two Mappers are used to propagate the clusterset admin/bind/view permission to managedclusters/managedclusters namespaces/clusterpools namespace/clusterclaims namespace/clusterdeployments namespaces which are in the clusterset.
-	//Currentlly, global clusterset is mainly used for scheduling, So there is no need to propoagate the clusterpools/clusterclaims/clusterdeployments permissions.
-
-	//TODO: Will propagate global clusterset view permission to all managedclusters and managedclusters namespaces later.
-	if clusterset.Spec.ClusterSelector.SelectorType != clusterv1beta1.LegacyClusterSetLabel {
-		return ctrl.Result{}, nil
-	}
-
-	err = r.syncClustersetMapper(clusterset.Name)
+	err = r.syncClustersetMapper(clusterset)
 	if err != nil {
 		klog.Warningf("will reconcile since failed to sync clustersetmapper %v, %v", clusterset.Name, err)
 		return ctrl.Result{}, err
@@ -288,18 +284,20 @@ func (r *Reconciler) cleanClusterSetResource(clusterset *clusterv1beta1.ManagedC
 		//Delete clusterset which in clustersetMapper
 		r.clusterSetClusterMapper.DeleteClusterSet(clusterset.Name)
 		r.clusterSetNamespaceMapper.DeleteClusterSet(clusterset.Name)
-
+		return nil
 	}
+	r.globalClusterSetClusterMapper.DeleteClusterSet(clusterset.Name)
 
 	return nil
 }
 
-func (r *Reconciler) syncClustersetMapper(clustersetName string) error {
-	//List Clusterset related resource by ClusterSetLabel
-	labelSelector := metav1.LabelSelector{MatchLabels: map[string]string{
-		clusterv1beta1.ClusterSetLabel: clustersetName,
-	}}
-	selector, err := metav1.LabelSelectorAsSelector(&labelSelector)
+//syncClustersetMapper sync the r.globalClusterSetClusterMapper, r.clusterSetClusterMapper and r.clusterSetNamespaceMapper
+//r.globalClusterSetClusterMapper (map[string]sets.String) stores the map of "global" to <Clusters Name>, only one item in this map, and the value is all managedclusters names.
+//r.clusterSetClusterMapper(map[string]sets.String) stores the map of <ClusterSet Name> to <Clusters Name>, each item in the map means the clusterset include these clusters
+//r.clusterSetNamespaceMapper (map[string]sets.String) stores the map of <ClusterSet Name> to <namespaces>, the namespaces are the namespace of clusterpools/clusterclaims/clusterdeployments which are in this clusterset.
+//These three Mappers are used to propagate the clusterset admin/bind/view permission to managedclusters/managedclusters namespaces/clusterpools namespace/clusterclaims namespace/clusterdeployments namespaces which are in the clusterset.
+func (r *Reconciler) syncClustersetMapper(clusterset *clusterv1beta1.ManagedClusterSet) error {
+	selector, err := clusterv1beta1.BuildClusterSelector(clusterset)
 	if err != nil {
 		return err
 	}
@@ -307,13 +305,19 @@ func (r *Reconciler) syncClustersetMapper(clustersetName string) error {
 	if err != nil {
 		return err
 	}
-	r.clusterSetClusterMapper.UpdateClusterSetByObjects(clustersetName, clusters)
+
+	if clusterset.Spec.ClusterSelector.SelectorType != clusterv1beta1.LegacyClusterSetLabel {
+		r.globalClusterSetClusterMapper.UpdateClusterSetByObjects(clusterset.Name, clusters)
+		return nil
+	}
+
+	r.clusterSetClusterMapper.UpdateClusterSetByObjects(clusterset.Name, clusters)
 
 	namespaces, err := r.generateClustersetNamespace(selector)
 	if err != nil {
 		return err
 	}
-	r.clusterSetNamespaceMapper.UpdateClusterSetByObjects(clustersetName, namespaces)
+	r.clusterSetNamespaceMapper.UpdateClusterSetByObjects(clusterset.Name, namespaces)
 
 	return nil
 }

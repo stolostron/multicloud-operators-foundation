@@ -115,7 +115,7 @@ func TestControllerReconcile(t *testing.T) {
 	c = mgr.GetClient()
 
 	kubeClient := k8sfake.NewSimpleClientset()
-	SetupWithManager(mgr, kubeClient, nil, nil)
+	SetupWithManager(mgr, kubeClient, nil, nil, nil)
 
 	cancel, mgrStopped := StartTestManager(mgr, g)
 
@@ -127,13 +127,14 @@ func TestControllerReconcile(t *testing.T) {
 	time.Sleep(time.Second * 1)
 }
 
-func newTestReconciler(existingObjs, existingRoleOjb []runtime.Object, clusterSetClusterMapper *helpers.ClusterSetMapper, clusterSetNamespaceMapper *helpers.ClusterSetMapper) *Reconciler {
+func newTestReconciler(existingObjs, existingRoleOjb []runtime.Object, globalClusterSetClusterMapper, clusterSetClusterMapper, clusterSetNamespaceMapper *helpers.ClusterSetMapper) *Reconciler {
 	return &Reconciler{
-		client:                    fake.NewFakeClientWithScheme(scheme, existingObjs...),
-		scheme:                    scheme,
-		kubeClient:                k8sfake.NewSimpleClientset(existingRoleOjb...),
-		clusterSetClusterMapper:   clusterSetClusterMapper,
-		clusterSetNamespaceMapper: clusterSetNamespaceMapper,
+		client:                        fake.NewFakeClientWithScheme(scheme, existingObjs...),
+		scheme:                        scheme,
+		kubeClient:                    k8sfake.NewSimpleClientset(existingRoleOjb...),
+		clusterSetClusterMapper:       clusterSetClusterMapper,
+		clusterSetNamespaceMapper:     clusterSetNamespaceMapper,
+		globalClusterSetClusterMapper: globalClusterSetClusterMapper,
 	}
 }
 
@@ -162,6 +163,7 @@ func TestReconcile(t *testing.T) {
 		req                       reconcile.Request
 		clusterSetClusterMapper   *helpers.ClusterSetMapper
 		clusterSetNamespaceMapper *helpers.ClusterSetMapper
+		globalSetMapper           *helpers.ClusterSetMapper
 		expectClusterSetCluster   map[string]sets.String
 		expectClusterSetNamespace map[string]sets.String
 	}{
@@ -271,11 +273,38 @@ func TestReconcile(t *testing.T) {
 			expectClusterSetCluster:   map[string]sets.String{},
 			expectClusterSetNamespace: map[string]sets.String{},
 		},
+		{
+			name: "Sync global set",
+			existingObjs: []runtime.Object{
+				&clusterv1beta1.ManagedClusterSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "global",
+					},
+					Spec: clusterv1beta1.ManagedClusterSetSpec{
+						ClusterSelector: clusterv1beta1.ManagedClusterSelector{
+							SelectorType:  clusterv1beta1.LabelSelector,
+							LabelSelector: &metav1.LabelSelector{},
+						},
+					},
+				},
+			},
+			req: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: "global",
+				},
+			},
+			clusterroleExist:          false,
+			clusterSetClusterMapper:   helpers.NewClusterSetMapper(),
+			clusterSetNamespaceMapper: helpers.NewClusterSetMapper(),
+			globalSetMapper:           helpers.NewClusterSetMapper(),
+			expectClusterSetCluster:   map[string]sets.String{},
+			expectClusterSetNamespace: map[string]sets.String{},
+		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			r := newTestReconciler(test.existingObjs, test.existingRoleObjs, test.clusterSetClusterMapper, test.clusterSetNamespaceMapper)
+			r := newTestReconciler(test.existingObjs, test.existingRoleObjs, test.globalSetMapper, test.clusterSetClusterMapper, test.clusterSetNamespaceMapper)
 			r.Reconcile(ctx, test.req)
 
 			clusterroleName := utils.GenerateClustersetClusterroleName(ManagedClusterSetName, "admin")

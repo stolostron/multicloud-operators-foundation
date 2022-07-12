@@ -40,10 +40,18 @@ func generateclustersetToNamespace(ms map[string]sets.String) *helpers.ClusterSe
 }
 
 func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
+	cb := generateRequiredRoleBinding("c0", nil, "cs0", "admin")
+	objs := []runtime.Object{cb}
+
+	kubeClient := k8sfake.NewSimpleClientset(objs...)
+
 	ctc1 := generateclustersetToNamespace(nil)
 
 	ms2 := map[string]sets.String{"cs1": sets.NewString("c0", "c1")}
 	ctc2 := generateclustersetToNamespace(ms2)
+	clustersetToClusters := helpers.NewClusterSetMapper()
+
+	globalsetToClusters := helpers.NewClusterSetMapper()
 
 	tests := []struct {
 		name                  string
@@ -96,9 +104,10 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 
 	for _, test := range tests {
 		ctx := context.Background()
-		r := newTestReconciler(test.clustersetToNamespace, test.clusterSetCache)
+		r := NewReconciler(kubeClient, test.clusterSetCache, test.clusterSetCache, globalsetToClusters, clustersetToClusters, test.clustersetToNamespace)
+		r.reconcile()
 		r.syncRoleBinding(ctx, test.clustersetToNamespace, test.clustersetToSubject, "admin")
-		validateResult(t, r, test.managedclusterName, test.exist)
+		validateResult(t, &r, test.managedclusterName, test.exist)
 	}
 }
 

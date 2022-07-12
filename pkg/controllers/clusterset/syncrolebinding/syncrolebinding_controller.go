@@ -21,24 +21,27 @@ import (
 
 //This controller apply clusterset related clusterrolebinding based on clustersetToClusters and clustersetAdminToSubject map
 type Reconciler struct {
-	kubeClient            kubernetes.Interface
-	clusterSetAdminCache  *cache.AuthCache
-	clusterSetViewCache   *cache.AuthCache
-	clustersetToClusters  *helpers.ClusterSetMapper
-	clustersetToNamespace *helpers.ClusterSetMapper
+	kubeClient                 kubernetes.Interface
+	clusterSetAdminCache       *cache.AuthCache
+	clusterSetViewCache        *cache.AuthCache
+	globalClustersetToClusters *helpers.ClusterSetMapper
+	clustersetToClusters       *helpers.ClusterSetMapper
+	clustersetToNamespace      *helpers.ClusterSetMapper
 }
 
 func NewReconciler(kubeClient kubernetes.Interface,
 	clusterSetAdminCache *cache.AuthCache,
 	clusterSetViewCache *cache.AuthCache,
+	globalClustersetToClusters *helpers.ClusterSetMapper,
 	clustersetToClusters *helpers.ClusterSetMapper,
 	clustersetToNamespace *helpers.ClusterSetMapper) Reconciler {
 	return Reconciler{
-		kubeClient:            kubeClient,
-		clusterSetAdminCache:  clusterSetAdminCache,
-		clusterSetViewCache:   clusterSetViewCache,
-		clustersetToClusters:  clustersetToClusters,
-		clustersetToNamespace: clustersetToNamespace,
+		kubeClient:                 kubeClient,
+		clusterSetAdminCache:       clusterSetAdminCache,
+		clusterSetViewCache:        clusterSetViewCache,
+		globalClustersetToClusters: globalClustersetToClusters,
+		clustersetToClusters:       clustersetToClusters,
+		clustersetToNamespace:      clustersetToNamespace,
 	}
 }
 
@@ -58,16 +61,28 @@ func (r *Reconciler) reconcile() {
 	clustersetToViewSubjects := clustersetutils.GenerateClustersetSubjects(r.clusterSetViewCache)
 
 	r.syncRoleBinding(ctx, unionclustersetToNamespace, clustersetToAdminSubjects, "admin")
-	r.syncRoleBinding(ctx, unionclustersetToNamespace, clustersetToViewSubjects, "view")
 
+	//Sync clusters namespace view permission to the global clusterset users
+	unionGlobalClustersetToNamespace := unionclustersetToNamespace.UnionObjectsInClusterSet(r.globalClustersetToClusters)
+
+	r.syncRoleBinding(ctx, unionGlobalClustersetToNamespace, clustersetToViewSubjects, "view")
 }
 
+//syncRoleBinding sync two(admin/view) rolebindings in the clusterset's clusterpools/clusterclaims/clusterdeployment/managedcluster namespace.
+//clustersetToSubject(map[string][]rbacv1.Subject) means the users/groups in "[]rbacv1.Subject" has admin/view permission to the clusterset
+//clustersetToNamespace(map[string]sets.String) means the clusterset include the namespaces which has a clusterpools/clusterclaims/clusterdeployments/managedclusters.
+// and these resources are in the clusterset.
+//In current acm design, if a user has admin/view permissions to a clusterset, he/she should also has admin/view permissions to the clusterpools/clusterclaims/clusterdeployments/managedclusters which are in the set.
+//So we will generate two(admin/view) rolebindings which grant the namespace admin/view permissions to clusterset users.
+//For namespace, it will have two rolebindings, so if there are 2k clusters(namespaces), 4k rolebindings will be created.
 func (r *Reconciler) syncRoleBinding(ctx context.Context, clustersetToNamespace *helpers.ClusterSetMapper, clustersetToSubject map[string][]rbacv1.Subject, role string) []error {
+	//namespaceToSubject(map[<namespace>][]rbacv1.Subject) means the users/groups in subject has permission for this namespace.
+	//for each item, we will create a rrolebinding
 	namespaceToSubject := clustersetutils.GenerateObjectSubjectMap(clustersetToNamespace, clustersetToSubject)
 	//apply all disired clusterrolebinding
 	errs := []error{}
 	for namespace, subjects := range namespaceToSubject {
-		clustersetName := r.clustersetToNamespace.GetObjectClusterset(namespace)
+		clustersetName := clustersetToNamespace.GetObjectClusterset(namespace)
 		requiredRoleBinding := generateRequiredRoleBinding(namespace, subjects, clustersetName, role)
 		err := utils.ApplyRoleBinding(ctx, r.kubeClient, requiredRoleBinding)
 		if err != nil {
@@ -103,7 +118,6 @@ func (r *Reconciler) syncRoleBinding(ctx context.Context, clustersetToNamespace 
 
 func generateRequiredRoleBinding(resourceNameSpace string, subjects []rbacv1.Subject, clustersetName string, role string) *rbacv1.RoleBinding {
 	roleBindingName := utils.GenerateClustersetResourceRoleBindingName(role)
-
 	var labels = make(map[string]string)
 	labels[clusterv1beta1.ClusterSetLabel] = clustersetName
 	labels[clustersetutils.ClusterSetRole] = role
