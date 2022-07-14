@@ -16,6 +16,8 @@ spec:
   preserveUnknownFields: false
   versions:
     - name: v1alpha1
+      deprecated: true
+      deprecationWarning: "inventory.open-cluster-management.io/v1alpha1 BareMetalAsset is deprecated"
       schema:
         openAPIV3Schema:
           description: BareMetalAsset is the Schema for the baremetalassets API
