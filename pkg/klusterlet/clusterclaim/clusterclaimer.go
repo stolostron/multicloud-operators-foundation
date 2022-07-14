@@ -19,6 +19,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
@@ -635,21 +636,39 @@ func (c *ClusterClaimer) syncLabelsToClaims() ([]*clusterv1alpha1.ClusterClaim, 
 	}
 
 	// do not create claim if the label is managed by ACM.
-	// if the label format is aaa/bbb, the name of claim will be bbb.aaa.
+	// if the label format is aaa/bbb, the name of claim will be bbb-aaa.
+	// Besides, ".", "_" and "/" in the label name will be replaced with "-".
 	for label, value := range clusterInfo.Labels {
 		if internalLabels.Has(label) || strings.Contains(label, "open-cluster-management.io") {
 			continue
 		}
 
-		newLabel := label
-		subs := strings.Split(label, "/")
+		// convert the string to lower case
+		name := strings.ToLower(label)
+
+		// and then replace invalid characters
+		subs := strings.Split(name, "/")
 		if len(subs) == 2 {
-			newLabel = fmt.Sprintf("%s.%s", subs[1], subs[0])
+			name = fmt.Sprintf("%s-%s", subs[1], subs[0])
 		} else if len(subs) > 2 {
-			newLabel = strings.ReplaceAll(label, "/", ".")
+			name = strings.ReplaceAll(name, "/", "-")
+		}
+		name = strings.ReplaceAll(name, ".", "-")
+		name = strings.ReplaceAll(name, "_", "-")
+
+		// ignore the label if the transformed name is still not a valid resource name
+		if errs := validation.IsDNS1123Label(name); len(errs) > 0 {
+			klog.V(4).Infof("skip syncing label %q of ManagedClusterInfo to ClusterCliam because it's an invalid resource name", label)
+			continue
 		}
 
-		claim := newClusterClaim(newLabel, value)
+		// ignore the label if its value is empty. (the value of ClusterCliam can not be empty)
+		if len(value) == 0 {
+			klog.V(4).Infof("skip syncing label %q of ManagedClusterInfo to ClusterCliam because its value is empty.", label)
+			continue
+		}
+
+		claim := newClusterClaim(name, value)
 		if claim.Labels != nil {
 			claim.Labels[labelCustomizedOnly] = ""
 		}
