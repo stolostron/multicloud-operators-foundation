@@ -1,6 +1,7 @@
 package clusterclaim
 
 import (
+	"sort"
 	"testing"
 
 	apiconfigv1 "github.com/openshift/api/config/v1"
@@ -20,6 +21,7 @@ import (
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/restmapper"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -454,7 +456,7 @@ func TestClusterClaimerList(t *testing.T) {
 				ClaimOCMRegion:                  "region-aws",
 				ClaimControlPlaneTopology:       "HighlyAvailable",
 				ClaimOpenshiftOauthRedirectURIs: "https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
-				"abc.testLabel":                 "testLabel",
+				"abc-testlabel":                 "testLabel",
 			},
 			expectErr: nil,
 		},
@@ -948,6 +950,75 @@ func TestUpdatePlatformProduct(t *testing.T) {
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, test.expectPlatform, clusterClaimer.Platform)
 			assert.Equal(t, test.expectProduct, clusterClaimer.Product)
+		})
+	}
+}
+
+func TestSyncLabelsToClaims(t *testing.T) {
+	tests := []struct {
+		name   string
+		labels map[string]string
+		claims []*clusterv1alpha1.ClusterClaim
+	}{
+		{
+			name: "no label",
+		},
+		{
+			name: "internal labels",
+			labels: map[string]string{
+				clusterv1beta1.LabelCloudVendor: "a",
+				clusterv1beta1.LabelKubeVendor:  "b",
+				clusterv1beta1.LabelManagedBy:   "c",
+				clusterv1beta1.OCPVersion:       "d",
+			},
+		},
+		{
+			name: "too long & empty value",
+			labels: map[string]string{
+				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.com/xyz": "value",
+				"empty-label": "",
+			},
+		},
+		{
+			name: "with transformation",
+			labels: map[string]string{
+				"UPPERCASE":   "UPPERCASE",
+				"abc.com/def": "abc.com/def",
+				"abc/def/ghi": "abc/def/ghi",
+				"under_score": "under_score",
+			},
+			claims: []*clusterv1alpha1.ClusterClaim{
+				newClusterClaim("uppercase", "UPPERCASE"),
+				newClusterClaim("def-abc-com", "abc.com/def"),
+				newClusterClaim("abc-def-ghi", "abc/def/ghi"),
+				newClusterClaim("under-score", "under_score"),
+			},
+		},
+		{
+			name: "without transformation",
+			labels: map[string]string{
+				"label": "value",
+			},
+			claims: []*clusterv1alpha1.ClusterClaim{
+				newClusterClaim("label", "value"),
+			},
+		},
+	}
+
+	clusterName := "test-cluster"
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			hubClient := fakeHubClient(clusterName, test.labels)
+			clusterClaimer := ClusterClaimer{HubClient: hubClient, ClusterName: clusterName}
+			actual, err := clusterClaimer.syncLabelsToClaims()
+			assert.Equal(t, nil, err)
+			assert.Equal(t, len(test.claims), len(actual))
+			sort.SliceStable(test.claims, func(i, j int) bool { return test.claims[i].Name < test.claims[j].Name })
+			sort.SliceStable(actual, func(i, j int) bool { return actual[i].Name < actual[j].Name })
+			for i, claim := range test.claims {
+				assert.Equal(t, claim.Name, actual[i].Name)
+				assert.Equal(t, claim.Spec.Value, actual[i].Spec.Value)
+			}
 		})
 	}
 }
