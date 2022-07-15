@@ -35,7 +35,7 @@ func TestEqualLabelSelector(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := EqualLabelSelector(tt.args.selector1, tt.args.selector2); got != tt.want {
-				t.Errorf("MatchLabelForLabelSelector() = %v, want %v", got, tt.want)
+				t.Errorf("EqualLabelSelector() = %v, want %v", got, tt.want)
 			}
 		})
 	}
@@ -111,6 +111,22 @@ func Test_EqualEndpointAddresses(t *testing.T) {
 		},
 		{
 			name: "case3",
+			es1: []corev1.EndpointAddress{
+				{
+					IP:       "1.1.1.1",
+					Hostname: "host1",
+				},
+			},
+			es2: []corev1.EndpointAddress{
+				{
+					IP:       "1.1.1.2",
+					Hostname: "host1",
+				},
+			},
+			rst: false,
+		},
+		{
+			name: "case4",
 			es1: []corev1.EndpointAddress{
 				{
 					IP:       "1.1.1.1",
