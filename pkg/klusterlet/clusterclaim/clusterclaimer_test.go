@@ -777,6 +777,67 @@ func TestGetClusterRegion(t *testing.T) {
 			expectRegion: "",
 			expectErr:    nil,
 		},
+		{
+			name: "get region from nodes",
+			kubeClient: newFakeKubeClient([]runtime.Object{
+				&corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "worker-1",
+						Labels: map[string]string{
+							corev1.LabelFailureDomainBetaRegion: "eastus",
+						},
+					},
+				},
+				&corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "worker-2",
+						Labels: map[string]string{
+							corev1.LabelTopologyRegion: "eastus",
+						},
+					},
+				},
+			}),
+			mapper:       newFakeRestMapper([]*restmapper.APIGroupResources{}),
+			expectRegion: "eastus",
+			expectErr:    nil,
+		},
+		{
+			name: "get different regions from nodes",
+			kubeClient: newFakeKubeClient([]runtime.Object{
+				&corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "worker-1",
+						Labels: map[string]string{
+							corev1.LabelFailureDomainBetaRegion: "eastus",
+						},
+					},
+				},
+				&corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "worker-2",
+						Labels: map[string]string{
+							corev1.LabelTopologyRegion: "westus",
+						},
+					},
+				},
+			}),
+			mapper:       newFakeRestMapper([]*restmapper.APIGroupResources{}),
+			expectRegion: "eastus,westus",
+			expectErr:    nil,
+		},
+		{
+			name: "get none regions from nodes",
+			kubeClient: newFakeKubeClient([]runtime.Object{
+				&corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "worker-1",
+					},
+				},
+			}),
+			mapper:       newFakeRestMapper([]*restmapper.APIGroupResources{}),
+			expectRegion: "",
+			expectErr:    nil,
+		},
 	}
 
 	for _, test := range tests {
