@@ -378,7 +378,28 @@ func (c *ClusterClaimer) getClusterRegion() (string, error) {
 		}
 	}
 
-	return region, nil
+	if region != "" {
+		return region, nil
+	}
+
+	nodes, err := c.KubeClient.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return "", client.IgnoreNotFound(err)
+	}
+
+	regionList := sets.NewString()
+	for _, node := range nodes.Items {
+		labels := node.GetLabels()
+		if regionValue, ok := labels[corev1.LabelTopologyRegion]; ok {
+			regionList.Insert(regionValue)
+			continue
+		}
+		if regionValue, ok := labels[corev1.LabelFailureDomainBetaRegion]; ok {
+			regionList.Insert(regionValue)
+		}
+	}
+
+	return strings.Join(regionList.List(), ","), nil
 }
 
 // for OpenShift, read endpoint address from console-config in openshift-console
