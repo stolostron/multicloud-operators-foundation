@@ -1,7 +1,9 @@
 package clusterclaim
 
 import (
+	"fmt"
 	"sort"
+	"strings"
 	"testing"
 
 	apiconfigv1 "github.com/openshift/api/config/v1"
@@ -456,7 +458,7 @@ func TestClusterClaimerList(t *testing.T) {
 				ClaimOCMRegion:                  "region-aws",
 				ClaimControlPlaneTopology:       "HighlyAvailable",
 				ClaimOpenshiftOauthRedirectURIs: "https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
-				"abc-testlabel":                 "testLabel",
+				"abc.testlabel":                 "testLabel",
 			},
 			expectErr: nil,
 		},
@@ -1036,7 +1038,7 @@ func TestSyncLabelsToClaims(t *testing.T) {
 		{
 			name: "too long & empty value",
 			labels: map[string]string{
-				"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.com/xyz": "value",
+				fmt.Sprintf("%s.com/xyz", strings.Repeat("x", 253)): "value",
 				"empty-label": "",
 			},
 		},
@@ -1050,8 +1052,8 @@ func TestSyncLabelsToClaims(t *testing.T) {
 			},
 			claims: []*clusterv1alpha1.ClusterClaim{
 				newClusterClaim("uppercase", "UPPERCASE"),
-				newClusterClaim("def-abc-com", "abc.com/def"),
-				newClusterClaim("abc-def-ghi", "abc/def/ghi"),
+				newClusterClaim("def.abc.com", "abc.com/def"),
+				newClusterClaim("abc.def.ghi", "abc/def/ghi"),
 				newClusterClaim("under-score", "under_score"),
 			},
 		},
