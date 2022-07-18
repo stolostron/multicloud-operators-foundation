@@ -657,8 +657,8 @@ func (c *ClusterClaimer) syncLabelsToClaims() ([]*clusterv1alpha1.ClusterClaim, 
 	}
 
 	// do not create claim if the label is managed by ACM.
-	// if the label format is aaa/bbb, the name of claim will be bbb-aaa.
-	// Besides, ".", "_" and "/" in the label name will be replaced with "-".
+	// if the label format is aaa/bbb, the name of claim will be bbb.aaa.
+	// Besides, "_" and "/" in the label name will be replaced with "-" and "." respectively.
 	for label, value := range clusterInfo.Labels {
 		if internalLabels.Has(label) || strings.Contains(label, "open-cluster-management.io") {
 			continue
@@ -670,15 +670,14 @@ func (c *ClusterClaimer) syncLabelsToClaims() ([]*clusterv1alpha1.ClusterClaim, 
 		// and then replace invalid characters
 		subs := strings.Split(name, "/")
 		if len(subs) == 2 {
-			name = fmt.Sprintf("%s-%s", subs[1], subs[0])
+			name = fmt.Sprintf("%s.%s", subs[1], subs[0])
 		} else if len(subs) > 2 {
-			name = strings.ReplaceAll(name, "/", "-")
+			name = strings.ReplaceAll(name, "/", ".")
 		}
-		name = strings.ReplaceAll(name, ".", "-")
 		name = strings.ReplaceAll(name, "_", "-")
 
 		// ignore the label if the transformed name is still not a valid resource name
-		if errs := validation.IsDNS1123Label(name); len(errs) > 0 {
+		if errs := validation.IsDNS1123Subdomain(name); len(errs) > 0 {
 			klog.V(4).Infof("skip syncing label %q of ManagedClusterInfo to ClusterCliam because it's an invalid resource name", label)
 			continue
 		}
