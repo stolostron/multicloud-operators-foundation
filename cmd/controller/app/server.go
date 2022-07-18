@@ -176,6 +176,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 			WithGetValuesFuncs(getValuesFunc, addonfactory.GetValuesFromAddonAnnotation).
 			WithAgentRegistrationOption(registrationOption).
 			WithInstallStrategy(addonagent.InstallAllStrategy(o.AddonInstallNamespace)).
+			WithAgentHostedModeEnabledOption().
 			BuildHelmAgentAddon()
 		if err != nil {
 			klog.Errorf("failed to build agent %v", err)

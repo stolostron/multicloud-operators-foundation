@@ -83,13 +83,33 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		setupLog.Error(err, "Unable to get hub kube config.")
 		os.Exit(1)
 	}
-	managedClusterConfig, err := clientcmd.BuildConfigFromFlags("", o.KubeConfig)
+
+	// create management kube config
+	managementKubeConfig, err := clientcmd.BuildConfigFromFlags("", o.KubeConfig)
 	if err != nil {
-		setupLog.Error(err, "Unable to get managed cluster kube config.")
+		setupLog.Error(err, "Unable to get management cluster kube config.")
 		os.Exit(1)
 	}
-	managedClusterConfig.QPS = o.QPS
-	managedClusterConfig.Burst = o.Burst
+	managementKubeConfig.QPS = o.QPS
+	managementKubeConfig.Burst = o.Burst
+
+	managementClusterKubeClient, err := kubernetes.NewForConfig(managementKubeConfig)
+	if err != nil {
+		setupLog.Error(err, "Unable to create management cluster kube client.")
+		os.Exit(1)
+	}
+
+	// load managed client config, the work manager agent may not running in the managed cluster.
+	managedClusterConfig := managementKubeConfig
+	if o.ManagedKubeConfig != "" {
+		managedClusterConfig, err = clientcmd.BuildConfigFromFlags("", o.ManagedKubeConfig)
+		if err != nil {
+			setupLog.Error(err, "Unable to get managed cluster kube config.")
+			os.Exit(1)
+		}
+		managedClusterConfig.QPS = o.QPS
+		managedClusterConfig.Burst = o.Burst
+	}
 
 	managedClusterDynamicClient, err := dynamic.NewForConfig(managedClusterConfig)
 	if err != nil {
@@ -101,7 +121,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		setupLog.Error(err, "Unable to create managed cluster kube client.")
 		os.Exit(1)
 	}
-	routeV1Client, err := routev1.NewForConfig(managedClusterConfig)
+	routeV1Client, err := routev1.NewForConfig(managementKubeConfig)
 	if err != nil {
 		setupLog.Error(err, "New route client config error:")
 	}
@@ -178,7 +198,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			componentNamespace)
 		go resourceCollector.Start(ctx)
 
-		leaseUpdater := lease.NewLeaseUpdater(managedClusterKubeClient, AddonName, componentNamespace).
+		leaseUpdater := lease.NewLeaseUpdater(managementClusterKubeClient, AddonName, componentNamespace).
 			WithHubLeaseConfig(hubConfig, o.ClusterName)
 		go leaseUpdater.Start(ctx)
 
@@ -269,7 +289,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		panic("unreachable")
 	}
 
-	lec, err := app.NewLeaderElection(scheme, managedClusterKubeClient, run)
+	lec, err := app.NewLeaderElection(scheme, managementClusterKubeClient, run)
 	if err != nil {
 		setupLog.Error(err, "cannot create leader election")
 		os.Exit(1)

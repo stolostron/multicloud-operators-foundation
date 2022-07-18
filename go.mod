@@ -83,16 +83,13 @@ require (
 	k8s.io/klog/v2 v2.60.1
 	k8s.io/kube-aggregator v0.24.0
 	k8s.io/kube-openapi v0.0.0-20220328201542-3ee0da9b0b42
-	open-cluster-management.io/addon-framework v0.3.1-0.20220614082849-808b6fe45974
+	open-cluster-management.io/addon-framework v0.4.1-0.20220721073535-12c9395bde82
 	open-cluster-management.io/api v0.7.1-0.20220609092005-e8cc7a4e4c10
 	sigs.k8s.io/controller-runtime v0.11.1
 	sigs.k8s.io/yaml v1.3.0
 )
 
-require (
-	github.com/gobuffalo/flect v0.2.3 // indirect
-	sigs.k8s.io/kube-storage-version-migrator v0.0.4 // indirect
-)
+require github.com/gobuffalo/flect v0.2.3 // indirect
 
 // golang
 require (
@@ -122,7 +119,6 @@ require (
 	github.com/felixge/httpsnoop v1.0.1 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
-	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32 // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
 	github.com/go-logr/zapr v1.2.0 // indirect
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
@@ -160,7 +156,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/prometheus/procfs v0.7.3 // indirect
-	github.com/robfig/cron v1.2.0 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/smartystreets/assertions v1.2.0 // indirect
 	github.com/spf13/cast v1.3.1 // indirect

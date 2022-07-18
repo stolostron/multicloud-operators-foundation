@@ -18,7 +18,6 @@ type ActionReconciler struct {
 	client.Client
 	Log                 logr.Logger
 	Scheme              *runtime.Scheme
-	DynamicClient       dynamic.Interface
 	KubeControl         restutils.KubeControlInterface
 	EnableImpersonation bool
 }
@@ -32,7 +31,6 @@ func NewActionReconciler(client client.Client,
 		Client:              client,
 		Log:                 log,
 		Scheme:              scheme,
-		DynamicClient:       dynamicClient,
 		KubeControl:         kubeControl,
 		EnableImpersonation: enableImpersonation,
 	}
