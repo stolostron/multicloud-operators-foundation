@@ -103,6 +103,36 @@ type ClusterClaimer struct {
 	ConfigV1Client openshiftclientset.Interface
 	OauthV1Client  openshiftoauthclientset.Interface
 	Mapper         meta.RESTMapper
+	hubID          string
+}
+
+func NewClusterClaimer(
+	clusterName string,
+	hubClient client.Client,
+	kubeClient kubernetes.Interface,
+	configV1Client openshiftclientset.Interface,
+	oauthV1Client openshiftoauthclientset.Interface,
+	mapper meta.RESTMapper,
+) (ClusterClaimer, error) {
+	kubeSystemNamespace := &corev1.Namespace{}
+	err := hubClient.Get(context.TODO(), types.NamespacedName{Name: "kube-system"}, kubeSystemNamespace)
+	if err != nil {
+		return ClusterClaimer{}, err
+	}
+
+	return ClusterClaimer{
+		ClusterName:    clusterName,
+		HubClient:      hubClient,
+		KubeClient:     kubeClient,
+		ConfigV1Client: configV1Client,
+		OauthV1Client:  oauthV1Client,
+		Mapper:         mapper,
+		hubID:          getHubID(kubeSystemNamespace.UID),
+	}, nil
+}
+
+func getHubID(uid types.UID) string {
+	return strings.Split(string(uid), "-")[0]
 }
 
 func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
@@ -115,7 +145,14 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 
 	claims = append(claims, newClusterClaim(ClaimOCMPlatform, c.Platform))
 	claims = append(claims, newClusterClaim(ClaimOCMProduct, c.Product))
-	claims = append(claims, newClusterClaim(ClaimK8sID, c.ClusterName))
+
+	// use the kube-system namespace uid as the unique id of the cluster
+	ns, err := c.KubeClient.CoreV1().Namespaces().Get(context.TODO(), "kube-system", metav1.GetOptions{})
+	if err != nil {
+		klog.Errorf("failed to get kube-system namespace. err:%v", err)
+		return claims, err
+	}
+	claims = append(claims, newClusterClaim(ClaimK8sID, string(ns.UID)))
 
 	version, clusterID, err := c.getOCPVersion()
 	if err != nil {
@@ -675,6 +712,7 @@ func (c *ClusterClaimer) syncLabelsToClaims() ([]*clusterv1alpha1.ClusterClaim, 
 			name = strings.ReplaceAll(name, "/", ".")
 		}
 		name = strings.ReplaceAll(name, "_", "-")
+		name = name + "-" + c.hubID
 
 		// ignore the label if the transformed name is still not a valid resource name
 		if errs := validation.IsDNS1123Subdomain(name); len(errs) > 0 {

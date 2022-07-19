@@ -18,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	kubefake "k8s.io/client-go/kubernetes/fake"
@@ -1017,6 +1018,24 @@ func TestUpdatePlatformProduct(t *testing.T) {
 	}
 }
 
+func TestGetHubID(t *testing.T) {
+	testcases := []struct {
+		uid          types.UID
+		expectedHash string
+	}{
+		{
+			uid:          "0c7d520b-3abe-4706-a89d-e029a46d2dd6",
+			expectedHash: "0c7d520b",
+		},
+	}
+	for _, tc := range testcases {
+		t.Run(fmt.Sprintf("%s", tc.uid), func(t *testing.T) {
+			hash := getHubID(tc.uid)
+			assert.Equal(t, tc.expectedHash, hash)
+		})
+	}
+}
+
 func TestSyncLabelsToClaims(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -1072,14 +1091,15 @@ func TestSyncLabelsToClaims(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			hubClient := fakeHubClient(clusterName, test.labels)
-			clusterClaimer := ClusterClaimer{HubClient: hubClient, ClusterName: clusterName}
+			hubID := "0c7d520b"
+			clusterClaimer := ClusterClaimer{HubClient: hubClient, ClusterName: clusterName, hubID: hubID}
 			actual, err := clusterClaimer.syncLabelsToClaims()
 			assert.Equal(t, nil, err)
 			assert.Equal(t, len(test.claims), len(actual))
 			sort.SliceStable(test.claims, func(i, j int) bool { return test.claims[i].Name < test.claims[j].Name })
 			sort.SliceStable(actual, func(i, j int) bool { return actual[i].Name < actual[j].Name })
 			for i, claim := range test.claims {
-				assert.Equal(t, claim.Name, actual[i].Name)
+				assert.Equal(t, claim.Name+"-"+hubID, actual[i].Name)
 				assert.Equal(t, claim.Spec.Value, actual[i].Spec.Value)
 			}
 		})

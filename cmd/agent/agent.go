@@ -218,13 +218,19 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			Agent:          agent,
 			AgentService:   o.AgentService,
 		}
-		clusterClaimer := clusterclaimctl.ClusterClaimer{
-			ClusterName:    o.ClusterName,
-			HubClient:      mgr.GetClient(),
-			KubeClient:     managedClusterKubeClient,
-			ConfigV1Client: openshiftClient,
-			OauthV1Client:  osOauthClient,
-			Mapper:         restMapper,
+
+		// get kube-system namespace uid
+		clusterClaimer, err := clusterclaimctl.NewClusterClaimer(
+			o.ClusterName,
+			mgr.GetClient(),
+			managedClusterKubeClient,
+			openshiftClient,
+			osOauthClient,
+			restMapper,
+		)
+		if err != nil {
+			setupLog.Error(err, "unable to create cluster claimer")
+			os.Exit(1)
 		}
 
 		clusterClaimReconciler := clusterclaimctl.ClusterClaimReconciler{
