@@ -127,11 +127,11 @@ func NewClusterClaimer(
 		ConfigV1Client: configV1Client,
 		OauthV1Client:  oauthV1Client,
 		Mapper:         mapper,
-		hubID:          getHubID(kubeSystemNamespace.UID),
+		hubID:          getHubID(string(kubeSystemNamespace.UID)),
 	}, nil
 }
 
-func getHubID(uid types.UID) string {
+func getHubID(uid string) string {
 	return strings.Split(string(uid), "-")[0]
 }
 
@@ -145,14 +145,7 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 
 	claims = append(claims, newClusterClaim(ClaimOCMPlatform, c.Platform))
 	claims = append(claims, newClusterClaim(ClaimOCMProduct, c.Product))
-
-	// use the kube-system namespace uid as the unique id of the cluster
-	ns, err := c.KubeClient.CoreV1().Namespaces().Get(context.TODO(), "kube-system", metav1.GetOptions{})
-	if err != nil {
-		klog.Errorf("failed to get kube-system namespace. err:%v", err)
-		return claims, err
-	}
-	claims = append(claims, newClusterClaim(ClaimK8sID, string(ns.UID)))
+	claims = append(claims, newClusterClaim(ClaimK8sID, string(c.ClusterName)))
 
 	version, clusterID, err := c.getOCPVersion()
 	if err != nil {
@@ -712,7 +705,9 @@ func (c *ClusterClaimer) syncLabelsToClaims() ([]*clusterv1alpha1.ClusterClaim, 
 			name = strings.ReplaceAll(name, "/", ".")
 		}
 		name = strings.ReplaceAll(name, "_", "-")
-		name = name + "-" + c.hubID
+		if c.hubID != "" {
+			name = name + "-" + c.hubID
+		}
 
 		// ignore the label if the transformed name is still not a valid resource name
 		if errs := validation.IsDNS1123Subdomain(name); len(errs) > 0 {

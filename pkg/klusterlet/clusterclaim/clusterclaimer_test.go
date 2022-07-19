@@ -18,7 +18,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	kubefake "k8s.io/client-go/kubernetes/fake"
@@ -516,7 +515,7 @@ func TestClusterClaimerList(t *testing.T) {
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, len(claims), len(test.expectClaims))
 			for _, claim := range claims {
-				assert.Equal(t, test.expectClaims[claim.Name], claim.Spec.Value)
+				assert.Equal(t, test.expectClaims[claim.Name], claim.Spec.Value, "claim %s", claim.Name)
 			}
 		})
 	}
@@ -1020,7 +1019,7 @@ func TestUpdatePlatformProduct(t *testing.T) {
 
 func TestGetHubID(t *testing.T) {
 	testcases := []struct {
-		uid          types.UID
+		uid          string
 		expectedHash string
 	}{
 		{
