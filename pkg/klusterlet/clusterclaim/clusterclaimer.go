@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
+	"k8s.io/apimachinery/pkg/util/uuid"
 
 	configv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
@@ -108,7 +109,37 @@ type ClusterClaimer struct {
 	ConfigV1Client                  openshiftclientset.Interface
 	OauthV1Client                   openshiftoauthclientset.Interface
 	Mapper                          meta.RESTMapper
+	managedclusterID                string
 	EnableSyncLabelsToClusterClaims bool
+}
+
+// getManagedClusterID returns the managed cluster ID of the cluster.
+// We get ID by the sequence of: openshiftID, uid of kube-system namespace, random UID.
+func (c *ClusterClaimer) getManagedClusterID() (string, error) {
+	if c.managedclusterID != "" {
+		return c.managedclusterID, nil
+	}
+
+	isocp, err := c.isOpenShift()
+	if err != nil {
+		klog.Errorf("failed to check if the cluster is openshift.err:%v", err)
+		return "", err
+	}
+	if isocp {
+		_, ocpID, err := c.getOCPVersion()
+		if err == nil {
+			return ocpID, nil
+		}
+		klog.Errorf("Get ocpID failed, %v", err)
+	}
+
+	ns, err := c.KubeClient.CoreV1().Namespaces().Get(context.TODO(), "kube-system", metav1.GetOptions{})
+	if err == nil {
+		return string(ns.UID), nil
+	}
+	klog.Errorf("Get kube-system namespace failed, %v", err)
+
+	return string(uuid.NewUUID()), nil
 }
 
 func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
@@ -121,7 +152,12 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 
 	claims = append(claims, newClusterClaim(ClaimOCMPlatform, c.Platform))
 	claims = append(claims, newClusterClaim(ClaimOCMProduct, c.Product))
-	claims = append(claims, newClusterClaim(ClaimK8sID, c.ClusterName))
+
+	managedClusterID, err := c.getManagedClusterID()
+	if err != nil {
+		return nil, err
+	}
+	claims = append(claims, newClusterClaim(ClaimK8sID, managedClusterID))
 
 	version, clusterID, err := c.getOCPVersion()
 	if err != nil {
