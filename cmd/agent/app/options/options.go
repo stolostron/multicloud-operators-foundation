@@ -40,7 +40,7 @@ func NewAgentOptions() *AgentOptions {
 		KubeConfig:           "",
 		HubKubeConfig:        "/var/run/hub/kubeconfig",
 		ClusterName:          "",
-		EnableLeaderElection: true,
+		EnableLeaderElection: false,
 		EnableImpersonation:  false,
 		Address:              "0.0.0.0",
 		Port:                 443,
@@ -66,8 +66,7 @@ func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 			"If this is not set, will use '--kubeconfig' to build client to connect to the managed cluster.")
 	fs.StringVar(&o.ClusterName, "cluster-name", o.ClusterName, "The name of the managed cluster.")
 	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
+		"This flag is deprecated, you should not use this flag any more")
 	fs.BoolVar(&o.EnableImpersonation, "enable-impersonation", o.EnableImpersonation, "Enable impersonation.")
 	fs.IntVar(&o.AgentPort, "agent-port", o.AgentPort, ""+
 		"Port that is agent service port for hub cluster to access")

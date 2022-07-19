@@ -38,7 +38,6 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Needed for misc auth.
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/tools/leaderelection"
 	"k8s.io/component-base/logs"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
@@ -283,18 +282,6 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			os.Exit(1)
 		}
 	}
-
-	if !o.EnableLeaderElection {
-		run(context.TODO())
-		panic("unreachable")
-	}
-
-	lec, err := app.NewLeaderElection(scheme, managementClusterKubeClient, run)
-	if err != nil {
-		setupLog.Error(err, "cannot create leader election")
-		os.Exit(1)
-	}
-
-	leaderelection.RunOrDie(context.TODO(), *lec)
+	run(context.TODO())
 	panic("unreachable")
 }
