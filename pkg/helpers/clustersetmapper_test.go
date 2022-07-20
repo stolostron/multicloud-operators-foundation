@@ -82,6 +82,20 @@ func initClustersetmap(m map[string]sets.String) *ClusterSetMapper {
 	return clusterSetMapper
 }
 
+func TestClusterSetMapper_AddObjectInClusterSet(t *testing.T) {
+	// Delete cluster in clusterset
+	initMap := map[string]sets.String{
+		"clusterSet1": {"cluster12": {}},
+	}
+	clusterSetMapper := initClustersetmap(initMap)
+	expectClustermap := map[string]sets.String{
+		"clusterSet1": {"cluster12": {}, "cluster13": {}},
+	}
+	clusterSetMapper.AddObjectInClusterSet("cluster13", "clusterSet1")
+	clusterSetName := clusterSetMapper.GetObjectClusterset("cluster13")
+	assert.Equal(t, len(expectClustermap["clusterSet1"]), len(clusterSetMapper.clusterSetToObjects[clusterSetName]))
+}
+
 func TestClusterSetMapper_DeleteObjectInClusterSet(t *testing.T) {
 	// Delete cluster in clusterset
 	initMap := map[string]sets.String{
@@ -181,4 +195,22 @@ func TestClusterSetMapper_UnionObjectsInClusterSet(t *testing.T) {
 			t.Errorf("Failed to get union clusterset mapper. returnMapper:%v, expectMapper:%v", returnMapper, test.expectClusterSetMapper)
 		}
 	}
+}
+
+func TestClusterSetMapper_CopyClusterSetMapper(t *testing.T) {
+	initMap := map[string]sets.String{
+		"clusterSet1": {"cluster12": {}, "cluster13": {}},
+	}
+	copyInitMap := map[string]sets.String{
+		"clusterSet2": {"cluster21": {}, "cluster22": {}, "cluster23": {}},
+	}
+	clusterSetMapper := initClustersetmap(initMap)
+	copyClusterSetMapper := initClustersetmap(copyInitMap)
+
+	expectClustermap := map[string]sets.String{
+		"clusterSet2": {"cluster21": {}, "cluster22": {}, "cluster23": {}},
+	}
+	clusterSetMapper.CopyClusterSetMapper(copyClusterSetMapper)
+	assert.Equal(t, 0, len(clusterSetMapper.clusterSetToObjects["clusterSet1"]))
+	assert.Equal(t, len(expectClustermap["clusterSet2"]), len(clusterSetMapper.clusterSetToObjects["clusterSet2"]))
 }

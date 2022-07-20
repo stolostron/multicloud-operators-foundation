@@ -6,13 +6,12 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/labels"
-
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/informers"
@@ -71,7 +70,7 @@ func (c *ProxyServiceInfoController) enqueue(obj interface{}) {
 	var err error
 
 	configmap := obj.(*corev1.ConfigMap)
-	if matchLabelForLabelSelector(configmap.GetLabels(), c.labelSelector) {
+	if utils.MatchLabelForLabelSelector(configmap.GetLabels(), c.labelSelector) {
 		if key, err = cache.MetaNamespaceKeyFunc(obj); err != nil {
 			utilruntime.HandleError(err)
 			return
@@ -249,22 +248,4 @@ func (c *ProxyServiceInfoController) generateServiceInfo(cm *corev1.ConfigMap) (
 			},
 		},
 	}, nil
-}
-
-// matchLabelForLabelSelector match labels for labelselector, if labelSelecor is nil, select everything
-func matchLabelForLabelSelector(targetLabels map[string]string, labelSelector *metav1.LabelSelector) bool {
-	var err error
-	var selector = labels.Everything()
-
-	if labelSelector != nil {
-		selector, err = metav1.LabelSelectorAsSelector(labelSelector)
-		if err != nil {
-			return false
-		}
-	}
-
-	if selector.Matches(labels.Set(targetLabels)) {
-		return true
-	}
-	return false
 }

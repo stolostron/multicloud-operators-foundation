@@ -31,6 +31,32 @@ func TestCloneAndAddLabel(t *testing.T) {
 	}
 }
 
+func TestAddLabel(t *testing.T) {
+	type args struct {
+		labels     map[string]string
+		labelKey   string
+		labelValue string
+	}
+	tests := []struct {
+		name string
+		args args
+		want map[string]string
+	}{
+		{"case1:", args{labels: map[string]string{"label1": "va1", "label2": "va2"}, labelKey: "key", labelValue: "value"},
+			map[string]string{"label1": "va1", "label2": "va2", "key": "value"}},
+		{"case2:", args{labels: map[string]string{"label1": "va1", "label2": "va2"}, labelKey: "", labelValue: "value"},
+			map[string]string{"label1": "va1", "label2": "va2"}},
+		{"case3:", args{labels: nil, labelKey: "key", labelValue: "value"}, map[string]string{"key": "value"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := AddLabel(tt.args.labels, tt.args.labelKey, tt.args.labelValue); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("AddLabel() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestMatchLabelForLabelSelector(t *testing.T) {
 	type args struct {
 		targetLabels  map[string]string
@@ -44,6 +70,10 @@ func TestMatchLabelForLabelSelector(t *testing.T) {
 		{"case1:", args{targetLabels: map[string]string{"label1": "va1", "label2": "va2"}}, true},
 		{"case2:", args{targetLabels: map[string]string{"label1": "va1", "label2": "va2"},
 			labelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "va1", "label2": "va2"}}}, true},
+		{"case3:", args{targetLabels: map[string]string{"label1": "va1", "label2": "va2"},
+			labelSelector: &metav1.LabelSelector{MatchLabels: map[string]string{"label1": "va1", "label3": "va3"}}}, false},
+		{"case4:", args{targetLabels: map[string]string{"label1": "va1", "label2": "va2"},
+			labelSelector: &metav1.LabelSelector{MatchExpressions: []metav1.LabelSelectorRequirement{{Key: "label1", Operator: "InvalidOp"}}}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -55,6 +85,7 @@ func TestMatchLabelForLabelSelector(t *testing.T) {
 }
 
 func TestMergeMap(t *testing.T) {
+	nilMap := (map[string]string)(nil)
 	type args struct {
 		modified bool
 		existing *map[string]string
@@ -67,8 +98,9 @@ func TestMergeMap(t *testing.T) {
 	}{
 		{"case1", args{modified: false, required: map[string]string{"label1": "va1"}, existing: &map[string]string{"label1": "va1", "label2": "va2"}}, false},
 		{"case2", args{modified: false, required: map[string]string{"label1": "va1"}, existing: &map[string]string{}}, true},
-		{"case3", args{modified: false, required: map[string]string{"label1-": "va1"}, existing: &map[string]string{"label1": "va1", "label2": "va2"}}, true},
-		{"case4", args{modified: false, required: map[string]string{"label1": "va1"}, existing: &map[string]string{"label1": "va1", "label2": "va2"}}, false},
+		{"case3", args{modified: false, required: map[string]string{"label1": "va1"}, existing: &nilMap}, true},
+		{"case4", args{modified: false, required: map[string]string{"label1-": "va1"}, existing: &map[string]string{"label1": "va1", "label2": "va2"}}, true},
+		{"case5", args{modified: false, required: map[string]string{"label1": "va1"}, existing: &map[string]string{"label1": "va1", "label2": "va2"}}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -79,6 +111,31 @@ func TestMergeMap(t *testing.T) {
 		})
 	}
 }
+
+func TestAddOwnersLabel(t *testing.T) {
+	type args struct {
+		owners    string
+		resource  string
+		name      string
+		namespace string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{"case1", args{owners: "", resource: "res1", name: "name1", namespace: "ns1"}, "res1.ns1.name1"},
+		{"case2", args{owners: "owner1", resource: "res1", name: "name1", namespace: "ns1"}, "owner1,res1.ns1.name1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := AddOwnersLabel(tt.args.owners, tt.args.resource, tt.args.name, tt.args.namespace); got != tt.want {
+				t.Errorf("AddOwnersLabel() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestStringToMap(t *testing.T) {
 	testCases := []struct {
 		name string
