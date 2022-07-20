@@ -103,5 +103,7 @@ func writerErrorResponse(errmsg string, httpWriter http.ResponseWriter) {
 	var buffer bytes.Buffer
 	buffer.WriteString(errmsg)
 	httpWriter.WriteHeader(http.StatusBadRequest)
-	httpWriter.Write(buffer.Bytes())
+	if _, err := httpWriter.Write(buffer.Bytes()); err != nil {
+		klog.Warningf("%v", err)
+	}
 }

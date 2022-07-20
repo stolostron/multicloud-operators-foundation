@@ -45,7 +45,7 @@ const (
 	resourceSocketWorker clusterapiv1.ResourceName = "socket_worker"
 	resourceCPUWorker    clusterapiv1.ResourceName = "cpu_worker"
 	defaultServer                                  = "https://prometheus-k8s.openshift-monitoring.svc:9091"
-	defaultTokenFile                               = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	defaultTokenFile                               = "/var/run/secrets/kubernetes.io/serviceaccount/token" // #nosec G101
 	caConfigMapName                                = "ocm-controller-metrics-ca"
 
 	// LabelNodeRolePrefix is a label prefix for node roles
