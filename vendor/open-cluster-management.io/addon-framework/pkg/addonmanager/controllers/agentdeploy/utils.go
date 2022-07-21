@@ -6,16 +6,16 @@ import (
 	"fmt"
 
 	jsonpatch "github.com/evanphx/json-patch"
-	"github.com/openshift/library-go/pkg/operator/events"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/klog/v2"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
 	workv1client "open-cluster-management.io/api/client/work/clientset/versioned"
 	worklister "open-cluster-management.io/api/client/work/listers/work/v1"
 	workapiv1 "open-cluster-management.io/api/work/v1"
@@ -44,6 +44,13 @@ func removeFinalizer(existingFinalizers []string, finalizer string) []string {
 	return rst
 }
 
+func addFinalizer(existingFinalizers []string, finalizer string) []string {
+	if existingFinalizers != nil {
+		return append(existingFinalizers, finalizer)
+	}
+	return []string{finalizer}
+}
+
 func manifestsEqual(new, old []workapiv1.Manifest) bool {
 	if len(new) != len(old) {
 		return false
@@ -70,14 +77,15 @@ func manifestWorkSpecEqual(new, old workapiv1.ManifestWorkSpec) bool {
 	return true
 }
 
-func newManifestWork(workName, addonName, clusterName string, manifests []workapiv1.Manifest) *workapiv1.ManifestWork {
+func newManifestWork(addonNamespace, addonName, clusterName string, manifests []workapiv1.Manifest,
+	manifestWorkNameFunc func(addonNamespace, addonName string) string) *workapiv1.ManifestWork {
 	if len(manifests) == 0 {
 		return nil
 	}
 
-	return &workapiv1.ManifestWork{
+	work := &workapiv1.ManifestWork{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      workName,
+			Name:      manifestWorkNameFunc(addonNamespace, addonName),
 			Namespace: clusterName,
 			Labels: map[string]string{
 				constants.AddonLabel: addonName,
@@ -89,14 +97,20 @@ func newManifestWork(workName, addonName, clusterName string, manifests []workap
 			},
 		},
 	}
+
+	// if the addon namespace is not equal with the manifestwork namespace(cluster name), add the addon namespace label
+	if addonNamespace != clusterName {
+		work.Labels[constants.AddonNamespaceLabel] = addonNamespace
+	}
+	return work
 }
 
 // isPreDeleteHookObject check the object is a pre-delete hook resources.
 // currently, we only support job and pod as hook resources.
 // we use WellKnownStatus here to get the job/pad status fields to check if the job/pod is completed.
-func isPreDeleteHookObject(obj *unstructured.Unstructured) (bool, *workapiv1.ManifestConfigOption) {
+func (b *manifestWorkBuiler) isPreDeleteHookObject(obj runtime.Object) (bool, *workapiv1.ManifestConfigOption) {
 	var resource string
-	gvk := obj.GroupVersionKind()
+	gvk := obj.GetObjectKind().GroupVersionKind()
 	switch gvk.Kind {
 	case "Job":
 		resource = "jobs"
@@ -105,7 +119,12 @@ func isPreDeleteHookObject(obj *unstructured.Unstructured) (bool, *workapiv1.Man
 	default:
 		return false, nil
 	}
-	labels := obj.GetLabels()
+
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return false, nil
+	}
+	labels := accessor.GetLabels()
 	if _, ok := labels[constants.PreDeleteHookLabel]; !ok {
 		return false, nil
 	}
@@ -114,8 +133,8 @@ func isPreDeleteHookObject(obj *unstructured.Unstructured) (bool, *workapiv1.Man
 		ResourceIdentifier: workapiv1.ResourceIdentifier{
 			Group:     gvk.Group,
 			Resource:  resource,
-			Name:      obj.GetName(),
-			Namespace: obj.GetNamespace(),
+			Name:      accessor.GetName(),
+			Namespace: accessor.GetNamespace(),
 		},
 		FeedbackRules: []workapiv1.FeedbackRule{
 			{
@@ -124,25 +143,140 @@ func isPreDeleteHookObject(obj *unstructured.Unstructured) (bool, *workapiv1.Man
 		},
 	}
 }
+func newManagedManifestWorkBuilder(hostedModeEnabled bool) *manifestWorkBuiler {
+	return &manifestWorkBuiler{
+		processor:         &managedManifest{},
+		hostedModeEnabled: hostedModeEnabled,
+	}
+}
 
-func buildManifestWorkFromObject(
-	cluster, addonName string,
+func newHostingManifestWorkBuilder(hostedModeEnabled bool) *manifestWorkBuiler {
+	return &manifestWorkBuiler{
+		processor:         &hostingManifest{},
+		hostedModeEnabled: hostedModeEnabled,
+	}
+}
+
+type manifestWorkBuiler struct {
+	processor         manifestProcessor
+	hostedModeEnabled bool
+}
+
+type manifestProcessor interface {
+	deployable(hostedModeEnabled bool, installMode string, obj runtime.Object) (bool, error)
+	manifestWorkName(addonNamespace, addonName string) string
+	preDeleteHookManifestWorkName(addonNamespace, addonName string) string
+}
+
+// hostingManifest process manifests which will be deployed on the hosting cluster
+type hostingManifest struct {
+}
+
+func (m *hostingManifest) deployable(hostedModeEnabled bool, installMode string, obj runtime.Object) (bool, error) {
+	if !hostedModeEnabled {
+		// hosted mode disabled, will not deploy any resource on the hosting cluster
+		return false, nil
+	}
+
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return false, nil
+	}
+
+	location, exist, err := constants.GetHostedManifestLocation(accessor.GetLabels())
+	if err != nil {
+		return false, err
+	}
+	if installMode != constants.InstallModeHosted {
+		return false, nil
+	}
+
+	if exist && location == constants.HostedManifestLocationHostingLabelValue {
+		klog.V(4).Infof("will deploy the manifest %s/%s on the hosting cluster in Hosted mode",
+			accessor.GetNamespace(), accessor.GetName())
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (m *hostingManifest) manifestWorkName(addonNamespace, addonName string) string {
+	return constants.DeployHostingWorkName(addonNamespace, addonName)
+}
+
+func (m *hostingManifest) preDeleteHookManifestWorkName(addonNamespace, addonName string) string {
+	return fmt.Sprintf("%s-hosting-%s", preDeleteHookWorkName(addonName), addonNamespace)
+}
+
+// managedManifest process manifests which will be deployed on the managed cluster
+type managedManifest struct {
+}
+
+func (m *managedManifest) deployable(hostedModeEnabled bool, installMode string, obj runtime.Object) (bool, error) {
+	if !hostedModeEnabled {
+		// hosted mode disabled, will deploy all resources on the managed cluster
+		return true, nil
+	}
+
+	accessor, err := meta.Accessor(obj)
+	if err != nil {
+		return false, nil
+	}
+
+	location, exist, err := constants.GetHostedManifestLocation(accessor.GetLabels())
+	if err != nil {
+		return false, err
+	}
+
+	if installMode != constants.InstallModeHosted {
+		return true, nil
+	}
+
+	if !exist || location == constants.HostedManifestLocationManagedLabelValue {
+		klog.V(4).Infof("will deploy the manifest %s/%s on the managed cluster in Hosted mode",
+			accessor.GetNamespace(), accessor.GetName())
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func (m *managedManifest) manifestWorkName(addonNamespace, addonName string) string {
+	return constants.DeployWorkName(addonName)
+}
+
+func (m *managedManifest) preDeleteHookManifestWorkName(addonNamespace, addonName string) string {
+	return preDeleteHookWorkName(addonName)
+}
+
+// buildManifestWorkFromObject returns the deploy manifestwork and preDelete manifestwork, if there is no manifest need
+// to deploy, will return nil.
+func (b *manifestWorkBuiler) buildManifestWorkFromObject(
+	manifestWorkNamespace string,
+	addon *addonapiv1alpha1.ManagedClusterAddOn,
 	objects []runtime.Object) (deployManifestWork, hookManifestWork *workapiv1.ManifestWork, err error) {
 	var deployManifests []workapiv1.Manifest
 	var hookManifests []workapiv1.Manifest
 	var manifestConfigs []workapiv1.ManifestConfigOption
+
+	addonName := addon.Name
+	installMode, _ := constants.GetHostedModeInfo(addon.GetAnnotations())
 
 	for _, object := range objects {
 		rawObject, err := runtime.Encode(unstructured.UnstructuredJSONScheme, object)
 		if err != nil {
 			return nil, nil, err
 		}
-		unstructuredObj := &unstructured.Unstructured{}
-		err = unstructuredObj.UnmarshalJSON(rawObject)
+
+		deployable, err := b.processor.deployable(b.hostedModeEnabled, installMode, object)
 		if err != nil {
 			return nil, nil, err
 		}
-		isHookObject, manifestConfig := isPreDeleteHookObject(unstructuredObj)
+		if !deployable {
+			continue
+		}
+
+		isHookObject, manifestConfig := b.isPreDeleteHookObject(object)
 		if isHookObject {
 			hookManifests = append(hookManifests, workapiv1.Manifest{
 				RawExtension: runtime.RawExtension{Raw: rawObject},
@@ -155,8 +289,10 @@ func buildManifestWorkFromObject(
 		}
 	}
 
-	deployManifestWork = newManifestWork(constants.DeployWorkName(addonName), addonName, cluster, deployManifests)
-	hookManifestWork = newManifestWork(preDeleteHookWorkName(addonName), addonName, cluster, hookManifests)
+	deployManifestWork = newManifestWork(addon.Namespace, addonName, manifestWorkNamespace,
+		deployManifests, b.processor.manifestWorkName)
+	hookManifestWork = newManifestWork(addon.Namespace, addonName, manifestWorkNamespace,
+		hookManifests, b.processor.preDeleteHookManifestWorkName)
 	if hookManifestWork != nil {
 		hookManifestWork.Spec.ManifestConfigs = manifestConfigs
 	}
@@ -169,7 +305,6 @@ func applyWork(
 	workClient workv1client.Interface,
 	workLister worklister.ManifestWorkLister,
 	cache *workCache,
-	eventRecorder events.Recorder,
 	required *workapiv1.ManifestWork) (*workapiv1.ManifestWork, error) {
 	existingWork, err := workLister.ManifestWorks(required.Namespace).Get(required.Name)
 	existingWork = existingWork.DeepCopy()
@@ -177,11 +312,9 @@ func applyWork(
 		if errors.IsNotFound(err) {
 			existingWork, err = workClient.WorkV1().ManifestWorks(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
 			if err == nil {
-				eventRecorder.Eventf("ManifestWorkCreated", "Created %s/%s because it was missing", required.Namespace, required.Name)
 				cache.updateCache(required, existingWork)
 				return existingWork, nil
 			}
-			eventRecorder.Warningf("ManifestWorkCreateFailed", "Failed to create ManifestWork %s/%s: %v", required.Namespace, required.Name, err)
 			return nil, err
 		}
 		return nil, err
@@ -195,15 +328,52 @@ func applyWork(
 		return existingWork, nil
 	}
 
-	existingWork.Spec = required.Spec
-	existingWork, err = workClient.WorkV1().ManifestWorks(existingWork.Namespace).Update(ctx, existingWork, metav1.UpdateOptions{})
+	oldData, err := json.Marshal(&workapiv1.ManifestWork{
+		Spec: existingWork.Spec,
+	})
+	if err != nil {
+		return existingWork, err
+	}
+
+	newData, err := json.Marshal(&workapiv1.ManifestWork{
+		ObjectMeta: metav1.ObjectMeta{
+			UID:             existingWork.UID,
+			ResourceVersion: existingWork.ResourceVersion,
+		},
+		Spec: required.Spec,
+	})
+	if err != nil {
+		return existingWork, err
+	}
+
+	patchBytes, err := jsonpatch.CreateMergePatch(oldData, newData)
+	if err != nil {
+		return existingWork, fmt.Errorf("failed to create patch for addon %s: %w", existingWork.Name, err)
+	}
+
+	klog.V(2).Infof("Patching work %s/%s with %s", existingWork.Namespace, existingWork.Name, string(patchBytes))
+	updated, err := workClient.WorkV1().ManifestWorks(existingWork.Namespace).Patch(ctx, existingWork.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{})
 	if err == nil {
 		cache.updateCache(required, existingWork)
-		eventRecorder.Eventf("ManifestWorkUpdate", "Updated %s/%s because it was changing", required.Namespace, required.Name)
-		return existingWork, nil
+		return updated, nil
 	}
-	eventRecorder.Warningf("ManifestWorkUpdateFailed", "Failed to update ManifestWork %s/%s: %v", required.Namespace, required.Name, err)
 	return nil, err
+}
+
+func deleteWork(
+	ctx context.Context,
+	workClient workv1client.Interface,
+	namespace, name string) error {
+
+	err := workClient.WorkV1().ManifestWorks(namespace).Delete(ctx, name, metav1.DeleteOptions{})
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	return nil
 }
 
 func FindManifestValue(
@@ -228,43 +398,4 @@ func FindManifestValue(
 		}
 	}
 	return workapiv1.FieldValue{}
-}
-
-func patchCondition(ctx context.Context, addonClient addonv1alpha1client.Interface, new, old *addonapiv1alpha1.ManagedClusterAddOn) error {
-	if equality.Semantic.DeepEqual(new.Status.Conditions, old.Status.Conditions) {
-		return nil
-	}
-
-	oldData, err := json.Marshal(&addonapiv1alpha1.ManagedClusterAddOn{
-		Status: addonapiv1alpha1.ManagedClusterAddOnStatus{
-			Conditions: old.Status.Conditions,
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	newData, err := json.Marshal(&addonapiv1alpha1.ManagedClusterAddOn{
-		ObjectMeta: metav1.ObjectMeta{
-			UID:             new.UID,
-			ResourceVersion: new.ResourceVersion,
-		},
-		Status: addonapiv1alpha1.ManagedClusterAddOnStatus{
-			Conditions: new.Status.Conditions,
-		},
-	})
-	if err != nil {
-		return err
-	}
-
-	patchBytes, err := jsonpatch.CreateMergePatch(oldData, newData)
-	if err != nil {
-		return fmt.Errorf("failed to create patch for addon %s: %w", new.Name, err)
-	}
-	if err != nil {
-		return err
-	}
-
-	_, err = addonClient.AddonV1alpha1().ManagedClusterAddOns(new.Namespace).Patch(ctx, new.Name, types.MergePatchType, patchBytes, metav1.PatchOptions{}, "status")
-	return err
 }

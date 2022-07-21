@@ -5,6 +5,7 @@ metadata:
   name: {{ .Values.org }}:{{ template "work-manager.fullname" . }}
   labels:
     component: "work-manager"
+    addon.open-cluster-management.io/hosted-manifest-location: none
 subjects:
 - kind: ServiceAccount
   name: {{ template "work-manager.fullname" . }}
