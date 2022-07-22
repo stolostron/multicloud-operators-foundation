@@ -12,6 +12,7 @@ type AgentOptions struct {
 	MetricsAddr          string
 	KubeConfig           string
 	HubKubeConfig        string
+	ManagedKubeConfig    string
 	ClusterName          string
 	AgentAddress         string
 	AgentIngress         string
@@ -39,7 +40,7 @@ func NewAgentOptions() *AgentOptions {
 		KubeConfig:           "",
 		HubKubeConfig:        "/var/run/hub/kubeconfig",
 		ClusterName:          "",
-		EnableLeaderElection: true,
+		EnableLeaderElection: false,
 		EnableImpersonation:  false,
 		Address:              "0.0.0.0",
 		Port:                 443,
@@ -60,10 +61,12 @@ func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 		"The kubeconfig file of the managed cluster")
 	fs.StringVar(&o.HubKubeConfig, "hub-kubeconfig", o.HubKubeConfig,
 		"The kubeconfig file of the hub cluster")
+	fs.StringVar(&o.ManagedKubeConfig, "managed-kubeconfig", o.ManagedKubeConfig,
+		"The kubeconfig file of the managed cluster. "+
+			"If this is not set, will use '--kubeconfig' to build client to connect to the managed cluster.")
 	fs.StringVar(&o.ClusterName, "cluster-name", o.ClusterName, "The name of the managed cluster.")
 	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
-		"Enable leader election for controller manager. "+
-			"Enabling this will ensure there is only one active controller manager.")
+		"This flag is deprecated, you should not use this flag any more")
 	fs.BoolVar(&o.EnableImpersonation, "enable-impersonation", o.EnableImpersonation, "Enable impersonation.")
 	fs.IntVar(&o.AgentPort, "agent-port", o.AgentPort, ""+
 		"Port that is agent service port for hub cluster to access")

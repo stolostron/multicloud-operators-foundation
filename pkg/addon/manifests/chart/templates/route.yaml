@@ -8,6 +8,7 @@ metadata:
   namespace: {{ .Release.Namespace }}
   labels:
     component: "work-manager"
+    addon.open-cluster-management.io/hosted-manifest-location: hosting
 spec:
   host: ""
   tls:

@@ -1,0 +1,17 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ template "work-manager.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    component: "work-manager"
+    addon.open-cluster-management.io/hosted-manifest-location: hosting
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ template "work-manager.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ template "work-manager.fullname" . }}
+    namespace: {{ .Release.Namespace }}

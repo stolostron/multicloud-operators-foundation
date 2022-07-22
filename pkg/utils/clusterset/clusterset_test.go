@@ -119,4 +119,5 @@ func Test_GenerateClustersetSubjects(t *testing.T) {
 
 	BuildAdminRole("s1")
 	BuildViewRole("s1")
+	BuildBindRole("s1")
 }

@@ -102,6 +102,13 @@ func TestMergeCABundle(t *testing.T) {
 	}
 }
 
+func TestFilterExpiredCerts(t *testing.T) {
+	caCert1, _ := newCACert("signer1", -1*time.Second)
+	caCert2, _ := newCACert("signer1", 1*time.Hour)
+	valid := FilterExpiredCerts(caCert1, caCert2)
+	assert.Equal(t, 1, len(valid))
+}
+
 func validateCA(expected, got []byte) bool {
 	expectedCerts, err := cert.ParseCertsPEM(expected)
 	if err != nil {

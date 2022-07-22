@@ -81,13 +81,21 @@ func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.Ad
 			}
 			return status
 		}
-		//allow create/update legacy clusterset
-		if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel {
+		//allow create/update global clusterset
+		if clusterset.Name == clustersetutils.GlobalSetName {
+			if equality.Semantic.DeepEqual(clusterset.Spec, clustersetutils.GlobalSet.Spec) {
+				return status
+			}
+			status.Allowed = false
+			status.Result = &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: fmt.Sprintf("Do not allow to create/update global clusterset"),
+			}
 			return status
 		}
 
-		//allow create/update global clusterset
-		if clusterset.Name == clustersetutils.GlobalSetName && equality.Semantic.DeepEqual(clusterset.Spec, clustersetutils.GlobalSet.Spec) {
+		//allow create/update legacy clusterset
+		if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel {
 			return status
 		}
 

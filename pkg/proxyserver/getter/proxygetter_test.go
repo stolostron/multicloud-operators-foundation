@@ -6,7 +6,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func Test_getter(t *testing.T) {
+func TestProxyServiceInfoGetter(t *testing.T) {
 	serviceInfo1 := &ProxyServiceInfo{
 		Name:        "default/search",
 		SubResource: "sync",

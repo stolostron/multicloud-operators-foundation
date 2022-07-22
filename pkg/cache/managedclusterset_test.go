@@ -241,3 +241,33 @@ func TestClusterSetCacheList(t *testing.T) {
 	}
 
 }
+
+func TestClusterSetCacheListObj(t *testing.T) {
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+	clusterSetCache := fakeNewClusterSetCache(stopCh)
+	tests := []struct {
+		name                string
+		user                user.Info
+		expectedClusterSets sets.String
+		expectedErr         error
+	}{
+		{
+			name: "user1 test clusterset1",
+			user: &user.DefaultInfo{
+				Name:   "user1",
+				UID:    "user1-uid",
+				Groups: []string{},
+			},
+			expectedClusterSets: sets.String{}.Insert("clusterset1"),
+		},
+	}
+	clusterSetCache.Cache.synchronize()
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			clusterSetList, err := clusterSetCache.ListObjects(test.user)
+			validateError(t, err, test.expectedErr)
+			assert.Equal(t, validateClusterSetCacheListList(clusterSetList.(*clusterv1beta1.ManagedClusterSetList), test.expectedClusterSets), true)
+		})
+	}
+}
