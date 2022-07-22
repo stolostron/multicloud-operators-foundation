@@ -1,12 +1,14 @@
 package v1
 
 import (
+	"github.com/openshift/hive/apis/hive/v1/alibabacloud"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/hive/apis/hive/v1/aws"
 	"github.com/openshift/hive/apis/hive/v1/azure"
 	"github.com/openshift/hive/apis/hive/v1/gcp"
+	"github.com/openshift/hive/apis/hive/v1/ibmcloud"
 	"github.com/openshift/hive/apis/hive/v1/openstack"
 	"github.com/openshift/hive/apis/hive/v1/ovirt"
 	"github.com/openshift/hive/apis/hive/v1/vsphere"
@@ -68,6 +70,8 @@ type MachinePoolAutoscaling struct {
 // MachinePoolPlatform is the platform-specific configuration for a machine
 // pool. Only one of the platforms should be set.
 type MachinePoolPlatform struct {
+	// AlibabaCloud is the configuration used when installing on Alibaba Cloud.
+	AlibabaCloud *alibabacloud.MachinePool `json:"alibabacloud,omitempty"`
 	// AWS is the configuration used when installing on AWS.
 	AWS *aws.MachinePoolPlatform `json:"aws,omitempty"`
 	// Azure is the configuration used when installing on Azure.
@@ -80,6 +84,8 @@ type MachinePoolPlatform struct {
 	VSphere *vsphere.MachinePool `json:"vsphere,omitempty"`
 	// Ovirt is the configuration used when installing on oVirt.
 	Ovirt *ovirt.MachinePool `json:"ovirt,omitempty"`
+	// IBMCloud is the configuration used when installing on IBM Cloud.
+	IBMCloud *ibmcloud.MachinePool `json:"ibmcloud,omitempty"`
 }
 
 // MachinePoolStatus defines the observed state of MachinePool

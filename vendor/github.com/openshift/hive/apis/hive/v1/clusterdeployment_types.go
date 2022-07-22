@@ -5,10 +5,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/hive/apis/hive/v1/agent"
+	"github.com/openshift/hive/apis/hive/v1/alibabacloud"
 	"github.com/openshift/hive/apis/hive/v1/aws"
 	"github.com/openshift/hive/apis/hive/v1/azure"
 	"github.com/openshift/hive/apis/hive/v1/baremetal"
 	"github.com/openshift/hive/apis/hive/v1/gcp"
+	"github.com/openshift/hive/apis/hive/v1/ibmcloud"
 	"github.com/openshift/hive/apis/hive/v1/none"
 	"github.com/openshift/hive/apis/hive/v1/openstack"
 	"github.com/openshift/hive/apis/hive/v1/ovirt"
@@ -98,6 +100,9 @@ const (
 	// ClusterPowerStateWaitingForClusterOperators is used when waiting for ClusterOperators to
 	// get to a good state. (Available=True, Processing=False, Degraded=False)
 	ClusterPowerStateWaitingForClusterOperators ClusterPowerState = "WaitingForClusterOperators"
+
+	// ClusterPowerStateUnknown indicates that we can't/won't discover the state of the cluster's cloud machines.
+	ClusterPowerStateUnknown = "Unknown"
 )
 
 // ClusterDeploymentSpec defines the desired state of ClusterDeployment
@@ -494,6 +499,9 @@ const (
 	// (It does not necessarily mean they are currently copacetic -- check ClusterSync status
 	// for that.)
 	HibernatingReasonSyncSetsApplied = "SyncSetsApplied"
+	// HibernatingReasonPowerStatePaused indicates that we can't/won't discover the state of the
+	// cluster's cloud machines because the powerstate-paused annotation is set.
+	HibernatingReasonPowerStatePaused = "PowerStatePaused"
 
 	// ReadyReasonStoppingOrHibernating is used as the reason for the Ready condition when the cluster
 	// is stopping or hibernating. Precise details are available in the Hibernating condition.
@@ -514,6 +522,9 @@ const (
 	ReadyReasonWaitingForClusterOperators = string(ClusterPowerStateWaitingForClusterOperators)
 	// ReadyReasonRunning is used on the Ready condition as the reason when the cluster is running and ready
 	ReadyReasonRunning = string(ClusterPowerStateRunning)
+	// ReadyReasonPowerStatePaused indicates that we can't/won't discover the state of the
+	// cluster's cloud machines because the powerstate-paused annotation is set.
+	ReadyReasonPowerStatePaused = "PowerStatePaused"
 )
 
 // Provisioned status condition reasons
@@ -571,6 +582,9 @@ type ClusterDeploymentList struct {
 // Platform is the configuration for the specific platform upon which to perform
 // the installation. Only one of the platform configuration should be set.
 type Platform struct {
+	// AlibabaCloud is the configuration used when installing on Alibaba Cloud
+	AlibabaCloud *alibabacloud.Platform `json:"alibabacloud,omitempty"`
+
 	// AWS is the configuration used when installing on AWS.
 	AWS *aws.Platform `json:"aws,omitempty"`
 
@@ -597,6 +611,9 @@ type Platform struct {
 	// AgentBareMetal is the configuration used when performing an Assisted Agent based installation
 	// to bare metal.
 	AgentBareMetal *agent.BareMetalPlatform `json:"agentBareMetal,omitempty"`
+
+	// IBMCloud is the configuration used when installing on IBM Cloud
+	IBMCloud *ibmcloud.Platform `json:"ibmcloud,omitempty"`
 
 	// None indicates platform-agnostic install.
 	// https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html
