@@ -174,10 +174,11 @@ func TestManifest(t *testing.T) {
 					v1alpha1.ClusterImageRegistriesAnnotation: newAnnotationRegistries([]v1alpha1.Registries{
 						{Source: "quay.io/stolostron", Mirror: "quay.io/test"},
 					}, "")}),
-			addon:             newAddon("work-manager", "cluster1", "", ""),
-			expectedNamespace: "open-cluster-management-agent-addon",
-			expectedImage:     "quay.io/test/multicloud-manager:2.5.0",
-			expectedCount:     8,
+			addon:                newAddon("work-manager", "cluster1", "", ""),
+			expectedNamespace:    "open-cluster-management-agent-addon",
+			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
+			expectedNodeSelector: true,
+			expectedCount:        8,
 		},
 		{
 			name: "local cluster imageOverride",
@@ -339,6 +340,256 @@ func TestCreateOrUpdateRoleBinding(t *testing.T) {
 			}
 
 			test.validateActions(t, kubeClient.Actions())
+		})
+	}
+}
+
+func TestGetNodeSelector(t *testing.T) {
+	cases := []struct {
+		name           string
+		managedCluster *clusterv1.ManagedCluster
+		expectedErr    string
+	}{
+		{
+			name: "no nodeSelector annotation",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+				},
+			},
+		},
+		{
+			name: "no nodeSelector value",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/nodeSelector": "",
+					},
+				},
+			},
+			expectedErr: "unexpected end of JSON input",
+		},
+		{
+			name: "empty nodeSelector annotation",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/nodeSelector": "{}",
+					},
+				},
+			},
+		},
+		{
+			name: "invalid nodeSelector annotation",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/nodeSelector": "{\"=\":\"test\"}",
+					},
+				},
+			},
+			expectedErr: "name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')",
+		},
+		{
+			name: "invalid nodeSelector annotation",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/nodeSelector": "{\"test\":\"=\"}",
+					},
+				},
+			},
+			expectedErr: "a valid label must be an empty string or consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyValue',  or 'my_value',  or '12345', regex used for validation is '(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?')",
+		},
+		{
+			name: "nodeSelector annotation",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/nodeSelector": "{\"kubernetes.io/os\":\"linux\"}",
+					},
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := getNodeSelector(c.managedCluster)
+			switch {
+			case len(c.expectedErr) == 0:
+				if err != nil {
+					t.Errorf("unexpect err: %v", err)
+				}
+			case len(c.expectedErr) != 0:
+				if err == nil {
+					t.Errorf("expect err %s, but failed", c.expectedErr)
+				}
+
+				if fmt.Sprintf("invalid nodeSelector annotation of cluster test_cluster, %s", c.expectedErr) != err.Error() {
+					t.Errorf("expect %v, but %v", c.expectedErr, err.Error())
+				}
+			}
+		})
+	}
+}
+
+func TestGetTolerations(t *testing.T) {
+	cases := []struct {
+		name           string
+		managedCluster *clusterv1.ManagedCluster
+		expectedErr    string
+	}{
+		{
+			name: "no tolerations annotation",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+				},
+			},
+		},
+		{
+			name: "no tolerations value",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/tolerations": "",
+					},
+				},
+			},
+			expectedErr: "unexpected end of JSON input",
+		},
+		{
+			name: "empty tolerations array",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/tolerations": "[]",
+					},
+				},
+			},
+		},
+		{
+			name: "empty toleration in tolerations",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/tolerations": "[{}]",
+					},
+				},
+			},
+			expectedErr: "operator must be Exists when `key` is empty, which means \"match all values and all keys\"",
+		},
+		{
+			name: "invalid toleration key",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/tolerations": "[{\"key\":\"nospecialchars^=@\",\"operator\":\"Equal\",\"value\":\"bar\",\"effect\":\"NoSchedule\"}]",
+					},
+				},
+			},
+			expectedErr: "name part must consist of alphanumeric characters, '-', '_' or '.', and must start and end with an alphanumeric character (e.g. 'MyName',  or 'my.name',  or '123-abc', regex used for validation is '([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9]')",
+		},
+		{
+			name: "invalid toleration operator",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/tolerations": "[{\"key\":\"foo\",\"operator\":\"In\",\"value\":\"bar\",\"effect\":\"NoSchedule\"}]",
+					},
+				},
+			},
+			expectedErr: "the operator \"In\" is not supported",
+		},
+		{
+			name: "invalid toleration effect",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/tolerations": "[{\"key\":\"foo\",\"value\":\"bar\",\"effect\":\"Test\"}]",
+					},
+				},
+			},
+			expectedErr: "the effect \"Test\" is not supported",
+		},
+		{
+			name: "value must be empty when `operator` is 'Exists'",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/tolerations": "[{\"key\":\"foo\",\"operator\":\"Exists\",\"value\":\"bar\",\"effect\":\"NoSchedule\"}]",
+					},
+				},
+			},
+			expectedErr: "value must be empty when `operator` is 'Exists'",
+		},
+		{
+			name: "operator must be 'Exists' when `key` is empty",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/tolerations": "[{\"operator\":\"Exists\",\"value\":\"bar\",\"effect\":\"NoSchedule\"}]",
+					},
+				},
+			},
+			expectedErr: "value must be empty when `operator` is 'Exists'",
+		},
+		{
+			name: "effect must be 'NoExecute' when `TolerationSeconds` is set",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/tolerations": "[{\"key\":\"foo\",\"operator\":\"Exists\",\"effect\":\"NoSchedule\",\"tolerationSeconds\":20}]",
+					},
+				},
+			},
+			expectedErr: "effect must be 'NoExecute' when `tolerationSeconds` is set",
+		},
+		{
+			name: "tolerations annotation",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test_cluster",
+					Annotations: map[string]string{
+						"open-cluster-management/tolerations": "[{\"key\":\"foo\",\"operator\":\"Exists\",\"effect\":\"NoExecute\",\"tolerationSeconds\":20}]",
+					},
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			_, err := getTolerations(c.managedCluster)
+			switch {
+			case len(c.expectedErr) == 0:
+				if err != nil {
+					t.Errorf("unexpect err: %v", err)
+				}
+			case len(c.expectedErr) != 0:
+				if err == nil {
+					t.Errorf("expect err %s, but failed", c.expectedErr)
+				}
+
+				if fmt.Sprintf("invalid tolerations annotation of cluster test_cluster, %s", c.expectedErr) != err.Error() {
+					t.Errorf("expect %v, but %v", c.expectedErr, err.Error())
+				}
+			}
 		})
 	}
 }
