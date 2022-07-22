@@ -215,7 +215,8 @@ func VerbMatches(rule *rbacv1.PolicyRule, requestedVerb string) bool {
 func GetViewResourceFromClusterRole(clusterRole *rbacv1.ClusterRole, group, resource string) (sets.String, bool) {
 	names := sets.NewString()
 	all := false
-	for _, rule := range clusterRole.Rules {
+	for i := range clusterRole.Rules {
+		rule := clusterRole.Rules[i]
 		if !APIGroupMatches(&rule, group) {
 			continue
 		}
@@ -243,7 +244,8 @@ func GetViewResourceFromClusterRole(clusterRole *rbacv1.ClusterRole, group, reso
 func GetAdminResourceFromClusterRole(clusterRole *rbacv1.ClusterRole, group, resource string) (sets.String, bool) {
 	names := sets.NewString()
 	all := false
-	for _, rule := range clusterRole.Rules {
+	for i := range clusterRole.Rules {
+		rule := clusterRole.Rules[i]
 		if !APIGroupMatches(&rule, group) {
 			continue
 		}

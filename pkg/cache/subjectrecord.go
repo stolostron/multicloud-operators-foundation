@@ -347,7 +347,9 @@ func updateResourcesToSubject(subjectRecordStore cache.Store, subject string, na
 		item.Names = names
 	} else {
 		item = &SubjectRecord{Subject: subject, Names: names}
-		subjectRecordStore.Add(item)
+		if err := subjectRecordStore.Add(item); err != nil {
+			klog.Warningf("failed to add %v: %v", item, err)
+		}
 	}
 	return
 }
@@ -356,7 +358,9 @@ func deleteSubject(subjectRecordStore cache.Store, subject string) {
 	obj, exists, _ := subjectRecordStore.GetByKey(subject)
 	if exists {
 		SubjectRecord := obj.(*SubjectRecord)
-		subjectRecordStore.Delete(SubjectRecord)
+		if err := subjectRecordStore.Delete(SubjectRecord); err != nil {
+			klog.Warningf("failed to delete %v: %v", SubjectRecord, err)
+		}
 	}
 
 	return

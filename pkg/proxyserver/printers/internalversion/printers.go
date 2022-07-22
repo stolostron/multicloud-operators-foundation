@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/duration"
+	"k8s.io/klog/v2"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
@@ -20,9 +21,14 @@ func AddHandlers(h printers.PrintHandler) {
 		{Name: "Available", Type: "string", Description: "Available represents the managed cluster is available."},
 		{Name: "Age", Type: "date", Description: "Age represents the age of the managedCluster until created."},
 	}
-	h.TableHandler(managedClusterColumnDefinitions, printManagedCluster)
-	h.TableHandler(managedClusterColumnDefinitions, printManagedClusterList)
-
+	err := h.TableHandler(managedClusterColumnDefinitions, printManagedCluster)
+	if err != nil {
+		klog.Warningf("%v", err)
+	}
+	err = h.TableHandler(managedClusterColumnDefinitions, printManagedClusterList)
+	if err != nil {
+		klog.Warningf("%v", err)
+	}
 }
 
 func translateTimestampSince(timestamp metav1.Time) string {
