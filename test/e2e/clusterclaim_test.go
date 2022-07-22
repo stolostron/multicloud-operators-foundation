@@ -55,7 +55,7 @@ var _ = ginkgo.Describe("Testing ClusterClaim", func() {
 	})
 
 	ginkgo.It("should rollback the change of the ClusterClaim once it is modified", func() {
-		claimName := requiredClaimNames[0]
+		claimName := requiredClaimNames[1]
 
 		// get the original claim
 		var claim *clusterv1alpha1.ClusterClaim
@@ -86,6 +86,43 @@ var _ = ginkgo.Describe("Testing ClusterClaim", func() {
 			}
 			if originalValue != claim.Spec.Value {
 				return fmt.Errorf("the claim is not rollback")
+			}
+			return nil
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.It("should not rollback the change of the ClusterClaim, if it's in create only list", func() {
+		claimName := requiredClaimNames[0]
+
+		// get the original claim
+		var claim *clusterv1alpha1.ClusterClaim
+		var err error
+		gomega.Eventually(func() error {
+			claim, err = clusterClient.ClusterV1alpha1().ClusterClaims().Get(context.TODO(), claimName, v1.GetOptions{})
+			return err
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		originalValue := claim.Spec.Value
+
+		// modify the the claim value
+		err = retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+			claim, err = clusterClient.ClusterV1alpha1().ClusterClaims().Get(context.TODO(), claimName, v1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			claim.Spec.Value = rand.String(6)
+			_, err = clusterClient.ClusterV1alpha1().ClusterClaims().Update(context.TODO(), claim, v1.UpdateOptions{})
+			return err
+		})
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+		// check if the change is rollback
+		gomega.Eventually(func() error {
+			claim, err = clusterClient.ClusterV1alpha1().ClusterClaims().Get(context.TODO(), claimName, v1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			if originalValue == claim.Spec.Value {
+				return fmt.Errorf("the claim is rollback")
 			}
 			return nil
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())

@@ -53,7 +53,7 @@ func (r *ClusterClaimReconciler) syncClaims(ctx context.Context) error {
 	claimSet := sets.String{}
 
 	for _, claim := range claims {
-		if err := r.createOrUpdate(ctx, claim); err != nil {
+		if err := r.createOrUpdate(ctx, claim, clusterClaimCreateOnlyList); err != nil {
 			errs = append(errs, err)
 		}
 		claimSet.Insert(claim.Name)
@@ -79,7 +79,7 @@ func (r *ClusterClaimReconciler) syncClaims(ctx context.Context) error {
 	return utils.NewMultiLineAggregate(errs)
 }
 
-func (r *ClusterClaimReconciler) createOrUpdate(ctx context.Context, newClaim *clusterv1alpha1.ClusterClaim) error {
+func (r *ClusterClaimReconciler) createOrUpdate(ctx context.Context, newClaim *clusterv1alpha1.ClusterClaim, clusterClaimCreateOnlyList []string) error {
 	oldClaim, err := r.ClusterClient.ClusterV1alpha1().ClusterClaims().Get(ctx, newClaim.Name, metav1.GetOptions{})
 	switch {
 	case errors.IsNotFound(err):
@@ -90,6 +90,10 @@ func (r *ClusterClaimReconciler) createOrUpdate(ctx context.Context, newClaim *c
 	case err != nil:
 		return fmt.Errorf("unable to get ClusterClaim %q: %w", newClaim.Name, err)
 	case !reflect.DeepEqual(oldClaim.Spec, newClaim.Spec):
+		// if newClaim.Name is in clusterClaimCreateOnlyList, then do nothing
+		if utils.ContainsString(clusterClaimCreateOnlyList, newClaim.Name) {
+			return nil
+		}
 		oldClaim.Spec = newClaim.Spec
 		_, err := r.ClusterClient.ClusterV1alpha1().ClusterClaims().Update(ctx, oldClaim, metav1.UpdateOptions{})
 		if err != nil {

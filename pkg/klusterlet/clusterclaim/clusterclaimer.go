@@ -51,6 +51,11 @@ const (
 	labelExcludeBackup = "velero.io/exclude-from-backup"
 )
 
+// clusterClaimCreateOnlyList returns a list of cluster claims that only need to create, not update.
+var clusterClaimCreateOnlyList = []string{
+	ClaimK8sID,
+}
+
 // should be the type defined in infrastructure.config.openshift.io
 const (
 	PlatformAWS          = "AWS"

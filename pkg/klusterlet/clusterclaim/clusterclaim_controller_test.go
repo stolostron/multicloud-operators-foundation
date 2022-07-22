@@ -6,6 +6,8 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	clienttesting "k8s.io/client-go/testing"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -23,39 +25,82 @@ func newClusterClaimReconciler(clusterClient clusterclientset.Interface, listFun
 }
 
 func TestCreateOrUpdate(t *testing.T) {
+	testcases := []struct {
+		name                       string
+		clusterClaimCreateOnlyList []string
+		objects                    []runtime.Object
+		clusterclaims              []*clusterv1alpha1.ClusterClaim
+		validateAddonActions       func(t *testing.T, actions []clienttesting.Action)
+	}{
+		{
+			name:                       "create cluster claim",
+			clusterClaimCreateOnlyList: []string{},
+			objects:                    []runtime.Object{},
+			clusterclaims: []*clusterv1alpha1.ClusterClaim{
+				newClusterClaim("x", "y"),
+			},
+			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 2 {
+					t.Errorf("Expect %d actions, but got: %v", 2, len(actions))
+				}
+				if actions[1].GetVerb() != "create" {
+					t.Errorf("Expect action create, but got: %s", actions[1].GetVerb())
+				}
+			},
+		},
+		{
+			name:                       "update cluster claim",
+			clusterClaimCreateOnlyList: []string{},
+			objects: []runtime.Object{
+				newClusterClaim("x", "y"),
+			},
+			clusterclaims: []*clusterv1alpha1.ClusterClaim{
+				newClusterClaim("x", "z"),
+			},
+			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 2 {
+					t.Errorf("Expect 2 actions, but got: %v", len(actions))
+				}
+				if actions[1].GetVerb() != "update" {
+					t.Errorf("Expect action update, but got: %s", actions[1].GetVerb())
+				}
+			},
+		},
+		{
+			name:                       "update cluster claim with create only list",
+			clusterClaimCreateOnlyList: []string{"x"},
+			objects:                    []runtime.Object{},
+			clusterclaims: []*clusterv1alpha1.ClusterClaim{
+				newClusterClaim("x", "y"),
+				newClusterClaim("x", "z"),
+			},
+			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 3 {
+					t.Errorf("Expect 3 actions, but got: %v", len(actions))
+				}
+				if actions[0].GetVerb() != "get" {
+					t.Errorf("Expect action get, but got: %s", actions[1].GetVerb())
+				}
+				if actions[1].GetVerb() != "create" {
+					t.Errorf("Expect action create, but got: %s", actions[1].GetVerb())
+				}
+				if actions[2].GetVerb() != "get" {
+					t.Errorf("Expect action get, but got: %s", actions[1].GetVerb())
+				}
+			},
+		},
+	}
+
 	ctx := context.Background()
-	// create
-	clusterClient := clusterfake.NewSimpleClientset()
-	reconciler := newClusterClaimReconciler(clusterClient, nil)
-
-	claim1 := newClusterClaim("x", "y")
-	if err := reconciler.createOrUpdate(ctx, claim1); err != nil {
-		t.Errorf("Failed to create or update cluster claim: %v", err)
-	}
-
-	actions := clusterClient.Actions()
-	if len(actions) != 2 {
-		t.Errorf("Expect %d actions, but got: %v", 2, len(actions))
-	}
-	if actions[1].GetVerb() != "create" {
-		t.Errorf("Expect action create, but got: %s", actions[1].GetVerb())
-	}
-
-	// update
-	clusterClient = clusterfake.NewSimpleClientset(newClusterClaim("x", "y"))
-	reconciler = newClusterClaimReconciler(clusterClient, nil)
-
-	claim1 = newClusterClaim("x", "z")
-	if err := reconciler.createOrUpdate(ctx, claim1); err != nil {
-		t.Errorf("Failed to create or update cluster claim: %v", err)
-	}
-
-	actions = clusterClient.Actions()
-	if len(actions) != 2 {
-		t.Errorf("Expect 2 actions, but got: %v", len(actions))
-	}
-	if actions[1].GetVerb() != "update" {
-		t.Errorf("Expect action update, but got: %s", actions[1].GetVerb())
+	for _, tc := range testcases {
+		clusterClient := clusterfake.NewSimpleClientset(tc.objects...)
+		reconciler := newClusterClaimReconciler(clusterClient, nil)
+		for _, cc := range tc.clusterclaims {
+			if err := reconciler.createOrUpdate(ctx, cc, tc.clusterClaimCreateOnlyList); err != nil {
+				t.Errorf("%s: unexpected error: %v", tc.name, err)
+			}
+		}
+		tc.validateAddonActions(t, clusterClient.Actions())
 	}
 }
 
