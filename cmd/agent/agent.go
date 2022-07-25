@@ -238,20 +238,20 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			AgentService:   o.AgentService,
 		}
 		clusterClaimer := clusterclaimctl.ClusterClaimer{
-			ClusterName:    o.ClusterName,
-			HubClient:      mgr.GetClient(),
-			KubeClient:     managedClusterKubeClient,
-			ConfigV1Client: openshiftClient,
-			OauthV1Client:  osOauthClient,
-			Mapper:         restMapper,
+			ClusterName:                     o.ClusterName,
+			HubClient:                       mgr.GetClient(),
+			KubeClient:                      managedClusterKubeClient,
+			ConfigV1Client:                  openshiftClient,
+			OauthV1Client:                   osOauthClient,
+			Mapper:                          restMapper,
 			EnableSyncLabelsToClusterClaims: o.EnableSyncLabelsToClusterClaims,
 		}
 
 		clusterClaimReconciler := clusterclaimctl.ClusterClaimReconciler{
-			Log:                             ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
-			ClusterClient:                   managedClusterClusterClient,
-			ClusterInformers:                clusterInformerFactory.Cluster().V1alpha1().ClusterClaims(),
-			ListClusterClaims:               clusterClaimer.List,
+			Log:               ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
+			ClusterClient:     managedClusterClusterClient,
+			ClusterInformers:  clusterInformerFactory.Cluster().V1alpha1().ClusterClaims(),
+			ListClusterClaims: clusterClaimer.List,
 		}
 
 		if err = actionReconciler.SetupWithManager(mgr); err != nil {
