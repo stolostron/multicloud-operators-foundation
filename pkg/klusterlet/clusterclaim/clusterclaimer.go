@@ -100,14 +100,15 @@ func init() {
 }
 
 type ClusterClaimer struct {
-	ClusterName    string
-	Product        string
-	Platform       string
-	HubClient      client.Client
-	KubeClient     kubernetes.Interface
-	ConfigV1Client openshiftclientset.Interface
-	OauthV1Client  openshiftoauthclientset.Interface
-	Mapper         meta.RESTMapper
+	ClusterName                     string
+	Product                         string
+	Platform                        string
+	HubClient                       client.Client
+	KubeClient                      kubernetes.Interface
+	ConfigV1Client                  openshiftclientset.Interface
+	OauthV1Client                   openshiftoauthclientset.Interface
+	Mapper                          meta.RESTMapper
+	EnableSyncLabelsToClusterClaims bool
 }
 
 func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
@@ -181,14 +182,17 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 		claims = append(claims, newClusterClaim(ClaimControlPlaneTopology, string(controlPlaneTopology)))
 	}
 
-	syncedClaims, err := c.syncLabelsToClaims()
-	if err != nil {
-		klog.Errorf("failed to sync labels to claims: %v", err)
-		return claims, err
+	if c.EnableSyncLabelsToClusterClaims {
+		syncedClaims, err := c.syncLabelsToClaims()
+		if err != nil {
+			klog.Errorf("failed to sync labels to claims: %v", err)
+			return claims, err
+		}
+		if len(syncedClaims) != 0 {
+			claims = append(claims, syncedClaims...)
+		}
 	}
-	if len(syncedClaims) != 0 {
-		claims = append(claims, syncedClaims...)
-	}
+
 	return claims, nil
 }
 
