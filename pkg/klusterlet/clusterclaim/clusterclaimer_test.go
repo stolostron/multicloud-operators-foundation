@@ -426,15 +426,16 @@ func fakeHubClient(clusterName string, labels map[string]string) client.Client {
 
 func TestClusterClaimerList(t *testing.T) {
 	tests := []struct {
-		name           string
-		clusterName    string
-		hubClient      client.Client
-		kubeClient     kubernetes.Interface
-		configV1Client openshiftclientset.Interface
-		oauthV1Client  openshiftoauthclientset.Interface
-		mapper         meta.RESTMapper
-		expectClaims   map[string]string
-		expectErr      error
+		name                            string
+		clusterName                     string
+		hubClient                       client.Client
+		kubeClient                      kubernetes.Interface
+		configV1Client                  openshiftclientset.Interface
+		oauthV1Client                   openshiftoauthclientset.Interface
+		mapper                          meta.RESTMapper
+		enableSyncLabelsToClusterClaims bool
+		expectClaims                    map[string]string
+		expectErr                       error
 	}{
 		{
 			name:           "claims of OCP on AWS",
@@ -446,6 +447,7 @@ func TestClusterClaimerList(t *testing.T) {
 			oauthV1Client: newOauthV1Client([]string{
 				"https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
 			}),
+			enableSyncLabelsToClusterClaims: true,
 			expectClaims: map[string]string{
 				ClaimK8sID:                      "clusterAWS",
 				ClaimOpenshiftVersion:           "4.5.11",
@@ -463,13 +465,40 @@ func TestClusterClaimerList(t *testing.T) {
 			expectErr: nil,
 		},
 		{
-			name:           "claims of OSD on GCP",
-			clusterName:    "clusterOSDGCP",
-			hubClient:      fakeHubClient("clusterOSDGCP", map[string]string{"open-cluster-management.io/agent": "abc"}),
-			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformGCP), newConfigmapConsoleConfig()}),
-			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources, osdAPIGroupResources}),
-			configV1Client: newConfigV1Client("4.x", PlatformGCP),
-			oauthV1Client:  newOauthV1Client(nil),
+			name:           "claims of OCP on AWS disable enableSyncLabelsToClusterClaims",
+			clusterName:    "clusterAWS",
+			hubClient:      fakeHubClient("clusterAWS", map[string]string{"testLabel/abc": "testLabel"}),
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAWS), newConfigmapConsoleConfig()}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", PlatformAWS),
+			oauthV1Client: newOauthV1Client([]string{
+				"https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
+			}),
+			enableSyncLabelsToClusterClaims: false,
+			expectClaims: map[string]string{
+				ClaimK8sID:                      "clusterAWS",
+				ClaimOpenshiftVersion:           "4.5.11",
+				ClaimOpenshiftID:                "ffd989a0-8391-426d-98ac-86ae6d051433",
+				ClaimOpenshiftInfrastructure:    "{\"infraName\":\"ocp-aws\"}",
+				ClaimOCMPlatform:                PlatformAWS,
+				ClaimOCMProduct:                 ProductOpenShift,
+				ClaimOCMConsoleURL:              "https://console-openshift-console.apps.daliu-clu428.dev04.red-chesterfield.com",
+				ClaimOCMKubeVersion:             "v0.0.0-master+$Format:%H$",
+				ClaimOCMRegion:                  "region-aws",
+				ClaimControlPlaneTopology:       "HighlyAvailable",
+				ClaimOpenshiftOauthRedirectURIs: "https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
+			},
+			expectErr: nil,
+		},
+		{
+			name:                            "claims of OSD on GCP",
+			clusterName:                     "clusterOSDGCP",
+			hubClient:                       fakeHubClient("clusterOSDGCP", map[string]string{"open-cluster-management.io/agent": "abc"}),
+			kubeClient:                      newFakeKubeClient([]runtime.Object{newNode(PlatformGCP), newConfigmapConsoleConfig()}),
+			mapper:                          newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources, osdAPIGroupResources}),
+			configV1Client:                  newConfigV1Client("4.x", PlatformGCP),
+			oauthV1Client:                   newOauthV1Client(nil),
+			enableSyncLabelsToClusterClaims: true,
 			expectClaims: map[string]string{
 				ClaimK8sID:                   "clusterOSDGCP",
 				ClaimOpenshiftVersion:        "4.5.11",
@@ -485,13 +514,14 @@ func TestClusterClaimerList(t *testing.T) {
 			expectErr: nil,
 		},
 		{
-			name:           "claims of non-OCP",
-			clusterName:    "clusterNonOCP",
-			hubClient:      fakeHubClient("clusterNonOCP", map[string]string{}),
-			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformGCP), newEndpoint()}),
-			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{}),
-			configV1Client: newConfigV1Client("3", ""),
-			oauthV1Client:  newOauthV1Client(nil),
+			name:                            "claims of non-OCP",
+			clusterName:                     "clusterNonOCP",
+			hubClient:                       fakeHubClient("clusterNonOCP", map[string]string{}),
+			kubeClient:                      newFakeKubeClient([]runtime.Object{newNode(PlatformGCP), newEndpoint()}),
+			mapper:                          newFakeRestMapper([]*restmapper.APIGroupResources{}),
+			configV1Client:                  newConfigV1Client("3", ""),
+			oauthV1Client:                   newOauthV1Client(nil),
+			enableSyncLabelsToClusterClaims: true,
 			expectClaims: map[string]string{
 				ClaimK8sID:          "clusterNonOCP",
 				ClaimOCMPlatform:    PlatformGCP,
@@ -505,11 +535,12 @@ func TestClusterClaimerList(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clusterClaimer := ClusterClaimer{ClusterName: test.clusterName,
-				HubClient:      test.hubClient,
-				KubeClient:     test.kubeClient,
-				Mapper:         test.mapper,
-				ConfigV1Client: test.configV1Client,
-				OauthV1Client:  test.oauthV1Client,
+				HubClient:                       test.hubClient,
+				KubeClient:                      test.kubeClient,
+				Mapper:                          test.mapper,
+				ConfigV1Client:                  test.configV1Client,
+				OauthV1Client:                   test.oauthV1Client,
+				EnableSyncLabelsToClusterClaims: test.enableSyncLabelsToClusterClaims,
 			}
 			claims, err := clusterClaimer.List()
 			assert.Equal(t, test.expectErr, err)
