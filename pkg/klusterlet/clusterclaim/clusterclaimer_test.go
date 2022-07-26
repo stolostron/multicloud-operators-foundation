@@ -540,6 +540,7 @@ func TestClusterClaimerList(t *testing.T) {
 				Mapper:                          test.mapper,
 				ConfigV1Client:                  test.configV1Client,
 				OauthV1Client:                   test.oauthV1Client,
+				managedclusterID:                test.clusterName,
 				EnableSyncLabelsToClusterClaims: test.enableSyncLabelsToClusterClaims,
 			}
 			claims, err := clusterClaimer.List()
