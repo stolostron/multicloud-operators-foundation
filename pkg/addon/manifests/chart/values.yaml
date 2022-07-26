@@ -11,6 +11,7 @@ clusterName: null
 product: ""
 hasRoute: false
 enableSyncLabelsToClusterClaims: true
+enableNodeCollector: true
 
 affinity: {}
 

@@ -54,6 +54,9 @@ spec:
         {{- if eq .Values.enableSyncLabelsToClusterClaims false }}
           - "--enable-sync-labels-to-clusterclaims=false"
         {{- end }}
+        {{- if eq .Values.enableNodeCollector false }}
+          - "--enable-node-collector=false"
+        {{- end}}
         env:
         - name: POD_NAMESPACE
           valueFrom:
