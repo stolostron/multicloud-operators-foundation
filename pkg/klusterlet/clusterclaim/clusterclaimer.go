@@ -115,6 +115,7 @@ type ClusterClaimer struct {
 
 // getManagedClusterID returns the managed cluster ID of the cluster.
 // We get ID by the sequence of: openshiftID, uid of kube-system namespace, random UID.
+// Note that: even we use randomID to generate the managed cluster ID, it would change because `id.k8s.io` is create only now.
 func (c *ClusterClaimer) getManagedClusterID() (string, error) {
 	if c.managedclusterID != "" {
 		return c.managedclusterID, nil
