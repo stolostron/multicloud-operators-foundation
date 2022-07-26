@@ -57,6 +57,7 @@ type Values struct {
 	Tolerations                     []corev1.Toleration `json:"tolerations,omitempty"`
 	GlobalValues                    GlobalValues        `json:"global,omitempty,omitempty"`
 	EnableSyncLabelsToClusterClaims bool                `json:"enableSyncLabelsToClusterClaims"`
+	EnableNodeCollector             bool                `json:"enableNodeCollector"`
 }
 
 func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
@@ -67,10 +68,12 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 			return nil, err
 		}
 
-		// if addon is hosed mode, the enableSyncLabelsToClusterClaims is false
+		// if addon is hosed mode, the enableSyncLabelsToClusterClaims,enableNodeCollector is false
 		enableSyncLabelsToClusterClaims := true
+		enableNodeCollector := true
 		if value, ok := addon.GetAnnotations()[addonconstants.HostingClusterNameAnnotationKey]; ok && value != "" {
 			enableSyncLabelsToClusterClaims = false
+			enableNodeCollector = false
 		}
 
 		addonValues := Values{
@@ -83,6 +86,7 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 				NodeSelector: map[string]string{},
 			},
 			EnableSyncLabelsToClusterClaims: enableSyncLabelsToClusterClaims,
+			EnableNodeCollector:             enableNodeCollector,
 		}
 
 		for _, claim := range cluster.Status.ClusterClaims {
