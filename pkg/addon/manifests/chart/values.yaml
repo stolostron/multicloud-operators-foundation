@@ -10,6 +10,7 @@ clusterName: null
 
 product: ""
 hasRoute: false
+enableSyncLabelsToClusterClaims: true
 
 affinity: {}
 
@@ -30,9 +31,9 @@ resources:
 
 logLevel: null
 
-global: 
+global:
   imagePullPolicy: IfNotPresent
   imagePullSecret: open-cluster-management-image-pull-credentials
-  imageOverrides: 
+  imageOverrides:
     multicloud_manager: quay.io/stolostron/multicloud-manager:latest
   nodeSelector: {}
