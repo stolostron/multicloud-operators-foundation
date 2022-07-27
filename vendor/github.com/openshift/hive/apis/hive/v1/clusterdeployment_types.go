@@ -374,6 +374,16 @@ type ClusterDeploymentCondition struct {
 // ClusterDeploymentConditionType is a valid value for ClusterDeploymentCondition.Type
 type ClusterDeploymentConditionType string
 
+// ConditionType satisfies the conditions.Condition interface
+func (c ClusterDeploymentCondition) ConditionType() ConditionType {
+	return c.Type
+}
+
+// String satisfies the conditions.ConditionType interface
+func (t ClusterDeploymentConditionType) String() string {
+	return string(t)
+}
+
 const (
 	// InstallerImageResolutionFailedCondition is a condition that indicates whether the job
 	// to determine the installer image based on a release image was successful.
@@ -668,6 +678,13 @@ type ControlPlaneConfigSpec struct {
 	// active, Hive will use the override URL for further communications with the API server of the remote cluster.
 	// +optional
 	APIURLOverride string `json:"apiURLOverride,omitempty"`
+
+	// APIServerIPOverride is the optional override of the API server IP address.
+	// Hive will use this IP address for creating TCP connections.
+	// Port from the original API server URL will be used.
+	// This field can be used when repointing the APIServer's DNS is not viable option.
+	// +optional
+	APIServerIPOverride string `json:"apiServerIPOverride,omitempty"`
 }
 
 // ControlPlaneServingCertificateSpec specifies serving certificate settings for
