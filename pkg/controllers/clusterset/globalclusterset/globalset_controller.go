@@ -22,6 +22,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+const (
+	globalNamespaceAnnotation = "open-cluster-management.io/ns-create"
+)
+
 //This controller apply a namespace and clustersetbinding for global set
 type Reconciler struct {
 	client     client.Client
@@ -124,12 +128,22 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
+	if _, ok := clusterset.Annotations[globalNamespaceAnnotation]; ok {
+		return ctrl.Result{}, nil
+	}
+
 	err = r.applyGlobalNsAndSetBinding()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-
-	return ctrl.Result{}, nil
+	if len(clusterset.Annotations) == 0 {
+		clusterset.Annotations = map[string]string{
+			globalNamespaceAnnotation: "true",
+		}
+	} else {
+		clusterset.Annotations[globalNamespaceAnnotation] = "true"
+	}
+	return ctrl.Result{}, r.client.Update(ctx, clusterset, &client.UpdateOptions{})
 }
 
 //The applyGlobalNsAndSetBinding func apply the clustersetutils.GlobalSetNameSpace and
