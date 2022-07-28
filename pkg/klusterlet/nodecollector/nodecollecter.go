@@ -123,7 +123,9 @@ func (r *resourceCollector) reconcile(ctx context.Context) {
 		klog.Errorf("Failed to get nodes: %v", err)
 	}
 
-	nodeList = r.updateCapacityByPrometheus(ctx, nodeList)
+	if r.enableNodeCapacity {
+		nodeList = r.updateCapacityByPrometheus(ctx, nodeList)
+	}
 
 	// need sort the slices before compare using DeepEqual
 	sort.SliceStable(nodeList, func(i, j int) bool { return nodeList[i].Name < nodeList[j].Name })
@@ -161,16 +163,14 @@ func (r *resourceCollector) updateCapacityByPrometheus(ctx context.Context, node
 		r.prometheusClient = apiClient
 	}
 
-	if r.enableNodeCapacity {
-		sockets, err := r.queryResource(ctx, r.prometheusClient, "machine_cpu_sockets")
-		if err != nil {
-			klog.Errorf("failed to query resource: %v", err)
-		}
+	sockets, err := r.queryResource(ctx, r.prometheusClient, "machine_cpu_sockets")
+	if err != nil {
+		klog.Errorf("failed to query resource: %v", err)
+	}
 
-		for index := range nodes {
-			if capacity, ok := sockets[nodes[index].Name]; ok {
-				nodes[index].Capacity[resourceSocket] = *capacity
-			}
+	for index := range nodes {
+		if capacity, ok := sockets[nodes[index].Name]; ok {
+			nodes[index].Capacity[resourceSocket] = *capacity
 		}
 	}
 
