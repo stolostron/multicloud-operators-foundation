@@ -79,12 +79,13 @@ type resourceCollector struct {
 	tokenFile          string
 	server             string
 	componentNamespace string
+	enableNodeCapacity bool
 }
 
 func NewCollector(
 	nodeInformer corev1informers.NodeInformer,
 	kubeClient kubernetes.Interface,
-	client client.Client, clusterName, componentNamespace string) Collector {
+	client client.Client, clusterName, componentNamespace string, enableNodeCapacity bool) Collector {
 	return &resourceCollector{
 		nodeLister:         nodeInformer.Lister(),
 		nodeSynced:         nodeInformer.Informer().HasSynced,
@@ -94,6 +95,7 @@ func NewCollector(
 		server:             defaultServer,
 		tokenFile:          defaultTokenFile,
 		componentNamespace: componentNamespace,
+		enableNodeCapacity: enableNodeCapacity,
 	}
 }
 
@@ -121,7 +123,9 @@ func (r *resourceCollector) reconcile(ctx context.Context) {
 		klog.Errorf("Failed to get nodes: %v", err)
 	}
 
-	nodeList = r.updateCapacityByPrometheus(ctx, nodeList)
+	if r.enableNodeCapacity {
+		nodeList = r.updateCapacityByPrometheus(ctx, nodeList)
+	}
 
 	// need sort the slices before compare using DeepEqual
 	sort.SliceStable(nodeList, func(i, j int) bool { return nodeList[i].Name < nodeList[j].Name })

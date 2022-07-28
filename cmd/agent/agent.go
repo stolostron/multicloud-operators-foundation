@@ -189,15 +189,14 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		kubeInformerFactory := informers.NewSharedInformerFactory(managedClusterKubeClient, 10*time.Minute)
 		clusterInformerFactory := clusterinformers.NewSharedInformerFactory(managedClusterClusterClient, 10*time.Minute)
 
-		if o.EnableNodeCollector {
-			resourceCollector := nodecollector.NewCollector(
-				kubeInformerFactory.Core().V1().Nodes(),
-				managedClusterKubeClient,
-				mgr.GetClient(),
-				o.ClusterName,
-				componentNamespace)
-			go resourceCollector.Start(ctx)
-		}
+		resourceCollector := nodecollector.NewCollector(
+			kubeInformerFactory.Core().V1().Nodes(),
+			managedClusterKubeClient,
+			mgr.GetClient(),
+			o.ClusterName,
+			componentNamespace,
+			o.EnableNodeCapacity)
+		go resourceCollector.Start(ctx)
 
 		leaseUpdater := lease.NewLeaseUpdater(managementClusterKubeClient, AddonName, componentNamespace).
 			WithHubLeaseConfig(hubConfig, o.ClusterName)
