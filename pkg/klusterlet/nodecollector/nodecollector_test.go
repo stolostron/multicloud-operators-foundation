@@ -239,6 +239,7 @@ func TestReconcile(t *testing.T) {
 				server:             server.URL,
 				tokenFile:          "/tmp/token",
 				componentNamespace: "default",
+				enableNodeCapacity: true,
 			}
 
 			ctrl.reconcile(context.TODO())
