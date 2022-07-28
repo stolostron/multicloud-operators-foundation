@@ -54,8 +54,8 @@ spec:
         {{- if eq .Values.enableSyncLabelsToClusterClaims false }}
           - "--enable-sync-labels-to-clusterclaims=false"
         {{- end }}
-        {{- if eq .Values.enableNodeCollector false }}
-          - "--enable-node-collector=false"
+        {{- if eq .Values.enableNodeCapacity false }}
+          - "--enable-node-capacity=false"
         {{- end}}
         env:
         - name: POD_NAMESPACE

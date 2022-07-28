@@ -79,12 +79,13 @@ type resourceCollector struct {
 	tokenFile          string
 	server             string
 	componentNamespace string
+	enableNodeCapacity bool
 }
 
 func NewCollector(
 	nodeInformer corev1informers.NodeInformer,
 	kubeClient kubernetes.Interface,
-	client client.Client, clusterName, componentNamespace string) Collector {
+	client client.Client, clusterName, componentNamespace string, enableNodeCapacity bool) Collector {
 	return &resourceCollector{
 		nodeLister:         nodeInformer.Lister(),
 		nodeSynced:         nodeInformer.Informer().HasSynced,
@@ -94,6 +95,7 @@ func NewCollector(
 		server:             defaultServer,
 		tokenFile:          defaultTokenFile,
 		componentNamespace: componentNamespace,
+		enableNodeCapacity: enableNodeCapacity,
 	}
 }
 
@@ -159,14 +161,16 @@ func (r *resourceCollector) updateCapacityByPrometheus(ctx context.Context, node
 		r.prometheusClient = apiClient
 	}
 
-	sockets, err := r.queryResource(ctx, r.prometheusClient, "machine_cpu_sockets")
-	if err != nil {
-		klog.Errorf("failed to query resource: %v", err)
-	}
+	if r.enableNodeCapacity {
+		sockets, err := r.queryResource(ctx, r.prometheusClient, "machine_cpu_sockets")
+		if err != nil {
+			klog.Errorf("failed to query resource: %v", err)
+		}
 
-	for index := range nodes {
-		if capacity, ok := sockets[nodes[index].Name]; ok {
-			nodes[index].Capacity[resourceSocket] = *capacity
+		for index := range nodes {
+			if capacity, ok := sockets[nodes[index].Name]; ok {
+				nodes[index].Capacity[resourceSocket] = *capacity
+			}
 		}
 	}
 

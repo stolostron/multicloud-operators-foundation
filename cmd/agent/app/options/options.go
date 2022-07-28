@@ -28,7 +28,7 @@ type AgentOptions struct {
 	EnableLeaderElection            bool
 	EnableImpersonation             bool
 	EnableSyncLabelsToClusterClaims bool
-	EnableNodeCollector             bool
+	EnableNodeCapacity              bool
 	InSecure                        bool
 	ComponentNamespace              string
 	QPS                             float32
@@ -45,7 +45,7 @@ func NewAgentOptions() *AgentOptions {
 		EnableLeaderElection:            false,
 		EnableImpersonation:             false,
 		EnableSyncLabelsToClusterClaims: true,
-		EnableNodeCollector:             true,
+		EnableNodeCapacity:              true,
 		Address:                         "0.0.0.0",
 		Port:                            443,
 		CertDir:                         "/tmp/acm/cert",
@@ -73,7 +73,7 @@ func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 		"This flag is deprecated, you should not use this flag any more")
 	fs.BoolVar(&o.EnableImpersonation, "enable-impersonation", o.EnableImpersonation, "Enable impersonation.")
 	fs.BoolVar(&o.EnableSyncLabelsToClusterClaims, "enable-sync-labels-to-clusterclaims", o.EnableSyncLabelsToClusterClaims, "Enable to create clusterclaims on the managed cluster")
-	fs.BoolVar(&o.EnableNodeCollector, "enable-node-collector", o.EnableNodeCollector, "Enable node collector.")
+	fs.BoolVar(&o.EnableNodeCapacity, "enable-node-capacity", o.EnableNodeCapacity, "Enable node capacity.")
 	fs.IntVar(&o.AgentPort, "agent-port", o.AgentPort, ""+
 		"Port that is agent service port for hub cluster to access")
 	fs.StringVar(&o.AgentAddress, "agent-address", o.AgentAddress,
