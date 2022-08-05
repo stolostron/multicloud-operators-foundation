@@ -1415,8 +1415,8 @@ k8s.io/utils v0.0.0-20210819203725-bdf08cb9a70a/go.mod h1:jPW/WVKK9YHAvNhRxK0md/
 k8s.io/utils v0.0.0-20210930125809-cb0fa318a74b/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 h1:HNSDgDCrr/6Ly3WEGKZftiE7IY19Vz2GdbOCyI4qqhc=
 k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
-open-cluster-management.io/addon-framework v0.4.1-0.20220721073535-12c9395bde82 h1:8Ud5cRe3QaEvxOSq2aMefuMcAOuZKPBDgLVvSO+dJ1g=
-open-cluster-management.io/addon-framework v0.4.1-0.20220721073535-12c9395bde82/go.mod h1:jmhBGZCB7/dgFssh2w1o7JFSpzeEDdRE9olxAR8+fqw=
+open-cluster-management.io/addon-framework v0.4.1-0.20220805023606-4de6c788fddf h1:xYTNRWf5OTVNDa3Jeq03OVWkyaRX3edNBthOOoUOveM=
+open-cluster-management.io/addon-framework v0.4.1-0.20220805023606-4de6c788fddf/go.mod h1:PkxcOOhefGcpwGvVPfASshjjd+bgWcxJ6K5dGQgKhf8=
 open-cluster-management.io/api v0.7.1-0.20220609092005-e8cc7a4e4c10 h1:wCYhEq8RckG33vXEhGuOPnGvd0MgOc/+FiYMHXWuQlA=
 open-cluster-management.io/api v0.7.1-0.20220609092005-e8cc7a4e4c10/go.mod h1:+OEARSAl2jIhuLItUcS30UgLA3khmA9ihygLVxzEn+U=
 oras.land/oras-go v0.4.0/go.mod h1:VJcU+VE4rkclUbum5C0O7deEZbBYnsnpbGSACwTjOcg=
