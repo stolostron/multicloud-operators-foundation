@@ -168,6 +168,31 @@ func newOtherInfrastructure() *apiconfigv1.Infrastructure {
 	}
 }
 
+func newROKSInfrastructure() *apiconfigv1.Infrastructure {
+	return &apiconfigv1.Infrastructure{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster",
+		},
+		Spec: apiconfigv1.InfrastructureSpec{
+			CloudConfig: apiconfigv1.ConfigMapFileReference{},
+			PlatformSpec: apiconfigv1.PlatformSpec{
+				Type: "IBMCloud",
+			},
+		},
+		Status: apiconfigv1.InfrastructureStatus{
+			InfrastructureName: "kubernetes",
+			Platform:           "IBMCloud",
+			PlatformStatus: &apiconfigv1.PlatformStatus{
+				Type: "IBMCloud",
+			},
+			EtcdDiscoveryDomain:  "osd-test.wu67.s1.devshift.org",
+			APIServerURL:         "https://api.osd-test.wu67.s1.devshift.org:6443",
+			APIServerInternalURL: "https://api-int.osd-test.wu67.s1.devshift.org:6443",
+			ControlPlaneTopology: apiconfigv1.HighlyAvailableTopologyMode,
+		},
+	}
+}
+
 func newConfigV1Client(version string, platformType string) openshiftclientset.Interface {
 	clusterVersion := &apiconfigv1.ClusterVersion{}
 	if version == "4.x" {
@@ -176,12 +201,14 @@ func newConfigV1Client(version string, platformType string) openshiftclientset.I
 		return configfake.NewSimpleClientset(clusterVersion)
 	}
 
-	infrastructure := &apiconfigv1.Infrastructure{}
+	var infrastructure *apiconfigv1.Infrastructure
 	switch platformType {
 	case PlatformAWS:
 		infrastructure = newAWSInfrastructure()
 	case PlatformGCP:
 		infrastructure = newGCPInfrastructure()
+	case PlatformIBM:
+		infrastructure = newROKSInfrastructure()
 	default:
 		infrastructure = newOtherInfrastructure()
 	}
@@ -530,6 +557,32 @@ func TestClusterClaimerList(t *testing.T) {
 			},
 			expectErr: nil,
 		},
+		{
+			name:           "claims of IBM Cloud (ROKS)",
+			clusterName:    "clusterROKS",
+			hubClient:      fakeHubClient("clusterROKS", map[string]string{"testLabel/abc": "testLabel"}),
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformIBM), newConfigmapConsoleConfig()}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", PlatformIBM),
+			oauthV1Client: newOauthV1Client([]string{
+				"https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
+			}),
+			enableSyncLabelsToClusterClaims: true,
+			expectClaims: map[string]string{
+				ClaimK8sID:                      "clusterROKS",
+				ClaimOpenshiftVersion:           "4.5.11",
+				ClaimOpenshiftID:                "ffd989a0-8391-426d-98ac-86ae6d051433",
+				ClaimOpenshiftInfrastructure:    "{\"infraName\":\"kubernetes\"}",
+				ClaimOCMPlatform:                PlatformIBM,
+				ClaimOCMProduct:                 ProductROKS,
+				ClaimOCMConsoleURL:              "https://console-openshift-console.apps.daliu-clu428.dev04.red-chesterfield.com",
+				ClaimOCMKubeVersion:             "v0.0.0-master+$Format:%H$",
+				ClaimControlPlaneTopology:       "HighlyAvailable",
+				ClaimOpenshiftOauthRedirectURIs: "https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
+				"abc.testlabel":                 "testLabel",
+			},
+			expectErr: nil,
+		},
 	}
 
 	for _, test := range tests {
@@ -545,6 +598,7 @@ func TestClusterClaimerList(t *testing.T) {
 			}
 			claims, err := clusterClaimer.List()
 			assert.Equal(t, test.expectErr, err)
+
 			assert.Equal(t, len(claims), len(test.expectClaims))
 			for _, claim := range claims {
 				assert.Equal(t, test.expectClaims[claim.Name], claim.Spec.Value)

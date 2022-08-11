@@ -84,6 +84,7 @@ const (
 	ProductOSD       = "OpenShiftDedicated"
 	ProductROSA      = "ROSA"
 	ProductARO       = "ARO"
+	ProductROKS      = "ROKS"
 
 	// ProductOther other (unable to auto detect)
 	ProductOther = "Other"
@@ -646,6 +647,8 @@ func (c *ClusterClaimer) getPlatformProduct() (string, string, error) {
 				return PlatformOpenStack, product, nil
 			case configv1.BareMetalPlatformType:
 				return PlatformBareMetal, product, nil
+			case configv1.IBMCloudPlatformType:
+				return PlatformIBM, ProductROKS, nil
 			}
 		}
 	}
