@@ -233,7 +233,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 //applyClusterSetClusterRoles apply the clusterset clusterrole(admin/bind/view)
 func (r *Reconciler) applyClusterSetClusterRoles(clusterset *clusterv1beta1.ManagedClusterSet) error {
 	errs := []error{}
-	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel {
+	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel || clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.ExclusiveClusterSetLabel {
 		adminRole := clustersetutils.BuildAdminRole(clusterset.Name)
 		err := utils.ApplyClusterRole(r.kubeClient, adminRole)
 		if err != nil {
@@ -275,7 +275,7 @@ func (r *Reconciler) cleanClusterSetResource(clusterset *clusterv1beta1.ManagedC
 	}
 
 	//Only LegacyClusterSet has admin clusterrole, so only LegacyClusterSet need to delete it here.
-	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel {
+	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel || clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.ExclusiveClusterSetLabel {
 		err := utils.DeleteClusterRole(r.kubeClient, utils.GenerateClustersetClusterroleName(clusterset.Name, "admin"))
 		if err != nil {
 			klog.Warningf("will reconcile since failed to delete clusterrole. clusterset: %v, err: %v", clusterset.Name, err)
@@ -306,7 +306,7 @@ func (r *Reconciler) syncClustersetMapper(clusterset *clusterv1beta1.ManagedClus
 		return err
 	}
 
-	if clusterset.Spec.ClusterSelector.SelectorType != clusterv1beta1.LegacyClusterSetLabel {
+	if clusterset.Spec.ClusterSelector.SelectorType != clusterv1beta1.LegacyClusterSetLabel && clusterset.Spec.ClusterSelector.SelectorType != clusterv1beta1.ExclusiveClusterSetLabel {
 		r.globalClusterSetClusterMapper.UpdateClusterSetByObjects(clusterset.Name, clusters)
 		return nil
 	}

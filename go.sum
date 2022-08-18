@@ -1417,8 +1417,8 @@ k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9 h1:HNSDgDCrr/6Ly3WEGKZftiE7IY19V
 k8s.io/utils v0.0.0-20220210201930-3a6ce19ff2f9/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 open-cluster-management.io/addon-framework v0.4.1-0.20220805023606-4de6c788fddf h1:xYTNRWf5OTVNDa3Jeq03OVWkyaRX3edNBthOOoUOveM=
 open-cluster-management.io/addon-framework v0.4.1-0.20220805023606-4de6c788fddf/go.mod h1:PkxcOOhefGcpwGvVPfASshjjd+bgWcxJ6K5dGQgKhf8=
-open-cluster-management.io/api v0.7.1-0.20220609092005-e8cc7a4e4c10 h1:wCYhEq8RckG33vXEhGuOPnGvd0MgOc/+FiYMHXWuQlA=
-open-cluster-management.io/api v0.7.1-0.20220609092005-e8cc7a4e4c10/go.mod h1:+OEARSAl2jIhuLItUcS30UgLA3khmA9ihygLVxzEn+U=
+open-cluster-management.io/api v0.8.1-0.20220816133559-6bd41d8f9c3e h1:mXhhC5QX1CjX2hDDD0HXZkWIFwwfttf76Qwegm7x4LU=
+open-cluster-management.io/api v0.8.1-0.20220816133559-6bd41d8f9c3e/go.mod h1:+OEARSAl2jIhuLItUcS30UgLA3khmA9ihygLVxzEn+U=
 oras.land/oras-go v0.4.0/go.mod h1:VJcU+VE4rkclUbum5C0O7deEZbBYnsnpbGSACwTjOcg=
 rsc.io/binaryregexp v0.2.0/go.mod h1:qTv7/COck+e2FymRvadv62gMdZztPaShugOCi3I+8D8=
 rsc.io/letsencrypt v0.0.3/go.mod h1:buyQKZ6IXrRnB7TdkHP0RyEybLx18HHyOSoTyoOLqNY=

@@ -73,7 +73,6 @@ func GenerateClustersetSubjects(cache *cache.AuthCache) map[string][]rbacv1.Subj
 			clustersetToUsers[set] = append(clustersetToUsers[set], subjectRecord.Subject)
 		}
 	}
-
 	subjectGroupRecords := cache.GetGroupSubjectRecord()
 	for _, subjectRecord := range subjectGroupRecords {
 		for _, set := range subjectRecord.Names.List() {

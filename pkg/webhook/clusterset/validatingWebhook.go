@@ -95,7 +95,7 @@ func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.Ad
 		}
 
 		//allow create/update legacy clusterset
-		if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel {
+		if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel || clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.ExclusiveClusterSetLabel {
 			return status
 		}
 
