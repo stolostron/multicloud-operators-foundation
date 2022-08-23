@@ -6,17 +6,15 @@ import (
 	// "fmt"
 )
 
-// MapClaims is a claims type that uses the map[string]interface{} for JSON decoding.
+// Claims type that uses the map[string]interface{} for JSON decoding
 // This is the default claims type if you don't supply one
 type MapClaims map[string]interface{}
 
-// VerifyAudience Compares the aud claim against cmp.
+// Compares the aud claim against cmp.
 // If required is false, this method will return true if the value matches or is unset
 func (m MapClaims) VerifyAudience(cmp string, req bool) bool {
 	var aud []string
 	switch v := m["aud"].(type) {
-	case string:
-		aud = append(aud, v)
 	case []string:
 		aud = v
 	case []interface{}:
@@ -27,69 +25,61 @@ func (m MapClaims) VerifyAudience(cmp string, req bool) bool {
 			}
 			aud = append(aud, vs)
 		}
+	case string:
+		aud = append(aud, v)
+	default:
+		return false
 	}
 	return verifyAud(aud, cmp, req)
 }
 
-// VerifyExpiresAt compares the exp claim against cmp.
+// Compares the exp claim against cmp.
 // If required is false, this method will return true if the value matches or is unset
 func (m MapClaims) VerifyExpiresAt(cmp int64, req bool) bool {
-	exp, ok := m["exp"]
-	if !ok {
-		return !req
-	}
-	switch expType := exp.(type) {
+	switch exp := m["exp"].(type) {
 	case float64:
-		return verifyExp(int64(expType), cmp, req)
+		return verifyExp(int64(exp), cmp, req)
 	case json.Number:
-		v, _ := expType.Int64()
+		v, _ := exp.Int64()
 		return verifyExp(v, cmp, req)
 	}
-	return false
+	return req == false
 }
 
-// VerifyIssuedAt compares the iat claim against cmp.
+// Compares the iat claim against cmp.
 // If required is false, this method will return true if the value matches or is unset
 func (m MapClaims) VerifyIssuedAt(cmp int64, req bool) bool {
-	iat, ok := m["iat"]
-	if !ok {
-		return !req
-	}
-	switch iatType := iat.(type) {
+	switch iat := m["iat"].(type) {
 	case float64:
-		return verifyIat(int64(iatType), cmp, req)
+		return verifyIat(int64(iat), cmp, req)
 	case json.Number:
-		v, _ := iatType.Int64()
+		v, _ := iat.Int64()
 		return verifyIat(v, cmp, req)
 	}
-	return false
+	return req == false
 }
 
-// VerifyIssuer compares the iss claim against cmp.
+// Compares the iss claim against cmp.
 // If required is false, this method will return true if the value matches or is unset
 func (m MapClaims) VerifyIssuer(cmp string, req bool) bool {
 	iss, _ := m["iss"].(string)
 	return verifyIss(iss, cmp, req)
 }
 
-// VerifyNotBefore compares the nbf claim against cmp.
+// Compares the nbf claim against cmp.
 // If required is false, this method will return true if the value matches or is unset
 func (m MapClaims) VerifyNotBefore(cmp int64, req bool) bool {
-	nbf, ok := m["nbf"]
-	if !ok {
-		return !req
-	}
-	switch nbfType := nbf.(type) {
+	switch nbf := m["nbf"].(type) {
 	case float64:
-		return verifyNbf(int64(nbfType), cmp, req)
+		return verifyNbf(int64(nbf), cmp, req)
 	case json.Number:
-		v, _ := nbfType.Int64()
+		v, _ := nbf.Int64()
 		return verifyNbf(v, cmp, req)
 	}
-	return false
+	return req == false
 }
 
-// Valid calidates time based claims "exp, iat, nbf".
+// Validates time based claims "exp, iat, nbf".
 // There is no accounting for clock skew.
 // As well, if any of the above claims are not in the token, it will still
 // be considered a valid claim.
@@ -97,17 +87,17 @@ func (m MapClaims) Valid() error {
 	vErr := new(ValidationError)
 	now := TimeFunc().Unix()
 
-	if !m.VerifyExpiresAt(now, false) {
+	if m.VerifyExpiresAt(now, false) == false {
 		vErr.Inner = errors.New("Token is expired")
 		vErr.Errors |= ValidationErrorExpired
 	}
 
-	if !m.VerifyIssuedAt(now, false) {
+	if m.VerifyIssuedAt(now, false) == false {
 		vErr.Inner = errors.New("Token used before issued")
 		vErr.Errors |= ValidationErrorIssuedAt
 	}
 
-	if !m.VerifyNotBefore(now, false) {
+	if m.VerifyNotBefore(now, false) == false {
 		vErr.Inner = errors.New("Token is not valid yet")
 		vErr.Errors |= ValidationErrorNotValidYet
 	}
