@@ -3,41 +3,45 @@ module github.com/stolostron/multicloud-operators-foundation
 go 1.17
 
 replace (
+	github.com/openshift/api => github.com/openshift/api v0.0.0-20210331193751-3acddb19d360
 	github.com/openshift/client-go => github.com/openshift/client-go v0.0.0-20210916133943-9acee1a0fb83
-	github.com/openshift/hive => github.com/openshift/hive v1.1.17-0.20220223000051-b1c8fa5853b1
+	github.com/openshift/hive => github.com/openshift/hive v1.1.17-0.20220815155411-ba519850c166
 	github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20220221165319-b389a65758da
 	github.com/prometheus/common => github.com/prometheus/common v0.26.0
 	k8s.io/client-go => k8s.io/client-go v0.22.1
 )
 
-// Determined by go.mod in github.com/openshift/hive
 // from installer
 replace (
-	github.com/Azure/go-autorest/autorest/adal => github.com/Azure/go-autorest/autorest/adal v0.9.15
-	github.com/Azure/go-autorest/autorest/azure/cli => github.com/Azure/go-autorest/autorest/azure/cli v0.3.1
-	github.com/Azure/go-autorest/autorest/date => github.com/Azure/go-autorest/autorest/date v0.2.0
-	github.com/Azure/go-autorest/autorest/validation => github.com/Azure/go-autorest/autorest/validation v0.2.1-0.20191028180845-3492b2aff503
 	github.com/IBM-Cloud/terraform-provider-ibm => github.com/openshift/terraform-provider-ibm v1.26.2-openshift-2
-	github.com/apparentlymart/go-cidr => github.com/apparentlymart/go-cidr v1.0.1
-	github.com/go-openapi/spec => github.com/go-openapi/spec v0.19.0
-	github.com/hashicorp/go-plugin => github.com/hashicorp/go-plugin v1.2.2
 	github.com/kubevirt/terraform-provider-kubevirt => github.com/nirarg/terraform-provider-kubevirt v0.0.0-20201222125919-101cee051ed3
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20211201170610-92ffa60c683d
 	github.com/metal3-io/baremetal-operator/apis => github.com/openshift/baremetal-operator/apis v0.0.0-20211201170610-92ffa60c683d
 	github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20211201170610-92ffa60c683d
-	github.com/metal3-io/cluster-api-provider-baremetal => github.com/openshift/cluster-api-provider-baremetal v0.0.0-20190821174549-a2a477909c1d
-	github.com/openshift/api => github.com/openshift/api v0.0.0-20210331193751-3acddb19d360
-	github.com/terraform-providers/terraform-provider-aws => github.com/openshift/terraform-provider-aws v1.60.1-0.20200630224953-76d1fb4e5699
-	github.com/terraform-providers/terraform-provider-azurerm => github.com/openshift/terraform-provider-azurerm v1.40.1-0.20200707062554-97ea089cc12a
+	github.com/terraform-providers/terraform-provider-aws => github.com/openshift/terraform-provider-aws v1.60.1-0.20211215220004-24df6d73af46
+	github.com/terraform-providers/terraform-provider-azurerm => github.com/openshift/terraform-provider-azurerm v1.44.1-0.20210224232508-7509319df0f4
+	github.com/terraform-providers/terraform-provider-azurestack => github.com/openshift/terraform-provider-azurestack v0.10.0-openshift
 	github.com/terraform-providers/terraform-provider-ignition/v2 => github.com/community-terraform-providers/terraform-provider-ignition/v2 v2.1.0
+	kubevirt.io/client-go => kubevirt.io/client-go v0.29.0
+	sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws v0.2.1-0.20210121023454-5ffc5f422a80
+	sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20210626224711-5d94c794092f
+	sigs.k8s.io/cluster-api-provider-openstack => github.com/openshift/cluster-api-provider-openstack v0.0.0-20211111204942-611d320170af
+)
+
+// from installer as part of https://github.com/openshift/installer/pull/4350
+// Prevent the following modules from upgrading version as result of terraform-provider-kubernetes module
+// The following modules need to be locked to compile correctly with terraform-provider-azure and terraform-provider-google
+replace (
+	github.com/IBM/vpc-go-sdk => github.com/IBM/vpc-go-sdk v0.7.0
+	github.com/apparentlymart/go-cidr => github.com/apparentlymart/go-cidr v1.0.1
+	github.com/go-openapi/errors => github.com/go-openapi/errors v0.19.2
+	github.com/go-openapi/spec => github.com/go-openapi/spec v0.19.4
+	github.com/go-openapi/validate => github.com/go-openapi/validate v0.19.8
+	github.com/hashicorp/go-plugin => github.com/hashicorp/go-plugin v1.2.2
 	github.com/ulikunitz/xz => github.com/ulikunitz/xz v0.5.7
 	google.golang.org/api => google.golang.org/api v0.25.0
 	google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
-	google.golang.org/grpc => google.golang.org/grpc v1.32.0
-	kubevirt.io/client-go => kubevirt.io/client-go v0.29.0
-	sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws v0.2.1-0.20201022175424-d30c7a274820
-	sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20201016155852-4090a6970205
-	sigs.k8s.io/cluster-api-provider-openstack => github.com/openshift/cluster-api-provider-openstack v0.0.0-20201116051540-155384b859c5
+	google.golang.org/grpc => google.golang.org/grpc v1.33.0
 )
 
 require (
@@ -99,6 +103,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/evanphx/json-patch v4.11.0+incompatible // indirect
 	github.com/felixge/httpsnoop v1.0.1 // indirect
+	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/ghodss/yaml v1.0.1-0.20190212211648-25d852aebe32 // indirect
 	github.com/go-errors/errors v1.0.1 // indirect
@@ -106,7 +111,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.19.5 // indirect
 	github.com/go-openapi/jsonreference v0.19.5 // indirect
 	github.com/go-openapi/swag v0.19.14 // indirect
-	github.com/golang-jwt/jwt/v4 v4.0.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/google/go-cmp v0.5.6 // indirect
@@ -126,7 +130,7 @@ require (
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
 	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.0.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
+	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
