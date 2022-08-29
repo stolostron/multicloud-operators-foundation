@@ -90,6 +90,15 @@ const (
 	ProductOther = "Other"
 )
 
+// ProductOCPList is OCP product list. should append the product to the list if the product is OCP.
+var ProductOCPList = []string{
+	ProductOpenShift,
+	ProductOSD,
+	ProductROSA,
+	ProductARO,
+	ProductROKS,
+}
+
 // internalLabels includes the labels managed by ACM.
 var internalLabels = sets.String{}
 
