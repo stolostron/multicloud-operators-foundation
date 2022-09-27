@@ -98,13 +98,8 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		r.isIbmCloud = true
 	}
 
-	// Get distribution info
-	newStatus.DistributionInfo, err = r.getDistributionInfo(ctx)
-	if err != nil {
-		log.Error(err, "Failed to get distribution info")
-		errs = append(errs, fmt.Errorf("failed to get distribution info, error:%v ", err))
-	}
-
+	product := ""
+	ocpVersion := ""
 	claims, err := r.ClaimLister.List(labels.Everything())
 	if err != nil {
 		log.Error(err, "Failed to list claims.")
@@ -121,13 +116,19 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			newStatus.ClusterID = value
 		case clusterclaim.ClaimOCMProduct:
 			newStatus.KubeVendor = r.getKubeVendor(value)
+			product = value
 		case clusterclaim.ClaimOCMPlatform:
 			newStatus.CloudVendor = r.getCloudVendor(value)
 		case clusterclaim.ClaimOpenshiftVersion:
-			if newStatus.DistributionInfo.Type == clusterv1beta1.DistributionTypeOCP {
-				newStatus.DistributionInfo.OCP.Version = value
-			}
+			ocpVersion = value
 		}
+	}
+
+	// Get distribution info
+	newStatus.DistributionInfo, err = r.getDistributionInfo(ctx, product, ocpVersion)
+	if err != nil {
+		log.Error(err, "Failed to get distribution info")
+		errs = append(errs, fmt.Errorf("failed to get distribution info, error:%v ", err))
 	}
 
 	newSyncedCondition := metav1.Condition{
@@ -310,33 +311,29 @@ func (r *ClusterInfoReconciler) getCloudVendor(platform string) (cloudVendor clu
 func (r *ClusterInfoReconciler) getKubeVendor(product string) (kubeVendor clusterv1beta1.KubeVendorType) {
 	switch product {
 	case clusterclaim.ProductAKS:
-		kubeVendor = clusterv1beta1.KubeVendorAKS
+		return clusterv1beta1.KubeVendorAKS
 	case clusterclaim.ProductGKE:
-		kubeVendor = clusterv1beta1.KubeVendorGKE
+		return clusterv1beta1.KubeVendorGKE
 	case clusterclaim.ProductEKS:
-		kubeVendor = clusterv1beta1.KubeVendorEKS
+		return clusterv1beta1.KubeVendorEKS
 	case clusterclaim.ProductIKS:
-		kubeVendor = clusterv1beta1.KubeVendorIKS
+		return clusterv1beta1.KubeVendorIKS
 	case clusterclaim.ProductICP:
-		kubeVendor = clusterv1beta1.KubeVendorICP
-	case clusterclaim.ProductOpenShift, clusterclaim.ProductROSA, clusterclaim.ProductARO:
-		kubeVendor = clusterv1beta1.KubeVendorOpenShift
+		return clusterv1beta1.KubeVendorICP
 	case clusterclaim.ProductOSD:
-		kubeVendor = clusterv1beta1.KubeVendorOSD
-	default:
-		kubeVendor = clusterv1beta1.KubeVendorOther
+		return clusterv1beta1.KubeVendorOSD
 	}
-	return
+
+	if isProductOCP(product) {
+		return clusterv1beta1.KubeVendorOpenShift
+	}
+
+	return clusterv1beta1.KubeVendorOther
 }
 
-func (r *ClusterInfoReconciler) isOpenshift() bool {
-	serverGroups, err := r.KubeClient.Discovery().ServerGroups()
-	if err != nil {
-		klog.Errorf("failed to get server group %v", err)
-		return false
-	}
-	for _, apiGroup := range serverGroups.Groups {
-		if apiGroup.Name == "project.openshift.io" {
+func isProductOCP(product string) bool {
+	for _, productOCP := range clusterclaim.ProductOCPList {
+		if productOCP == product {
 			return true
 		}
 	}
@@ -454,18 +451,19 @@ func (r *ClusterInfoReconciler) getClusterCA(ctx context.Context, kubeAPIServer 
 	return nil
 }
 
-func (r *ClusterInfoReconciler) getDistributionInfo(ctx context.Context) (clusterv1beta1.DistributionInfo, error) {
+func (r *ClusterInfoReconciler) getDistributionInfo(ctx context.Context, product, ocpVersion string) (clusterv1beta1.DistributionInfo, error) {
 	var err error
 	var distributionInfo = clusterv1beta1.DistributionInfo{
 		Type: clusterv1beta1.DistributionTypeUnknown,
 	}
 
 	switch {
-	case r.isOpenshift():
+	case isProductOCP(product):
 		distributionInfo.Type = clusterv1beta1.DistributionTypeOCP
 		if distributionInfo.OCP, err = r.getOCPDistributionInfo(ctx); err != nil {
 			return distributionInfo, err
 		}
+		distributionInfo.OCP.Version = ocpVersion
 	}
 	return distributionInfo, nil
 }
