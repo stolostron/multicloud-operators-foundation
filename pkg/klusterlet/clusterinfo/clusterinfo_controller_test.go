@@ -9,6 +9,7 @@ import (
 	"time"
 
 	ocinfrav1 "github.com/openshift/api/config/v1"
+	"k8s.io/client-go/restmapper"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	apiconfigv1 "github.com/openshift/api/config/v1"
@@ -128,8 +129,8 @@ func newAgentService() *corev1.Service {
 	}
 }
 
-func newClusterClaimList() []runtime.Object {
-	return []runtime.Object{
+func newClusterClaimList(isOCP bool) []runtime.Object {
+	claims := []runtime.Object{
 		&clusterv1alpha1.ClusterClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: clusterclaim.ClaimOCMConsoleURL,
@@ -147,19 +148,33 @@ func newClusterClaimList() []runtime.Object {
 			},
 		},
 	}
+	if isOCP {
+		claims = append(claims,
+			&clusterv1alpha1.ClusterClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: clusterclaim.ClaimOCMProduct,
+				},
+				Spec: clusterv1alpha1.ClusterClaimSpec{
+					Value: clusterclaim.ProductOpenShift,
+				},
+			})
+	}
+	return claims
 }
 
-func NewClusterInfoReconciler() *ClusterInfoReconciler {
+func NewClusterInfoReconciler(isOCP bool) *ClusterInfoReconciler {
+	claims := newClusterClaimList(isOCP)
 	fakeKubeClient := kubefake.NewSimpleClientset(
 		newAgentIngress(), newMonitoringSecret(), newAgentService())
 	fakeRouteV1Client := routefake.NewSimpleClientset()
-	fakeClusterClient := clusterfake.NewSimpleClientset(newClusterClaimList()...)
+	fakeClusterClient := clusterfake.NewSimpleClientset(claims...)
 	informerFactory := informers.NewSharedInformerFactory(fakeKubeClient, 10*time.Minute)
 	clusterInformerFactory := clusterinformers.NewSharedInformerFactory(fakeClusterClient, 10*time.Minute)
 	clusterStore := clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Informer().GetStore()
-	for _, item := range newClusterClaimList() {
+	for _, item := range claims {
 		clusterStore.Add(item)
 	}
+
 	return &ClusterInfoReconciler{
 		Log:           ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
 		NodeLister:    informerFactory.Core().V1().Nodes().Lister(),
@@ -220,7 +235,7 @@ func TestClusterInfoReconcile(t *testing.T) {
 
 	c := fake.NewFakeClientWithScheme(s, clusterInfo)
 
-	fr := NewClusterInfoReconciler()
+	fr := NewClusterInfoReconciler(false)
 
 	fr.Client = c
 	fr.Agent = agent.NewAgent("c1", fr.KubeClient)
@@ -292,7 +307,7 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 }
 
 func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
-	cir := NewClusterInfoReconciler()
+	cir := NewClusterInfoReconciler(true)
 	tests := []struct {
 		name                      string
 		configV1Client            openshiftclientset.Interface
@@ -1170,4 +1185,40 @@ func Test_getClientConfig(t *testing.T) {
 			return
 		})
 	}
+}
+
+func newFakeRestMapper(resources []*restmapper.APIGroupResources) meta.RESTMapper {
+	return restmapper.NewDiscoveryRESTMapper(resources)
+}
+
+var projectAPIGroupResources = &restmapper.APIGroupResources{
+	Group: metav1.APIGroup{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Project",
+			APIVersion: "project.openshift.io/v1",
+		},
+		Name: "project.openshift.io",
+		Versions: []metav1.GroupVersionForDiscovery{
+			{
+				GroupVersion: "v1",
+				Version:      "v1",
+			},
+		},
+		PreferredVersion: metav1.GroupVersionForDiscovery{
+			GroupVersion: "v1",
+			Version:      "v1",
+		},
+		ServerAddressByClientCIDRs: nil,
+	},
+	VersionedResources: map[string][]metav1.APIResource{
+		"v1": {
+			{
+				Name:         "projects",
+				SingularName: "project",
+				Group:        "project.openshift.io",
+				Kind:         "Project",
+				Version:      "v1",
+			},
+		},
+	},
 }

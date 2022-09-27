@@ -67,6 +67,12 @@ func (r *ClusterClaimReconciler) syncClaims(ctx context.Context) error {
 	}
 
 	for _, claim := range existedObjs.Items {
+		// these claims should not be deleted in any scenario once they are created.
+		switch claim.Name {
+		case ClaimK8sID, ClaimOCMKubeVersion, ClaimOCMPlatform, ClaimOCMProduct, ClaimOpenshiftVersion, ClaimOpenshiftID:
+			continue
+		}
+
 		if claimSet.Has(claim.Name) {
 			continue
 		}
