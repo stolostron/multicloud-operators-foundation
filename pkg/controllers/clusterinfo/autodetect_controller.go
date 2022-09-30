@@ -2,7 +2,9 @@ package clusterinfo
 
 import (
 	"context"
+	"fmt"
 	"reflect"
+	"strings"
 
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	clusterclaims "github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
@@ -80,8 +82,29 @@ func (r *AutoDetectReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	for _, claim := range cluster.Status.ClusterClaims {
-		if claim.Name == clusterclaims.ClaimOpenshiftVersion && labels[clusterinfov1beta1.OCPVersion] != claim.Value {
+		if claim.Name != clusterclaims.ClaimOpenshiftVersion {
+			continue
+		}
+
+		if labels[clusterinfov1beta1.OCPVersion] != claim.Value {
 			labels[clusterinfov1beta1.OCPVersion] = claim.Value
+			needUpdate = true
+		}
+
+		// parse the full OCP version and add two more labels
+		major, minor, _, err := parseOCPVersion(claim.Value)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+
+		if labels[clusterinfov1beta1.OCPVersionMajor] != major {
+			labels[clusterinfov1beta1.OCPVersionMajor] = major
+			needUpdate = true
+		}
+
+		ocpVersionMajorMinor := fmt.Sprintf("%s.%s", major, minor)
+		if labels[clusterinfov1beta1.OCPVersionMajorMinor] != ocpVersionMajorMinor {
+			labels[clusterinfov1beta1.OCPVersionMajorMinor] = ocpVersionMajorMinor
 			needUpdate = true
 		}
 	}
@@ -107,4 +130,14 @@ func (r *AutoDetectReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	return ctrl.Result{}, nil
+}
+
+// parseOCPVersion pasrses the full version of OCP and returns major, minor and patch.
+func parseOCPVersion(version string) (string, string, string, error) {
+	parts := strings.Split(version, ".")
+	if len(parts) != 3 {
+		return "", "", "", fmt.Errorf("invalid Openshift version: %s", version)
+	}
+
+	return parts[0], parts[1], parts[2], nil
 }

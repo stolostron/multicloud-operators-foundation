@@ -205,7 +205,7 @@ func TestOSDVendorOcpVersion(t *testing.T) {
 						ClusterClaims: []clusterv1.ManagedClusterClaim{
 							{
 								Name:  clusterclaims.ClaimOpenshiftVersion,
-								Value: "4.6",
+								Value: "4.6.10",
 							},
 						},
 					},
@@ -218,7 +218,11 @@ func TestOSDVendorOcpVersion(t *testing.T) {
 					Spec: clusterv1beta1.ClusterInfoSpec{},
 				},
 			},
-			expectedLabel:     map[string]string{clusterv1beta1.OCPVersion: "4.6"},
+			expectedLabel: map[string]string{
+				clusterv1beta1.OCPVersion:           "4.6.10",
+				clusterv1beta1.OCPVersionMajor:      "4",
+				clusterv1beta1.OCPVersionMajorMinor: "4.6",
+			},
 			expectedErrorType: nil,
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
@@ -240,6 +244,43 @@ func TestOSDVendorOcpVersion(t *testing.T) {
 			if !reflect.DeepEqual(cluster.Labels, test.expectedLabel) {
 				t.Errorf("Labels not equal, actual %v, expected %v", cluster.Labels, test.expectedLabel)
 			}
+		})
+	}
+}
+
+func TestParseOCPVersion(t *testing.T) {
+	tests := []struct {
+		name          string
+		ocpVersion    string
+		major         string
+		minor         string
+		patch         string
+		expectedError string
+	}{
+		{
+			name:       "valid ocp version",
+			ocpVersion: "4.11.3",
+			major:      "4",
+			minor:      "11",
+			patch:      "3",
+		},
+		{
+			name:          "invalid ocp version",
+			ocpVersion:    "4.11",
+			expectedError: "invalid Openshift version: 4.11",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			major, minor, patch, err := parseOCPVersion(test.ocpVersion)
+			if err != nil {
+				assert.EqualError(t, err, test.expectedError, "unexpected error")
+				return
+			}
+			assert.Equal(t, test.major, major, "wrong major version")
+			assert.Equal(t, test.minor, minor, "wrong minor version")
+			assert.Equal(t, test.patch, patch, "wrong patch version")
 		})
 	}
 }
