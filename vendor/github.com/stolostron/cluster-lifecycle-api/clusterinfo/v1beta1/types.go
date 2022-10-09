@@ -297,7 +297,12 @@ const (
 	LabelClusterID   = "clusterID"
 	LabelManagedBy   = "managed-by"
 	AutoDetect       = "auto-detect"
-	OCPVersion       = "openshiftVersion"
+	// OCPVersion is the full version of OCP cluster, like 4.11.3
+	OCPVersion = "openshiftVersion"
+	// OCPVersionMajor is the major version of OCP cluster, like 4
+	OCPVersionMajor = "openshiftVersion-major"
+	// OCPVersionMajorMinor is the version of OCP cluster without patch, like 4.11
+	OCPVersionMajorMinor = "openshiftVersion-major-minor"
 )
 
 // +genclient
