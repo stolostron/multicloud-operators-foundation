@@ -265,9 +265,21 @@ func TestParseOCPVersion(t *testing.T) {
 			patch:      "3",
 		},
 		{
+			name:       "ocp 311 version",
+			ocpVersion: "3",
+			major:      "3",
+			minor:      "",
+			patch:      "",
+		},
+		{
+			name:          "empty version",
+			ocpVersion:    "",
+			expectedError: "invalid OpenShift version: ",
+		},
+		{
 			name:          "invalid ocp version",
 			ocpVersion:    "4.11",
-			expectedError: "invalid Openshift version: 4.11",
+			expectedError: "invalid OpenShift version: 4.11",
 		},
 	}
 
