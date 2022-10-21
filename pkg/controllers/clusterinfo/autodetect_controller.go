@@ -102,6 +102,11 @@ func (r *AutoDetectReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			needUpdate = true
 		}
 
+		if len(minor) == 0 {
+			// no clusterinfov1beta1.OCPVersionMajorMinor label for OCP 311
+			continue
+		}
+
 		ocpVersionMajorMinor := fmt.Sprintf("%s.%s", major, minor)
 		if labels[clusterinfov1beta1.OCPVersionMajorMinor] != ocpVersionMajorMinor {
 			labels[clusterinfov1beta1.OCPVersionMajorMinor] = ocpVersionMajorMinor
@@ -134,10 +139,19 @@ func (r *AutoDetectReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 // parseOCPVersion pasrses the full version of OCP and returns major, minor and patch.
 func parseOCPVersion(version string) (string, string, string, error) {
-	parts := strings.Split(version, ".")
-	if len(parts) != 3 {
-		return "", "", "", fmt.Errorf("invalid Openshift version: %s", version)
+	if len(version) == 0 {
+		return "", "", "", fmt.Errorf("invalid OpenShift version: %s", version)
 	}
 
-	return parts[0], parts[1], parts[2], nil
+	parts := strings.Split(version, ".")
+	switch {
+	case len(parts) == 1:
+		// handle OCP 311 case
+		// only major version is avaiable, like "3"
+		return parts[0], "", "", nil
+	case len(parts) == 3:
+		return parts[0], parts[1], parts[2], nil
+	default:
+		return "", "", "", fmt.Errorf("invalid OpenShift version: %s", version)
+	}
 }
