@@ -45,6 +45,7 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
 	addonagent "open-cluster-management.io/addon-framework/pkg/agent"
+	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -98,6 +99,11 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	}
 
 	clusterClient, err := clusterv1client.NewForConfig(kubeConfig)
+	if err != nil {
+		return err
+	}
+
+	addonClient, err := addonv1alpha1client.NewForConfig(kubeConfig)
 	if err != nil {
 		return err
 	}
@@ -170,10 +176,17 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	}
 	if o.EnableAddonDeploy {
 		registrationOption := addon.NewRegistrationOption(kubeClient, addon.WorkManagerAddonName)
-		getValuesFunc := addon.NewGetValuesFunc(o.AddonImage)
 		agentAddon, err := addonfactory.NewAgentAddonFactory(addon.WorkManagerAddonName, addon.ChartFS, addon.ChartDir).
 			WithScheme(scheme).
-			WithGetValuesFuncs(getValuesFunc, addonfactory.GetValuesFromAddonAnnotation).
+			WithConfigGVRs(addonfactory.AddOnDeploymentConfigGVR).
+			WithGetValuesFuncs(
+				addon.NewGetValuesFunc(o.AddonImage),
+				addonfactory.GetValuesFromAddonAnnotation,
+				addonfactory.GetAddOnDeloymentConfigValues(
+					addonfactory.NewAddOnDeloymentConfigGetter(addonClient),
+					addonfactory.ToAddOnNodePlacementValues,
+				),
+			).
 			WithAgentRegistrationOption(registrationOption).
 			WithInstallStrategy(addonagent.InstallAllStrategy(o.AddonInstallNamespace)).
 			WithAgentHostedModeEnabledOption().

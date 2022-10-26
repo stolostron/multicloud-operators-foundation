@@ -54,7 +54,7 @@ func (c *ClusterSetMapper) CopyClusterSetMapper(requiredMapper *ClusterSetMapper
 	}
 }
 
-//DeleteObjectInClusterSet will delete cluster in all clusterset mapping
+// DeleteObjectInClusterSet will delete cluster in all clusterset mapping
 func (c *ClusterSetMapper) DeleteObjectInClusterSet(objectName string) {
 	if objectName == "" {
 		return
@@ -76,7 +76,7 @@ func (c *ClusterSetMapper) DeleteObjectInClusterSet(objectName string) {
 	return
 }
 
-//AddObjectInClusterSet add object to clusterset mapping. it only add the object to current clusterset,
+// AddObjectInClusterSet add object to clusterset mapping. it only add the object to current clusterset,
 // and will not delete the object in other clusterset.
 func (c *ClusterSetMapper) AddObjectInClusterSet(objectName, clusterSetName string) {
 	if objectName == "" || clusterSetName == "" {
@@ -96,8 +96,8 @@ func (c *ClusterSetMapper) AddObjectInClusterSet(objectName, clusterSetName stri
 	return
 }
 
-//UpdateObjectInClusterSet updates clusterset to cluster mapping.
-//If a the clusterset of a object is changed, this func remove object from the previous mapping and add in new one.
+// UpdateObjectInClusterSet updates clusterset to cluster mapping.
+// If a the clusterset of a object is changed, this func remove object from the previous mapping and add in new one.
 func (c *ClusterSetMapper) UpdateObjectInClusterSet(objectName, clusterSetName string) {
 	if objectName == "" || clusterSetName == "" {
 		return

@@ -44,7 +44,7 @@ func EqualSubjects(subjects1, subjects2 []rbacv1.Subject) bool {
 	return reflect.DeepEqual(subjectMap1, subjectMap2)
 }
 
-//ApplyClusterRoleBinding merges objectmeta, requires subjects and role refs
+// ApplyClusterRoleBinding merges objectmeta, requires subjects and role refs
 func ApplyClusterRoleBinding(ctx context.Context, kubeClient kubernetes.Interface, required *rbacv1.ClusterRoleBinding) error {
 	existing, err := kubeClient.RbacV1().ClusterRoleBindings().Get(ctx, required.Name, metav1.GetOptions{})
 	if err != nil {
@@ -75,7 +75,7 @@ func ApplyClusterRoleBinding(ctx context.Context, kubeClient kubernetes.Interfac
 	return err
 }
 
-//ApplyRoleBinding merges objectmeta, requires subjects and role refs
+// ApplyRoleBinding merges objectmeta, requires subjects and role refs
 func ApplyRoleBinding(ctx context.Context, kubeClient kubernetes.Interface, required *rbacv1.RoleBinding) error {
 	existing, err := kubeClient.RbacV1().RoleBindings(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
 	if err != nil {
@@ -105,7 +105,7 @@ func ApplyRoleBinding(ctx context.Context, kubeClient kubernetes.Interface, requ
 	return err
 }
 
-//managedcluster admin role
+// managedcluster admin role
 func GenerateClusterRoleName(clusterName, role string) string {
 	return "open-cluster-management:" + role + ":" + clusterName
 }
@@ -113,17 +113,17 @@ func GenerateClustersetClusterroleName(clustersetName, role string) string {
 	return "open-cluster-management:managedclusterset:" + role + ":" + clustersetName
 }
 
-//clusterset clusterrolebinding
+// clusterset clusterrolebinding
 func GenerateClustersetClusterRoleBindingName(clusterName, role string) string {
 	return "open-cluster-management:managedclusterset:" + role + ":managedcluster:" + clusterName
 }
 
-//clusterset resource rolebinding name
+// clusterset resource rolebinding name
 func GenerateClustersetResourceRoleBindingName(role string) string {
 	return "open-cluster-management:managedclusterset:" + role
 }
 
-//Delete cluster role
+// Delete cluster role
 func DeleteClusterRole(kubeClient kubernetes.Interface, clusterRoleName string) error {
 	err := kubeClient.RbacV1().ClusterRoles().Delete(context.TODO(), clusterRoleName, metav1.DeleteOptions{})
 	if err != nil {
@@ -132,7 +132,7 @@ func DeleteClusterRole(kubeClient kubernetes.Interface, clusterRoleName string) 
 	return nil
 }
 
-//apply cluster role
+// apply cluster role
 func ApplyClusterRole(kubeClient kubernetes.Interface, requiredClusterrole *rbacv1.ClusterRole) error {
 	existingClusterRole, err := kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), requiredClusterrole.Name, metav1.GetOptions{})
 	if err != nil {
