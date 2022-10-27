@@ -1,4 +1,4 @@
-FROM registry.ci.openshift.org/stolostron/builder:go1.18-linux AS builder
+FROM registry.ci.openshift.org/stolostron/builder:go1.19-linux AS builder
 WORKDIR /go/src/github.com/stolostron/multicloud-operators-foundation
 COPY . .
 ENV GO_PACKAGE github.com/stolostron/multicloud-operators-foundation
