@@ -26,10 +26,10 @@ import (
 
 // This controller sync the clusterdeployment's ClusterSet Label
 // In ACM, clusterdeployment should be created in two ways
-// 1. Directlly create a managedcluster, it will also create a clusterdeployment ref to this managedcluster.
-//    So the clusterdeployment's clusterset label should be synced from this managedcluster.
-// 2. Claim a cluster from clusterpool, all the clusters claimed from this pool should be in the same clusterset.
-//    And the clusterdeployment's clusterset should be same as clusterpool. So we need to sync the clusterdeployment clusterset from clusterpool
+//  1. Directlly create a managedcluster, it will also create a clusterdeployment ref to this managedcluster.
+//     So the clusterdeployment's clusterset label should be synced from this managedcluster.
+//  2. Claim a cluster from clusterpool, all the clusters claimed from this pool should be in the same clusterset.
+//     And the clusterdeployment's clusterset should be same as clusterpool. So we need to sync the clusterdeployment clusterset from clusterpool
 type Reconciler struct {
 	client client.Client
 	scheme *runtime.Scheme

@@ -69,7 +69,7 @@ func (agg aggregate) visit(f func(err error) bool) bool {
 	return false
 }
 
-//appendErrors append errs, return appended result
+// appendErrors append errs, return appended result
 func AppendErrors(errsList ...[]error) []error {
 	var returnErr []error
 	for _, errs := range errsList {

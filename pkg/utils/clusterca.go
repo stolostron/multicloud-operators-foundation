@@ -93,7 +93,7 @@ func GetCAFromApiserver(ctx context.Context, ocpClient openshiftclientset.Interf
 	return apiServerCert, nil
 }
 
-//GetCACert returns the CA cert. It searches in the kube-root-ca.crt configmap in kube-public ns.
+// GetCACert returns the CA cert. It searches in the kube-root-ca.crt configmap in kube-public ns.
 func GetCAFromConfigMap(ctx context.Context, kubeClient kubernetes.Interface) ([]byte, error) {
 	cm, err := kubeClient.CoreV1().ConfigMaps(ConfigmapNamespace).Get(ctx, CrtConfigmapName, metav1.GetOptions{})
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 	"k8s.io/client-go/dynamic/fake"
 )
 
-//TODO: Add more testing cases
+// TODO: Add more testing cases
 func TestLogConnectionInfoGetter(t *testing.T) {
 	scheme := runtime.NewScheme()
 	scheme.AddKnownTypes(clusterInfoGVR.GroupVersion())

@@ -26,7 +26,7 @@ const (
 	globalNamespaceAnnotation = "open-cluster-management.io/ns-create"
 )
 
-//This controller apply a namespace and clustersetbinding for global set
+// This controller apply a namespace and clustersetbinding for global set
 type Reconciler struct {
 	client     client.Client
 	scheme     *runtime.Scheme
@@ -146,8 +146,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, r.client.Update(ctx, clusterset, &client.UpdateOptions{})
 }
 
-//The applyGlobalNsAndSetBinding func apply the clustersetutils.GlobalSetNameSpace and
-//apply the ManagedClusterSetBinding which bind the global clusterset in the namespace
+// The applyGlobalNsAndSetBinding func apply the clustersetutils.GlobalSetNameSpace and
+// apply the ManagedClusterSetBinding which bind the global clusterset in the namespace
 func (r *Reconciler) applyGlobalNsAndSetBinding() error {
 	globalSetNs := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{

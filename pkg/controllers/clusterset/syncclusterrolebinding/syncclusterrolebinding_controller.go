@@ -18,7 +18,7 @@ import (
 	"k8s.io/klog"
 )
 
-//This controller apply clusterset related clusterrolebinding based on clustersetToClusters and clustersetAdminToSubject map
+// This controller apply clusterset related clusterrolebinding based on clustersetToClusters and clustersetAdminToSubject map
 type Reconciler struct {
 	kubeClient                 kubernetes.Interface
 	clusterSetAdminCache       *cache.AuthCache
@@ -57,12 +57,12 @@ func (r *Reconciler) reconcile() {
 	r.syncManagedClusterClusterroleBinding(ctx, unionGlobalClustersetToCluster, clustersetToViewSubjects, "view")
 }
 
-//syncManagedClusterClusterroleBinding sync two(admin/view) clusterrolebindings for each clusters which are in a set.
-//clustersetToSubject(map[string][]rbacv1.Subject) means the users/groups in "[]rbacv1.Subject" has admin/view permission to the clusterset
-//r.clustersetToClusters(map[string]sets.String) means the clusterset include these clusters
-//In current acm design, if a user has admin/view permissions to a clusterset, he/she should also has admin/view permissions to the clusters in the set.
-//So we will generate two(admin/view) clusterrolebindings which grant the clusters admin/view permissions to clusterset users.
-//For each cluster, it will have two clusterrolebindings, so if there are 2k clusters, 4k clusterrolebindings will be created.
+// syncManagedClusterClusterroleBinding sync two(admin/view) clusterrolebindings for each clusters which are in a set.
+// clustersetToSubject(map[string][]rbacv1.Subject) means the users/groups in "[]rbacv1.Subject" has admin/view permission to the clusterset
+// r.clustersetToClusters(map[string]sets.String) means the clusterset include these clusters
+// In current acm design, if a user has admin/view permissions to a clusterset, he/she should also has admin/view permissions to the clusters in the set.
+// So we will generate two(admin/view) clusterrolebindings which grant the clusters admin/view permissions to clusterset users.
+// For each cluster, it will have two clusterrolebindings, so if there are 2k clusters, 4k clusterrolebindings will be created.
 func (r *Reconciler) syncManagedClusterClusterroleBinding(ctx context.Context, clustersetToClusters *helpers.ClusterSetMapper, clustersetToSubject map[string][]rbacv1.Subject, role string) {
 	//clusterToSubject(map[<clusterName>][]rbacv1.Subject) means the users/groups in subject has permission for this cluster.
 	//for each item, we will create a clusterrolebinding

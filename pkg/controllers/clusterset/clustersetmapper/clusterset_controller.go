@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-//This controller apply the clusterset clusterrole and sync clusterSetClusterMapper and clusterSetNamespaceMapper
+// This controller apply the clusterset clusterrole and sync clusterSetClusterMapper and clusterSetNamespaceMapper
 type Reconciler struct {
 	client                        client.Client
 	scheme                        *runtime.Scheme
@@ -230,7 +230,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, nil
 }
 
-//applyClusterSetClusterRoles apply the clusterset clusterrole(admin/bind/view)
+// applyClusterSetClusterRoles apply the clusterset clusterrole(admin/bind/view)
 func (r *Reconciler) applyClusterSetClusterRoles(clusterset *clusterv1beta1.ManagedClusterSet) error {
 	errs := []error{}
 	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel {
@@ -258,8 +258,8 @@ func (r *Reconciler) applyClusterSetClusterRoles(clusterset *clusterv1beta1.Mana
 	return utils.NewMultiLineAggregate(errs)
 }
 
-//cleanClusterSetResource clean the clusterrole
-//and delete clusterset related resource in clusterSetClusterMapper and clusterSetNamespaceMapper
+// cleanClusterSetResource clean the clusterrole
+// and delete clusterset related resource in clusterSetClusterMapper and clusterSetNamespaceMapper
 func (r *Reconciler) cleanClusterSetResource(clusterset *clusterv1beta1.ManagedClusterSet) error {
 
 	err := utils.DeleteClusterRole(r.kubeClient, utils.GenerateClustersetClusterroleName(clusterset.Name, "bind"))
@@ -291,11 +291,11 @@ func (r *Reconciler) cleanClusterSetResource(clusterset *clusterv1beta1.ManagedC
 	return nil
 }
 
-//syncClustersetMapper sync the r.globalClusterSetClusterMapper, r.clusterSetClusterMapper and r.clusterSetNamespaceMapper
-//r.globalClusterSetClusterMapper (map[string]sets.String) stores the map of "global" to <Clusters Name>, only one item in this map, and the value is all managedclusters names.
-//r.clusterSetClusterMapper(map[string]sets.String) stores the map of <ClusterSet Name> to <Clusters Name>, each item in the map means the clusterset include these clusters
-//r.clusterSetNamespaceMapper (map[string]sets.String) stores the map of <ClusterSet Name> to <namespaces>, the namespaces are the namespace of clusterpools/clusterclaims/clusterdeployments which are in this clusterset.
-//These three Mappers are used to propagate the clusterset admin/bind/view permission to managedclusters/managedclusters namespaces/clusterpools namespace/clusterclaims namespace/clusterdeployments namespaces which are in the clusterset.
+// syncClustersetMapper sync the r.globalClusterSetClusterMapper, r.clusterSetClusterMapper and r.clusterSetNamespaceMapper
+// r.globalClusterSetClusterMapper (map[string]sets.String) stores the map of "global" to <Clusters Name>, only one item in this map, and the value is all managedclusters names.
+// r.clusterSetClusterMapper(map[string]sets.String) stores the map of <ClusterSet Name> to <Clusters Name>, each item in the map means the clusterset include these clusters
+// r.clusterSetNamespaceMapper (map[string]sets.String) stores the map of <ClusterSet Name> to <namespaces>, the namespaces are the namespace of clusterpools/clusterclaims/clusterdeployments which are in this clusterset.
+// These three Mappers are used to propagate the clusterset admin/bind/view permission to managedclusters/managedclusters namespaces/clusterpools namespace/clusterclaims namespace/clusterdeployments namespaces which are in the clusterset.
 func (r *Reconciler) syncClustersetMapper(clusterset *clusterv1beta1.ManagedClusterSet) error {
 	selector, err := clusterv1beta1.BuildClusterSelector(clusterset)
 	if err != nil {

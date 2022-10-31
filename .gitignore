@@ -19,5 +19,7 @@ registration-operator
 e2e.test
 .DS_Store
 
+multicloud-operators-foundation/
+
 # editor and IDE paraphernalia
 .vscode
