@@ -28,7 +28,7 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 		return utilerrors.NewAggregate(errs)
 	}
 
-	clusterCfg, err := clientcmd.BuildConfigFromFlags("", s.KubeConfigFile)
+	clusterCfg, err := clientcmd.BuildConfigFromFlags("", s.KubeConfig)
 	if err != nil {
 		return err
 	}

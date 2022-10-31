@@ -14,7 +14,7 @@ import (
 type Options struct {
 	CertFile              string
 	KeyFile               string
-	KubeConfigFile        string
+	KubeConfig            string
 	QPS                   float32
 	Burst                 int
 	SkipOverwriteUserList []string
@@ -23,7 +23,7 @@ type Options struct {
 // NewOptions constructs a new set of default options for webhook.
 func NewOptions() *Options {
 	return &Options{
-		KubeConfigFile:        "",
+		KubeConfig:            "",
 		CertFile:              "",
 		KeyFile:               "",
 		QPS:                   100.0,
@@ -36,9 +36,9 @@ func (c *Options) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&c.CertFile, "tls-cert-file", c.CertFile, ""+
 		"File containing the default x509 Certificate for HTTPS. (CA cert, if any, concatenated "+
 		"after server cert).")
-	fs.StringVar(&c.KeyFile, "tls-private-key-file", c.KeyFile, ""+
+	fs.StringVar(&c.KeyFile, "tls-private-key-file", c.KeyFile,
 		"File containing the default x509 private key matching --tls-cert-file.")
-	fs.StringVar(&c.KubeConfigFile, "kube-config-file", c.KubeConfigFile, ""+
+	fs.StringVar(&c.KubeConfig, "kubeconfig", c.KubeConfig,
 		"Kube configuration file")
 	fs.Float32Var(&c.QPS, "max-qps", c.QPS,
 		"Maximum QPS to the hub server from this webhook.")

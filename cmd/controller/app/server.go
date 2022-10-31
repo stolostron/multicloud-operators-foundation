@@ -40,7 +40,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	k8scache "k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
@@ -83,7 +82,8 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	// clusterset to namespace resource map, like clusterdeployment, clusterpool, clusterclaim. the map value format is "<ResourceType>/<Namespace>/<Name>"
 	clusterSetNamespaceMapper := helpers.NewClusterSetMapper()
 
-	kubeConfig, err := clientcmd.BuildConfigFromFlags("", o.KubeConfig)
+	// get the kubeconfig to talk to the kube-apiserver
+	kubeConfig, err := ctrl.GetConfig()
 	if err != nil {
 		klog.Errorf("unable to get kube config: %v", err)
 		return err

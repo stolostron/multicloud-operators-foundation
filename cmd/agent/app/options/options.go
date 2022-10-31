@@ -10,7 +10,6 @@ import (
 type AgentOptions struct {
 	LeaseDurationSeconds            int
 	MetricsAddr                     string
-	KubeConfig                      string
 	HubKubeConfig                   string
 	ManagedKubeConfig               string
 	ClusterName                     string
@@ -39,7 +38,6 @@ func NewAgentOptions() *AgentOptions {
 	return &AgentOptions{
 		LeaseDurationSeconds:            60,
 		MetricsAddr:                     ":8080",
-		KubeConfig:                      "",
 		HubKubeConfig:                   "/var/run/hub/kubeconfig",
 		ClusterName:                     "",
 		EnableLeaderElection:            false,
@@ -61,8 +59,6 @@ func NewAgentOptions() *AgentOptions {
 func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.IntVar(&o.LeaseDurationSeconds, "lease-duration", o.LeaseDurationSeconds, "The lease duration in seconds, default 60 sec.")
 	fs.StringVar(&o.MetricsAddr, "metrics-addr", o.MetricsAddr, "The address the metric endpoint binds to.")
-	fs.StringVar(&o.KubeConfig, "kubeconfig", o.KubeConfig,
-		"The kubeconfig file of the managed cluster")
 	fs.StringVar(&o.HubKubeConfig, "hub-kubeconfig", o.HubKubeConfig,
 		"The kubeconfig file of the hub cluster")
 	fs.StringVar(&o.ManagedKubeConfig, "managed-kubeconfig", o.ManagedKubeConfig,
@@ -100,7 +96,7 @@ func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.ClientCAFile, "client-ca-file", o.ClientCAFile, ""+
 		"If set, any request presenting a client certificate signed by one of the authorities in the client-ca-file "+
 		"is authenticated with an identity corresponding to the CommonName of the client certificate.")
-	fs.StringVar(&o.ComponentNamespace, "", o.ComponentNamespace, ""+
+	fs.StringVar(&o.ComponentNamespace, "component-namespace", o.ComponentNamespace, ""+
 		"Namespace of the agent running If not set, use the value in /var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	fs.Float32Var(&o.QPS, "max-qps", o.QPS,
 		"Maximum QPS to the local server.")

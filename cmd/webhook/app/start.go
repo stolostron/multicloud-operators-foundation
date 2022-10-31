@@ -21,7 +21,7 @@ import (
 func Run(opts *options.Options, stopCh <-chan struct{}) error {
 	klog.Info("starting foundation webhook server")
 
-	kubeConfig, err := clientcmd.BuildConfigFromFlags("", opts.KubeConfigFile)
+	kubeConfig, err := clientcmd.BuildConfigFromFlags("", opts.KubeConfig)
 	if err != nil {
 		klog.Errorf("Error building kube config: %s", err.Error())
 		return err

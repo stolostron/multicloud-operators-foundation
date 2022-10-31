@@ -84,7 +84,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 	}
 
 	// create management kube config
-	managementKubeConfig, err := clientcmd.BuildConfigFromFlags("", o.KubeConfig)
+	managementKubeConfig, err := ctrl.GetConfig()
 	if err != nil {
 		setupLog.Error(err, "Unable to get management cluster kube config.")
 		os.Exit(1)

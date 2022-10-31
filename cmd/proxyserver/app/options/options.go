@@ -14,7 +14,7 @@ import (
 )
 
 type Options struct {
-	KubeConfigFile  string
+	KubeConfig      string
 	ConfigMapLabels string
 	ServerRun       *genericapiserveroptions.ServerRunOptions
 	SecureServing   *genericapiserveroptions.SecureServingOptionsWithLoopback
@@ -26,7 +26,7 @@ type Options struct {
 // NewOptions constructs a new set of default options for proxyserver.
 func NewOptions() *Options {
 	return &Options{
-		KubeConfigFile:  "",
+		KubeConfig:      "",
 		ConfigMapLabels: "config=acm-proxyserver",
 		ServerRun:       genericapiserveroptions.NewServerRunOptions(),
 		SecureServing:   genericapiserveroptions.NewSecureServingOptions().WithLoopback(),
@@ -37,7 +37,7 @@ func NewOptions() *Options {
 }
 
 func (o *Options) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.KubeConfigFile, "kube-config-file", o.KubeConfigFile, "Kubernetes configuration file to connect to kube-apiserver")
+	fs.StringVar(&o.KubeConfig, "kubeconfig", o.KubeConfig, "Kubernetes configuration file to connect to kube-apiserver")
 	fs.StringVar(&o.ConfigMapLabels, "configmap-labels", o.ConfigMapLabels, "Labels of configMap. Default is config=acm-proxyserver")
 	o.ServerRun.AddUniversalFlags(fs)
 	o.SecureServing.AddFlags(fs)

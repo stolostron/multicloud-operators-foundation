@@ -8,7 +8,6 @@ import (
 
 // ControllerRunOptions for the hcm controller.
 type ControllerRunOptions struct {
-	KubeConfig            string
 	CAFile                string
 	LogCertSecret         string
 	EnableInventory       bool
@@ -23,7 +22,6 @@ type ControllerRunOptions struct {
 // NewControllerRunOptions creates a new ServerRunOptions object with default values.
 func NewControllerRunOptions() *ControllerRunOptions {
 	return &ControllerRunOptions{
-		KubeConfig:            "",
 		CAFile:                "/var/run/agent/ca.crt",
 		LogCertSecret:         "ocm-klusterlet-self-signed-secrets",
 		EnableInventory:       true,
@@ -38,8 +36,6 @@ func NewControllerRunOptions() *ControllerRunOptions {
 
 // AddFlags adds flags for ServerRunOptions fields to be specified via FlagSet.
 func (o *ControllerRunOptions) AddFlags(fs *pflag.FlagSet) {
-	fs.StringVar(&o.KubeConfig, "kubeconfig", "",
-		"The kubeconfig to connect to cluster to watch/apply resources.")
 	fs.StringVar(&o.CAFile, "agent-cafile", o.CAFile, ""+
 		"Agent CA file.")
 	fs.StringVar(&o.LogCertSecret, "log-cert-secret", o.LogCertSecret,
