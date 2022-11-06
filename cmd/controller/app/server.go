@@ -14,7 +14,6 @@ import (
 	actionv1beta1 "github.com/stolostron/cluster-lifecycle-api/action/v1beta1"
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"github.com/stolostron/cluster-lifecycle-api/imageregistry/v1alpha1"
-	inventoryv1alpha1 "github.com/stolostron/cluster-lifecycle-api/inventory/v1alpha1"
 	"github.com/stolostron/multicloud-operators-foundation/cmd/controller/app/options"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/addon"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
@@ -30,7 +29,6 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncrolebinding"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/gc"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/imageregistry"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/inventory"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
@@ -61,7 +59,6 @@ var (
 
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
-	_ = inventoryv1alpha1.AddToScheme(scheme)
 	_ = hiveinternalv1alpha1.AddToScheme(scheme)
 	_ = hivev1.AddToScheme(scheme)
 	_ = clusterinfov1beta1.AddToScheme(scheme)
@@ -198,14 +195,6 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		err = addonMgr.AddAgent(agentAddon)
 		if err != nil {
 			klog.Fatal(err)
-		}
-	}
-
-	// Setup reconciler
-	if o.EnableInventory {
-		if err = inventory.SetupWithManager(mgr); err != nil {
-			klog.Errorf("unable to setup inventory reconciler: %v", err)
-			return err
 		}
 	}
 
