@@ -54,13 +54,11 @@ require (
 	github.com/go-logr/logr v1.2.3
 	github.com/gogo/protobuf v1.3.2
 	github.com/mattbaird/jsonpatch v0.0.0-20200820163806-098863c1fc24
-	github.com/metal3-io/baremetal-operator/apis v0.0.0
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.19.0
 	github.com/openshift/api v0.0.0-20220531073726-6c4f186339a7
 	github.com/openshift/build-machinery-go v0.0.0-20220429084610-baff9f8d23b3
 	github.com/openshift/client-go v0.0.0-20220525160904-9e1acff93e4a
-	github.com/openshift/custom-resource-status v1.1.2
 	github.com/openshift/hive v1.1.17-0.20220726120844-e78dfd39116d
 	github.com/openshift/hive/apis v0.0.0
 	github.com/openshift/library-go v0.0.0-20220525173854-9b950a41acdc
@@ -68,7 +66,7 @@ require (
 	github.com/prometheus/common v0.32.1
 	github.com/smartystreets/goconvey v1.7.2
 	github.com/spf13/pflag v1.0.5
-	github.com/stolostron/cluster-lifecycle-api v0.0.0-20220930080346-456dd8fcbea8
+	github.com/stolostron/cluster-lifecycle-api v0.0.0-20221107031926-6f0a02d2aaf5
 	github.com/stretchr/testify v1.7.2
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b
 	k8s.io/api v0.25.0
@@ -144,7 +142,6 @@ require (
 	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.2-0.20181231171920-c182affec369 // indirect
-	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.0.0 // indirect
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
