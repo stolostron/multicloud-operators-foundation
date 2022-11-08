@@ -137,15 +137,16 @@ func output(t *testing.T, name string, objects ...runtime.Object) {
 
 func TestManifest(t *testing.T) {
 	tests := []struct {
-		name                 string
-		cluster              *clusterv1.ManagedCluster
-		addon                *addonapiv1alpha1.ManagedClusterAddOn
-		imageRegistry        *v1alpha1.ManagedClusterImageRegistry
-		expectedNamespace    string
-		expectedImage        string
-		expectServiceType    v1.ServiceType
-		expectedNodeSelector bool
-		expectedCount        int
+		name                      string
+		cluster                   *clusterv1.ManagedCluster
+		addon                     *addonapiv1alpha1.ManagedClusterAddOn
+		imageRegistry             *v1alpha1.ManagedClusterImageRegistry
+		expectedNamespace         string
+		expectedNamespaceOrphaned bool
+		expectedImage             string
+		expectServiceType         v1.ServiceType
+		expectedNodeSelector      bool
+		expectedCount             int
 	}{
 		{
 			name:              "is OCP",
@@ -224,6 +225,22 @@ func TestManifest(t *testing.T) {
 			expectedNodeSelector: true,
 			expectedCount:        8,
 		},
+		{
+			name: "hosted mode in klusterlet agent namespace",
+			cluster: newCluster("cluster1", "OpenShift",
+				map[string]string{v1alpha1.ClusterImageRegistryLabel: "ns1.imageRegistry1"},
+				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}",
+					v1alpha1.ClusterImageRegistriesAnnotation: newAnnotationRegistries([]v1alpha1.Registries{
+						{Source: "quay.io/stolostron", Mirror: "quay.io/test"},
+					}, "")}),
+			addon: newAddonWithCustomizedAnnotation("work-manager", "cluster1", "klusterlet-cluster1", map[string]string{
+				addonconstants.HostingClusterNameAnnotationKey: "cluster2",
+			}),
+			expectedNamespace:         "klusterlet-cluster1",
+			expectedNamespaceOrphaned: true,
+			expectedImage:             "quay.io/test/multicloud-manager:2.5.0",
+			expectedCount:             9,
+		},
 	}
 
 	for _, test := range tests {
@@ -272,6 +289,10 @@ func TestManifest(t *testing.T) {
 				case *v1.Service:
 					if object.Spec.Type != test.expectServiceType {
 						t.Errorf("expected service type is %s, but got %s ", test.expectServiceType, object.Spec.Type)
+					}
+				case *v1.Namespace:
+					if _, ok := object.Annotations[addonconstants.AnnotationDeletionOrphan]; test.expectedNamespaceOrphaned && !ok {
+						t.Errorf("expected delete option of add-on install namespace is Orphan")
 					}
 				}
 			}
