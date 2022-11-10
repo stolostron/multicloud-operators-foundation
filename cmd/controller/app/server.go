@@ -49,6 +49,8 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1alaph1 "open-cluster-management.io/api/cluster/v1alpha1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
+
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
@@ -66,6 +68,7 @@ func init() {
 	_ = actionv1beta1.AddToScheme(scheme)
 	_ = clusterv1alaph1.Install(scheme)
 	_ = clusterv1beta1.Install(scheme)
+	_ = clusterv1beta2.Install(scheme)
 	_ = v1alpha1.AddToScheme(scheme)
 	_ = routev1.Install(scheme)
 }
@@ -154,13 +157,13 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	}
 
 	clusterSetAdminCache := cache.NewClusterSetCache(
-		clusterInformers.Cluster().V1beta1().ManagedClusterSets(),
+		clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
 		kubeInfomers.Rbac().V1().ClusterRoles(),
 		kubeInfomers.Rbac().V1().ClusterRoleBindings(),
 		utils.GetAdminResourceFromClusterRole,
 	)
 	clusterSetViewCache := cache.NewClusterSetCache(
-		clusterInformers.Cluster().V1beta1().ManagedClusterSets(),
+		clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
 		kubeInfomers.Rbac().V1().ClusterRoles(),
 		kubeInfomers.Rbac().V1().ClusterRoleBindings(),
 		utils.GetViewResourceFromClusterRole,

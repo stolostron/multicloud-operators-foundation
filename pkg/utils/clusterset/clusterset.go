@@ -7,7 +7,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 )
 
 const (
@@ -22,13 +22,13 @@ const (
 	GlobalSetNameSpace          string = "open-cluster-management-global-set"
 )
 
-var GlobalSet = &clusterv1beta1.ManagedClusterSet{
+var GlobalSet = &clusterv1beta2.ManagedClusterSet{
 	ObjectMeta: metav1.ObjectMeta{
 		Name: GlobalSetName,
 	},
-	Spec: clusterv1beta1.ManagedClusterSetSpec{
-		ClusterSelector: clusterv1beta1.ManagedClusterSelector{
-			SelectorType:  clusterv1beta1.LabelSelector,
+	Spec: clusterv1beta2.ManagedClusterSetSpec{
+		ClusterSelector: clusterv1beta2.ManagedClusterSelector{
+			SelectorType:  clusterv1beta2.LabelSelector,
 			LabelSelector: &metav1.LabelSelector{},
 		},
 	},
@@ -106,7 +106,7 @@ func BuildAdminRole(clustersetName string) *rbacv1.ClusterRole {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: adminroleName,
 			Labels: map[string]string{
-				clusterv1beta1.ClusterSetLabel: clustersetName,
+				clusterv1beta2.ClusterSetLabel: clustersetName,
 				ClusterSetRole:                 "admin",
 			},
 		},
@@ -152,7 +152,7 @@ func BuildViewRole(clustersetName string) *rbacv1.ClusterRole {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: viewroleName,
 			Labels: map[string]string{
-				clusterv1beta1.ClusterSetLabel: clustersetName,
+				clusterv1beta2.ClusterSetLabel: clustersetName,
 				ClusterSetRole:                 "view",
 			},
 		},
@@ -178,7 +178,7 @@ func BuildBindRole(clustersetName string) *rbacv1.ClusterRole {
 		ObjectMeta: metav1.ObjectMeta{
 			Name: bindroleName,
 			Labels: map[string]string{
-				clusterv1beta1.ClusterSetLabel: clustersetName,
+				clusterv1beta2.ClusterSetLabel: clustersetName,
 				ClusterSetRole:                 "bind",
 			},
 		},

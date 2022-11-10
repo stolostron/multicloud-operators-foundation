@@ -82,7 +82,7 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 	}
 
 	clusterSetCache := cache.NewClusterSetCache(
-		clusterInformer.Cluster().V1beta1().ManagedClusterSets(),
+		clusterInformer.Cluster().V1beta2().ManagedClusterSets(),
 		informerFactory.Rbac().V1().ClusterRoles(),
 		informerFactory.Rbac().V1().ClusterRoleBindings(),
 		utils.GetViewResourceFromClusterRole,
@@ -91,7 +91,7 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 	v1beta1storage := map[string]rest.Storage{
 		"managedclustersets": managedclusterset.NewREST(
 			client, clusterSetCache, clusterSetCache,
-			clusterInformer.Cluster().V1beta1().ManagedClusterSets().Lister(),
+			clusterInformer.Cluster().V1beta2().ManagedClusterSets().Lister(),
 			informerFactory.Rbac().V1().ClusterRoles().Lister(),
 		),
 	}

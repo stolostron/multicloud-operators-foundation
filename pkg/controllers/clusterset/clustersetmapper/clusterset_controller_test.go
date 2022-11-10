@@ -26,7 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/klog"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -64,14 +64,14 @@ func TestMain(m *testing.M) {
 	// AddToSchemes may be used to add all resources defined in the project to a Scheme
 	var AddToSchemes runtime.SchemeBuilder
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, clusterv1beta1.Install, clusterv1.Install)
+	AddToSchemes = append(AddToSchemes, clusterv1beta2.Install, clusterv1.Install)
 
 	if err := AddToSchemes.AddToScheme(scheme); err != nil {
 		klog.Errorf("Failed adding apis to scheme, %v", err)
 		os.Exit(1)
 	}
 
-	if err := clusterv1beta1.Install(scheme); err != nil {
+	if err := clusterv1beta2.Install(scheme); err != nil {
 		klog.Errorf("Failed adding cluster to scheme, %v", err)
 		os.Exit(1)
 	}
@@ -184,7 +184,7 @@ func TestReconcile(t *testing.T) {
 		{
 			name: "ManagedClusterSetHasFinalizerWithoutClusterRole",
 			existingObjs: []runtime.Object{
-				&clusterv1beta1.ManagedClusterSet{
+				&clusterv1beta2.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: ManagedClusterSetName,
 						DeletionTimestamp: &metav1.Time{
@@ -194,9 +194,9 @@ func TestReconcile(t *testing.T) {
 							clustersetutils.ClustersetRoleFinalizerName,
 						},
 					},
-					Spec: clusterv1beta1.ManagedClusterSetSpec{
-						ClusterSelector: clusterv1beta1.ManagedClusterSelector{
-							SelectorType: clusterv1beta1.LegacyClusterSetLabel,
+					Spec: clusterv1beta2.ManagedClusterSetSpec{
+						ClusterSelector: clusterv1beta2.ManagedClusterSelector{
+							SelectorType: clusterv1beta2.ExclusiveClusterSetLabel,
 						},
 					},
 				},
@@ -215,13 +215,13 @@ func TestReconcile(t *testing.T) {
 		{
 			name: "ManagedClusterSetNoFinalizerWithoutClusterRole",
 			existingObjs: []runtime.Object{
-				&clusterv1beta1.ManagedClusterSet{
+				&clusterv1beta2.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: ManagedClusterSetName,
 					},
-					Spec: clusterv1beta1.ManagedClusterSetSpec{
-						ClusterSelector: clusterv1beta1.ManagedClusterSelector{
-							SelectorType: clusterv1beta1.LegacyClusterSetLabel,
+					Spec: clusterv1beta2.ManagedClusterSetSpec{
+						ClusterSelector: clusterv1beta2.ManagedClusterSelector{
+							SelectorType: clusterv1beta2.ExclusiveClusterSetLabel,
 						},
 					},
 				},
@@ -229,7 +229,7 @@ func TestReconcile(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: ManagedClusterName,
 						Labels: map[string]string{
-							clusterv1beta1.ClusterSetLabel: ManagedClusterSetName,
+							clusterv1beta2.ClusterSetLabel: ManagedClusterSetName,
 						},
 					},
 				},
@@ -250,13 +250,13 @@ func TestReconcile(t *testing.T) {
 		{
 			name: "ManagedClusterSetNoFinalizerWithClusterRole",
 			existingObjs: []runtime.Object{
-				&clusterv1beta1.ManagedClusterSet{
+				&clusterv1beta2.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: ManagedClusterSetName,
 					},
-					Spec: clusterv1beta1.ManagedClusterSetSpec{
-						ClusterSelector: clusterv1beta1.ManagedClusterSelector{
-							SelectorType: clusterv1beta1.LegacyClusterSetLabel,
+					Spec: clusterv1beta2.ManagedClusterSetSpec{
+						ClusterSelector: clusterv1beta2.ManagedClusterSelector{
+							SelectorType: clusterv1beta2.ExclusiveClusterSetLabel,
 						},
 					},
 				},
@@ -276,13 +276,13 @@ func TestReconcile(t *testing.T) {
 		{
 			name: "Sync global set",
 			existingObjs: []runtime.Object{
-				&clusterv1beta1.ManagedClusterSet{
+				&clusterv1beta2.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "global",
 					},
-					Spec: clusterv1beta1.ManagedClusterSetSpec{
-						ClusterSelector: clusterv1beta1.ManagedClusterSelector{
-							SelectorType:  clusterv1beta1.LabelSelector,
+					Spec: clusterv1beta2.ManagedClusterSetSpec{
+						ClusterSelector: clusterv1beta2.ManagedClusterSelector{
+							SelectorType:  clusterv1beta2.LabelSelector,
 							LabelSelector: &metav1.LabelSelector{},
 						},
 					},
@@ -344,14 +344,14 @@ func TestGetRequiredClusterSet(t *testing.T) {
 		{
 			name: "Only have set label",
 			labels: map[string]string{
-				clusterv1beta1.ClusterSetLabel: "set1",
+				clusterv1beta2.ClusterSetLabel: "set1",
 			},
 			expectRequestLen: 1,
 		},
 		{
 			name: "Only have set label",
 			labels: map[string]string{
-				clusterv1beta1.ClusterSetLabel: "set1",
+				clusterv1beta2.ClusterSetLabel: "set1",
 			},
 			clusterSetMap:    map[string]sets.String{"set2": sets.NewString("t1-ns", "t1-ns1")},
 			expectRequestLen: 2,

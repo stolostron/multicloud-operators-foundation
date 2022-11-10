@@ -4,7 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 )
 
 const GroupName = "clusterview.open-cluster-management.io"
@@ -26,8 +26,8 @@ var (
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
-		&clusterv1beta1.ManagedClusterSet{},
-		&clusterv1beta1.ManagedClusterSetList{},
+		&clusterv1beta2.ManagedClusterSet{},
+		&clusterv1beta2.ManagedClusterSetList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil

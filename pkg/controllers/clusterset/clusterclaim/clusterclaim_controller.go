@@ -9,7 +9,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog"
 
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -133,7 +133,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	klog.V(5).Infof("Clusterclaim's clusterdeployment: %+v", clusterDeployment)
 
 	var isModified = false
-	utils.SyncMapField(&isModified, &clusterclaim.Labels, clusterDeployment.Labels, clusterv1beta1.ClusterSetLabel)
+	utils.SyncMapField(&isModified, &clusterclaim.Labels, clusterDeployment.Labels, clusterv1beta2.ClusterSetLabel)
 
 	if isModified {
 		err = r.client.Update(ctx, clusterclaim, &client.UpdateOptions{})

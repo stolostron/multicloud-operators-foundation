@@ -81,13 +81,16 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"open-cluster-management.io/api/cluster/v1.ManagedClusterSpec":                                                       schema_open_cluster_managementio_api_cluster_v1_ManagedClusterSpec(ref),
 		"open-cluster-management.io/api/cluster/v1.ManagedClusterStatus":                                                     schema_open_cluster_managementio_api_cluster_v1_ManagedClusterStatus(ref),
 		"open-cluster-management.io/api/cluster/v1.ManagedClusterVersion":                                                    schema_open_cluster_managementio_api_cluster_v1_ManagedClusterVersion(ref),
-		"open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSet":                                                   schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSet(ref),
-		"open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetBinding":                                            schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetBinding(ref),
-		"open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetBindingList":                                        schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetBindingList(ref),
-		"open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetBindingSpec":                                        schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetBindingSpec(ref),
-		"open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetList":                                               schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetList(ref),
-		"open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetSpec":                                               schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetSpec(ref),
-		"open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetStatus":                                             schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetStatus(ref),
+		"open-cluster-management.io/api/cluster/v1.Taint":                                                                    schema_open_cluster_managementio_api_cluster_v1_Taint(ref),
+		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSelector":                                              schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSelector(ref),
+		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSet":                                                   schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSet(ref),
+		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBinding":                                            schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBinding(ref),
+		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingList":                                        schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindingList(ref),
+		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingSpec":                                        schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindingSpec(ref),
+		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingStatus":                                      schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindingStatus(ref),
+		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetList":                                               schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetList(ref),
+		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetSpec":                                               schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetSpec(ref),
+		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetStatus":                                             schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetStatus(ref),
 	}
 }
 
@@ -213,7 +216,15 @@ func schema_proxyserver_apis_proxy_v1beta1_ClusterStatusProxyOptions(ref common.
 }
 
 func schema_apimachinery_pkg_api_resource_Quantity(ref common.ReferenceCallback) common.OpenAPIDefinition {
-	return common.OpenAPIDefinition{
+	return common.EmbedOpenAPIDefinitionIntoV2Extension(common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "Quantity is a fixed-point representation of a number. It provides convenient marshaling/unmarshaling in JSON and YAML, in addition to String() and AsInt64() accessors.\n\nThe serialization format is:\n\n<quantity>        ::= <signedNumber><suffix>\n  (Note that <suffix> may be empty, from the \"\" case in <decimalSI>.)\n<digit>           ::= 0 | 1 | ... | 9 <digits>          ::= <digit> | <digit><digits> <number>          ::= <digits> | <digits>.<digits> | <digits>. | .<digits> <sign>            ::= \"+\" | \"-\" <signedNumber>    ::= <number> | <sign><number> <suffix>          ::= <binarySI> | <decimalExponent> | <decimalSI> <binarySI>        ::= Ki | Mi | Gi | Ti | Pi | Ei\n  (International System of units; See: http://physics.nist.gov/cuu/Units/binary.html)\n<decimalSI>       ::= m | \"\" | k | M | G | T | P | E\n  (Note that 1024 = 1Ki but 1000 = 1k; I didn't choose the capitalization.)\n<decimalExponent> ::= \"e\" <signedNumber> | \"E\" <signedNumber>\n\nNo matter which of the three exponent forms is used, no quantity may represent a number greater than 2^63-1 in magnitude, nor may it have more than 3 decimal places. Numbers larger or more precise will be capped or rounded up. (E.g.: 0.1m will rounded up to 1m.) This may be extended in the future if we require larger or smaller quantities.\n\nWhen a Quantity is parsed from a string, it will remember the type of suffix it had, and will use the same type again when it is serialized.\n\nBefore serializing, Quantity will be put in \"canonical form\". This means that Exponent/suffix will be adjusted up or down (with a corresponding increase or decrease in Mantissa) such that:\n  a. No precision is lost\n  b. No fractional digits will be emitted\n  c. The exponent (or suffix) is as large as possible.\nThe sign will be omitted unless the number is negative.\n\nExamples:\n  1.5 will be serialized as \"1500m\"\n  1.5Gi will be serialized as \"1536Mi\"\n\nNote that the quantity will NEVER be internally represented by a floating point number. That is the whole point of this exercise.\n\nNon-canonical values will still parse as long as they are well formed, but will be re-emitted in their canonical form. (So always use canonical form, or don't diff.)\n\nThis format is intended to make it difficult to use these numbers without writing some sort of special handling code in the hopes that that will cause implementors to also use a fixed point implementation.",
+				OneOf:       common.GenerateOpenAPIV3OneOfSchema(resource.Quantity{}.OpenAPIV3OneOfTypes()),
+				Format:      resource.Quantity{}.OpenAPISchemaFormat(),
+			},
+		},
+	}, common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "Quantity is a fixed-point representation of a number. It provides convenient marshaling/unmarshaling in JSON and YAML, in addition to String() and AsInt64() accessors.\n\nThe serialization format is:\n\n<quantity>        ::= <signedNumber><suffix>\n  (Note that <suffix> may be empty, from the \"\" case in <decimalSI>.)\n<digit>           ::= 0 | 1 | ... | 9 <digits>          ::= <digit> | <digit><digits> <number>          ::= <digits> | <digits>.<digits> | <digits>. | .<digits> <sign>            ::= \"+\" | \"-\" <signedNumber>    ::= <number> | <sign><number> <suffix>          ::= <binarySI> | <decimalExponent> | <decimalSI> <binarySI>        ::= Ki | Mi | Gi | Ti | Pi | Ei\n  (International System of units; See: http://physics.nist.gov/cuu/Units/binary.html)\n<decimalSI>       ::= m | \"\" | k | M | G | T | P | E\n  (Note that 1024 = 1Ki but 1000 = 1k; I didn't choose the capitalization.)\n<decimalExponent> ::= \"e\" <signedNumber> | \"E\" <signedNumber>\n\nNo matter which of the three exponent forms is used, no quantity may represent a number greater than 2^63-1 in magnitude, nor may it have more than 3 decimal places. Numbers larger or more precise will be capped or rounded up. (E.g.: 0.1m will rounded up to 1m.) This may be extended in the future if we require larger or smaller quantities.\n\nWhen a Quantity is parsed from a string, it will remember the type of suffix it had, and will use the same type again when it is serialized.\n\nBefore serializing, Quantity will be put in \"canonical form\". This means that Exponent/suffix will be adjusted up or down (with a corresponding increase or decrease in Mantissa) such that:\n  a. No precision is lost\n  b. No fractional digits will be emitted\n  c. The exponent (or suffix) is as large as possible.\nThe sign will be omitted unless the number is negative.\n\nExamples:\n  1.5 will be serialized as \"1500m\"\n  1.5Gi will be serialized as \"1536Mi\"\n\nNote that the quantity will NEVER be internally represented by a floating point number. That is the whole point of this exercise.\n\nNon-canonical values will still parse as long as they are well formed, but will be re-emitted in their canonical form. (So always use canonical form, or don't diff.)\n\nThis format is intended to make it difficult to use these numbers without writing some sort of special handling code in the hopes that that will cause implementors to also use a fixed point implementation.",
@@ -221,7 +232,7 @@ func schema_apimachinery_pkg_api_resource_Quantity(ref common.ReferenceCallback)
 				Format:      resource.Quantity{}.OpenAPISchemaFormat(),
 			},
 		},
-	}
+	})
 }
 
 func schema_apimachinery_pkg_api_resource_int64Amount(ref common.ReferenceCallback) common.OpenAPIDefinition {
@@ -756,6 +767,13 @@ func schema_pkg_apis_meta_v1_CreateOptions(ref common.ReferenceCallback) common.
 							Format:      "",
 						},
 					},
+					"fieldValidation": {
+						SchemaProps: spec.SchemaProps{
+							Description: "fieldValidation instructs the server on how to handle objects in the request (POST/PUT/PATCH) containing unknown or duplicate fields, provided that the `ServerSideFieldValidation` feature gate is also enabled. Valid values are: - Ignore: This will ignore any unknown fields that are silently dropped from the object, and will ignore all but the last duplicate field that the decoder encounters. This is the default behavior prior to v1.23 and is the default behavior when the `ServerSideFieldValidation` feature gate is disabled. - Warn: This will send a warning via the standard warning response header for each unknown field that is dropped from the object, and for each duplicate field that is encountered. The request will still succeed if there are no other errors, and will only persist the last of any duplicate fields. This is the default when the `ServerSideFieldValidation` feature gate is enabled. - Strict: This will fail the request with a BadRequest error if any unknown fields would be dropped from the object, or if any duplicate fields are present. The error returned from the server will contain all unknown and duplicate fields encountered.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -1008,7 +1026,7 @@ func schema_pkg_apis_meta_v1_GroupVersionKind(ref common.ReferenceCallback) comm
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "GroupVersionKind unambiguously identifies a kind.  It doesn't anonymously include GroupVersion to avoid automatic coersion.  It doesn't use a GroupVersion to avoid custom marshalling",
+				Description: "GroupVersionKind unambiguously identifies a kind.  It doesn't anonymously include GroupVersion to avoid automatic coercion.  It doesn't use a GroupVersion to avoid custom marshalling",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"group": {
@@ -1043,7 +1061,7 @@ func schema_pkg_apis_meta_v1_GroupVersionResource(ref common.ReferenceCallback) 
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "GroupVersionResource unambiguously identifies a resource.  It doesn't anonymously include GroupVersion to avoid automatic coersion.  It doesn't use a GroupVersion to avoid custom marshalling",
+				Description: "GroupVersionResource unambiguously identifies a resource.  It doesn't anonymously include GroupVersion to avoid automatic coercion.  It doesn't use a GroupVersion to avoid custom marshalling",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"group": {
@@ -1264,7 +1282,7 @@ func schema_pkg_apis_meta_v1_ListMeta(ref common.ReferenceCallback) common.OpenA
 				Properties: map[string]spec.Schema{
 					"selfLink": {
 						SchemaProps: spec.SchemaProps{
-							Description: "selfLink is a URL representing this object. Populated by the system. Read-only.\n\nDEPRECATED Kubernetes will stop propagating this field in 1.20 release and the field is planned to be removed in 1.21 release.",
+							Description: "Deprecated: selfLink is a legacy read-only field that is no longer populated by the system.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1416,7 +1434,7 @@ func schema_pkg_apis_meta_v1_ManagedFieldsEntry(ref common.ReferenceCallback) co
 					},
 					"time": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Time is timestamp of when these fields were set. It should always be empty if Operation is 'Apply'",
+							Description: "Time is the timestamp of when the ManagedFields entry was added. The timestamp will also be updated if a field is added, the manager changes any of the owned fields value or removes a field. The timestamp does not update when a field is removed from the entry because another manager took it over.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
@@ -1476,7 +1494,7 @@ func schema_pkg_apis_meta_v1_ObjectMeta(ref common.ReferenceCallback) common.Ope
 					},
 					"generateName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "GenerateName is an optional prefix, used by the server, to generate a unique name ONLY IF the Name field has not been provided. If this field is used, the name returned to the client will be different than the name passed. This value will also be combined with a unique suffix. The provided value has the same validation rules as the Name field, and may be truncated by the length of the suffix required to make the value unique on the server.\n\nIf this field is specified and the generated name exists, the server will NOT return a 409 - instead, it will either return 201 Created or 500 with Reason ServerTimeout indicating a unique name could not be found in the time allotted, and the client should retry (optionally after the time indicated in the Retry-After header).\n\nApplied only if Name is not specified. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency",
+							Description: "GenerateName is an optional prefix, used by the server, to generate a unique name ONLY IF the Name field has not been provided. If this field is used, the name returned to the client will be different than the name passed. This value will also be combined with a unique suffix. The provided value has the same validation rules as the Name field, and may be truncated by the length of the suffix required to make the value unique on the server.\n\nIf this field is specified and the generated name exists, the server will return a 409.\n\nApplied only if Name is not specified. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#idempotency",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1490,7 +1508,7 @@ func schema_pkg_apis_meta_v1_ObjectMeta(ref common.ReferenceCallback) common.Ope
 					},
 					"selfLink": {
 						SchemaProps: spec.SchemaProps{
-							Description: "SelfLink is a URL representing this object. Populated by the system. Read-only.\n\nDEPRECATED Kubernetes will stop propagating this field in 1.20 release and the field is planned to be removed in 1.21 release.",
+							Description: "Deprecated: selfLink is a legacy read-only field that is no longer populated by the system.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1610,7 +1628,7 @@ func schema_pkg_apis_meta_v1_ObjectMeta(ref common.ReferenceCallback) common.Ope
 					},
 					"clusterName": {
 						SchemaProps: spec.SchemaProps{
-							Description: "The name of the cluster which the object belongs to. This is used to distinguish resources with same name and namespace in different clusters. This field is not set anywhere right now and apiserver is going to ignore it if set in create or update request.",
+							Description: "Deprecated: ClusterName is a legacy field that was always cleared by the system and never used; it will be removed completely in 1.25.\n\nThe name in the go struct is changed to help clients detect accidental use.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -1685,7 +1703,7 @@ func schema_pkg_apis_meta_v1_OwnerReference(ref common.ReferenceCallback) common
 					},
 					"blockOwnerDeletion": {
 						SchemaProps: spec.SchemaProps{
-							Description: "If true, AND if the owner has the \"foregroundDeletion\" finalizer, then the owner cannot be deleted from the key-value store until this reference is removed. Defaults to false. To set this field, a user needs \"delete\" permission of the owner, otherwise 422 (Unprocessable Entity) will be returned.",
+							Description: "If true, AND if the owner has the \"foregroundDeletion\" finalizer, then the owner cannot be deleted from the key-value store until this reference is removed. See https://kubernetes.io/docs/concepts/architecture/garbage-collection/#foreground-deletion for how the garbage collector interacts with this field and enforces the foreground deletion. Defaults to false. To set this field, a user needs \"delete\" permission of the owner, otherwise 422 (Unprocessable Entity) will be returned.",
 							Type:        []string{"boolean"},
 							Format:      "",
 						},
@@ -1846,6 +1864,13 @@ func schema_pkg_apis_meta_v1_PatchOptions(ref common.ReferenceCallback) common.O
 					"fieldManager": {
 						SchemaProps: spec.SchemaProps{
 							Description: "fieldManager is a name associated with the actor or entity that is making these changes. The value must be less than or 128 characters long, and only contain printable characters, as defined by https://golang.org/pkg/unicode/#IsPrint. This field is required for apply requests (application/apply-patch) but optional for non-apply patch types (JsonPatch, MergePatch, StrategicMergePatch).",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"fieldValidation": {
+						SchemaProps: spec.SchemaProps{
+							Description: "fieldValidation instructs the server on how to handle objects in the request (POST/PUT/PATCH) containing unknown or duplicate fields, provided that the `ServerSideFieldValidation` feature gate is also enabled. Valid values are: - Ignore: This will ignore any unknown fields that are silently dropped from the object, and will ignore all but the last duplicate field that the decoder encounters. This is the default behavior prior to v1.23 and is the default behavior when the `ServerSideFieldValidation` feature gate is disabled. - Warn: This will send a warning via the standard warning response header for each unknown field that is dropped from the object, and for each duplicate field that is encountered. The request will still succeed if there are no other errors, and will only persist the last of any duplicate fields. This is the default when the `ServerSideFieldValidation` feature gate is enabled. - Strict: This will fail the request with a BadRequest error if any unknown fields would be dropped from the object, or if any duplicate fields are present. The error returned from the server will contain all unknown and duplicate fields encountered.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -2470,6 +2495,13 @@ func schema_pkg_apis_meta_v1_UpdateOptions(ref common.ReferenceCallback) common.
 							Format:      "",
 						},
 					},
+					"fieldValidation": {
+						SchemaProps: spec.SchemaProps{
+							Description: "fieldValidation instructs the server on how to handle objects in the request (POST/PUT/PATCH) containing unknown or duplicate fields, provided that the `ServerSideFieldValidation` feature gate is also enabled. Valid values are: - Ignore: This will ignore any unknown fields that are silently dropped from the object, and will ignore all but the last duplicate field that the decoder encounters. This is the default behavior prior to v1.23 and is the default behavior when the `ServerSideFieldValidation` feature gate is disabled. - Warn: This will send a warning via the standard warning response header for each unknown field that is dropped from the object, and for each duplicate field that is encountered. The request will still succeed if there are no other errors, and will only persist the last of any duplicate fields. This is the default when the `ServerSideFieldValidation` feature gate is enabled. - Strict: This will fail the request with a BadRequest error if any unknown fields would be dropped from the object, or if any duplicate fields are present. The error returned from the server will contain all unknown and duplicate fields encountered.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
 				},
 			},
 		},
@@ -2784,12 +2816,26 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterSpec(ref comm
 							Format:      "int32",
 						},
 					},
+					"taints": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Taints is a property of managed cluster that allow the cluster to be repelled when scheduling. Taints, including 'ManagedClusterUnavailable' and 'ManagedClusterUnreachable', can not be added/removed by agent running on the managed cluster; while it's fine to add/remove other taints from either hub cluser or managed cluster.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("open-cluster-management.io/api/cluster/v1.Taint"),
+									},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"hubAcceptsClient"},
 			},
 		},
 		Dependencies: []string{
-			"open-cluster-management.io/api/cluster/v1.ClientConfig"},
+			"open-cluster-management.io/api/cluster/v1.ClientConfig", "open-cluster-management.io/api/cluster/v1.Taint"},
 	}
 }
 
@@ -2894,11 +2940,85 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterVersion(ref c
 	}
 }
 
-func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSet(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_open_cluster_managementio_api_cluster_v1_Taint(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
-				Description: "ManagedClusterSet defines a group of ManagedClusters that user's workload can run on. A workload can be defined to deployed on a ManagedClusterSet, which mean:\n  1. The workload can run on any ManagedCluster in the ManagedClusterSet\n  2. The workload cannot run on any ManagedCluster outside the ManagedClusterSet\n  3. The service exposed by the workload can be shared in any ManagedCluster in the ManagedClusterSet\n\nIn order to assign a ManagedCluster to a certian ManagedClusterSet, add a label with name `cluster.open-cluster-management.io/clusterset` on the ManagedCluster to refers to the ManagedClusterSet. User is not allow to add/remove this label on a ManagedCluster unless they have a RBAC rule to CREATE on a virtual subresource of managedclustersets/join. In order to update this label, user must have the permission on both the old and new ManagedClusterSet.",
+				Description: "The managed cluster this Taint is attached to has the \"effect\" on any placement that does not tolerate the Taint.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"key": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Key is the taint key applied to a cluster. e.g. bar or foo.example.com/bar. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"value": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Value is the taint value corresponding to the taint key.",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"effect": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Effect indicates the effect of the taint on placements that do not tolerate the taint. Valid effects are NoSelect, PreferNoSelect and NoSelectIfNew.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"timeAdded": {
+						SchemaProps: spec.SchemaProps{
+							Description: "TimeAdded represents the time at which the taint was added.",
+							Default:     map[string]interface{}{},
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
+						},
+					},
+				},
+				Required: []string{"key", "effect", "timeAdded"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Time"},
+	}
+}
+
+func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSelector(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ManagedClusterSelector represents a selector of ManagedClusters",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"selectorType": {
+						SchemaProps: spec.SchemaProps{
+							Description: "SelectorType could only be \"ExclusiveClusterSetLabel\" or \"LabelSelector\" \"ExclusiveClusterSetLabel\" means to use label \"cluster.open-cluster-management.io/clusterset:<ManagedClusterSet Name>\"\" to select target clusters. \"LabelSelector\" means use labelSelector to select target managedClusters",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"labelSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "LabelSelector define the general labelSelector which clusterset will use to select target managedClusters",
+							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
+						},
+					},
+				},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"},
+	}
+}
+
+func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSet(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ManagedClusterSet defines a group of ManagedClusters that user's workload can run on. A workload can be defined to deployed on a ManagedClusterSet, which mean:\n 1. The workload can run on any ManagedCluster in the ManagedClusterSet\n 2. The workload cannot run on any ManagedCluster outside the ManagedClusterSet\n 3. The service exposed by the workload can be shared in any ManagedCluster in the ManagedClusterSet\n\nIn order to assign a ManagedCluster to a certian ManagedClusterSet, add a label with name `cluster.open-cluster-management.io/clusterset` on the ManagedCluster to refers to the ManagedClusterSet. User is not allow to add/remove this label on a ManagedCluster unless they have a RBAC rule to CREATE on a virtual subresource of managedclustersets/join. In order to update this label, user must have the permission on both the old and new ManagedClusterSet.",
 				Type:        []string{"object"},
 				Properties: map[string]spec.Schema{
 					"kind": {
@@ -2925,14 +3045,14 @@ func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSet(ref 
 						SchemaProps: spec.SchemaProps{
 							Description: "Spec defines the attributes of the ManagedClusterSet",
 							Default:     map[string]interface{}{},
-							Ref:         ref("open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetSpec"),
+							Ref:         ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Status represents the current status of the ManagedClusterSet",
 							Default:     map[string]interface{}{},
-							Ref:         ref("open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetStatus"),
+							Ref:         ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetStatus"),
 						},
 					},
 				},
@@ -2940,11 +3060,11 @@ func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSet(ref 
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetSpec", "open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetStatus"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetSpec", "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetStatus"},
 	}
 }
 
-func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetBinding(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBinding(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -2975,7 +3095,14 @@ func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetBindi
 						SchemaProps: spec.SchemaProps{
 							Description: "Spec defines the attributes of ManagedClusterSetBinding.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetBindingSpec"),
+							Ref:         ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingSpec"),
+						},
+					},
+					"status": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Status represents the current status of the ManagedClusterSetBinding",
+							Default:     map[string]interface{}{},
+							Ref:         ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingStatus"),
 						},
 					},
 				},
@@ -2983,11 +3110,11 @@ func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetBindi
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetBindingSpec"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingSpec", "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingStatus"},
 	}
 }
 
-func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetBindingList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindingList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -3023,7 +3150,7 @@ func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetBindi
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetBinding"),
+										Ref:     ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBinding"),
 									},
 								},
 							},
@@ -3034,11 +3161,11 @@ func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetBindi
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSetBinding"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBinding"},
 	}
 }
 
-func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetBindingSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindingSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -3060,7 +3187,37 @@ func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetBindi
 	}
 }
 
-func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindingStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "ManagedClusterSetBindingStatus represents the current status of the ManagedClusterSetBinding.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "Conditions contains the different condition statuses for this ManagedClusterSetBinding.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"conditions"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition"},
+	}
+}
+
+func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetList(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
@@ -3096,7 +3253,7 @@ func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetList(
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSet"),
+										Ref:     ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSet"),
 									},
 								},
 							},
@@ -3107,22 +3264,33 @@ func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetList(
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "open-cluster-management.io/api/cluster/v1beta1.ManagedClusterSet"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ListMeta", "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSet"},
 	}
 }
 
-func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetSpec(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{
 				Description: "ManagedClusterSetSpec describes the attributes of the ManagedClusterSet",
 				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"clusterSelector": {
+						SchemaProps: spec.SchemaProps{
+							Description: "ClusterSelector represents a selector of ManagedClusters",
+							Default:     map[string]interface{}{},
+							Ref:         ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSelector"),
+						},
+					},
+				},
 			},
 		},
+		Dependencies: []string{
+			"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSelector"},
 	}
 }
 
-func schema_open_cluster_managementio_api_cluster_v1beta1_ManagedClusterSetStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
+func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetStatus(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
 			SchemaProps: spec.SchemaProps{

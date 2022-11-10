@@ -21,7 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 )
 
 type AdmissionHandler struct {
@@ -37,7 +37,7 @@ var managedClustersGVR = metav1.GroupVersionResource{
 
 var managedClusterSetsGVR = metav1.GroupVersionResource{
 	Group:    "cluster.open-cluster-management.io",
-	Version:  "v1beta1",
+	Version:  "v1beta2",
 	Resource: "managedclustersets",
 }
 
@@ -72,7 +72,7 @@ func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.Ad
 			return status
 		}
 
-		clusterset := &clusterv1beta1.ManagedClusterSet{}
+		clusterset := &clusterv1beta2.ManagedClusterSet{}
 		if err := json.Unmarshal(request.Object.Raw, clusterset); err != nil {
 			status.Allowed = false
 			status.Result = &metav1.Status{
@@ -95,7 +95,7 @@ func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.Ad
 		}
 
 		//allow create/update legacy clusterset
-		if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel {
+		if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta2.ExclusiveClusterSetLabel {
 			return status
 		}
 
@@ -159,7 +159,7 @@ func (a *AdmissionHandler) validateCreateRequest(request *v1.AdmissionRequest) *
 	labels := obj.GetLabels()
 	clusterSetName := ""
 	if len(labels) > 0 {
-		clusterSetName = labels[clusterv1beta1.ClusterSetLabel]
+		clusterSetName = labels[clusterv1beta2.ClusterSetLabel]
 	}
 
 	return a.allowUpdateClusterSet(request.UserInfo, clusterSetName)
@@ -275,10 +275,10 @@ func (a *AdmissionHandler) isUpdateClusterset(request *v1.AdmissionRequest) (boo
 	originalClusterSetName := ""
 	currentClusterSetName := ""
 	if len(oldLabels) > 0 {
-		originalClusterSetName = oldLabels[clusterv1beta1.ClusterSetLabel]
+		originalClusterSetName = oldLabels[clusterv1beta2.ClusterSetLabel]
 	}
 	if len(newLabels) > 0 {
-		currentClusterSetName = newLabels[clusterv1beta1.ClusterSetLabel]
+		currentClusterSetName = newLabels[clusterv1beta2.ClusterSetLabel]
 	}
 
 	// allow if managedClusterSet label is not updated

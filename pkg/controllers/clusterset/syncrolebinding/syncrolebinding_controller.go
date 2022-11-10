@@ -7,7 +7,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
@@ -92,7 +92,7 @@ func (r *Reconciler) syncRoleBinding(ctx context.Context, clustersetToNamespace 
 	}
 
 	//Delete rolebinding
-	roleBindingList, err := r.kubeClient.RbacV1().RoleBindings("").List(ctx, metav1.ListOptions{LabelSelector: clusterv1beta1.ClusterSetLabel})
+	roleBindingList, err := r.kubeClient.RbacV1().RoleBindings("").List(ctx, metav1.ListOptions{LabelSelector: clusterv1beta2.ClusterSetLabel})
 	if err != nil {
 		klog.Errorf("Error to list clusterrolebinding. error:%v", err)
 	}
@@ -119,7 +119,7 @@ func (r *Reconciler) syncRoleBinding(ctx context.Context, clustersetToNamespace 
 func generateRequiredRoleBinding(resourceNameSpace string, subjects []rbacv1.Subject, clustersetName string, role string) *rbacv1.RoleBinding {
 	roleBindingName := utils.GenerateClustersetResourceRoleBindingName(role)
 	var labels = make(map[string]string)
-	labels[clusterv1beta1.ClusterSetLabel] = clustersetName
+	labels[clusterv1beta2.ClusterSetLabel] = clustersetName
 	labels[clustersetutils.ClusterSetRole] = role
 	return &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
