@@ -250,19 +250,18 @@ func TestOSDVendorOcpVersion(t *testing.T) {
 
 func TestParseOCPVersion(t *testing.T) {
 	tests := []struct {
-		name          string
-		ocpVersion    string
-		major         string
-		minor         string
-		patch         string
-		expectedError string
+		name       string
+		ocpVersion string
+		major      string
+		minor      string
+		patch      string
 	}{
 		{
-			name:       "valid ocp version",
-			ocpVersion: "4.11.3",
-			major:      "4",
-			minor:      "11",
-			patch:      "3",
+			name:       "empty version",
+			ocpVersion: "",
+			major:      "",
+			minor:      "",
+			patch:      "",
 		},
 		{
 			name:       "ocp 311 version",
@@ -272,24 +271,31 @@ func TestParseOCPVersion(t *testing.T) {
 			patch:      "",
 		},
 		{
-			name:          "empty version",
-			ocpVersion:    "",
-			expectedError: "invalid OpenShift version: ",
+			name:       "major + minor",
+			ocpVersion: "4.11",
+			major:      "4",
+			minor:      "11",
+			patch:      "",
 		},
 		{
-			name:          "invalid ocp version",
-			ocpVersion:    "4.11",
-			expectedError: "invalid OpenShift version: 4.11",
+			name:       "full ocp version",
+			ocpVersion: "4.11.3",
+			major:      "4",
+			minor:      "11",
+			patch:      "3",
+		},
+		{
+			name:       "ocp devversion",
+			ocpVersion: "4.12.0-ec.2",
+			major:      "4",
+			minor:      "12",
+			patch:      "0-ec.2",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			major, minor, patch, err := parseOCPVersion(test.ocpVersion)
-			if err != nil {
-				assert.EqualError(t, err, test.expectedError, "unexpected error")
-				return
-			}
+			major, minor, patch := parseOCPVersion(test.ocpVersion)
 			assert.Equal(t, test.major, major, "wrong major version")
 			assert.Equal(t, test.minor, minor, "wrong minor version")
 			assert.Equal(t, test.patch, patch, "wrong patch version")
