@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 	"k8s.io/apimachinery/pkg/api/errors"

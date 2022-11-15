@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry"
 	"github.com/stolostron/cluster-lifecycle-api/imageregistry/v1alpha1"
