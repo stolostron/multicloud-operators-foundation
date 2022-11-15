@@ -3,9 +3,9 @@ package cache
 import (
 	"time"
 
-	clusterinformerv1beta1 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1beta1"
-	clusterv1beta1lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta1"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterinformerv1beta2 "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1beta2"
+	clusterv1beta2lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta2"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
 	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -21,15 +21,15 @@ import (
 // ClusterSetLister enforces ability to enumerate clusterSet based on role
 type ClusterSetLister interface {
 	// List returns the list of ManagedClusterSet items that the user can access
-	List(user user.Info, selector labels.Selector) (*clusterv1beta1.ManagedClusterSetList, error)
+	List(user user.Info, selector labels.Selector) (*clusterv1beta2.ManagedClusterSetList, error)
 }
 
 type ClusterSetCache struct {
 	Cache            *AuthCache
-	clusterSetLister clusterv1beta1lister.ManagedClusterSetLister
+	clusterSetLister clusterv1beta2lister.ManagedClusterSetLister
 }
 
-func NewClusterSetCache(clusterSetInformer clusterinformerv1beta1.ManagedClusterSetInformer,
+func NewClusterSetCache(clusterSetInformer clusterinformerv1beta2.ManagedClusterSetInformer,
 	clusterRoleInformer rbacv1informers.ClusterRoleInformer,
 	clusterRolebindingInformer rbacv1informers.ClusterRoleBindingInformer,
 	getResourceNamesFromClusterRole func(*v1.ClusterRole, string, string) (sets.String, bool),
@@ -64,10 +64,10 @@ func (c *ClusterSetCache) Run(period time.Duration) {
 	go utilwait.Forever(func() { c.Cache.synchronize() }, period)
 }
 
-func (c *ClusterSetCache) List(userInfo user.Info, selector labels.Selector) (*clusterv1beta1.ManagedClusterSetList, error) {
+func (c *ClusterSetCache) List(userInfo user.Info, selector labels.Selector) (*clusterv1beta2.ManagedClusterSetList, error) {
 	names := c.Cache.listNames(userInfo)
 
-	clusterSetList := &clusterv1beta1.ManagedClusterSetList{}
+	clusterSetList := &clusterv1beta2.ManagedClusterSetList{}
 	for key := range names {
 		clusterSet, err := c.clusterSetLister.Get(key)
 		if errors.IsNotFound(err) {
@@ -96,7 +96,7 @@ func (c *ClusterSetCache) Get(name string) (runtime.Object, error) {
 func (c *ClusterSetCache) ConvertResource(name string) runtime.Object {
 	clusterSet, err := c.clusterSetLister.Get(name)
 	if err != nil {
-		clusterSet = &clusterv1beta1.ManagedClusterSet{ObjectMeta: metav1.ObjectMeta{Name: name}}
+		clusterSet = &clusterv1beta2.ManagedClusterSet{ObjectMeta: metav1.ObjectMeta{Name: name}}
 	}
 
 	return clusterSet

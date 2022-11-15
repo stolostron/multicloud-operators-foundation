@@ -7,7 +7,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -63,7 +63,7 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &clusterv1beta1.ManagedClusterSet{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(&source.Kind{Type: &clusterv1beta2.ManagedClusterSet{}}, &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
@@ -155,14 +155,14 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 func getRequiredClusterSet(labels map[string]string, clusterSetMapper *helpers.ClusterSetMapper, namespace string) []reconcile.Request {
 	var currentSet string
 	var requests []reconcile.Request
-	if labels != nil && len(labels[clusterv1beta1.ClusterSetLabel]) != 0 {
+	if labels != nil && len(labels[clusterv1beta2.ClusterSetLabel]) != 0 {
 		request := reconcile.Request{
 			NamespacedName: types.NamespacedName{
-				Name: labels[clusterv1beta1.ClusterSetLabel],
+				Name: labels[clusterv1beta2.ClusterSetLabel],
 			},
 		}
 		requests = append(requests, request)
-		currentSet = labels[clusterv1beta1.ClusterSetLabel]
+		currentSet = labels[clusterv1beta2.ClusterSetLabel]
 	}
 
 	managedClusterset := clusterSetMapper.GetObjectClusterset(namespace)
@@ -180,7 +180,7 @@ func getRequiredClusterSet(labels map[string]string, clusterSetMapper *helpers.C
 }
 
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	clusterset := &clusterv1beta1.ManagedClusterSet{}
+	clusterset := &clusterv1beta2.ManagedClusterSet{}
 
 	err := r.client.Get(ctx, types.NamespacedName{Name: req.Name}, clusterset)
 	if err != nil {
@@ -231,9 +231,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 }
 
 // applyClusterSetClusterRoles apply the clusterset clusterrole(admin/bind/view)
-func (r *Reconciler) applyClusterSetClusterRoles(clusterset *clusterv1beta1.ManagedClusterSet) error {
+func (r *Reconciler) applyClusterSetClusterRoles(clusterset *clusterv1beta2.ManagedClusterSet) error {
 	errs := []error{}
-	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel {
+	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta2.ExclusiveClusterSetLabel {
 		adminRole := clustersetutils.BuildAdminRole(clusterset.Name)
 		err := utils.ApplyClusterRole(r.kubeClient, adminRole)
 		if err != nil {
@@ -260,7 +260,7 @@ func (r *Reconciler) applyClusterSetClusterRoles(clusterset *clusterv1beta1.Mana
 
 // cleanClusterSetResource clean the clusterrole
 // and delete clusterset related resource in clusterSetClusterMapper and clusterSetNamespaceMapper
-func (r *Reconciler) cleanClusterSetResource(clusterset *clusterv1beta1.ManagedClusterSet) error {
+func (r *Reconciler) cleanClusterSetResource(clusterset *clusterv1beta2.ManagedClusterSet) error {
 
 	err := utils.DeleteClusterRole(r.kubeClient, utils.GenerateClustersetClusterroleName(clusterset.Name, "bind"))
 	if err != nil {
@@ -275,7 +275,7 @@ func (r *Reconciler) cleanClusterSetResource(clusterset *clusterv1beta1.ManagedC
 	}
 
 	//Only LegacyClusterSet has admin clusterrole, so only LegacyClusterSet need to delete it here.
-	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta1.LegacyClusterSetLabel {
+	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta2.ExclusiveClusterSetLabel {
 		err := utils.DeleteClusterRole(r.kubeClient, utils.GenerateClustersetClusterroleName(clusterset.Name, "admin"))
 		if err != nil {
 			klog.Warningf("will reconcile since failed to delete clusterrole. clusterset: %v, err: %v", clusterset.Name, err)
@@ -296,8 +296,8 @@ func (r *Reconciler) cleanClusterSetResource(clusterset *clusterv1beta1.ManagedC
 // r.clusterSetClusterMapper(map[string]sets.String) stores the map of <ClusterSet Name> to <Clusters Name>, each item in the map means the clusterset include these clusters
 // r.clusterSetNamespaceMapper (map[string]sets.String) stores the map of <ClusterSet Name> to <namespaces>, the namespaces are the namespace of clusterpools/clusterclaims/clusterdeployments which are in this clusterset.
 // These three Mappers are used to propagate the clusterset admin/bind/view permission to managedclusters/managedclusters namespaces/clusterpools namespace/clusterclaims namespace/clusterdeployments namespaces which are in the clusterset.
-func (r *Reconciler) syncClustersetMapper(clusterset *clusterv1beta1.ManagedClusterSet) error {
-	selector, err := clusterv1beta1.BuildClusterSelector(clusterset)
+func (r *Reconciler) syncClustersetMapper(clusterset *clusterv1beta2.ManagedClusterSet) error {
+	selector, err := clusterv1beta2.BuildClusterSelector(clusterset)
 	if err != nil {
 		return err
 	}
@@ -306,7 +306,7 @@ func (r *Reconciler) syncClustersetMapper(clusterset *clusterv1beta1.ManagedClus
 		return err
 	}
 
-	if clusterset.Spec.ClusterSelector.SelectorType != clusterv1beta1.LegacyClusterSetLabel {
+	if clusterset.Spec.ClusterSelector.SelectorType != clusterv1beta2.ExclusiveClusterSetLabel {
 		r.globalClusterSetClusterMapper.UpdateClusterSetByObjects(clusterset.Name, clusters)
 		return nil
 	}

@@ -6,7 +6,7 @@ import (
 
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	"k8s.io/apimachinery/pkg/api/errors"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
 	"github.com/onsi/ginkgo"
 	"github.com/onsi/gomega"
@@ -89,7 +89,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 
 		// set managedClusterSet for managedCluster
 		clusterSetLabel := map[string]string{
-			clusterv1beta1.ClusterSetLabel: managedClusterSet,
+			clusterv1beta2.ClusterSetLabel: managedClusterSet,
 		}
 		err = util.UpdateManagedClusterLabels(clusterClient, managedCluster, clusterSetLabel)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
@@ -312,7 +312,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 
 			ginkgo.By("globalClusterSet set binding should be created")
 			gomega.Eventually(func() error {
-				_, err := clusterClient.ClusterV1beta1().ManagedClusterSetBindings(clustersetutils.GlobalSetNameSpace).Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
+				_, err := clusterClient.ClusterV1beta2().ManagedClusterSetBindings(clustersetutils.GlobalSetNameSpace).Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
 				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 		})
@@ -333,13 +333,13 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 		ginkgo.It("globalClusterSet ns should be created automatically after delete it", func() {
 			ginkgo.By("globalClusterSet ns should be created after deleted")
 			gomega.Eventually(func() error {
-				globalSet, err := clusterClient.ClusterV1beta1().ManagedClusterSets().Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
+				globalSet, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
 				if err != err {
 					return err
 				}
 				//remove the global ns annotation
 				globalSet.Annotations = make(map[string]string)
-				_, err = clusterClient.ClusterV1beta1().ManagedClusterSets().Update(context.Background(), globalSet, metav1.UpdateOptions{})
+				_, err = clusterClient.ClusterV1beta2().ManagedClusterSets().Update(context.Background(), globalSet, metav1.UpdateOptions{})
 				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
@@ -724,7 +724,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 
 		ginkgo.It("managedCluster clusterRoleBinding and namespace roleBinding should be deleted successfully after managedClusterSet is deleted", func() {
 			ginkgo.By("delete managedClusterSet")
-			err = clusterClient.ClusterV1beta1().ManagedClusterSets().Delete(context.Background(), managedClusterSet, metav1.DeleteOptions{})
+			err = clusterClient.ClusterV1beta2().ManagedClusterSets().Delete(context.Background(), managedClusterSet, metav1.DeleteOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			ginkgo.By("managedCluster admin clusterRoleBinding should be deleted")
@@ -794,7 +794,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				if err != nil {
 					return err
 				}
-				clusterDeploymentSet := clusterDeployment.Labels[clusterv1beta1.ClusterSetLabel]
+				clusterDeploymentSet := clusterDeployment.Labels[clusterv1beta2.ClusterSetLabel]
 				if clusterDeploymentSet == managedClusterSet {
 					return nil
 				}
@@ -807,7 +807,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			// set managedClusterSet for managedCluster
 			managedClusterSet1 := util.RandomName()
 			clusterSetLabel := map[string]string{
-				clusterv1beta1.ClusterSetLabel: managedClusterSet1,
+				clusterv1beta2.ClusterSetLabel: managedClusterSet1,
 			}
 			err = util.UpdateManagedClusterLabels(clusterClient, managedCluster, clusterSetLabel)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
@@ -817,7 +817,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				if err != nil {
 					return err
 				}
-				clusterDeploymentSet := clusterDeployment.Labels[clusterv1beta1.ClusterSetLabel]
+				clusterDeploymentSet := clusterDeployment.Labels[clusterv1beta2.ClusterSetLabel]
 				if clusterDeploymentSet == managedClusterSet1 {
 					return nil
 				}
@@ -871,7 +871,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			ginkgo.By("Try to update clusterpool clusterset, and it should fail")
 			managedClusterSet1 := util.RandomName()
 			clusterSetLabel := map[string]string{
-				clusterv1beta1.ClusterSetLabel: managedClusterSet1,
+				clusterv1beta2.ClusterSetLabel: managedClusterSet1,
 			}
 			err = util.UpdateClusterPoolLabel(hiveClient, clusterPool, clusterPoolNamespace, clusterSetLabel)
 			gomega.Expect(err).Should(gomega.HaveOccurred())
@@ -881,7 +881,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			ginkgo.By("Try to update claimed managedcluster clusterset, and it should fail")
 			managedClusterSet1 := util.RandomName()
 			clusterSetLabel := map[string]string{
-				clusterv1beta1.ClusterSetLabel: managedClusterSet1,
+				clusterv1beta2.ClusterSetLabel: managedClusterSet1,
 			}
 			err = util.UpdateManagedClusterLabels(clusterClient, managedCluster, clusterSetLabel)
 			gomega.Expect(err).Should(gomega.HaveOccurred())

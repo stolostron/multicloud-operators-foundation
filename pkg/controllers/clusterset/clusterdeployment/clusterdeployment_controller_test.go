@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -92,7 +92,7 @@ func TestReconcile(t *testing.T) {
 						Name:      "pool1",
 						Namespace: "poolNs1",
 						Labels: map[string]string{
-							clusterv1beta1.ClusterSetLabel: "clusterSet1",
+							clusterv1beta2.ClusterSetLabel: "clusterSet1",
 						},
 					},
 					Spec: hivev1.ClusterPoolSpec{},
@@ -105,7 +105,7 @@ func TestReconcile(t *testing.T) {
 				},
 			},
 			expectedlabel: map[string]string{
-				clusterv1beta1.ClusterSetLabel: "clusterSet1",
+				clusterv1beta2.ClusterSetLabel: "clusterSet1",
 			},
 		},
 		{
@@ -116,7 +116,7 @@ func TestReconcile(t *testing.T) {
 						Name:      "clusterdeployment1",
 						Namespace: "ns1",
 						Labels: map[string]string{
-							clusterv1beta1.ClusterSetLabel: "clusterSet1",
+							clusterv1beta2.ClusterSetLabel: "clusterSet1",
 						},
 					},
 					Spec: hivev1.ClusterDeploymentSpec{
@@ -167,7 +167,7 @@ func TestReconcile(t *testing.T) {
 						Name:      "pool1",
 						Namespace: "poolNs1",
 						Labels: map[string]string{
-							clusterv1beta1.ClusterSetLabel: "clusterSet1",
+							clusterv1beta2.ClusterSetLabel: "clusterSet1",
 						},
 					},
 					Spec: hivev1.ClusterPoolSpec{},
@@ -178,7 +178,7 @@ func TestReconcile(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cd1",
 						Labels: map[string]string{
-							clusterv1beta1.ClusterSetLabel: "clusterSet1",
+							clusterv1beta2.ClusterSetLabel: "clusterSet1",
 						},
 					},
 				},
@@ -190,7 +190,7 @@ func TestReconcile(t *testing.T) {
 				},
 			},
 			expectedlabel: map[string]string{
-				clusterv1beta1.ClusterSetLabel: "clusterSet1",
+				clusterv1beta2.ClusterSetLabel: "clusterSet1",
 			},
 		},
 		{
@@ -210,7 +210,7 @@ func TestReconcile(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "cd1",
 						Labels: map[string]string{
-							clusterv1beta1.ClusterSetLabel: "clusterSet1",
+							clusterv1beta2.ClusterSetLabel: "clusterSet1",
 						},
 					},
 				},
@@ -222,7 +222,7 @@ func TestReconcile(t *testing.T) {
 				},
 			},
 			expectedlabel: map[string]string{
-				clusterv1beta1.ClusterSetLabel: "clusterSet1",
+				clusterv1beta2.ClusterSetLabel: "clusterSet1",
 			},
 		},
 	}

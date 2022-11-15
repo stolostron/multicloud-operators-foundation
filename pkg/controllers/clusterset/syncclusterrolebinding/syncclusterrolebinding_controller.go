@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
@@ -80,7 +80,7 @@ func (r *Reconciler) syncManagedClusterClusterroleBinding(ctx context.Context, c
 
 	//Delete clusterrolebinding
 	//List Clusterset related clusterrolebinding
-	clusterRoleBindingList, err := r.kubeClient.RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{LabelSelector: clusterv1beta1.ClusterSetLabel})
+	clusterRoleBindingList, err := r.kubeClient.RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{LabelSelector: clusterv1beta2.ClusterSetLabel})
 	if err != nil {
 		klog.Errorf("Error to list clusterrolebinding. error:%v", err)
 	}
@@ -120,7 +120,7 @@ func generateRequiredClusterRoleBinding(clusterName string, subjects []rbacv1.Su
 	clusterRoleName := utils.GenerateClusterRoleName(clusterName, role)
 
 	var labels = make(map[string]string)
-	labels[clusterv1beta1.ClusterSetLabel] = clustersetName
+	labels[clusterv1beta2.ClusterSetLabel] = clustersetName
 	labels[clustersetutils.ClusterSetRole] = role
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{

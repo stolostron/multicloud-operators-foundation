@@ -14,7 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/rand"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 )
 
 var _ = ginkgo.Describe("Testing user create/update managedCluster without mangedClusterSet label", func() {
@@ -26,7 +26,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster without mange
 		var err error
 		// create rbac with managedClusterSet/join <all> permission for user
 		rules := []rbacv1.PolicyRule{
-			helpers.NewRule("create").Groups(clusterv1beta1.GroupName).Resources("managedclustersets/join").RuleOrDie(),
+			helpers.NewRule("create").Groups(clusterv1beta2.GroupName).Resources("managedclustersets/join").RuleOrDie(),
 			helpers.NewRule("create", "update", "get").Groups(clusterv1.GroupName).Resources("managedclusters").RuleOrDie(),
 		}
 		err = util.CreateClusterRole(kubeClient, rbacName, rules)
@@ -88,7 +88,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 		var err error
 		// create rbac with managedClusterSet/join clusterset-e2e permission for user
 		rules := []rbacv1.PolicyRule{
-			helpers.NewRule("create").Groups(clusterv1beta1.GroupName).Resources("managedclustersets/join").Names(clusterSet1, clusterSet2).RuleOrDie(),
+			helpers.NewRule("create").Groups(clusterv1beta2.GroupName).Resources("managedclustersets/join").Names(clusterSet1, clusterSet2).RuleOrDie(),
 			helpers.NewRule("create", "update", "get").Groups(clusterv1.GroupName).Resources("managedclusters").RuleOrDie(),
 		}
 		err = util.CreateClusterRole(kubeClient, rbacName, rules)
@@ -180,7 +180,7 @@ var _ = ginkgo.Describe("Testing webhook cert rotation", func() {
 		var err error
 		// create rbac with managedClusterSet/join <all> permission for user
 		rules := []rbacv1.PolicyRule{
-			helpers.NewRule("create").Groups(clusterv1beta1.GroupName).Resources("managedclustersets/join").RuleOrDie(),
+			helpers.NewRule("create").Groups(clusterv1beta2.GroupName).Resources("managedclustersets/join").RuleOrDie(),
 			helpers.NewRule("create", "update", "get").Groups(clusterv1.GroupName).Resources("managedclusters").RuleOrDie(),
 		}
 		err = util.CreateClusterRole(kubeClient, rbacName, rules)
@@ -234,7 +234,7 @@ var _ = ginkgo.Describe("Testing webhook cert rotation", func() {
 var _ = ginkgo.Describe("Testing clusterset create and update", func() {
 	ginkgo.It("should get global Clusterset successfully", func() {
 		gomega.Eventually(func() error {
-			_, err := clusterClient.ClusterV1beta1().ManagedClusterSets().Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
+			_, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
 			return err
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 	})
@@ -245,18 +245,18 @@ var _ = ginkgo.Describe("Testing clusterset create and update", func() {
 		updateGlobalSet.Spec.ClusterSelector.LabelSelector.MatchLabels = map[string]string{
 			"vendor": "ocp",
 		}
-		_, err := clusterClient.ClusterV1beta1().ManagedClusterSets().Update(context.Background(), updateGlobalSet, metav1.UpdateOptions{})
+		_, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Update(context.Background(), updateGlobalSet, metav1.UpdateOptions{})
 		gomega.Expect(err).To(gomega.HaveOccurred())
 	})
 
 	ginkgo.It("should not create other labelselector based Clusterset successfully", func() {
-		labelSelectorSet := &clusterv1beta1.ManagedClusterSet{
+		labelSelectorSet := &clusterv1beta2.ManagedClusterSet{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "ocpset",
 			},
-			Spec: clusterv1beta1.ManagedClusterSetSpec{
-				ClusterSelector: clusterv1beta1.ManagedClusterSelector{
-					SelectorType: clusterv1beta1.LabelSelector,
+			Spec: clusterv1beta2.ManagedClusterSetSpec{
+				ClusterSelector: clusterv1beta2.ManagedClusterSelector{
+					SelectorType: clusterv1beta2.LabelSelector,
 					LabelSelector: &metav1.LabelSelector{
 						MatchLabels: map[string]string{
 							"vendor": "openshift",
@@ -265,7 +265,7 @@ var _ = ginkgo.Describe("Testing clusterset create and update", func() {
 				},
 			},
 		}
-		_, err := clusterClient.ClusterV1beta1().ManagedClusterSets().Create(context.Background(), labelSelectorSet, metav1.CreateOptions{})
+		_, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(), labelSelectorSet, metav1.CreateOptions{})
 		gomega.Expect(err).To(gomega.HaveOccurred())
 	})
 })

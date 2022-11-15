@@ -16,8 +16,8 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	rbaclisters "k8s.io/client-go/listers/rbac/v1"
 	clientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
-	clusterv1beta1lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta1"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1beta2"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 )
 
 type REST struct {
@@ -26,7 +26,7 @@ type REST struct {
 	lister cache.ClusterSetLister
 
 	clusterSetCache   *cache.ClusterSetCache
-	clusterSetLister  clusterv1beta1lister.ManagedClusterSetLister
+	clusterSetLister  clusterv1beta2lister.ManagedClusterSetLister
 	clusterRoleLister rbaclisters.ClusterRoleLister
 	tableConverter    rest.TableConvertor
 }
@@ -36,7 +36,7 @@ func NewREST(
 	client clientset.Interface,
 	lister cache.ClusterSetLister,
 	clusterSetCache *cache.ClusterSetCache,
-	clusterSetLister clusterv1beta1lister.ManagedClusterSetLister,
+	clusterSetLister clusterv1beta2lister.ManagedClusterSetLister,
 	clusterRoleLister rbaclisters.ClusterRoleLister,
 ) *REST {
 	return &REST{
@@ -46,13 +46,13 @@ func NewREST(
 		clusterSetCache:   clusterSetCache,
 		clusterSetLister:  clusterSetLister,
 		clusterRoleLister: clusterRoleLister,
-		tableConverter:    rest.NewDefaultTableConvertor(clusterv1beta1.Resource("managedclustersets")),
+		tableConverter:    rest.NewDefaultTableConvertor(clusterv1beta2.Resource("managedclustersets")),
 	}
 }
 
 // New returns a new managedClusterSet
 func (s *REST) New() runtime.Object {
-	return &clusterv1beta1.ManagedClusterSet{}
+	return &clusterv1beta2.ManagedClusterSet{}
 }
 
 func (s *REST) NamespaceScoped() bool {
@@ -61,7 +61,7 @@ func (s *REST) NamespaceScoped() bool {
 
 // NewList returns a new managedClusterSet list
 func (*REST) NewList() runtime.Object {
-	return &clusterv1beta1.ManagedClusterSetList{}
+	return &clusterv1beta2.ManagedClusterSetList{}
 }
 
 var _ = rest.Lister(&REST{})
@@ -70,7 +70,7 @@ var _ = rest.Lister(&REST{})
 func (s *REST) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
 	user, ok := request.UserFrom(ctx)
 	if !ok {
-		return nil, errors.NewForbidden(clusterv1beta1.Resource("managedclustersets"), "", fmt.Errorf("unable to list managedClusterset without a user on the context"))
+		return nil, errors.NewForbidden(clusterv1beta2.Resource("managedclustersets"), "", fmt.Errorf("unable to list managedClusterset without a user on the context"))
 	}
 
 	labelSelector, _ := helpers.InternalListOptionsToSelectors(options)
@@ -94,7 +94,7 @@ func (s *REST) Watch(ctx context.Context, options *metainternalversion.ListOptio
 	}
 	user, ok := request.UserFrom(ctx)
 	if !ok {
-		return nil, errors.NewForbidden(clusterv1beta1.Resource("managedclustersets"), "", fmt.Errorf("unable to list managedClusterSet without a user on the context"))
+		return nil, errors.NewForbidden(clusterv1beta2.Resource("managedclustersets"), "", fmt.Errorf("unable to list managedClusterSet without a user on the context"))
 	}
 
 	includeAllExistingClusterSets := (options != nil) && options.ResourceVersion == "0"
@@ -111,7 +111,7 @@ var _ = rest.Getter(&REST{})
 func (s *REST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	user, ok := request.UserFrom(ctx)
 	if !ok {
-		return nil, errors.NewForbidden(clusterv1beta1.Resource("managedclustersets"), "", fmt.Errorf("unable to get managedClusterSet without a user on the context"))
+		return nil, errors.NewForbidden(clusterv1beta2.Resource("managedclustersets"), "", fmt.Errorf("unable to get managedClusterSet without a user on the context"))
 	}
 
 	clusterSetList, err := s.lister.List(user, labels.Everything())
@@ -124,5 +124,5 @@ func (s *REST) Get(ctx context.Context, name string, options *metav1.GetOptions)
 		}
 	}
 
-	return nil, errors.NewForbidden(clusterv1beta1.Resource("managedclustersets"), "", fmt.Errorf("the user cannot get the managedClusterSet %v", name))
+	return nil, errors.NewForbidden(clusterv1beta2.Resource("managedclustersets"), "", fmt.Errorf("the user cannot get the managedClusterSet %v", name))
 }

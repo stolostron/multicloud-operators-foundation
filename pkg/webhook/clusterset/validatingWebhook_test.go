@@ -28,10 +28,10 @@ const (
 	createClusterDeploymentFromPool         = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterDeployment","metadata":{"name":"cd-pool","namespace":"cd-pool"},"spec":{"clusterName":"gcp-pool-9m688","clusterPoolRef":{"namespace":"pool","poolName":"gcp-pool"}}}`
 	createClusterDeploymentInSet            = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterDeployment","metadata":{"name":"cd-pool","namespace":"cd-pool","labels":{"cluster.open-cluster-management.io/clusterset":"clusterset1"}},"spec":{"clusterName":"gcp-pool-9m688"}}`
 	createClusterDeploymentFromAgentCluster = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterDeployment","metadata":{"name":"cd-pool","namespace":"cd-pool","ownerReferences":[{"apiVersion":"capi-provider.agent-install.openshift.io/v1","kind":"AgentCluster"}]},"spec":{"clusterName":"gcp-pool-9m688"}}`
-	labelSelectorSet                        = `{"apiVersion":"cluster.open-cluster-management.io/v1beta1","kind":"ManagedClusterSet","metadata":{"name":"te-label-set"},"spec":{"clusterSelector":{"labelSelector":{"matchLabels":{"vendor":"ocp"}},"selectorType":"LabelSelector"}}}`
-	globalSet                               = `{"apiVersion":"cluster.open-cluster-management.io/v1beta1","kind":"ManagedClusterSet","metadata":{"name":"global"},"spec":{"clusterSelector":{"labelSelector":{},"selectorType":"LabelSelector"}}}`
-	defaultSet                              = `{"apiVersion":"cluster.open-cluster-management.io/v1beta1","kind":"ManagedClusterSet","metadata":{"name":"default"},"spec":{"clusterSelector":{"selectorType":"LegacyClusterSetLabel"}}}`
-	errorDefaultSet                         = `{"apiVersion":"cluster.open-cluster-management.io/v1beta1","kind":"ManagedClusterSet","metadata":{name":"default"},"spec":{"clusterSelector":{"selectorType":"LegacyClusterSetLabel"}}}`
+	labelSelectorSet                        = `{"apiVersion":"cluster.open-cluster-management.io/v1beta2","kind":"ManagedClusterSet","metadata":{"name":"te-label-set"},"spec":{"clusterSelector":{"labelSelector":{"matchLabels":{"vendor":"ocp"}},"selectorType":"LabelSelector"}}}`
+	globalSet                               = `{"apiVersion":"cluster.open-cluster-management.io/v1beta2","kind":"ManagedClusterSet","metadata":{"name":"global"},"spec":{"clusterSelector":{"labelSelector":{},"selectorType":"LabelSelector"}}}`
+	defaultSet                              = `{"apiVersion":"cluster.open-cluster-management.io/v1beta2","kind":"ManagedClusterSet","metadata":{"name":"default"},"spec":{"clusterSelector":{"selectorType":"ExclusiveClusterSetLabel"}}}`
+	errorDefaultSet                         = `{"apiVersion":"cluster.open-cluster-management.io/v1beta2","kind":"ManagedClusterSet","metadata":{name":"default"},"spec":{"clusterSelector":{"selectorType":"ExclusiveClusterSetLabel"}}}`
 )
 
 func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
@@ -362,7 +362,7 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 			actualResponse := admissionHandler.validateResource(c.request)
 
 			if !reflect.DeepEqual(actualResponse.Allowed, c.expectedResponse.Allowed) {
-				t.Errorf("expected %#v but got: %#v", c.expectedResponse, actualResponse)
+				t.Errorf("case: %v,expected %#v but got: %#v", c.name, c.expectedResponse, actualResponse)
 			}
 		})
 	}

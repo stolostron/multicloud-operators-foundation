@@ -22,7 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 	"k8s.io/klog"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -47,14 +47,14 @@ func TestMain(m *testing.M) {
 	// AddToSchemes may be used to add all resources defined in the project to a Scheme
 	var AddToSchemes runtime.SchemeBuilder
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, clusterv1beta1.Install, clusterv1.Install)
+	AddToSchemes = append(AddToSchemes, clusterv1beta2.Install, clusterv1.Install)
 
 	if err := AddToSchemes.AddToScheme(scheme); err != nil {
 		klog.Errorf("Failed adding apis to scheme, %v", err)
 		os.Exit(1)
 	}
 
-	if err := clusterv1beta1.Install(scheme); err != nil {
+	if err := clusterv1beta2.Install(scheme); err != nil {
 		klog.Errorf("Failed adding cluster to scheme, %v", err)
 		os.Exit(1)
 	}
@@ -127,13 +127,13 @@ func TestApplyGlobalNsAndSetBinding(t *testing.T) {
 		{
 			name: "Has Global set",
 			existingObjs: []runtime.Object{
-				&clusterv1beta1.ManagedClusterSet{
+				&clusterv1beta2.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: clustersetutils.GlobalSetName,
 					},
-					Spec: clusterv1beta1.ManagedClusterSetSpec{
-						ClusterSelector: clusterv1beta1.ManagedClusterSelector{
-							SelectorType:  clusterv1beta1.LabelSelector,
+					Spec: clusterv1beta2.ManagedClusterSetSpec{
+						ClusterSelector: clusterv1beta2.ManagedClusterSelector{
+							SelectorType:  clusterv1beta2.LabelSelector,
 							LabelSelector: &metav1.LabelSelector{},
 						},
 					},
@@ -144,7 +144,7 @@ func TestApplyGlobalNsAndSetBinding(t *testing.T) {
 		{
 			name: "deleting Global set",
 			existingObjs: []runtime.Object{
-				&clusterv1beta1.ManagedClusterSet{
+				&clusterv1beta2.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: clustersetutils.GlobalSetName,
 						DeletionTimestamp: &metav1.Time{
@@ -154,9 +154,9 @@ func TestApplyGlobalNsAndSetBinding(t *testing.T) {
 							clustersetutils.ClustersetRoleFinalizerName,
 						},
 					},
-					Spec: clusterv1beta1.ManagedClusterSetSpec{
-						ClusterSelector: clusterv1beta1.ManagedClusterSelector{
-							SelectorType:  clusterv1beta1.LabelSelector,
+					Spec: clusterv1beta2.ManagedClusterSetSpec{
+						ClusterSelector: clusterv1beta2.ManagedClusterSelector{
+							SelectorType:  clusterv1beta2.LabelSelector,
 							LabelSelector: &metav1.LabelSelector{},
 						},
 					},
@@ -167,16 +167,16 @@ func TestApplyGlobalNsAndSetBinding(t *testing.T) {
 		{
 			name: "global set has annotation",
 			existingObjs: []runtime.Object{
-				&clusterv1beta1.ManagedClusterSet{
+				&clusterv1beta2.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
 						Name: clustersetutils.GlobalSetName,
 						Annotations: map[string]string{
 							globalNamespaceAnnotation: "true",
 						},
 					},
-					Spec: clusterv1beta1.ManagedClusterSetSpec{
-						ClusterSelector: clusterv1beta1.ManagedClusterSelector{
-							SelectorType:  clusterv1beta1.LabelSelector,
+					Spec: clusterv1beta2.ManagedClusterSetSpec{
+						ClusterSelector: clusterv1beta2.ManagedClusterSelector{
+							SelectorType:  clusterv1beta2.LabelSelector,
 							LabelSelector: &metav1.LabelSelector{},
 						},
 					},
@@ -194,7 +194,7 @@ func TestApplyGlobalNsAndSetBinding(t *testing.T) {
 					Name: clustersetutils.GlobalSetName,
 				},
 			})
-			globalSetBinding := &clusterv1beta1.ManagedClusterSetBinding{}
+			globalSetBinding := &clusterv1beta2.ManagedClusterSetBinding{}
 			setBindingExist := true
 			globalNsExist := true
 			err := r.client.Get(context.TODO(), types.NamespacedName{Name: clustersetutils.GlobalSetName, Namespace: clustersetutils.GlobalSetNameSpace}, globalSetBinding)
