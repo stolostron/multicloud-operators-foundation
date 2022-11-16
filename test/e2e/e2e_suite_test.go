@@ -5,8 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/reporters"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	"github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry"
@@ -24,13 +23,7 @@ import (
 
 func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
-	junit_report_file := os.Getenv("JUNIT_REPORT_FILE")
-	if junit_report_file != "" {
-		junitReporter := reporters.NewJUnitReporter(junit_report_file)
-		ginkgo.RunSpecsWithDefaultAndCustomReporters(t, "E2E suite", []ginkgo.Reporter{junitReporter})
-	} else {
-		ginkgo.RunSpecs(t, "E2E suite")
-	}
+	ginkgo.RunSpecs(t, "E2E suite")
 }
 
 const (

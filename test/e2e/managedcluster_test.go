@@ -6,7 +6,7 @@ import (
 	"net/url"
 	"reflect"
 
-	"github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
