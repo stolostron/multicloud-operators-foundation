@@ -185,6 +185,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 				addonfactory.GetAddOnDeloymentConfigValues(
 					addonfactory.NewAddOnDeloymentConfigGetter(addonClient),
 					addonfactory.ToAddOnNodePlacementValues,
+					addonfactory.ToAddOnCustomizedVariableValues,
 				),
 			).
 			WithAgentRegistrationOption(registrationOption).
