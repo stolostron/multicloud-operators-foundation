@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+  <testsuites tests="72" disabled="0" errors="0" failures="0" time="0.004810466">
+      <testsuite name="E2E suite" package="/Users/xuezhao/go/src/github.com/xuezhaojun/multicloud-operators-foundation/test/e2e" tests="72" disabled="0" skipped="0" errors="0" failures="0" time="0.004810466" timestamp="2022-11-15T23:25:27">
+          <properties>
+              <property name="SuiteSucceeded" value="true"></property>
+              <property name="SuiteHasProgrammaticFocus" value="false"></property>
+              <property name="SpecialSuiteFailureReason" value=""></property>
+              <property name="SuiteLabels" value="[]"></property>
+              <property name="RandomSeed" value="1668525911"></property>
+              <property name="RandomizeAllSpecs" value="false"></property>
+              <property name="LabelFilter" value=""></property>
+              <property name="FocusStrings" value=""></property>
+              <property name="SkipStrings" value=""></property>
+              <property name="FocusFiles" value=""></property>
+              <property name="SkipFiles" value=""></property>
+              <property name="FailOnPending" value="false"></property>
+              <property name="FailFast" value="false"></property>
+              <property name="FlakeAttempts" value="0"></property>
+              <property name="DryRun" value="true"></property>
+              <property name="ParallelTotal" value="1"></property>
+              <property name="OutputInterceptorMode" value=""></property>
+          </properties>
+          <testcase name="[BeforeSuite]" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ClusterClaim should get the required ClusterClaims successfully the managed cluster" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ClusterClaim should recreate the ClusterClaim once it is deleted" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ClusterClaim should rollback the change of the ClusterClaim once it is modified" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ClusterClaim should not rollback the change of the ClusterClaim, if it&#39;s in create only list" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ClusterClaim should sync the label to claim" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ClusterClaim should not remove the customized claim" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing Lease Get Lease should get/update lease successfully in cluster" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing user create/update managedCluster with mangedClusterSet label should create and update the managedCluster successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterImageRegistry add / remove imageRegistry label and annotation successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing user create/update managedCluster without mangedClusterSet label should create and update the managedCluster successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ClusterView to get managedClusterSets should list the managedClusterSets.clusterView successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing clusterset create and update should get global Clusterset successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing clusterset create and update should not update global Clusterset successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing clusterset create and update should not create other labelselector based Clusterset successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterInfo Get ManagedClusterInfo should get a ManagedClusterInfo successfully in cluster" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterInfo Get ManagedClusterInfo should have node list reported successfully in cluster" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterInfo Get ManagedClusterInfo should have a valid condition" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterInfo Get ManagedClusterInfo should have valid distributionInfo" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterInfo Get ManagedClusterInfo should have valid ClusterID" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterInfo Delete ManagedClusterInfo Automatically after ManagedCluster is deleted clusterInfo should be deleted automatically." classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing webhook cert rotation should create and update the managedCluster after cert rotation successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterView if agent is lost Creating a managedClusterView Should create successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ClusterView to watch managedClusterSets should watch the managedClusterSets.clusterView successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ClusterView to watch managedClusters should watch the managedClusters.clusterview successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when agent is lost Creating a ManagedClusterAction Should create successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a UpdateManagedClusterAction when resource do not exist Should create updateManagedClusterAction successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a UpdateManagedClusterAction when resource do not exist should get successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a UpdateManagedClusterAction when resource do not exist should have a valid condition" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a UpdateManagedClusterAction when resource do not exist should delete successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a DeleteManagedClusterAction when resource do not exist Should create deleteManagedCusterAction successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a DeleteManagedClusterAction when resource do not exist should get successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a DeleteManagedClusterAction when resource do not exist should have a valid condition" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a DeleteManagedClusterAction when resource do not exist deployment should be deleted successfully in managedcluster" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a DeleteManagedClusterAction when resource do not exist should delete successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a CreateManagedClusterAction should create successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a CreateManagedClusterAction should get successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a CreateManagedClusterAction should have a valid condition" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a CreateManagedClusterAction deployment should be created successfully in managedcluster" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a CreateManagedClusterAction should delete successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a UpdateManagedClusterAction Should create udateManagedClusterAction successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a UpdateManagedClusterAction should get successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a UpdateManagedClusterAction should have a valid condition" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a UpdateManagedClusterAction should delete successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a DeleteManagedClusterAction Should create deleteManagedClusterAction successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a DeleteManagedClusterAction should get successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a DeleteManagedClusterAction should have a valid condition" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a DeleteManagedClusterAction deployment should be deleted successfully in managedcluster" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterAction when Agent is ok Creating a DeleteManagedClusterAction should delete successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet managedClusterSet admin/bind/view clusterRole should be created/deleted automatically. managedClusterSet admin/view clusterRole should be created/deleted automatically" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet globalClusterSet rbac check. globalClusterSet bind/view clusterRole should be created automatically" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet globalClusterSet rbac check. globalClusterSet bind/view user should be in managedcluster clusterRolebinding" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet globalClusterSet rbac check. globalClusterSet bind/view user should be in managedcluster namespace rolebinding" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet globalClusterSet ns and setbinding should be created automatically. globalClusterSet  ns and setbinding should be created automatically" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet globalClusterSet ns and setbinding should be created automatically. globalClusterSet ns should not be created automatically after delete it" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet globalClusterSet ns and setbinding should be created automatically. globalClusterSet ns should be created automatically after delete it" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet managedCluster clusterRoleBinding should be created/updated automatically. managedCluster clusterRoleBinding should be updated successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet managedCluster namespace roleBinding should be created/updated automatically. managedCluster namespace roleBinding should be auto created successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet clusterClaim and clusterDeployment should be added into managedClusterSet automatically. clusterClaim and clusterDeployment should be added into managedClusterSet automatically." classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet managedCluster clusterRoleBinding and namespace roleBinding should be deleted successfully after managedClusterSet is deleted managedCluster clusterRoleBinding and namespace roleBinding should be deleted successfully after managedClusterSet is deleted" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet clusterdeployment clusterset should be synced with managedcluster. clusterdeployment clusterset should be synced with managedcluster automatically." classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet clusterdeployment clusterset should be synced with managedcluster. update managedcluster clusterset, clusterdeployment clusterset should be synced automatically." classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet it should fail when updating clusterpool and managedcluster clusterset. try to update clusterpool clusterset label, and it should fail." classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterSet it should fail when updating clusterpool and managedcluster clusterset. try to update managedcluster clusterset label, and it should fail." classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ClusterView to get managedClusters should list the managedClusters.clusterview successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing work-manager add-on with AddonDeploymentConfigs should add node placement for work-manager add-on successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing Pod log should get log from pod successfully" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedCluster Get ManagedCluster cpu worker capacity should get a cpu_worker successfully in status of managedcluster" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedCluster Testing Clusterca sync Get CA from apiserver" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedCluster Testing Clusterca sync Get CA from configmap" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedCluster Testing Clusterca sync Get CA from service account" classname="E2E suite" status="passed" time="0"></testcase>
+          <testcase name="[It] Testing ManagedClusterView if agent is ok Creating a managedClusterView Should create successfully" classname="E2E suite" status="passed" time="0"></testcase>
+      </testsuite>
+  </testsuites>
