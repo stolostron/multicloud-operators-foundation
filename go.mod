@@ -34,7 +34,7 @@ replace (
 
 // pin kube and hive version
 replace (
-	github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20220726120844-e78dfd39116d
+	github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20221115201849-3d7df9a1b7a4
 	k8s.io/api => k8s.io/api v0.24.1
 	k8s.io/apimachinery => k8s.io/apimachinery v0.24.1
 	k8s.io/apiserver => k8s.io/apiserver v0.24.1
@@ -59,7 +59,7 @@ require (
 	github.com/openshift/api v0.0.0-20220531073726-6c4f186339a7
 	github.com/openshift/build-machinery-go v0.0.0-20220429084610-baff9f8d23b3
 	github.com/openshift/client-go v0.0.0-20220525160904-9e1acff93e4a
-	github.com/openshift/hive v1.1.17-0.20220726120844-e78dfd39116d
+	github.com/openshift/hive v1.1.17-0.20221115201849-3d7df9a1b7a4
 	github.com/openshift/hive/apis v0.0.0
 	github.com/openshift/library-go v0.0.0-20220525173854-9b950a41acdc
 	github.com/prometheus/client_golang v1.12.1
@@ -91,6 +91,7 @@ require (
 	github.com/gobuffalo/flect v0.2.5 // indirect
 	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
+	github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87 // indirect
 )
 
 // golang
