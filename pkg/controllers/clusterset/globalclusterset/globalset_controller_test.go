@@ -182,6 +182,26 @@ func TestApplyGlobalNsAndSetBinding(t *testing.T) {
 					},
 				},
 			},
+			setBindingAndNsExist: true,
+		},
+		{
+			name: "global set has annotation is false",
+			existingObjs: []runtime.Object{
+				&clusterv1beta2.ManagedClusterSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: clustersetutils.GlobalSetName,
+						Annotations: map[string]string{
+							globalNamespaceAnnotation: "false",
+						},
+					},
+					Spec: clusterv1beta2.ManagedClusterSetSpec{
+						ClusterSelector: clusterv1beta2.ManagedClusterSelector{
+							SelectorType:  clusterv1beta2.LabelSelector,
+							LabelSelector: &metav1.LabelSelector{},
+						},
+					},
+				},
+			},
 			setBindingAndNsExist: false,
 		},
 	}

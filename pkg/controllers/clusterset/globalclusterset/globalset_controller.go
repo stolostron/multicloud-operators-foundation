@@ -129,7 +129,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if _, ok := clusterset.Annotations[globalNamespaceAnnotation]; ok {
-		return ctrl.Result{}, nil
+		if clusterset.Annotations[globalNamespaceAnnotation] != "true" {
+			return ctrl.Result{}, nil
+		}
 	}
 
 	err = r.applyGlobalNsAndSetBinding()
@@ -138,10 +140,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 	if len(clusterset.Annotations) == 0 {
 		clusterset.Annotations = map[string]string{
-			globalNamespaceAnnotation: "true",
+			globalNamespaceAnnotation: "false",
 		}
 	} else {
-		clusterset.Annotations[globalNamespaceAnnotation] = "true"
+		clusterset.Annotations[globalNamespaceAnnotation] = "false"
 	}
 	return ctrl.Result{}, r.client.Update(ctx, clusterset, &client.UpdateOptions{})
 }
