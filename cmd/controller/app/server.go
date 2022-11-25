@@ -17,6 +17,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/cmd/controller/app/options"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/addon"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/addoninstall"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/certrotation"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterca"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterinfo"
@@ -42,7 +43,7 @@ import (
 	"k8s.io/klog"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager"
-	addonagent "open-cluster-management.io/addon-framework/pkg/agent"
+	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
@@ -71,6 +72,7 @@ func init() {
 	_ = clusterv1beta2.Install(scheme)
 	_ = v1alpha1.AddToScheme(scheme)
 	_ = routev1.Install(scheme)
+	_ = addonapiv1alpha1.Install(scheme)
 }
 
 func Run(o *options.ControllerRunOptions, ctx context.Context) error {
@@ -189,7 +191,6 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 				),
 			).
 			WithAgentRegistrationOption(registrationOption).
-			WithInstallStrategy(addonagent.InstallAllStrategy(o.AddonInstallNamespace)).
 			WithAgentHostedModeEnabledOption().
 			BuildHelmAgentAddon()
 		if err != nil {
@@ -266,6 +267,11 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 	cleanGarbageFinalizer := gc.NewCleanGarbageFinalizer(kubeClient)
+
+	if err = addoninstall.SetupWithManager(mgr); err != nil {
+		klog.Errorf("unable to setup addoninstall reconciler: %v", err)
+		return err
+	}
 
 	go func() {
 		<-mgr.Elected()
