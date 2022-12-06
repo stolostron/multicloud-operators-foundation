@@ -8,6 +8,6 @@ metadata:
     addon.open-cluster-management.io/namespace: "true"
   {{- if eq (.Release.Namespace | trimPrefix "klusterlet-") .Values.clusterName }}
   annotations:
-    "addon-cluster-management.io/deletion-orphan": ""
+    "addon.open-cluster-management.io/deletion-orphan": ""
   {{- end }}
 {{- end }}
