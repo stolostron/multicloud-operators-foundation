@@ -119,6 +119,23 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 			},
 		},
 		{
+			name: "allow to update cluster with clusterset label unchanged",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Update,
+				Object: runtime.RawExtension{
+					Raw: []byte(updateManagedclusterNotSet),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(managedcluster),
+				},
+			},
+			allowUpdateClusterSets: map[string]bool{"clusterset1": true},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
 			name: "allow to update cluster to clusterset2 if there is no clusterdeployment",
 			request: &v1.AdmissionRequest{
 				Resource:  managedClustersGVR,
