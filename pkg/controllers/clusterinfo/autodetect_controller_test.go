@@ -103,6 +103,39 @@ func TestAutoDetectReconcile(t *testing.T) {
 			expectedErrorType: nil,
 			requeue:           false,
 		},
+		{
+			name: "UpdateManagedClusterLabels When the labels are not set or equals to empty",
+			existingObjs: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: ManagedClusterName,
+						Labels: map[string]string{
+							clusterv1beta1.LabelKubeVendor: "",
+						},
+					},
+					Spec: clusterv1.ManagedClusterSpec{},
+				},
+				&clusterv1beta1.ManagedClusterInfo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      ManagedClusterName,
+						Namespace: ManagedClusterName,
+					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
+					Status: clusterv1beta1.ClusterInfoStatus{
+						KubeVendor:  clusterv1beta1.KubeVendorAKS,
+						CloudVendor: clusterv1beta1.CloudVendorAzure,
+						ClusterID:   "c186d39e-f56f-45c3-8869-fc84323165c4",
+					},
+				},
+			},
+			req: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: ManagedClusterName,
+				},
+			},
+			expectedErrorType: nil,
+			requeue:           false,
+		},
 	}
 
 	for _, test := range tests {

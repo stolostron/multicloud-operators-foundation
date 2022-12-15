@@ -61,12 +61,12 @@ func (r *AutoDetectReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	needUpdate := false
-	if labels[clusterinfov1beta1.LabelCloudVendor] == clusterinfov1beta1.AutoDetect && clusterInfo.Status.CloudVendor != "" {
+	if (labels[clusterinfov1beta1.LabelCloudVendor] == clusterinfov1beta1.AutoDetect || labels[clusterinfov1beta1.LabelCloudVendor] == "") && clusterInfo.Status.CloudVendor != "" {
 		labels[clusterinfov1beta1.LabelCloudVendor] = string(clusterInfo.Status.CloudVendor)
 		needUpdate = true
 	}
 
-	if labels[clusterinfov1beta1.LabelKubeVendor] == clusterinfov1beta1.AutoDetect && clusterInfo.Status.KubeVendor != "" {
+	if (labels[clusterinfov1beta1.LabelKubeVendor] == clusterinfov1beta1.AutoDetect || labels[clusterinfov1beta1.LabelKubeVendor] == "") && clusterInfo.Status.KubeVendor != "" {
 		labels[clusterinfov1beta1.LabelKubeVendor] = string(clusterInfo.Status.KubeVendor)
 		// Backward Compatible for placementrrule
 		if clusterInfo.Status.KubeVendor == clusterinfov1beta1.KubeVendorOSD {
