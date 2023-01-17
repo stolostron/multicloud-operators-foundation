@@ -2,6 +2,7 @@ package clusterclaim
 
 import (
 	"fmt"
+	"k8s.io/apimachinery/pkg/types"
 	"sort"
 	"strings"
 	"testing"
@@ -88,7 +89,14 @@ func newClusterVersion() *apiconfigv1.ClusterVersion {
 		},
 	}
 }
-
+func newNamespace(name, uid string) *corev1.Namespace {
+	return &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+			UID:  types.UID(uid),
+		},
+	}
+}
 func newAWSInfrastructure() *apiconfigv1.Infrastructure {
 	return &apiconfigv1.Infrastructure{
 		ObjectMeta: metav1.ObjectMeta{
@@ -784,6 +792,50 @@ func TestGetOCPVersion(t *testing.T) {
 			version, clusterID, err := clusterClaimer.getOCPVersion()
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, test.expectVersion, version)
+			assert.Equal(t, test.expectClusterID, clusterID)
+		})
+	}
+}
+
+func TestManagedClusterID(t *testing.T) {
+	tests := []struct {
+		name            string
+		kubeClient      kubernetes.Interface
+		configV1Client  openshiftclientset.Interface
+		mapper          meta.RESTMapper
+		expectClusterID string
+		expectErr       error
+	}{
+		{
+			name:            "is OCP 3.x",
+			kubeClient:      newFakeKubeClient([]runtime.Object{newNamespace("kube-system", "abc123")}),
+			mapper:          newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client:  newConfigV1Client("3", ""),
+			expectClusterID: "abc123",
+			expectErr:       nil,
+		},
+		{
+			name:            "is OCP 4.x",
+			kubeClient:      newFakeKubeClient(nil),
+			mapper:          newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client:  newConfigV1Client("4.x", ""),
+			expectClusterID: "ffd989a0-8391-426d-98ac-86ae6d051433",
+			expectErr:       nil,
+		},
+		{
+			name:            "is not OCP",
+			kubeClient:      newFakeKubeClient([]runtime.Object{newNamespace("kube-system", "abc123")}),
+			mapper:          newFakeRestMapper([]*restmapper.APIGroupResources{}),
+			expectClusterID: "abc123",
+			expectErr:       nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, Mapper: test.mapper, ConfigV1Client: test.configV1Client}
+			clusterID, err := clusterClaimer.getManagedClusterID()
+			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, test.expectClusterID, clusterID)
 		})
 	}

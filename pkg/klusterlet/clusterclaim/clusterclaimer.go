@@ -138,10 +138,13 @@ func (c *ClusterClaimer) getManagedClusterID() (string, error) {
 	}
 	if isocp {
 		_, ocpID, err := c.getOCPVersion()
-		if err == nil {
+		if err != nil {
+			return "", fmt.Errorf("failed to get ocpID, %v", err)
+		}
+		if ocpID != "" {
 			return ocpID, nil
 		}
-		klog.Errorf("Get ocpID failed, %v", err)
+		klog.V(2).Infof("use the uid of kube-system as clusterID in OCP 3.x")
 	}
 
 	ns, err := c.KubeClient.CoreV1().Namespaces().Get(context.TODO(), "kube-system", metav1.GetOptions{})
