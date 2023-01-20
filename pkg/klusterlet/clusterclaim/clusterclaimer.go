@@ -171,7 +171,9 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 	if err != nil {
 		return nil, err
 	}
-	claims = append(claims, newClusterClaim(ClaimK8sID, managedClusterID))
+	if managedClusterID != "" {
+		claims = append(claims, newClusterClaim(ClaimK8sID, managedClusterID))
+	}
 
 	version, clusterID, err := c.getOCPVersion()
 	if err != nil {

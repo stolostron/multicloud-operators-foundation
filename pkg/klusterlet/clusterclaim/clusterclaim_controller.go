@@ -97,7 +97,7 @@ func (r *ClusterClaimReconciler) createOrUpdate(ctx context.Context, newClaim *c
 		return fmt.Errorf("unable to get ClusterClaim %q: %w", newClaim.Name, err)
 	case !reflect.DeepEqual(oldClaim.Spec, newClaim.Spec):
 		// if newClaim.Name is in clusterClaimCreateOnlyList, then do nothing
-		if utils.ContainsString(clusterClaimCreateOnlyList, newClaim.Name) {
+		if utils.ContainsString(clusterClaimCreateOnlyList, newClaim.Name) && oldClaim.Spec.Value != "" {
 			return nil
 		}
 		oldClaim.Spec = newClaim.Spec
