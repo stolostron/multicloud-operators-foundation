@@ -14,6 +14,8 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+
+	"k8s.io/klog/v2"
 )
 
 func main() {
@@ -22,7 +24,9 @@ func main() {
 	opts := options.NewOptions()
 	opts.AddFlags(pflag.CommandLine)
 
+	klog.InitFlags(nil)
 	flag.InitFlags()
+
 	logs.InitLogs()
 	defer logs.FlushLogs()
 

@@ -4,7 +4,6 @@ package options
 
 import (
 	"github.com/spf13/pflag"
-	"k8s.io/component-base/cli/flag"
 )
 
 type AgentOptions struct {
@@ -106,5 +105,4 @@ func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 		"Maximum QPS to the local server.")
 	fs.IntVar(&o.Burst, "max-burst", o.Burst,
 		"Maximum burst for throttle.")
-	flag.InitFlags()
 }
