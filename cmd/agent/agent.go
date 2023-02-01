@@ -38,7 +38,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Needed for misc auth.
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
@@ -69,9 +71,12 @@ func main() {
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 	o := options.NewAgentOptions()
 	o.AddFlags(pflag.CommandLine)
+	klog.InitFlags(nil)
+	flag.InitFlags()
 
 	logs.InitLogs()
 	defer logs.FlushLogs()
+
 	ctx := signals.SetupSignalHandler()
 	startManager(o, ctx)
 }

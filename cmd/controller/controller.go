@@ -14,6 +14,7 @@ import (
 
 	"k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
+	"k8s.io/klog/v2"
 
 	"github.com/spf13/pflag"
 )
@@ -22,7 +23,9 @@ func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
 	s := options.NewControllerRunOptions()
 	s.AddFlags(pflag.CommandLine)
+	klog.InitFlags(nil)
 	flag.InitFlags()
+
 	logs.InitLogs()
 	defer logs.FlushLogs()
 
