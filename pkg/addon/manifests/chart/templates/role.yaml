@@ -9,6 +9,9 @@ metadata:
     addon.open-cluster-management.io/hosted-manifest-location: hosting
 rules:
 - apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "create", "delete", "update"]
+- apiGroups: [""]
   resources: ["configmaps"]
   verbs: ["get", "list", "watch", "create", "delete", "update", "patch"]
 - apiGroups: ["coordination.k8s.io"]
@@ -18,5 +21,11 @@ rules:
   resources: ["events"]
   verbs: ["create", "patch", "update"]
 - apiGroups: ["route.openshift.io"]
-  resources: ["routes"]
-  verbs: ["get", "list", "watch"]
+  resources: ["routes", "routes/custom-host"]
+  verbs: ["get", "list", "watch", "update", "create", "delete"]
+- apiGroups: ["config.openshift.io"]
+  resources: ["ingresses"]
+  verbs: ["get"]
+- apiGroups: ["apps"]
+  resources: ["deployments","deployments/finalizers"]
+  verbs: ["get", "create", "update", "delete"]

@@ -15,9 +15,7 @@ type AgentOptions struct {
 	ManagedKubeConfig               string
 	ClusterName                     string
 	AgentAddress                    string
-	AgentIngress                    string
-	AgentRoute                      string
-	AgentService                    string
+	AgentName                       string
 	Address                         string
 	CertDir                         string
 	TLSCertFile                     string
@@ -42,12 +40,14 @@ func NewAgentOptions() *AgentOptions {
 		KubeConfig:                      "",
 		HubKubeConfig:                   "/var/run/hub/kubeconfig",
 		ClusterName:                     "",
+		AgentName:                       "klusterlet-addon-workmgr",
 		EnableLeaderElection:            false,
 		EnableImpersonation:             false,
 		EnableSyncLabelsToClusterClaims: true,
 		EnableNodeCapacity:              true,
 		Address:                         "0.0.0.0",
-		Port:                            443,
+		Port:                            4443,
+		AgentPort:                       443,
 		CertDir:                         "/tmp/acm/cert",
 		InSecure:                        false,
 		TLSCertFile:                     "",
@@ -78,12 +78,8 @@ func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 		"Port that is agent service port for hub cluster to access")
 	fs.StringVar(&o.AgentAddress, "agent-address", o.AgentAddress,
 		"Address that is agent service address for hub cluster to access, this must be an IP or resolvable fqdn")
-	fs.StringVar(&o.AgentIngress, "agent-ingress", o.AgentIngress, ""+
-		"Ingress that is agent service ingress, in the format of namespace/name")
-	fs.StringVar(&o.AgentRoute, "agent-route", o.AgentRoute, ""+
-		"Route that is agent service route, in the format of namespace/name")
-	fs.StringVar(&o.AgentService, "agent-service", o.AgentService, ""+
-		"Service that is agent service, in the format of namespace/name")
+	fs.StringVar(&o.AgentName, "agent-name", o.AgentName,
+		"agent resource name,default is the name of deployment ")
 	fs.StringVar(&o.Address, "address", o.Address, ""+
 		"The IP address for the Kubelet to serve on (set to `0.0.0.0` for all IPv4 interfaces and `::` for all IPv6 interfaces)")
 	fs.IntVar(&o.Port, "port", o.Port, "The port for the agent to serve on.")
