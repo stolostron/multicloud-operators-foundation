@@ -154,7 +154,7 @@ func TestManifest(t *testing.T) {
 			addon:             newAddon("work-manager", "cluster1", "", `{"global":{"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
 			expectedNamespace: "open-cluster-management-agent-addon",
 			expectedImage:     "quay.io/test/multicloud_manager:test",
-			expectedCount:     8,
+			expectedCount:     6,
 		},
 		{
 			name:                 "is OCP but hub cluster",
@@ -163,16 +163,9 @@ func TestManifest(t *testing.T) {
 			expectedNamespace:    "open-cluster-management-agent-addon",
 			expectedImage:        "quay.io/test/multicloud_manager:test",
 			expectedNodeSelector: true,
-			expectedCount:        7,
+			expectedCount:        6,
 		},
-		{
-			name:              "no product",
-			cluster:           newCluster("cluster1", "", map[string]string{}, map[string]string{}),
-			addon:             newAddon("work-manager", "cluster1", "test", ""),
-			expectedNamespace: "test",
-			expectedImage:     "quay.io/stolostron/multicloud-manager:2.5.0",
-			expectedCount:     6,
-		},
+
 		{
 			name:              "is not OCP",
 			cluster:           newCluster("cluster1", "IKS", map[string]string{}, map[string]string{}),
@@ -180,7 +173,7 @@ func TestManifest(t *testing.T) {
 			expectedNamespace: "test",
 			expectedImage:     "quay.io/stolostron/multicloud-manager:2.5.0",
 			expectServiceType: v1.ServiceTypeLoadBalancer,
-			expectedCount:     7,
+			expectedCount:     6,
 		},
 		{
 			name: "imageOverride",
@@ -193,7 +186,7 @@ func TestManifest(t *testing.T) {
 			addon:             newAddon("work-manager", "cluster1", "", ""),
 			expectedNamespace: "open-cluster-management-agent-addon",
 			expectedImage:     "quay.io/test/multicloud-manager:2.5.0",
-			expectedCount:     8,
+			expectedCount:     6,
 		},
 		{
 			name: "local cluster imageOverride",
@@ -207,7 +200,7 @@ func TestManifest(t *testing.T) {
 			expectedNamespace:    "open-cluster-management-agent-addon",
 			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
 			expectedNodeSelector: true,
-			expectedCount:        7,
+			expectedCount:        6,
 		},
 		{
 			name: "hosted mode",
@@ -223,7 +216,7 @@ func TestManifest(t *testing.T) {
 			expectedNamespace:    "open-cluster-management-agent-addon",
 			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
 			expectedNodeSelector: true,
-			expectedCount:        8,
+			expectedCount:        7,
 		},
 		{
 			name: "hosted mode in klusterlet agent namespace",
@@ -239,7 +232,7 @@ func TestManifest(t *testing.T) {
 			expectedNamespace:         "klusterlet-cluster1",
 			expectedNamespaceOrphaned: true,
 			expectedImage:             "quay.io/test/multicloud-manager:2.5.0",
-			expectedCount:             9,
+			expectedCount:             7,
 		},
 	}
 

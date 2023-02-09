@@ -46,7 +46,6 @@ type GlobalValues struct {
 }
 
 type Values struct {
-	Product                         string       `json:"product,omitempty"`
 	GlobalValues                    GlobalValues `json:"global,omitempty,omitempty"`
 	EnableSyncLabelsToClusterClaims bool         `json:"enableSyncLabelsToClusterClaims"`
 	EnableNodeCapacity              bool         `json:"enableNodeCapacity"`
@@ -60,7 +59,7 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 			return nil, err
 		}
 
-		// if addon is hosed mode, the enableSyncLabelsToClusterClaims,enableNodeCollector is false
+		// if addon is hosted mode, the enableSyncLabelsToClusterClaims,enableNodeCollector is false
 		enableSyncLabelsToClusterClaims := true
 		enableNodeCapacity := true
 		if value, ok := addon.GetAnnotations()[addonconstants.HostingClusterNameAnnotationKey]; ok && value != "" {
@@ -79,13 +78,6 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 			},
 			EnableSyncLabelsToClusterClaims: enableSyncLabelsToClusterClaims,
 			EnableNodeCapacity:              enableNodeCapacity,
-		}
-
-		for _, claim := range cluster.Status.ClusterClaims {
-			if claim.Name == "product.open-cluster-management.io" {
-				addonValues.Product = claim.Value
-				break
-			}
 		}
 
 		nodeSelector, err := getNodeSelector(cluster)

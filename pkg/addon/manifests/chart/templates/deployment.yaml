@@ -38,16 +38,10 @@ spec:
         args:
           - "/agent"
           - "--port=4443"
+          - "--agent-port=443"
           - "--hub-kubeconfig=/var/run/klusterlet/kubeconfig"
           - "--cluster-name={{ .Values.clusterName }}"
-        {{- if eq .Values.clusterName "local-cluster" }}
-          - "--agent-address={{ template "work-manager.fullname" . }}.{{ .Release.Namespace }}.svc"
-          - "--agent-port=443"
-        {{- else if eq .Values.product "OpenShift" }}
-          - "--agent-route={{ .Release.Namespace }}/{{ template "work-manager.fullname" . }}"
-        {{- else  }}
-          - "--agent-service={{ .Release.Namespace }}/{{ template "work-manager.fullname" . }}"
-        {{- end }}
+          - "--agent-name={{ template "work-manager.fullname" . }}"
         {{- if eq .Values.installMode "Hosted" }}
           - "--managed-kubeconfig=/managed/config/kubeconfig"
         {{- end }}
