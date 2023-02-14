@@ -67,7 +67,7 @@ func TestCreateOrUpdate(t *testing.T) {
 			},
 		},
 		{
-			name:                       "update cluster claim with create only list",
+			name:                       "update cluster claim with create only list with empty",
 			clusterClaimCreateOnlyList: []string{"x"},
 			objects:                    []runtime.Object{},
 			clusterclaims: []*clusterv1alpha1.ClusterClaim{
@@ -85,6 +85,24 @@ func TestCreateOrUpdate(t *testing.T) {
 					t.Errorf("Expect action create, but got: %s", actions[1].GetVerb())
 				}
 				if actions[2].GetVerb() != "get" {
+					t.Errorf("Expect action get, but got: %s", actions[1].GetVerb())
+				}
+			},
+		},
+		{
+			name:                       "update cluster claim with create only list",
+			clusterClaimCreateOnlyList: []string{"x"},
+			objects: []runtime.Object{
+				newClusterClaim("x", "y"),
+			},
+			clusterclaims: []*clusterv1alpha1.ClusterClaim{
+				newClusterClaim("x", "yy"),
+			},
+			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 1 {
+					t.Errorf("Expect 3 actions, but got: %v", len(actions))
+				}
+				if actions[0].GetVerb() != "get" {
 					t.Errorf("Expect action get, but got: %s", actions[1].GetVerb())
 				}
 			},
