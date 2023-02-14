@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
+	v1 "k8s.io/client-go/listers/rbac/v1"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -45,8 +46,8 @@ func EqualSubjects(subjects1, subjects2 []rbacv1.Subject) bool {
 }
 
 // ApplyClusterRoleBinding merges objectmeta, requires subjects and role refs
-func ApplyClusterRoleBinding(ctx context.Context, kubeClient kubernetes.Interface, required *rbacv1.ClusterRoleBinding) error {
-	existing, err := kubeClient.RbacV1().ClusterRoleBindings().Get(ctx, required.Name, metav1.GetOptions{})
+func ApplyClusterRoleBinding(ctx context.Context, kubeClient kubernetes.Interface, clusterRoleBindingLister v1.ClusterRoleBindingLister, required *rbacv1.ClusterRoleBinding) error {
+	existing, err := clusterRoleBindingLister.Get(required.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			_, err := kubeClient.RbacV1().ClusterRoleBindings().Create(ctx, required, metav1.CreateOptions{})
@@ -76,8 +77,8 @@ func ApplyClusterRoleBinding(ctx context.Context, kubeClient kubernetes.Interfac
 }
 
 // ApplyRoleBinding merges objectmeta, requires subjects and role refs
-func ApplyRoleBinding(ctx context.Context, kubeClient kubernetes.Interface, required *rbacv1.RoleBinding) error {
-	existing, err := kubeClient.RbacV1().RoleBindings(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
+func ApplyRoleBinding(ctx context.Context, kubeClient kubernetes.Interface, roleBindingLister v1.RoleBindingLister, required *rbacv1.RoleBinding) error {
+	existing, err := roleBindingLister.RoleBindings(required.Namespace).Get(required.Name)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			_, err = kubeClient.RbacV1().RoleBindings(required.Namespace).Create(ctx, required, metav1.CreateOptions{})

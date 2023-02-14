@@ -233,6 +233,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 
 	clusterrolebindingSync := syncclusterrolebinding.NewReconciler(
 		kubeClient,
+		kubeInfomers.Rbac().V1().ClusterRoleBindings(),
 		clusterSetAdminCache.Cache,
 		clusterSetViewCache.Cache,
 		globalClusterSetClusterMapper,
@@ -241,6 +242,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 
 	rolebindingSync := syncrolebinding.NewReconciler(
 		kubeClient,
+		kubeInfomers.Rbac().V1().RoleBindings(),
 		clusterSetAdminCache.Cache,
 		clusterSetViewCache.Cache,
 		globalClusterSetClusterMapper,
@@ -275,19 +277,20 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 
 	go func() {
 		<-mgr.Elected()
-		go clusterInformers.Start(ctx.Done())
-		go kubeInfomers.Start(ctx.Done())
 
 		go clusterSetViewCache.Run(5 * time.Second)
 		go clusterSetAdminCache.Run(5 * time.Second)
-		go clusterrolebindingSync.Run(5 * time.Second)
-		go rolebindingSync.Run(5 * time.Second)
+		go clusterrolebindingSync.Run(ctx, 5*time.Second)
+		go rolebindingSync.Run(ctx, 5*time.Second)
 
 		go cleanGarbageFinalizer.Run(ctx.Done())
 
 		if o.EnableAddonDeploy {
 			go addonMgr.Start(ctx)
 		}
+
+		go kubeInfomers.Start(ctx.Done())
+		go clusterInformers.Start(ctx.Done())
 	}()
 
 	// Start manager

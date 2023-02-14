@@ -3,6 +3,7 @@ package syncclusterrolebinding
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
@@ -12,6 +13,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/informers"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
 
@@ -28,11 +30,13 @@ func generateClustersetToClusters(ms map[string]sets.String) *helpers.ClusterSet
 }
 
 func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
 	ca0 := generateRequiredClusterRoleBinding("c0", nil, "cs0", "admin")
 	cv0 := generateRequiredClusterRoleBinding("c0", nil, "cs1", "view")
 	cv1 := generateRequiredClusterRoleBinding("c1", nil, "cs2", "view")
 	objs := []runtime.Object{ca0, cv0, cv1}
-	kubeClient := k8sfake.NewSimpleClientset(objs...)
 
 	ctc1 := generateClustersetToClusters(nil)
 
@@ -95,8 +99,16 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 
 	for _, test := range tests {
 		ctx := context.Background()
+		kubeClient := k8sfake.NewSimpleClientset(objs...)
+		informers := informers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
 
-		r := NewReconciler(kubeClient, test.clusterSetCache, test.clusterSetCache, test.globalsetToClusters, test.clustersetToClusters)
+		informers.Rbac().V1().ClusterRoleBindings().Informer().GetIndexer().Add(ca0)
+		informers.Rbac().V1().ClusterRoleBindings().Informer().GetIndexer().Add(cv0)
+		informers.Rbac().V1().ClusterRoleBindings().Informer().GetIndexer().Add(cv1)
+
+		informers.Start(stopCh)
+
+		r := NewReconciler(kubeClient, informers.Rbac().V1().ClusterRoleBindings(), test.clusterSetCache, test.clusterSetCache, test.globalsetToClusters, test.clustersetToClusters)
 		r.reconcile()
 		r.syncManagedClusterClusterroleBinding(ctx, test.clustersetToClusters, test.clustersetToSubject, "admin")
 		validateResult(t, test.name, &r, test.clusterrolebindingName, test.exist)
