@@ -5,6 +5,8 @@ import (
 	"strings"
 	"time"
 
+	kubecache "k8s.io/client-go/tools/cache"
+
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
@@ -14,6 +16,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	rbacv1informers "k8s.io/client-go/informers/rbac/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 )
@@ -21,6 +24,8 @@ import (
 // This controller apply clusterset related clusterrolebinding based on clustersetToClusters and clustersetAdminToSubject map
 type Reconciler struct {
 	kubeClient                 kubernetes.Interface
+	clusterRolebindingInformer rbacv1informers.ClusterRoleBindingInformer
+
 	clusterSetAdminCache       *cache.AuthCache
 	clusterSetViewCache        *cache.AuthCache
 	globalClustersetToClusters *helpers.ClusterSetMapper
@@ -28,12 +33,14 @@ type Reconciler struct {
 }
 
 func NewReconciler(kubeClient kubernetes.Interface,
+	clusterRolebindingInformer rbacv1informers.ClusterRoleBindingInformer,
 	clusterSetAdminCache *cache.AuthCache,
 	clusterSetViewCache *cache.AuthCache,
 	globalClustersetToClusters *helpers.ClusterSetMapper,
 	clustersetToClusters *helpers.ClusterSetMapper) Reconciler {
 	return Reconciler{
 		kubeClient:                 kubeClient,
+		clusterRolebindingInformer: clusterRolebindingInformer,
 		clusterSetAdminCache:       clusterSetAdminCache,
 		clusterSetViewCache:        clusterSetViewCache,
 		globalClustersetToClusters: globalClustersetToClusters,
@@ -42,7 +49,11 @@ func NewReconciler(kubeClient kubernetes.Interface,
 }
 
 // Run a routine to sync the clusterrolebinding periodically.
-func (r *Reconciler) Run(period time.Duration) {
+func (r *Reconciler) Run(ctx context.Context, period time.Duration) {
+	if ok := kubecache.WaitForCacheSync(ctx.Done(), r.clusterRolebindingInformer.Informer().HasSynced); !ok {
+		klog.Errorf("failed to wait for kubernetes caches to sync")
+		return
+	}
 	go utilwait.Forever(r.reconcile, period)
 }
 
@@ -72,7 +83,7 @@ func (r *Reconciler) syncManagedClusterClusterroleBinding(ctx context.Context, c
 	for clusterName, subjects := range clusterToSubject {
 		clustersetName := clustersetToClusters.GetObjectClusterset(clusterName)
 		requiredClusterRoleBinding := generateRequiredClusterRoleBinding(clusterName, subjects, clustersetName, role)
-		err := utils.ApplyClusterRoleBinding(ctx, r.kubeClient, requiredClusterRoleBinding)
+		err := utils.ApplyClusterRoleBinding(ctx, r.kubeClient, r.clusterRolebindingInformer.Lister(), requiredClusterRoleBinding)
 		if err != nil {
 			klog.Errorf("Failed to apply clusterrolebinding: %v, error:%v", requiredClusterRoleBinding.Name, err)
 		}
@@ -80,11 +91,24 @@ func (r *Reconciler) syncManagedClusterClusterroleBinding(ctx context.Context, c
 
 	//Delete clusterrolebinding
 	//List Clusterset related clusterrolebinding
-	clusterRoleBindingList, err := r.kubeClient.RbacV1().ClusterRoleBindings().List(ctx, metav1.ListOptions{LabelSelector: clusterv1beta2.ClusterSetLabel})
+
+	clusterSetLabelSelector, err := utils.ConvertLabels(
+		&metav1.LabelSelector{
+			MatchExpressions: []metav1.LabelSelectorRequirement{
+				{
+					Key:      clusterv1beta2.ClusterSetLabel,
+					Operator: metav1.LabelSelectorOpExists,
+				},
+			},
+		},
+	)
 	if err != nil {
-		klog.Errorf("Error to list clusterrolebinding. error:%v", err)
+		klog.Errorf("Error to build label selector. Error:%v", err)
 	}
-	for _, clusterRoleBinding := range clusterRoleBindingList.Items {
+
+	clusterRoleBindings, err := r.clusterRolebindingInformer.Lister().List(clusterSetLabelSelector)
+
+	for _, clusterRoleBinding := range clusterRoleBindings {
 		curClusterRoleBinding := clusterRoleBinding
 		// Only handle managedcluster clusterrolebinding
 		if !utils.IsManagedClusterClusterrolebinding(curClusterRoleBinding.Name, role) {
@@ -120,7 +144,11 @@ func generateRequiredClusterRoleBinding(clusterName string, subjects []rbacv1.Su
 	clusterRoleName := utils.GenerateClusterRoleName(clusterName, role)
 
 	var labels = make(map[string]string)
-	labels[clusterv1beta2.ClusterSetLabel] = clustersetName
+
+	//We do not need to set global clusterset label. So we should skip it here.
+	if clustersetName != clustersetutils.GlobalSetName {
+		labels[clusterv1beta2.ClusterSetLabel] = clustersetName
+	}
 	labels[clustersetutils.ClusterSetRole] = role
 	return &rbacv1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
