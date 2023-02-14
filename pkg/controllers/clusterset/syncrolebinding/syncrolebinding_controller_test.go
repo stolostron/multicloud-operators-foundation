@@ -3,6 +3,7 @@ package syncrolebinding
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
@@ -12,6 +13,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/informers"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
 
@@ -40,10 +42,11 @@ func generateclustersetToNamespace(ms map[string]sets.String) *helpers.ClusterSe
 }
 
 func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
 	cb := generateRequiredRoleBinding("c0", nil, "cs0", "admin")
 	objs := []runtime.Object{cb}
-
-	kubeClient := k8sfake.NewSimpleClientset(objs...)
 
 	ctc1 := generateclustersetToNamespace(nil)
 
@@ -104,10 +107,15 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 
 	for _, test := range tests {
 		ctx := context.Background()
-		r := NewReconciler(kubeClient, test.clusterSetCache, test.clusterSetCache, globalsetToClusters, clustersetToClusters, test.clustersetToNamespace)
-		r.reconcile()
+		kubeClient := k8sfake.NewSimpleClientset(objs...)
+		informers := informers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
+		informers.Rbac().V1().RoleBindings().Informer().GetIndexer().Add(cb)
+		informers.Start(stopCh)
+
+		r := NewReconciler(kubeClient, informers.Rbac().V1().RoleBindings(), test.clusterSetCache, test.clusterSetCache, globalsetToClusters, clustersetToClusters, test.clustersetToNamespace)
 		r.syncRoleBinding(ctx, test.clustersetToNamespace, test.clustersetToSubject, "admin")
 		validateResult(t, &r, test.managedclusterName, test.exist)
+		r.reconcile()
 	}
 }
 

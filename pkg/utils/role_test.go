@@ -4,12 +4,14 @@ import (
 	"context"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
 )
@@ -61,6 +63,18 @@ func TestEqualSubjects(t *testing.T) {
 		{"test2", args{subjects1: []rbacv1.Subject{{Kind: "R2", APIGroup: "G2", Name: "N2"}}}, false},
 		{"test2", args{subjects2: []rbacv1.Subject{{Kind: "R2", APIGroup: "G2", Name: "N2"}}}, false},
 		{"test3", args{subjects1: []rbacv1.Subject{{Kind: "R2", APIGroup: "G2", Name: "N2"}}, subjects2: []rbacv1.Subject{{Kind: "R2", APIGroup: "G2", Name: "N2"}}}, true},
+		{"test4", args{
+			subjects1: []rbacv1.Subject{
+				{Kind: "R2", APIGroup: "G2", Name: "N2"},
+				{Kind: "R1", APIGroup: "G1", Name: "N1"},
+				{Kind: "R3", APIGroup: "G3", Name: "N3"},
+			},
+			subjects2: []rbacv1.Subject{
+				{Kind: "R3", APIGroup: "G3", Name: "N3"},
+				{Kind: "R1", APIGroup: "G1", Name: "N1"},
+				{Kind: "R2", APIGroup: "G2", Name: "N2"},
+			},
+		}, true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -89,14 +103,21 @@ func createClusterrolebinding(name, roleName string, labels map[string]string, s
 func TestApplyClusterRoleBinding(t *testing.T) {
 	ctx := context.Background()
 	var objs []runtime.Object
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
 	var labels = make(map[string]string)
 	rb1 := createClusterrolebinding("crb1", "r1", labels, []rbacv1.Subject{})
-	rb2 := createClusterrolebinding("crb1", "r2", labels, []rbacv1.Subject{})
+	rb2 := createClusterrolebinding("crb2", "r2", labels, []rbacv1.Subject{})
 
 	objs = append(objs, rb1)
-	client := k8sfake.NewSimpleClientset(objs...)
 
-	err := ApplyClusterRoleBinding(ctx, client, rb1)
+	client := k8sfake.NewSimpleClientset(objs...)
+	informers := informers.NewSharedInformerFactory(client, 10*time.Minute)
+	informers.Rbac().V1().ClusterRoleBindings().Informer().GetIndexer().Add(rb1)
+	informers.Start(stopCh)
+
+	err := ApplyClusterRoleBinding(ctx, client, informers.Rbac().V1().ClusterRoleBindings().Lister(), rb1)
 	if err != nil {
 		t.Errorf("Error to apply clusterolebinding. Error:%v", err)
 	}
@@ -105,7 +126,7 @@ func TestApplyClusterRoleBinding(t *testing.T) {
 		t.Errorf("Error to apply clusterolebinding.")
 	}
 
-	err = ApplyClusterRoleBinding(ctx, client, rb2)
+	err = ApplyClusterRoleBinding(ctx, client, informers.Rbac().V1().ClusterRoleBindings().Lister(), rb2)
 	if err != nil {
 		t.Errorf("Error to apply clusterolebinding. Error:%v", err)
 	}
@@ -498,4 +519,69 @@ func TestAPIGroupMatches(t *testing.T) {
 			assert.Equal(t, APIGroupMatches(test.rule, test.group), test.expectedRst)
 		})
 	}
+}
+
+func createRolebinding(name, namespace, roleName string, labels map[string]string, subjects []rbacv1.Subject) *rbacv1.RoleBinding {
+	return &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    labels,
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     roleName,
+		},
+		Subjects: subjects,
+	}
+}
+
+func TestApplyRoleBinding(t *testing.T) {
+	var objs []runtime.Object
+	ctx := context.Background()
+
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
+	var labels = make(map[string]string)
+	rb1 := createRolebinding("crb1", "local-cluster", "r1", labels, []rbacv1.Subject{})
+	rb2 := createRolebinding("crb2", "local-cluster", "r2", labels, []rbacv1.Subject{})
+	objs = append(objs, rb1)
+	client := k8sfake.NewSimpleClientset(objs...)
+	informers := informers.NewSharedInformerFactory(client, 10*time.Minute)
+	informers.Rbac().V1().RoleBindings().Informer().GetIndexer().Add(rb1)
+	informers.Start(stopCh)
+
+	err := ApplyRoleBinding(ctx, client, informers.Rbac().V1().RoleBindings().Lister(), rb1)
+	if err != nil {
+		t.Errorf("Error to apply clusterolebinding. Error:%v", err)
+	}
+	applied := verifyAppliedRolebinding(ctx, client, rb1)
+	if !applied {
+		t.Errorf("Error to apply clusterolebinding.")
+	}
+
+	err = ApplyRoleBinding(ctx, client, informers.Rbac().V1().RoleBindings().Lister(), rb2)
+	if err != nil {
+		t.Errorf("Error to apply clusterolebinding. Error:%v", err)
+	}
+	applied = verifyAppliedRolebinding(ctx, client, rb2)
+	if !applied {
+		t.Errorf("Error to apply clusterolebinding.")
+	}
+}
+
+func verifyAppliedRolebinding(ctx context.Context, client kubernetes.Interface, required *rbacv1.RoleBinding) bool {
+	existing, err := client.RbacV1().RoleBindings(required.Namespace).Get(ctx, required.Name, metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
+	if !reflect.DeepEqual(existing.RoleRef, required.RoleRef) {
+		return false
+	}
+	if !EqualSubjects(existing.Subjects, required.Subjects) {
+		return false
+	}
+	return true
 }
