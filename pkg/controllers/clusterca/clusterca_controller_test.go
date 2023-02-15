@@ -56,7 +56,7 @@ func Test_updateClientConfig(t *testing.T) {
 			wantUpdate: false,
 		},
 		{
-			name: "both of them is not null",
+			name: "both of them is not null, and order matters",
 			clusterConfig: []clusterv1.ClientConfig{
 				{
 					URL:      "https:clusterurl.com:443",
@@ -69,11 +69,11 @@ func Test_updateClientConfig(t *testing.T) {
 			},
 			wantConfig: []clusterv1.ClientConfig{
 				{
-					URL:      "https:clusterurl.com:443",
+					URL:      "https:infourl.com:443",
 					CABundle: []byte("ca data"),
 				},
 				{
-					URL:      "https:infourl.com:443",
+					URL:      "https:clusterurl.com:443",
 					CABundle: []byte("ca data"),
 				},
 			},
