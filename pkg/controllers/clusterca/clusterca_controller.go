@@ -102,12 +102,16 @@ func updateClientConfig(clusterConfigs []clusterv1.ClientConfig, clusterinfoConf
 		return clusterConfigs, false
 	}
 
-	// do not have ca bundle in cluster config, append it to managedcluster config
-	tempConfig := clusterv1.ClientConfig{
+	// do not have ca bundle in cluster config, *prepend* the clusterinfo config to the managed cluster config.
+	// Because in a corner hypershift scenario, a hosted cluster is destroyed and recreated with the same name.
+	// At this time, clusterinfoConfig holds the data of the newly created hosted cluster, which is corrent, so
+	// we put the new value in the first element for the front-end and foundation logging controller
+	// consumption(they always get the first value).
+	// Details: https://issues.redhat.com/browse/ACM-2094
+	clusterConfigs = append([]clusterv1.ClientConfig{{
 		URL:      clusterinfoConfig.URL,
 		CABundle: clusterinfoConfig.CABundle,
-	}
-	clusterConfigs = append(clusterConfigs, tempConfig)
+	}}, clusterConfigs...)
 
 	return clusterConfigs, true
 }
