@@ -17,9 +17,12 @@ import (
 )
 
 const (
-	resourceSocket       clusterv1.ResourceName = "socket"
-	resourceCoreWorker   clusterv1.ResourceName = "core_worker"
-	resourceSocketWorker clusterv1.ResourceName = "socket_worker"
+	resourceSocket               clusterv1.ResourceName = "socket"
+	resourceCoreWorker           clusterv1.ResourceName = "core_worker"
+	resourceSocketWorker         clusterv1.ResourceName = "socket_worker"
+	LabelNodeRoleOldControlPlane                        = "node-role.kubernetes.io/master"
+	LabelNodeRoleControlPlane                           = "node-role.kubernetes.io/control-plane"
+	LabelNodeRoleInfra                                  = "node-role.kubernetes.io/infra"
 )
 
 type CapacityReconciler struct {
@@ -62,12 +65,21 @@ func (r *CapacityReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	nodes := clusterInfo.Status.NodeList
 	socketWorkerCapacity := *resource.NewQuantity(int64(0), resource.DecimalSI)
 	coreWorkerCapacity := *resource.NewQuantity(int64(0), resource.DecimalSI)
-	for _, node := range nodes {
-		if isWorker(node) {
-			coreWorkerCapacity.Add(node.Capacity[clusterv1.ResourceCPU])
-			socketWorkerCapacity.Add(node.Capacity[resourceSocket])
+
+	// for OCP calculate cpu/socket on all worker nodes.
+	// for non-OCP, calculate cpu on all nodes.
+	// only support to get socket on OCP.
+	if clusterInfo.Status.DistributionInfo.Type == clusterinfov1beta1.DistributionTypeOCP {
+		for _, node := range nodes {
+			if isWorker(node) {
+				coreWorkerCapacity.Add(node.Capacity[clusterv1.ResourceCPU])
+				socketWorkerCapacity.Add(node.Capacity[resourceSocket])
+			}
 		}
+	} else {
+		coreWorkerCapacity = capacity[clusterv1.ResourceCPU]
 	}
+
 	capacity[resourceSocketWorker] = socketWorkerCapacity
 	capacity[resourceCoreWorker] = coreWorkerCapacity
 
@@ -79,14 +91,18 @@ func (r *CapacityReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	return ctrl.Result{}, r.client.Status().Update(ctx, cluster)
 }
 
+// for OCP,the master and infra nodes are not included in the subscription cost calculation.
 func isWorker(node clusterinfov1beta1.NodeStatus) bool {
 	if node.Labels == nil {
-		return false
-	}
-
-	if _, ok := node.Labels["node-role.kubernetes.io/worker"]; ok {
 		return true
 	}
 
-	return false
+	for key := range node.Labels {
+		switch key {
+		case LabelNodeRoleOldControlPlane, LabelNodeRoleControlPlane, LabelNodeRoleInfra:
+			return false
+		}
+	}
+
+	return true
 }
