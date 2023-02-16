@@ -57,241 +57,204 @@ var agentClusterOwnerRef = metav1.OwnerReference{
 	APIVersion: "capi-provider.agent-install.openshift.io/v1alpha1",
 }
 
-// validateResource validate:
-// 1. allow requests if the user has managedClusterSet/join all resources permission.
-// 2. if user has permission to create/update resources.
 func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.AdmissionResponse {
-	status := &v1.AdmissionResponse{
-		Allowed: true,
+	switch request.Resource {
+	case managedClusterSetsGVR:
+		return a.validateManagedClusterSet(request)
+	case clusterDeploymentsGVR:
+		return a.validateClusterDeployment(request)
+	case clusterPoolsGVR:
+		return a.validateClusterPool(request)
+	case managedClustersGVR:
+		return a.validateManagedCluster(request)
+	default:
+		return a.responseAllowed()
 	}
-
-	//Only allow create/update global clusterset and legacy clusterset
-	if request.Resource == managedClusterSetsGVR {
-		//Only handle clusterset create/update request
-		if request.Operation != v1.Create && request.Operation != v1.Update {
-			return status
-		}
-
-		clusterset := &clusterv1beta2.ManagedClusterSet{}
-		if err := json.Unmarshal(request.Object.Raw, clusterset); err != nil {
-			status.Allowed = false
-			status.Result = &metav1.Status{
-				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-				Message: err.Error(),
-			}
-			return status
-		}
-		//allow create/update global clusterset
-		if clusterset.Name == clustersetutils.GlobalSetName {
-			if equality.Semantic.DeepEqual(clusterset.Spec, clustersetutils.GlobalSet.Spec) {
-				return status
-			}
-			status.Allowed = false
-			status.Result = &metav1.Status{
-				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-				Message: fmt.Sprintf("Do not allow to create/update global clusterset"),
-			}
-			return status
-		}
-
-		//allow create/update legacy clusterset
-		if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta2.ExclusiveClusterSetLabel {
-			return status
-		}
-
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-			Message: fmt.Sprintf("Do not allow to create/update this kind of clusterset."),
-		}
-		return status
-	}
-
-	switch request.Operation {
-	case v1.Create:
-		return a.validateCreateRequest(request)
-	case v1.Update:
-		return a.validateUpdateRequest(request)
-	}
-
-	return status
 }
 
-// validateCreateRequest validates:
-// 1. the user has managedClusterSet/join <managedClusterSet> permission to create resource with a <managedClusterSet> label.
-// 2. the user has managedClusterSet/join <all> permission to create resource without a managedClusterSet label.
-func (a *AdmissionHandler) validateCreateRequest(request *v1.AdmissionRequest) *v1.AdmissionResponse {
-	status := &v1.AdmissionResponse{
-		Allowed: true,
+// validateManagedClusterSet validates the managed cluster set,
+// only allow creating/updating global clusterset and legacy clusterset
+func (a *AdmissionHandler) validateManagedClusterSet(request *v1.AdmissionRequest) *v1.AdmissionResponse {
+	//only handle clusterset create/update request
+	if request.Operation != v1.Create && request.Operation != v1.Update {
+		return a.responseAllowed()
 	}
 
-	if request.Resource == clusterDeploymentsGVR {
+	clusterset := &clusterv1beta2.ManagedClusterSet{}
+	if err := json.Unmarshal(request.Object.Raw, clusterset); err != nil {
+		return a.responseNotAllowed(err.Error())
+	}
+	//allow creating/updating global clusterset
+	if clusterset.Name == clustersetutils.GlobalSetName {
+		if equality.Semantic.DeepEqual(clusterset.Spec, clustersetutils.GlobalSet.Spec) {
+			return a.responseAllowed()
+		}
+		return a.responseNotAllowed("Do not allow to create/update global clusterset")
+	}
+
+	//allow creating/updating legacy clusterset
+	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta2.ExclusiveClusterSetLabel {
+		return a.responseAllowed()
+	}
+
+	return a.responseNotAllowed("Do not allow to create/update this kind of clusterset")
+}
+
+func (a *AdmissionHandler) validateClusterDeployment(request *v1.AdmissionRequest) *v1.AdmissionResponse {
+	switch request.Operation {
+	case v1.Create:
 		// ignore clusterDeployment created by clusterpool
 		clusterDeployment := &hivev1.ClusterDeployment{}
 		if err := json.Unmarshal(request.Object.Raw, clusterDeployment); err != nil {
-			status.Allowed = false
-			status.Result = &metav1.Status{
-				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-				Message: err.Error(),
-			}
-			return status
+			return a.responseNotAllowed(err.Error())
 		}
 		if clusterDeployment.Spec.ClusterPoolRef != nil {
-			return status
+			return a.responseAllowed()
 		}
-		//Requirment from AI integrate with hypershift https://github.com/openshift/cluster-api-provider-agent/pull/38/files
+
+		//Requirment from AI integrate with hypershift:
+		//  https://github.com/openshift/cluster-api-provider-agent/pull/38/files
 		if hasOwnerRef(clusterDeployment.ObjectMeta.OwnerReferences, agentClusterOwnerRef) {
-			return status
+			return a.responseAllowed()
 		}
-	}
-
-	obj := unstructured.Unstructured{}
-	err := obj.UnmarshalJSON(request.Object.Raw)
-	if err != nil {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-			Message: err.Error(),
+		return a.validateClusterSetJoinPermission(request)
+	case v1.Update:
+		updateClusterSet, response, oldClusterSet, newClusterSet := a.validateUpdateClusterSet(request)
+		if !response.Allowed || !updateClusterSet {
+			return response
 		}
-		return status
+
+		// The clusterdeployment is trying to update clusterset, user "could" update the clusterset label if
+		// he/she has permission, but clusterdeployment controller will always sync the clusterdeployment's
+		// clusterset label back.
+		return a.validateAllowUpdateClusterSet(request.UserInfo, oldClusterSet, newClusterSet)
 	}
 
-	labels := obj.GetLabels()
-	clusterSetName := ""
-	if len(labels) > 0 {
-		clusterSetName = labels[clusterv1beta2.ClusterSetLabel]
-	}
-
-	return a.allowUpdateClusterSet(request.UserInfo, clusterSetName)
+	return a.responseAllowed()
 }
 
-// validateUpdateRequest validates:
-// 1. Allow requests if the clusterSet label is not changed.
-// 2, If the user is try to update clusterset
-//   2.1 For clusterpool, Deny the requests to update clusterSet label
-//   2.2 For clusterdeployment, User "could" update the clusterset label if he/she has permission,
-//       but clusterdeployment controller will always sync the clusterdeployment's clusterset label back.
-//   2.3 For managedClusters, check if the managedcluster is claimed from clusterpool
-//      2.3.1 if the managedcluster is claimed from clusterpool, do not allow to update clusterset.
-//      2.3.2 if the managedcluster is not claimed from clusterpool, check if user has permission to update clusterset.
-// Notes: clusterclaims-controller will auto create a mangedcluster with the clusterpool's clusterset label if there is a clusterclaim ref to this clusterpool.
-// https://github.com/stolostron/clusterclaims-controller/blob/main/controllers/clusterclaims/clusterclaims-controller.go
+func (a *AdmissionHandler) validateClusterPool(request *v1.AdmissionRequest) *v1.AdmissionResponse {
+	switch request.Operation {
+	case v1.Create:
+		return a.validateClusterSetJoinPermission(request)
+	case v1.Update:
+		updateClusterSet, response, _, _ := a.validateUpdateClusterSet(request)
+		if !response.Allowed || !updateClusterSet {
+			return response
+		}
 
-// Permission Check:
-// 1. the user must have managedClusterSet/join <clusterSet-A/clusterSet-B> permission if update resource to change
-//         the managedClusterSet label from clusterSet-A to clusterSet-B.
-// 2. the user must have managedClusterSet/join <all> permission if update resource to add/remove the clusterSet label.
-//
-
-func (a *AdmissionHandler) validateUpdateRequest(request *v1.AdmissionRequest) *v1.AdmissionResponse {
-	allowStatus := &v1.AdmissionResponse{
-		Allowed: true,
-	}
-	rejectStatus := &v1.AdmissionResponse{
-		Allowed: false,
-		Result: &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
-			Message: "",
-		},
+		// do not allow to update clusterpool's clusterset
+		return a.responseNotAllowed("Do not allow to update clusterpool's clusterset label")
 	}
 
-	//check if there is a update clusterset label request
-	isUpdateClusterSet, originalClusterSetName, currentClusterSetName, err := a.isUpdateClusterset(request)
-	if err != nil {
-		rejectStatus.Result.Message = err.Error()
-		return rejectStatus
-	}
-	if !isUpdateClusterSet {
-		return allowStatus
-	}
+	return a.responseAllowed()
+}
 
-	switch request.Resource {
-	case managedClustersGVR:
+func (a *AdmissionHandler) validateManagedCluster(request *v1.AdmissionRequest) *v1.AdmissionResponse {
+	switch request.Operation {
+	case v1.Create:
+		return a.validateClusterSetJoinPermission(request)
+	case v1.Update:
+		updateClusterSet, response, oldClusterSet, newClusterSet := a.validateUpdateClusterSet(request)
+		if !response.Allowed || !updateClusterSet {
+			return response
+		}
+
+		// The managedClusters is trying to update clusterset, check if the managedcluster is claimed from clusterpool
+		// 	 1. if the managedcluster is claimed from clusterpool, do not allow to update clusterset
+		//   2. if the managedcluster is not claimed from clusterpool, check if user has permission to update clusterset
+		//
+		// Notes: clusterclaims-controller will auto create a mangedcluster with the clusterpool's clusterset label if
+		//        there is a clusterclaim ref to this clusterpool.
+		// https://github.com/stolostron/clusterclaims-controller/blob/main/controllers/clusterclaims/clusterclaims-controller.go
 		managedCluster := &clusterv1.ManagedCluster{}
 		if err := json.Unmarshal(request.Object.Raw, managedCluster); err != nil {
-			rejectStatus.Result.Message = err.Error()
-			return rejectStatus
+			return a.responseNotAllowed(err.Error())
 		}
 
 		// Get managedcluster's clusterdeployment
 		// 1. No related clusterdeployment, check if user has permission to update this cluster.
-		// 2. The related clusterdeployment is created from clusterpool, do not allow user to update the managedcluster.
-		// 3. The related clusterdeployment is not created from clusterpool, check if user has permission to update the managedcluster.
-		clusterDeployment, err := a.HiveClient.HiveV1().ClusterDeployments(managedCluster.Name).Get(context.TODO(), managedCluster.Name, metav1.GetOptions{})
+		// 2. The related clusterdeployment is created from clusterpool, do not allow user to
+		//    update the managedcluster.
+		// 3. The related clusterdeployment is not created from clusterpool, check if user has
+		//    permission to update the managedcluster.
+		clusterDeployment, err := a.HiveClient.HiveV1().ClusterDeployments(managedCluster.Name).Get(
+			context.TODO(), managedCluster.Name, metav1.GetOptions{})
 		if err != nil {
 			if !errors.IsNotFound(err) {
-				rejectStatus.Result.Message = err.Error()
-				return rejectStatus
+				return a.responseNotAllowed(err.Error())
 			}
 			// Do not find clusterdeployment in managedcluster namespace. allow to update clusterset label.
-			return a.allowUpdate(request.UserInfo, originalClusterSetName, currentClusterSetName)
+			return a.validateAllowUpdateClusterSet(request.UserInfo, oldClusterSet, newClusterSet)
 		}
 
 		// the cluster is claimed from clusterpool, do not allow to update clustersetlabel.
 		if clusterDeployment != nil && clusterDeployment.Spec.ClusterPoolRef != nil {
 			//For upgrade from 2.4 to 2.5, we need to move all clusters from empty set to "default" set.
-			if currentClusterSetName == clustersetutils.DefaultSetName && len(originalClusterSetName) == 0 {
-				return a.allowUpdate(request.UserInfo, originalClusterSetName, currentClusterSetName)
+			if newClusterSet == clustersetutils.DefaultSetName && len(oldClusterSet) == 0 {
+				return a.validateAllowUpdateClusterSet(request.UserInfo, oldClusterSet, newClusterSet)
 			}
-
-			rejectStatus.Result.Message = "Do not allow to update claimed cluster's clusterset."
-			return rejectStatus
+			return a.responseNotAllowed("Do not allow to update claimed cluster's clusterset")
 		}
 		// the clusterdeployment is not claimed from clusterpool, allow to update clustersetlabel.
-		return a.allowUpdate(request.UserInfo, originalClusterSetName, currentClusterSetName)
-	case clusterPoolsGVR:
-		// do not allow to update clusterpool's clusterset
-		rejectStatus.Result.Message = "Do not allow to update clusterpool's clusterset label"
-		return rejectStatus
+		return a.validateAllowUpdateClusterSet(request.UserInfo, oldClusterSet, newClusterSet)
 	}
 
-	//For clusterdeployment, we need to update clusterdeployment's clusterset, because the deployment
-	// controller need to update the clusterset label.
-	return a.allowUpdate(request.UserInfo, originalClusterSetName, currentClusterSetName)
+	return a.responseAllowed()
 }
 
-func (a *AdmissionHandler) allowUpdate(userInfo authenticationv1.UserInfo, originalClusterSetName, currentClusterSetName string) *v1.AdmissionResponse {
-	if status := a.allowUpdateClusterSet(userInfo, originalClusterSetName); !status.Allowed {
-		return status
+// validateCreateRequest validates:
+// 1. the user has managedClusterSet/join <managedClusterSet> permission to create resource with a <managedClusterSet> label.
+// 2. the user has managedClusterSet/join <all> permission to create resource without a managedClusterSet label.
+func (a *AdmissionHandler) validateClusterSetJoinPermission(request *v1.AdmissionRequest) *v1.AdmissionResponse {
+	obj := unstructured.Unstructured{}
+	err := obj.UnmarshalJSON(request.Object.Raw)
+	if err != nil {
+		return a.responseNotAllowed(err.Error())
+	}
+
+	clusterSetName := obj.GetLabels()[clusterv1beta2.ClusterSetLabel]
+	return a.allowUpdateClusterSet(request.UserInfo, clusterSetName)
+}
+
+func (a *AdmissionHandler) validateAllowUpdateClusterSet(userInfo authenticationv1.UserInfo,
+	originalClusterSetName, currentClusterSetName string) *v1.AdmissionResponse {
+	if response := a.allowUpdateClusterSet(userInfo, originalClusterSetName); !response.Allowed {
+		return response
 	}
 	return a.allowUpdateClusterSet(userInfo, currentClusterSetName)
 }
 
-func (a *AdmissionHandler) isUpdateClusterset(request *v1.AdmissionRequest) (bool, string, string, error) {
+// validateUpdateClusterSet check if the request is trying to update the clusterset
+func (a *AdmissionHandler) validateUpdateClusterSet(
+	request *v1.AdmissionRequest) (bool, *v1.AdmissionResponse, string, string) {
 	oldObj := unstructured.Unstructured{}
 	err := oldObj.UnmarshalJSON(request.OldObject.Raw)
 	if err != nil {
-		return false, "", "", err
+		return false, a.responseNotAllowed(fmt.Sprintf("Unmarshal oldObject error: %v", err)), "", ""
 	}
 
 	newObj := unstructured.Unstructured{}
 	err = newObj.UnmarshalJSON(request.Object.Raw)
 	if err != nil {
-		return false, "", "", err
+		return false, a.responseNotAllowed(fmt.Sprintf("Unmarshal object error: %v", err)), "", ""
 	}
 
-	oldLabels := oldObj.GetLabels()
-	newLabels := newObj.GetLabels()
-	originalClusterSetName := ""
-	currentClusterSetName := ""
-	if len(oldLabels) > 0 {
-		originalClusterSetName = oldLabels[clusterv1beta2.ClusterSetLabel]
-	}
-	if len(newLabels) > 0 {
-		currentClusterSetName = newLabels[clusterv1beta2.ClusterSetLabel]
-	}
+	originalClusterSetName := oldObj.GetLabels()[clusterv1beta2.ClusterSetLabel]
+	currentClusterSetName := newObj.GetLabels()[clusterv1beta2.ClusterSetLabel]
 
 	// allow if managedClusterSet label is not updated
 	if originalClusterSetName == currentClusterSetName {
-		return false, "", "", nil
+		return false, a.responseAllowed(), "", ""
 	}
-	return true, originalClusterSetName, currentClusterSetName, nil
+	return true, a.responseAllowed(), originalClusterSetName, currentClusterSetName
 }
 
-// allowUpdateClusterSet checks whether a request user has been authorized to add/remove a resource to/from the ManagedClusterSet.
-// check if the user has clusterSet/join <all> permission when clusterSetName is null.
-func (a *AdmissionHandler) allowUpdateClusterSet(userInfo authenticationv1.UserInfo, clusterSetName string) *v1.AdmissionResponse {
-	status := &v1.AdmissionResponse{}
+// allowUpdateClusterSet checks whether a request user has been authorized to add/remove a resource to/from the
+// ManagedClusterSet. check if the user has clusterSet/join <all> permission when clusterSetName is null.
+func (a *AdmissionHandler) allowUpdateClusterSet(
+	userInfo authenticationv1.UserInfo,
+	clusterSetName string) *v1.AdmissionResponse {
 
 	extra := make(map[string]authorizationv1.ExtraValue)
 	for k, v := range userInfo.Extra {
@@ -313,31 +276,39 @@ func (a *AdmissionHandler) allowUpdateClusterSet(userInfo authenticationv1.UserI
 			},
 		},
 	}
-	sar, err := a.KubeClient.AuthorizationV1().SubjectAccessReviews().Create(context.TODO(), sar, metav1.CreateOptions{})
+	sar, err := a.KubeClient.AuthorizationV1().SubjectAccessReviews().Create(
+		context.TODO(), sar, metav1.CreateOptions{})
 	if err != nil {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: metav1.StatusReasonForbidden,
-			Message: err.Error(),
-		}
-		return status
+		return a.responseNotAllowed(err.Error())
 	}
 
 	if !sar.Status.Allowed {
-		status.Allowed = false
-		status.Result = &metav1.Status{
-			Status: metav1.StatusFailure, Code: http.StatusForbidden, Reason: metav1.StatusReasonForbidden,
-			Message: fmt.Sprintf("user %q cannot add/remove the resource to/from ManagedClusterSet %q", userInfo.Username, clusterSetName),
-		}
-		return status
+		return a.responseNotAllowed(fmt.Sprintf(
+			"user %q cannot add/remove the resource to/from ManagedClusterSet %q",
+			userInfo.Username, clusterSetName))
 	}
 
-	status.Allowed = true
-	return status
+	return a.responseAllowed()
 }
 
 func (a *AdmissionHandler) ServeValidateResource(w http.ResponseWriter, r *http.Request) {
 	serve.Serve(w, r, a.validateResource)
+}
+
+func (a *AdmissionHandler) responseAllowed() *v1.AdmissionResponse {
+	return &v1.AdmissionResponse{
+		Allowed: true,
+	}
+}
+
+func (a *AdmissionHandler) responseNotAllowed(msg string) *v1.AdmissionResponse {
+	return &v1.AdmissionResponse{
+		Allowed: false,
+		Result: &metav1.Status{
+			Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+			Message: msg,
+		},
+	}
 }
 
 func hasOwnerRef(ownerRefs []metav1.OwnerReference, wantRef metav1.OwnerReference) bool {
