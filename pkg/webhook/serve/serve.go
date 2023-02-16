@@ -7,13 +7,14 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/stolostron/multicloud-operators-foundation/cmd/webhook/app/options"
 	v1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
+
+	"github.com/stolostron/multicloud-operators-foundation/cmd/webhook/app/options"
 )
 
-// toAdmissionResponse is a helper function to create an AdmissionResponse
+// ToAdmissionResponse is a helper function to create an AdmissionResponse
 // with an embedded error
 func ToAdmissionResponse(err error) *v1.AdmissionResponse {
 	return &v1.AdmissionResponse{
@@ -27,7 +28,7 @@ func ToAdmissionResponse(err error) *v1.AdmissionResponse {
 // admitFunc is the type we use for all of our validators and mutators
 type admitFunc func(request *v1.AdmissionRequest) *v1.AdmissionResponse
 
-// serve handles the http portion of a request prior to handing to an admit
+// Serve handles the http portion of a request prior to handing to an admit
 // function
 func Serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 	var body []byte

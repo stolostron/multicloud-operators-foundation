@@ -1,4 +1,4 @@
-package clusterset
+package validating
 
 import (
 	"context"
@@ -8,13 +8,10 @@ import (
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
-	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
-	serve "github.com/stolostron/multicloud-operators-foundation/pkg/webhook/serve"
 	v1 "k8s.io/api/admission/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
-
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -22,6 +19,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
+
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/serve"
 )
 
 type AdmissionHandler struct {
@@ -336,7 +336,7 @@ func (a *AdmissionHandler) allowUpdateClusterSet(userInfo authenticationv1.UserI
 	return status
 }
 
-func (a *AdmissionHandler) ServerValidateResource(w http.ResponseWriter, r *http.Request) {
+func (a *AdmissionHandler) ServeValidateResource(w http.ResponseWriter, r *http.Request) {
 	serve.Serve(w, r, a.validateResource)
 }
 

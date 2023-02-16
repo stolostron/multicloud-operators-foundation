@@ -6,16 +6,15 @@ import (
 	"time"
 
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/clusterset"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/useridentity"
-
-	"github.com/stolostron/multicloud-operators-foundation/cmd/webhook/app/options"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
+
+	"github.com/stolostron/multicloud-operators-foundation/cmd/webhook/app/options"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/mutating"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/validating"
 )
 
 func Run(opts *options.Options, stopCh <-chan struct{}) error {
@@ -44,12 +43,12 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 	informerFactory := informers.NewSharedInformerFactory(kubeClientSet, 10*time.Minute)
 	informer := informerFactory.Rbac().V1().RoleBindings()
 
-	mutatingAh := &useridentity.AdmissionHandler{
+	mutatingAh := &mutating.AdmissionHandler{
 		Lister:                informer.Lister(),
 		SkipOverwriteUserList: opts.SkipOverwriteUserList,
 	}
 
-	validatingAh := &clusterset.AdmissionHandler{
+	validatingAh := &validating.AdmissionHandler{
 		KubeClient: kubeClientSet,
 		HiveClient: hiveClient,
 	}
@@ -63,7 +62,7 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 
 	http.HandleFunc("/mutating", mutatingAh.ServeMutateResource)
 
-	http.HandleFunc("/validating", validatingAh.ServerValidateResource)
+	http.HandleFunc("/validating", validatingAh.ServeValidateResource)
 
 	server := &http.Server{
 		Addr:      ":8000",
