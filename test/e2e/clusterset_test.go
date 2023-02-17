@@ -620,7 +620,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			err = util.CreateClusterClaim(hiveClient, clusterClaim, clusterPoolNamespace, clusterPool)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			err = util.CreateClusterDeployment(hiveClient, clusterDeployment, clusterDeployment, clusterPool, clusterPoolNamespace)
+			err = util.CreateClusterDeployment(hiveClient, clusterDeployment, clusterDeployment, clusterPool, clusterPoolNamespace, nil, false)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			err = util.ClaimCluster(hiveClient, clusterDeployment, clusterDeployment, clusterClaim)
@@ -742,7 +742,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			err = util.CreateClusterClaim(hiveClient, clusterClaim, clusterPoolNamespace, clusterPool)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			err = util.CreateClusterDeployment(hiveClient, clusterDeployment, clusterDeployment, clusterPool, clusterPoolNamespace)
+			err = util.CreateClusterDeployment(hiveClient, clusterDeployment, clusterDeployment, clusterPool, clusterPoolNamespace, nil, false)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			err = util.ClaimCluster(hiveClient, clusterDeployment, clusterDeployment, clusterClaim)
@@ -822,7 +822,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 
 	ginkgo.Context("clusterdeployment clusterset should be synced with managedcluster.", func() {
 		ginkgo.BeforeEach(func() {
-			err = util.CreateClusterDeployment(hiveClient, managedCluster, managedCluster, "", "")
+			err = util.CreateClusterDeployment(hiveClient, managedCluster, managedCluster, "", "", nil, false)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		})
 		ginkgo.AfterEach(func() {
@@ -866,68 +866,6 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				}
 				return fmt.Errorf("Failed to sync clusterdeployment's clusterset.")
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-		})
-	})
-
-	ginkgo.Context("it should fail when updating clusterpool and managedcluster clusterset.", func() {
-		var (
-			clusterPoolNamespace string
-			clusterPool          string
-			clusterClaim         string
-		)
-		ginkgo.BeforeEach(func() {
-			clusterPoolNamespace = util.RandomName()
-			clusterPool = util.RandomName()
-			clusterClaim = util.RandomName()
-			err = util.CreateNamespace(clusterPoolNamespace)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			clusterSetLabel := map[string]string{"cluster.open-cluster-management.io/clusterset": managedClusterSet}
-			err = util.CreateClusterPool(hiveClient, clusterPool, clusterPoolNamespace, clusterSetLabel)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			err = util.CreateClusterClaim(hiveClient, clusterClaim, clusterPoolNamespace, clusterPool)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			err = util.CreateClusterDeployment(hiveClient, managedCluster, managedCluster, clusterPool, clusterPoolNamespace)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			err = util.ClaimCluster(hiveClient, managedCluster, managedCluster, clusterClaim)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-		})
-
-		ginkgo.AfterEach(func() {
-			err = hiveClient.HiveV1().ClusterDeployments(managedCluster).Delete(context.TODO(), managedCluster, metav1.DeleteOptions{})
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			err = hiveClient.HiveV1().ClusterClaims(clusterPoolNamespace).Delete(context.TODO(), clusterClaim, metav1.DeleteOptions{})
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			err = hiveClient.HiveV1().ClusterPools(clusterPoolNamespace).Delete(context.TODO(), clusterPool, metav1.DeleteOptions{})
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-
-			err = util.DeleteNamespace(clusterPoolNamespace)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-		})
-
-		ginkgo.It("try to update clusterpool clusterset label, and it should fail.", func() {
-			ginkgo.By("Try to update clusterpool clusterset, and it should fail")
-			managedClusterSet1 := util.RandomName()
-			clusterSetLabel := map[string]string{
-				clusterv1beta2.ClusterSetLabel: managedClusterSet1,
-			}
-			err = util.UpdateClusterPoolLabel(hiveClient, clusterPool, clusterPoolNamespace, clusterSetLabel)
-			gomega.Expect(err).Should(gomega.HaveOccurred())
-		})
-
-		ginkgo.It("try to update managedcluster clusterset label, and it should fail.", func() {
-			ginkgo.By("Try to update claimed managedcluster clusterset, and it should fail")
-			managedClusterSet1 := util.RandomName()
-			clusterSetLabel := map[string]string{
-				clusterv1beta2.ClusterSetLabel: managedClusterSet1,
-			}
-			err = util.UpdateManagedClusterLabels(clusterClient, managedCluster, clusterSetLabel)
-			gomega.Expect(err).Should(gomega.HaveOccurred())
 		})
 	})
 

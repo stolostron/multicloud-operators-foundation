@@ -3,6 +3,8 @@ package util
 import (
 	"context"
 	"fmt"
+	"time"
+
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -12,7 +14,6 @@ import (
 	"k8s.io/client-go/util/retry"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	"time"
 )
 
 func NewManagedCluster(name string) *clusterv1.ManagedCluster {

@@ -7,7 +7,6 @@ import (
 	"os/user"
 	"path"
 
-	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry"
 	"k8s.io/apimachinery/pkg/util/rand"
@@ -35,7 +34,7 @@ var ManagedClusterGVR schema.GroupVersionResource = schema.GroupVersionResource{
 
 var ManagedClusterSetGVR = schema.GroupVersionResource{
 	Group:    "cluster.open-cluster-management.io",
-	Version:  "v1beta1",
+	Version:  "v1beta2",
 	Resource: "managedclustersets",
 }
 var ClusterInfoGVR = schema.GroupVersionResource{
@@ -96,20 +95,6 @@ func NewOCPClient() (openshiftclientset.Interface, error) {
 	}
 
 	return openshiftclientset.NewForConfig(cfg)
-}
-
-func NewHiveClient() (hiveclient.Interface, error) {
-	kubeConfigFile, err := getKubeConfigFile()
-	if err != nil {
-		return nil, err
-	}
-
-	cfg, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
-	if err != nil {
-		return nil, err
-	}
-
-	return hiveclient.NewForConfig(cfg)
 }
 
 func NewAPIServiceClient() (*apiregistrationclient.ApiregistrationV1Client, error) {
