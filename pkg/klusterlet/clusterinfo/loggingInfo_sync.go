@@ -160,7 +160,7 @@ func (s *loggingInfoSyncer) getEndpointAddressFromRoute(ctx context.Context, isO
 		if err != nil {
 			return nil, fmt.Errorf("failed to get ingress domain.error %v", err)
 		}
-		hostName := subHostName(s.agentName, s.agentNamespace)
+		hostName := subHostName(s.agentNamespace)
 		newRoute.Spec.Host = fmt.Sprintf("%s.%s", hostName, ingressDomain)
 	}
 
@@ -308,10 +308,18 @@ func hashOfString(s string) string {
 	return fmt.Sprintf("%x", h.Sum(nil))
 }
 
-func subHostName(agentName, agentNamespace string) string {
-	subName := fmt.Sprintf("%s-%s", agentName, agentNamespace)
-	if len(subName) < 63 {
+func subHostName(agentNamespace string) string {
+	subName := fmt.Sprintf("workmgr-%s", agentNamespace)
+	// Please be aware that instead of the standardized 63 characters long maximum length,
+	// the domain names generated from the ExternalDNS sources have the following limits:
+	// for the CNAME record type: 44 characters
+	// 42 characters for wildcard records on AzureDNS (OCPBUGS-819)
+	// for the A record type: 48 characters
+	// 46 characters for wildcard records on AzureDNS (OCPBUGS-819)
+	if len(subName) < 40 {
 		return subName
 	}
-	return fmt.Sprintf("klusterlet-addon-workmgr-%s", hashOfString(subName))
+
+	// the length of hash is 32, `workmgr-<hash of sub name>` is 40
+	return fmt.Sprintf("workmgr-%s", hashOfString(subName))
 }
