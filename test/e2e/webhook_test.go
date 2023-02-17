@@ -6,15 +6,18 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
-	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
-	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
+
+	"github.com/stolostron/multicloud-operators-foundation/pkg/constants"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
+	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 )
 
 var _ = ginkgo.Describe("Testing user create/update managedCluster without mangedClusterSet label", func() {
@@ -268,4 +271,56 @@ var _ = ginkgo.Describe("Testing clusterset create and update", func() {
 		_, err := clusterClient.ClusterV1beta2().ManagedClusterSets().Create(context.Background(), labelSelectorSet, metav1.CreateOptions{})
 		gomega.Expect(err).To(gomega.HaveOccurred())
 	})
+})
+
+var _ = ginkgo.Describe("Testing managed cluster deletion", func() {
+	var userName = rand.String(6)
+	var clusterName = "e2e-" + userName
+	ginkgo.It("Only can delete a cluster when it is not a hosting cluster", func() {
+		cluster := util.NewManagedCluster(clusterName)
+		ginkgo.By(fmt.Sprintf("create a managedCluster %s as the hosting cluster", clusterName))
+		gomega.Eventually(func() error {
+			err := util.CreateManagedCluster(clusterClient, cluster)
+			if err != nil {
+				return fmt.Errorf(err.Error())
+			}
+			return nil
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+		hostedCluster := util.NewManagedCluster(fmt.Sprintf("e2e-hosted-%s", rand.String(6)))
+		hostedCluster.Annotations = map[string]string{
+			constants.AnnotationKlusterletDeployMode:         "Hosted",
+			constants.AnnotationKlusterletHostingClusterName: clusterName,
+		}
+		gomega.Eventually(func() error {
+			err := util.CreateManagedCluster(clusterClient, hostedCluster)
+			if err != nil {
+				return fmt.Errorf(err.Error())
+			}
+			return nil
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+		ginkgo.By(fmt.Sprintf("The hosting cluster %s can not be deleted", clusterName))
+		err := clusterClient.ClusterV1().ManagedClusters().Delete(
+			context.TODO(), clusterName, metav1.DeleteOptions{})
+		gomega.Expect(err).Should(gomega.HaveOccurred())
+
+		ginkgo.By(fmt.Sprintf("Delete the hosted cluster %s", hostedCluster.Name))
+		err = clusterClient.ClusterV1().ManagedClusters().Delete(
+			context.TODO(), hostedCluster.Name, metav1.DeleteOptions{})
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		ginkgo.By(fmt.Sprintf("The hosted cluster %s was deleted successfully", hostedCluster.Name))
+		gomega.Eventually(func() bool {
+			_, err := clusterClient.ClusterV1().ManagedClusters().Get(
+				context.TODO(), hostedCluster.Name, metav1.GetOptions{})
+			return errors.IsNotFound(err)
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+
+		ginkgo.By(fmt.Sprintf("The cluster %s can be deleted now", clusterName))
+		err = clusterClient.ClusterV1().ManagedClusters().Delete(
+			context.TODO(), clusterName, metav1.DeleteOptions{})
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	})
+
 })

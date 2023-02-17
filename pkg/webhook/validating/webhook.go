@@ -15,18 +15,22 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
+	clusterlisterv1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
+	"github.com/stolostron/multicloud-operators-foundation/pkg/constants"
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/serve"
 )
 
 type AdmissionHandler struct {
-	HiveClient hiveclient.Interface
-	KubeClient kubernetes.Interface
+	HiveClient    hiveclient.Interface
+	KubeClient    kubernetes.Interface
+	ClusterLister clusterlisterv1.ManagedClusterLister
 }
 
 var managedClustersGVR = metav1.GroupVersionResource{
@@ -161,7 +165,7 @@ func (a *AdmissionHandler) validateManagedCluster(request *v1.AdmissionRequest) 
 		}
 
 		// The managedClusters is trying to update clusterset, check if the managedcluster is claimed from clusterpool
-		// 	 1. if the managedcluster is claimed from clusterpool, do not allow to update clusterset
+		//   1. if the managedcluster is claimed from clusterpool, do not allow to update clusterset
 		//   2. if the managedcluster is not claimed from clusterpool, check if user has permission to update clusterset
 		//
 		// Notes: clusterclaims-controller will auto create a mangedcluster with the clusterpool's clusterset label if
@@ -198,6 +202,29 @@ func (a *AdmissionHandler) validateManagedCluster(request *v1.AdmissionRequest) 
 		}
 		// the clusterdeployment is not claimed from clusterpool, allow to update clustersetlabel.
 		return a.validateAllowUpdateClusterSet(request.UserInfo, oldClusterSet, newClusterSet)
+	case v1.Delete:
+		clusterName := request.Name
+		clusters, err := a.ClusterLister.List(labels.Everything())
+		if err != nil {
+			return a.responseNotAllowed(err.Error())
+		}
+
+		var hostedClusters = make([]string, 0)
+		for _, cluster := range clusters {
+			if cluster.GetAnnotations()[constants.AnnotationKlusterletDeployMode] != "Hosted" {
+				continue
+			}
+			if cluster.GetAnnotations()[constants.AnnotationKlusterletHostingClusterName] != clusterName {
+				continue
+			}
+			hostedClusters = append(hostedClusters, cluster.Name)
+		}
+
+		if len(hostedClusters) > 0 {
+			return a.responseNotAllowed(fmt.Sprintf(
+				"Not allowed to delete, please delete the hosted clusters %v first", hostedClusters))
+		}
+		return a.responseAllowed()
 	}
 
 	return a.responseAllowed()

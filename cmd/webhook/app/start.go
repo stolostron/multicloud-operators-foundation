@@ -11,6 +11,8 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
+	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 
 	"github.com/stolostron/multicloud-operators-foundation/cmd/webhook/app/options"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/mutating"
@@ -40,24 +42,39 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 		return err
 	}
 
-	informerFactory := informers.NewSharedInformerFactory(kubeClientSet, 10*time.Minute)
-	informer := informerFactory.Rbac().V1().RoleBindings()
+	clusterClient, err := clusterv1client.NewForConfig(kubeConfig)
+	if err != nil {
+		klog.Errorf("Error building cluster client: %s", err.Error())
+		return err
+	}
+
+	kubInformerFactory := informers.NewSharedInformerFactory(kubeClientSet, 10*time.Minute)
+	rbInformer := kubInformerFactory.Rbac().V1().RoleBindings()
+
+	clusterInformerFactory := clusterv1informers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
+	clusterInformer := clusterInformerFactory.Cluster().V1().ManagedClusters()
 
 	mutatingAh := &mutating.AdmissionHandler{
-		Lister:                informer.Lister(),
+		Lister:                rbInformer.Lister(),
 		SkipOverwriteUserList: opts.SkipOverwriteUserList,
 	}
-
+	clusterInformer.Lister()
 	validatingAh := &validating.AdmissionHandler{
-		KubeClient: kubeClientSet,
-		HiveClient: hiveClient,
+		KubeClient:    kubeClientSet,
+		HiveClient:    hiveClient,
+		ClusterLister: clusterInformer.Lister(),
 	}
 
-	go informerFactory.Start(stopCh)
-
-	if ok := cache.WaitForCacheSync(stopCh, informer.Informer().HasSynced); !ok {
+	go kubInformerFactory.Start(stopCh)
+	if ok := cache.WaitForCacheSync(stopCh, rbInformer.Informer().HasSynced); !ok {
 		klog.Errorf("failed to wait for kubernetes caches to sync")
 		return fmt.Errorf("failed to wait for kubernetes caches to sync")
+	}
+
+	go clusterInformerFactory.Start(stopCh)
+	if ok := cache.WaitForCacheSync(stopCh, clusterInformer.Informer().HasSynced); !ok {
+		klog.Errorf("failed to wait for cluster informer caches to sync")
+		return fmt.Errorf("failed to wait for cluster informer  caches to sync")
 	}
 
 	http.HandleFunc("/mutating", mutatingAh.ServeMutateResource)

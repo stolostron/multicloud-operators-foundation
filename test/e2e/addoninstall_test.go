@@ -7,13 +7,15 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/addoninstall"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+
+	fconstants "github.com/stolostron/multicloud-operators-foundation/pkg/constants"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/addoninstall"
 )
 
 var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
@@ -74,7 +76,7 @@ var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 			gomega.Expect(addon).ShouldNot(gomega.BeNil())
-			gomega.Expect(addon.Annotations).ShouldNot(gomega.HaveKey(addoninstall.AnnotationKlusterletHostingClusterName))
+			gomega.Expect(addon.Annotations).ShouldNot(gomega.HaveKey(fconstants.AnnotationKlusterletHostingClusterName))
 			gomega.Expect(addon.Spec.InstallNamespace).To(gomega.Equal(addoninstall.DefaultAddOnInstallNamespace))
 		})
 	}
@@ -104,8 +106,8 @@ var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
 	ginkgo.Context("cluster is imported in hosted mode", func() {
 		ginkgo.BeforeEach(func() {
 			annotations = map[string]string{
-				addoninstall.AnnotationKlusterletDeployMode:         "Hosted",
-				addoninstall.AnnotationKlusterletHostingClusterName: hostingClusterName,
+				fconstants.AnnotationKlusterletDeployMode:         "Hosted",
+				fconstants.AnnotationKlusterletHostingClusterName: hostingClusterName,
 			}
 		})
 

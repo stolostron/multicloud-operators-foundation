@@ -17,6 +17,8 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	fconstants "github.com/stolostron/multicloud-operators-foundation/pkg/constants"
 )
 
 var (
@@ -95,8 +97,8 @@ func TestReconciler(t *testing.T) {
 		{
 			name: "cluster in hosted mode with add-on in default mode",
 			existingCluster: newManagedCluster(clusterName, map[string]string{
-				AnnotationKlusterletDeployMode:         "Hosted",
-				AnnotationKlusterletHostingClusterName: "local-cluster",
+				fconstants.AnnotationKlusterletDeployMode:         "Hosted",
+				fconstants.AnnotationKlusterletHostingClusterName: "local-cluster",
 			}),
 			enabled:                  true,
 			expectedInstallNamespace: DefaultAddOnInstallNamespace,
@@ -104,9 +106,9 @@ func TestReconciler(t *testing.T) {
 		{
 			name: "cluster in hosted mode with add-on in host mode",
 			existingCluster: newManagedCluster(clusterName, map[string]string{
-				AnnotationKlusterletDeployMode:         "Hosted",
-				AnnotationKlusterletHostingClusterName: "local-cluster",
-				AnnotationEnableHostedModeAddons:       "true",
+				fconstants.AnnotationKlusterletDeployMode:         "Hosted",
+				fconstants.AnnotationKlusterletHostingClusterName: "local-cluster",
+				AnnotationEnableHostedModeAddons:                  "true",
 			}),
 			enabled:                    true,
 			expectedInstallNamespace:   fmt.Sprintf("klusterlet-%s", clusterName),
