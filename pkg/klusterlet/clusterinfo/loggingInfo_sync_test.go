@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	kubefake "k8s.io/client-go/kubernetes/fake"
+	"strings"
 	"testing"
 )
 
@@ -290,6 +291,10 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 						t.Errorf("failed to get route")
 					}
 					assert.Equal(t, test.managedClusterInfo.Status.LoggingEndpoint.Hostname, route.Spec.Host)
+					subNames := strings.Split(route.Spec.Host, ".")
+					if len(subNames[0]) > 40 {
+						t.Errorf("the length of subName %s of route host cannot exceed 40", subNames[0])
+					}
 				}
 				assert.Equal(t, svr.Spec.Type, corev1.ServiceTypeClusterIP)
 			} else {
