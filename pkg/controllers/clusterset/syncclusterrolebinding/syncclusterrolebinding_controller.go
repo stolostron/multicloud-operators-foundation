@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	v1 "k8s.io/client-go/listers/rbac/v1"
 	kubecache "k8s.io/client-go/tools/cache"
 
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
@@ -16,49 +17,50 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	rbacv1informers "k8s.io/client-go/informers/rbac/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 )
 
 // This controller apply clusterset related clusterrolebinding based on clustersetToClusters and clustersetAdminToSubject map
 type Reconciler struct {
-	kubeClient                 kubernetes.Interface
-	clusterRolebindingInformer rbacv1informers.ClusterRoleBindingInformer
-
-	clusterSetAdminCache       *cache.AuthCache
-	clusterSetViewCache        *cache.AuthCache
-	globalClustersetToClusters *helpers.ClusterSetMapper
-	clustersetToClusters       *helpers.ClusterSetMapper
+	kubeClient                       kubernetes.Interface
+	clusterRolebindingLister         v1.ClusterRoleBindingLister
+	clusterRolebindingInformerSynced kubecache.InformerSynced
+	clusterSetAdminCache             *cache.AuthCache
+	clusterSetViewCache              *cache.AuthCache
+	globalClustersetToClusters       *helpers.ClusterSetMapper
+	clustersetToClusters             *helpers.ClusterSetMapper
 }
 
 func NewReconciler(kubeClient kubernetes.Interface,
-	clusterRolebindingInformer rbacv1informers.ClusterRoleBindingInformer,
+	clusterRolebindingLister v1.ClusterRoleBindingLister,
+	clusterRolebindingInformerSynced kubecache.InformerSynced,
 	clusterSetAdminCache *cache.AuthCache,
 	clusterSetViewCache *cache.AuthCache,
 	globalClustersetToClusters *helpers.ClusterSetMapper,
 	clustersetToClusters *helpers.ClusterSetMapper) Reconciler {
 	return Reconciler{
-		kubeClient:                 kubeClient,
-		clusterRolebindingInformer: clusterRolebindingInformer,
-		clusterSetAdminCache:       clusterSetAdminCache,
-		clusterSetViewCache:        clusterSetViewCache,
-		globalClustersetToClusters: globalClustersetToClusters,
-		clustersetToClusters:       clustersetToClusters,
+		kubeClient:                       kubeClient,
+		clusterRolebindingLister:         clusterRolebindingLister,
+		clusterRolebindingInformerSynced: clusterRolebindingInformerSynced,
+		clusterSetAdminCache:             clusterSetAdminCache,
+		clusterSetViewCache:              clusterSetViewCache,
+		globalClustersetToClusters:       globalClustersetToClusters,
+		clustersetToClusters:             clustersetToClusters,
 	}
 }
 
 // Run a routine to sync the clusterrolebinding periodically.
 func (r *Reconciler) Run(ctx context.Context, period time.Duration) {
-	if ok := kubecache.WaitForCacheSync(ctx.Done(), r.clusterRolebindingInformer.Informer().HasSynced); !ok {
+	if ok := kubecache.WaitForCacheSync(ctx.Done(), r.clusterRolebindingInformerSynced); !ok {
 		klog.Errorf("failed to wait for kubernetes caches to sync")
 		return
 	}
-	go utilwait.Forever(r.reconcile, period)
+	klog.Info("ClusterRolebinding informer synced")
+	utilwait.UntilWithContext(ctx, r.reconcile, period)
 }
 
-func (r *Reconciler) reconcile() {
-	ctx := context.Background()
+func (r *Reconciler) reconcile(ctx context.Context) {
 	clustersetToAdminSubjects := clustersetutils.GenerateClustersetSubjects(r.clusterSetAdminCache)
 	clustersetToViewSubjects := clustersetutils.GenerateClustersetSubjects(r.clusterSetViewCache)
 	r.syncManagedClusterClusterroleBinding(ctx, r.clustersetToClusters, clustersetToAdminSubjects, "admin")
@@ -83,7 +85,7 @@ func (r *Reconciler) syncManagedClusterClusterroleBinding(ctx context.Context, c
 	for clusterName, subjects := range clusterToSubject {
 		clustersetName := clustersetToClusters.GetObjectClusterset(clusterName)
 		requiredClusterRoleBinding := generateRequiredClusterRoleBinding(clusterName, subjects, clustersetName, role)
-		err := utils.ApplyClusterRoleBinding(ctx, r.kubeClient, r.clusterRolebindingInformer.Lister(), requiredClusterRoleBinding)
+		err := utils.ApplyClusterRoleBinding(ctx, r.kubeClient, r.clusterRolebindingLister, requiredClusterRoleBinding)
 		if err != nil {
 			klog.Errorf("Failed to apply clusterrolebinding: %v, error:%v", requiredClusterRoleBinding.Name, err)
 		}
@@ -106,7 +108,7 @@ func (r *Reconciler) syncManagedClusterClusterroleBinding(ctx context.Context, c
 		klog.Errorf("Error to build label selector. Error:%v", err)
 	}
 
-	clusterRoleBindings, err := r.clusterRolebindingInformer.Lister().List(clusterSetLabelSelector)
+	clusterRoleBindings, err := r.clusterRolebindingLister.List(clusterSetLabelSelector)
 
 	for _, clusterRoleBinding := range clusterRoleBindings {
 		curClusterRoleBinding := clusterRoleBinding

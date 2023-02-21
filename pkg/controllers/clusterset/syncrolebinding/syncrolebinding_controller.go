@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	kubecache "k8s.io/client-go/tools/cache"
+	v1 "k8s.io/client-go/listers/rbac/v1"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
@@ -14,10 +14,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
+	kubecache "k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
 
 	rbacv1 "k8s.io/api/rbac/v1"
-	rbacv1informers "k8s.io/client-go/informers/rbac/v1"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
 )
@@ -25,7 +25,8 @@ import (
 // This controller apply clusterset related clusterrolebinding based on clustersetToClusters and clustersetAdminToSubject map
 type Reconciler struct {
 	kubeClient                 kubernetes.Interface
-	roleBindingInformer        rbacv1informers.RoleBindingInformer
+	roleBindinglister          v1.RoleBindingLister
+	rolebindingInformerSynced  kubecache.InformerSynced
 	clusterSetAdminCache       *cache.AuthCache
 	clusterSetViewCache        *cache.AuthCache
 	globalClustersetToClusters *helpers.ClusterSetMapper
@@ -34,7 +35,8 @@ type Reconciler struct {
 }
 
 func NewReconciler(kubeClient kubernetes.Interface,
-	roleBindingInformer rbacv1informers.RoleBindingInformer,
+	roleBindinglister v1.RoleBindingLister,
+	rolebindingInformerSynced kubecache.InformerSynced,
 	clusterSetAdminCache *cache.AuthCache,
 	clusterSetViewCache *cache.AuthCache,
 	globalClustersetToClusters *helpers.ClusterSetMapper,
@@ -42,7 +44,8 @@ func NewReconciler(kubeClient kubernetes.Interface,
 	clustersetToNamespace *helpers.ClusterSetMapper) Reconciler {
 	return Reconciler{
 		kubeClient:                 kubeClient,
-		roleBindingInformer:        roleBindingInformer,
+		roleBindinglister:          roleBindinglister,
+		rolebindingInformerSynced:  rolebindingInformerSynced,
 		clusterSetAdminCache:       clusterSetAdminCache,
 		clusterSetViewCache:        clusterSetViewCache,
 		globalClustersetToClusters: globalClustersetToClusters,
@@ -53,18 +56,16 @@ func NewReconciler(kubeClient kubernetes.Interface,
 
 // start a routine to sync the clusterrolebinding periodically.
 func (r *Reconciler) Run(ctx context.Context, period time.Duration) {
-	if ok := kubecache.WaitForCacheSync(ctx.Done(), r.roleBindingInformer.Informer().HasSynced); !ok {
+	if ok := kubecache.WaitForCacheSync(ctx.Done(), r.rolebindingInformerSynced); !ok {
 		klog.Errorf("failed to wait for kubernetes caches to sync")
 		return
 	}
-
-	go utilwait.Forever(r.reconcile, period)
+	klog.Info("Rolebinding Informer synced")
+	utilwait.UntilWithContext(ctx, r.reconcile, period)
 }
 
 // This function sycn the rolebinding in namespace which in r.clustersetToNamespace and r.clustersetToClusters
-func (r *Reconciler) reconcile() {
-	ctx := context.Background()
-
+func (r *Reconciler) reconcile(ctx context.Context) {
 	//union the clusterset to namespace and clusterset to cluster(it's same as managedcluster namespace).
 	//so we can use unionclustersetToNamespace to generate role bindings.
 	unionclustersetToNamespace := r.clustersetToNamespace.UnionObjectsInClusterSet(r.clustersetToClusters)
@@ -95,7 +96,7 @@ func (r *Reconciler) syncRoleBinding(ctx context.Context, clustersetToNamespace 
 	for namespace, subjects := range namespaceToSubject {
 		clustersetName := clustersetToNamespace.GetObjectClusterset(namespace)
 		requiredRoleBinding := generateRequiredRoleBinding(namespace, subjects, clustersetName, role)
-		err := utils.ApplyRoleBinding(ctx, r.kubeClient, r.roleBindingInformer.Lister(), requiredRoleBinding)
+		err := utils.ApplyRoleBinding(ctx, r.kubeClient, r.roleBindinglister, requiredRoleBinding)
 		if err != nil {
 			klog.Errorf("Failed to apply rolebinding: %v, error:%v", requiredRoleBinding.Name, err)
 			errs = append(errs, err)
@@ -116,7 +117,7 @@ func (r *Reconciler) syncRoleBinding(ctx context.Context, clustersetToNamespace 
 	if err != nil {
 		klog.Errorf("Error to build label selector. Error:%v", err)
 	}
-	roleBindings, err := r.roleBindingInformer.Lister().List(clusterSetLabelSelector)
+	roleBindings, err := r.roleBindinglister.List(clusterSetLabelSelector)
 	if err != nil {
 		klog.Errorf("Error to list clusterrolebinding. error:%v", err)
 	}
