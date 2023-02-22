@@ -10,6 +10,7 @@ Check the [CONTRIBUTING Doc](CONTRIBUTING.md) for how to contribute to the repo.
 
 ## Getting Started
 
+
 This is a guide on how to build and deploy stolostron Foundation from code.
 
 ### Build images
