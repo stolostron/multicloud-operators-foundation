@@ -40,7 +40,16 @@ webhooks:
         apiVersions:
           - "*"
         resources:
-          - managedclusters
           - managedclustersets
+      - apiGroups:
+          - cluster.open-cluster-management.io
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        apiVersions:
+          - "*"
+        resources:
+          - managedclusters
     sideEffects: None
     timeoutSeconds: 10

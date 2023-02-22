@@ -3,15 +3,20 @@ package validating
 import (
 	"reflect"
 	"testing"
+	"time"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hivefake "github.com/openshift/hive/pkg/client/clientset/versioned/fake"
+	"github.com/stolostron/cluster-lifecycle-api/constants"
 	v1 "k8s.io/api/admission/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kubefake "k8s.io/client-go/kubernetes/fake"
 	clienttesting "k8s.io/client-go/testing"
+	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
+	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
 const (
@@ -373,6 +378,88 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 			)
 
 			admissionHandler := &AdmissionHandler{KubeClient: kubeClient, HiveClient: hiveClient}
+
+			actualResponse := admissionHandler.validateResource(c.request)
+
+			if !reflect.DeepEqual(actualResponse.Allowed, c.expectedResponse.Allowed) {
+				t.Errorf("case: %v,expected %#v but got: %#v", c.name, c.expectedResponse, actualResponse)
+			}
+		})
+	}
+}
+
+func TestDeleteHosteingCluster(t *testing.T) {
+	cases := []struct {
+		name                    string
+		request                 *v1.AdmissionRequest
+		existingManagedClusters []runtime.Object
+		expectedResponse        *v1.AdmissionResponse
+	}{
+		{
+			name: "allow to delete a non-hosting cluster",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Delete,
+				Name:      "c0",
+			},
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c0",
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "not allowed to delete a hosting cluster",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Delete,
+				Name:      "c0",
+			},
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c0",
+					},
+				},
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c1",
+						Annotations: map[string]string{
+							constants.AnnotationKlusterletDeployMode:         "Hosted",
+							constants.AnnotationKlusterletHostingClusterName: "c0",
+						},
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: false,
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			kubeClient := kubefake.NewSimpleClientset()
+			hiveClient := hivefake.NewSimpleClientset()
+			clusterClient := clusterfake.NewSimpleClientset(c.existingManagedClusters...)
+			clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
+			clusterStore := clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore()
+			for _, cluster := range c.existingManagedClusters {
+				if err := clusterStore.Add(cluster); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			admissionHandler := &AdmissionHandler{
+				KubeClient:    kubeClient,
+				HiveClient:    hiveClient,
+				ClusterLister: clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),
+			}
 
 			actualResponse := admissionHandler.validateResource(c.request)
 

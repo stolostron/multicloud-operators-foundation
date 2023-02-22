@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	apiconstants "github.com/stolostron/cluster-lifecycle-api/constants"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -95,8 +96,8 @@ func TestReconciler(t *testing.T) {
 		{
 			name: "cluster in hosted mode with add-on in default mode",
 			existingCluster: newManagedCluster(clusterName, map[string]string{
-				AnnotationKlusterletDeployMode:         "Hosted",
-				AnnotationKlusterletHostingClusterName: "local-cluster",
+				apiconstants.AnnotationKlusterletDeployMode:         "Hosted",
+				apiconstants.AnnotationKlusterletHostingClusterName: "local-cluster",
 			}),
 			enabled:                  true,
 			expectedInstallNamespace: DefaultAddOnInstallNamespace,
@@ -104,9 +105,9 @@ func TestReconciler(t *testing.T) {
 		{
 			name: "cluster in hosted mode with add-on in host mode",
 			existingCluster: newManagedCluster(clusterName, map[string]string{
-				AnnotationKlusterletDeployMode:         "Hosted",
-				AnnotationKlusterletHostingClusterName: "local-cluster",
-				AnnotationEnableHostedModeAddons:       "true",
+				apiconstants.AnnotationKlusterletDeployMode:         "Hosted",
+				apiconstants.AnnotationKlusterletHostingClusterName: "local-cluster",
+				AnnotationEnableHostedModeAddons:                    "true",
 			}),
 			enabled:                    true,
 			expectedInstallNamespace:   fmt.Sprintf("klusterlet-%s", clusterName),
