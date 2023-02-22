@@ -112,10 +112,10 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 		informers.Rbac().V1().RoleBindings().Informer().GetIndexer().Add(cb)
 		informers.Start(stopCh)
 
-		r := NewReconciler(kubeClient, informers.Rbac().V1().RoleBindings(), test.clusterSetCache, test.clusterSetCache, globalsetToClusters, clustersetToClusters, test.clustersetToNamespace)
+		r := NewReconciler(kubeClient, informers.Rbac().V1().RoleBindings().Lister(), informers.Rbac().V1().RoleBindings().Informer().HasSynced, test.clusterSetCache, test.clusterSetCache, globalsetToClusters, clustersetToClusters, test.clustersetToNamespace)
 		r.syncRoleBinding(ctx, test.clustersetToNamespace, test.clustersetToSubject, "admin")
 		validateResult(t, &r, test.managedclusterName, test.exist)
-		r.reconcile()
+		r.reconcile(ctx)
 	}
 }
 
