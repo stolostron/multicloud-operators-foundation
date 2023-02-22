@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	apiconstants "github.com/stolostron/cluster-lifecycle-api/constants"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -22,8 +23,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	fconstants "github.com/stolostron/multicloud-operators-foundation/pkg/constants"
 )
 
 const (
@@ -185,11 +184,11 @@ func getAddOnHostingClusterName(cluster *clusterv1.ManagedCluster) string {
 	switch {
 	case cluster == nil:
 		return ""
-	case cluster.Annotations[fconstants.AnnotationKlusterletDeployMode] != "Hosted":
+	case cluster.Annotations[apiconstants.AnnotationKlusterletDeployMode] != "Hosted":
 		return ""
 	case !strings.EqualFold(cluster.Annotations[AnnotationEnableHostedModeAddons], "true"):
 		return ""
 	default:
-		return cluster.Annotations[fconstants.AnnotationKlusterletHostingClusterName]
+		return cluster.Annotations[apiconstants.AnnotationKlusterletHostingClusterName]
 	}
 }

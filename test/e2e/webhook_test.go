@@ -6,6 +6,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	"github.com/stolostron/cluster-lifecycle-api/constants"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -14,7 +15,6 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
-	"github.com/stolostron/multicloud-operators-foundation/pkg/constants"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"

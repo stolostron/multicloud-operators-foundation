@@ -8,6 +8,7 @@ import (
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
+	"github.com/stolostron/cluster-lifecycle-api/constants"
 	v1 "k8s.io/api/admission/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -22,7 +23,6 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
-	"github.com/stolostron/multicloud-operators-foundation/pkg/constants"
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/serve"
 )

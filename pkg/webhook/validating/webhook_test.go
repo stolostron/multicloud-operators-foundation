@@ -7,6 +7,7 @@ import (
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hivefake "github.com/openshift/hive/pkg/client/clientset/versioned/fake"
+	"github.com/stolostron/cluster-lifecycle-api/constants"
 	v1 "k8s.io/api/admission/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,8 +17,6 @@ import (
 	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-
-	"github.com/stolostron/multicloud-operators-foundation/pkg/constants"
 )
 
 const (
