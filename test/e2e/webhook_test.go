@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
+
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	"github.com/stolostron/cluster-lifecycle-api/constants"
@@ -171,6 +174,256 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 			}
 			return nil
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+
+		// case 6: cannot update managedCluster to remove managedClusterSet label
+		labels = map[string]string{
+			"cluster.open-cluster-management.io/clusterset": "wrong-set",
+		}
+		gomega.Eventually(func() error {
+			err := util.UpdateManagedClusterLabels(userClusterClient, clusterName, labels)
+			if err != nil {
+				return fmt.Errorf(err.Error())
+			}
+			return nil
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+	})
+
+})
+
+var _ = ginkgo.Describe("Testing user create/update clusterdeployment with mangedClusterSet label", func() {
+	var userName = rand.String(6)
+	var clusterDeploymentName = "e2e-" + userName
+	var rbacName = "e2e-" + userName
+	var clusterSet1 = "clusterset1-e2e"
+	var clusterSet2 = "clusterset2-e2e"
+	var userHiveClient hiveclient.Interface
+	ginkgo.BeforeEach(func() {
+		var err error
+		// create rbac with managedClusterSet/join clusterset-e2e permission for user
+		rules := []rbacv1.PolicyRule{
+			helpers.NewRule("create").Groups(clusterv1beta2.GroupName).Resources("managedclustersets/join").Names(clusterSet1, clusterSet2).RuleOrDie(),
+			helpers.NewRule("create", "update", "get").Groups(clusterv1.GroupName).Resources("managedclusters").RuleOrDie(),
+			helpers.NewRule("create", "update", "get").Groups(hivev1.HiveAPIGroup).Resources("clusterdeployments").RuleOrDie(),
+		}
+		err = util.CreateClusterRole(kubeClient, rbacName, rules)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.CreateClusterRoleBindingForUser(kubeClient, rbacName, rbacName, userName)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		// impersonate user to the cluster client
+		userHiveClient, err = util.NewHiveClientWithImpersonate(userName, nil)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+	})
+	ginkgo.AfterEach(func() {
+		var err error
+		err = util.CleanClusterDeployment(hiveClient, clusterDeploymentName, clusterDeploymentName)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.DeleteClusterRoleBinding(kubeClient, rbacName)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.DeleteClusterRole(kubeClient, rbacName)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.It("should create and update the clusterdeployment successfully", func() {
+		// case 1: Normal user cannot create clusterdeployment without managedClusterSet label
+		err := util.CreateClusterDeployment(userHiveClient, clusterDeploymentName, clusterDeploymentName, "", "", nil, false)
+		gomega.Expect(err).Should(gomega.HaveOccurred())
+
+		// case 2: Normal user cannot create clusterdeployment with wrong managedClusterSet label		wrongLabel := "wrong-clusterSet"
+
+		labels := map[string]string{
+			"cluster.open-cluster-management.io/clusterset": "wrongLabel",
+		}
+		err = util.CreateClusterDeployment(userHiveClient, clusterDeploymentName, clusterDeploymentName, "", "", labels, false)
+		gomega.Expect(err).Should(gomega.HaveOccurred())
+
+		// case 3:  Normal user can create clusterdeployment with right managedClusterSet label
+		labels = map[string]string{
+			"cluster.open-cluster-management.io/clusterset": clusterSet1,
+		}
+		err = util.CreateClusterDeployment(userHiveClient, clusterDeploymentName, clusterDeploymentName, "", "", labels, false)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		// case 4: can update managedClusterDeployment with right managedClusterSet label
+		labels = map[string]string{
+			"cluster.open-cluster-management.io/clusterset": clusterSet2,
+		}
+		gomega.Eventually(func() error {
+			return util.UpdateClusterDeploymentLabels(userHiveClient, clusterDeploymentName, clusterDeploymentName, labels)
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+		// case 5: cannot update managedCluster to remove managedClusterSet label
+		labels = map[string]string{
+			"cluster.open-cluster-management.io/clusterset": "",
+		}
+		gomega.Eventually(func() error {
+			err := util.UpdateClusterDeploymentLabels(userHiveClient, clusterDeploymentName, clusterDeploymentName, labels)
+			if err != nil {
+				return fmt.Errorf(err.Error())
+			}
+			return nil
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+
+		// case 6: cannot update managedCluster to a wrong managedClusterSet label
+		labels = map[string]string{
+			"cluster.open-cluster-management.io/clusterset": "wrong-set",
+		}
+		gomega.Eventually(func() error {
+			err := util.UpdateClusterDeploymentLabels(userHiveClient, clusterDeploymentName, clusterDeploymentName, labels)
+			if err != nil {
+				return fmt.Errorf(err.Error())
+			}
+			return nil
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+	})
+	ginkgo.It("should create and update the clusterdeployment from clusterpool successfully", func() {
+		err := util.CreateClusterDeployment(userHiveClient, clusterDeploymentName, clusterDeploymentName, "pool", "pool-ns", nil, false)
+		gomega.Expect(err).Should(gomega.HaveOccurred())
+	})
+	ginkgo.It("should create and update the clusterdeployment from AI successfully", func() {
+		err := util.CreateClusterDeployment(userHiveClient, clusterDeploymentName, clusterDeploymentName, "", "", nil, true)
+		gomega.Expect(err).Should(gomega.HaveOccurred())
+	})
+})
+
+var _ = ginkgo.Describe("Testing user create/update clusterpool with mangedClusterSet label", func() {
+	var userName = rand.String(6)
+	var clusterPoolName = "e2e-" + userName
+	var rbacName = "e2e-" + userName
+	var clusterSet1 = "clusterset1-e2e"
+	var clusterSet2 = "clusterset2-e2e"
+	var userHiveClient hiveclient.Interface
+	ginkgo.BeforeEach(func() {
+		var err error
+		// create rbac with managedClusterSet/join clusterset-e2e permission for user
+		rules := []rbacv1.PolicyRule{
+			helpers.NewRule("create").Groups(clusterv1beta2.GroupName).Resources("managedclustersets/join").Names(clusterSet1, clusterSet2).RuleOrDie(),
+			helpers.NewRule("create", "update", "get").Groups(hivev1.HiveAPIGroup).Resources("clusterpools").RuleOrDie(),
+			helpers.NewRule("create", "update", "get").Groups(hivev1.HiveAPIGroup).Resources("clusterdeployments").RuleOrDie(),
+		}
+		err = util.CreateClusterRole(kubeClient, rbacName, rules)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.CreateClusterRoleBindingForUser(kubeClient, rbacName, rbacName, userName)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		// impersonate user to the cluster client
+		userHiveClient, err = util.NewHiveClientWithImpersonate(userName, nil)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+	})
+	ginkgo.AfterEach(func() {
+		var err error
+		err = util.CleanClusterPool(hiveClient, clusterPoolName, clusterPoolName)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.DeleteClusterRoleBinding(kubeClient, rbacName)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.DeleteClusterRole(kubeClient, rbacName)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.It("should create and update the clusterdeployment successfully", func() {
+		// case 1: Normal user cannot create clusterdeployment without managedClusterSet label
+		err := util.CreateClusterPool(userHiveClient, clusterPoolName, clusterPoolName, nil)
+		gomega.Expect(err).Should(gomega.HaveOccurred())
+
+		// case 2: Normal user cannot create clusterpool with wrong managedClusterSet label
+		wrongLabel := "wrong-clusterSet"
+
+		labels := map[string]string{
+			"cluster.open-cluster-management.io/clusterset": wrongLabel,
+		}
+		err = util.CreateClusterPool(userHiveClient, clusterPoolName, clusterPoolName, labels)
+		gomega.Expect(err).Should(gomega.HaveOccurred())
+
+		// case 3: Normal user can create clusterpool with right managedClusterSet label
+		labels = map[string]string{
+			"cluster.open-cluster-management.io/clusterset": clusterSet1,
+		}
+		err = util.CreateClusterPool(userHiveClient, clusterPoolName, clusterPoolName, labels)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		// case 4: can not update clusterpool with right managedClusterSet label
+		labels = map[string]string{
+			"cluster.open-cluster-management.io/clusterset": clusterSet2,
+		}
+		gomega.Eventually(func() error {
+			return util.UpdateClusterPoolLabel(userHiveClient, clusterPoolName, clusterPoolName, labels)
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
+	})
+})
+
+var _ = ginkgo.Describe("Cluster admin user should fail when updating clusterpool and managedcluster clusterset.", func() {
+	var (
+		clusterPoolNamespace string
+		managedClusterName   string
+		managedClusterSet    string
+		clusterPool          string
+		clusterClaim         string
+		err                  error
+	)
+	ginkgo.BeforeEach(func() {
+		managedClusterName = util.RandomName()
+		managedClusterSet = util.RandomName()
+
+		clusterPoolNamespace = util.RandomName()
+		clusterPool = util.RandomName()
+		clusterClaim = util.RandomName()
+		err = util.CreateNamespace(clusterPoolNamespace)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		clusterSetLabel := map[string]string{"cluster.open-cluster-management.io/clusterset": managedClusterSet}
+		err = util.CreateClusterPool(hiveClient, clusterPool, clusterPoolNamespace, clusterSetLabel)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.CreateClusterClaim(hiveClient, clusterClaim, clusterPoolNamespace, clusterPool)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.CreateClusterDeployment(hiveClient, managedClusterName, managedClusterName, clusterPool, clusterPoolNamespace, nil, false)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.ClaimCluster(hiveClient, managedClusterName, managedClusterName, clusterClaim)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.AfterEach(func() {
+		err = hiveClient.HiveV1().ClusterDeployments(managedClusterName).Delete(context.TODO(), managedClusterName, metav1.DeleteOptions{})
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = hiveClient.HiveV1().ClusterClaims(clusterPoolNamespace).Delete(context.TODO(), clusterClaim, metav1.DeleteOptions{})
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = hiveClient.HiveV1().ClusterPools(clusterPoolNamespace).Delete(context.TODO(), clusterPool, metav1.DeleteOptions{})
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		err = util.DeleteNamespace(clusterPoolNamespace)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	})
+
+	ginkgo.It("try to update clusterpool clusterset label, and it should fail.", func() {
+		ginkgo.By("Try to update clusterpool clusterset, and it should fail")
+		managedClusterSet1 := util.RandomName()
+		clusterSetLabel := map[string]string{
+			clusterv1beta2.ClusterSetLabel: managedClusterSet1,
+		}
+		err = util.UpdateClusterPoolLabel(hiveClient, clusterPool, clusterPoolNamespace, clusterSetLabel)
+		gomega.Expect(err).Should(gomega.HaveOccurred())
+	})
+
+	ginkgo.It("try to update managedcluster clusterset label, and it should fail.", func() {
+		ginkgo.By("Try to update claimed managedcluster clusterset, and it should fail")
+		managedClusterSet1 := util.RandomName()
+		clusterSetLabel := map[string]string{
+			clusterv1beta2.ClusterSetLabel: managedClusterSet1,
+		}
+		err = util.UpdateManagedClusterLabels(clusterClient, managedClusterName, clusterSetLabel)
+		gomega.Expect(err).Should(gomega.HaveOccurred())
 	})
 })
 
