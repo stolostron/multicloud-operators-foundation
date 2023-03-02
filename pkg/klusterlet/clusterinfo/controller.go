@@ -73,10 +73,13 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	newClusterInfo := clusterInfo.DeepCopy()
 
 	syncers := []clusterInfoStatusSyncer{
-		&defaultInfoSyncer{claimLister: r.ClaimLister},
+		&defaultInfoSyncer{
+			claimLister: r.ClaimLister,
+		},
 		&distributionInfoSyncer{
 			configV1Client:       r.ConfigV1Client,
 			managedClusterClient: r.ManagedClusterClient,
+			claimLister:          r.ClaimLister,
 		},
 		&loggingInfoSyncer{
 			clusterName:             r.ClusterName,

@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+
 	configv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
@@ -12,11 +13,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
+	clusterv1alpha1lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1"
 )
 
 type distributionInfoSyncer struct {
 	configV1Client       openshiftclientset.Interface
 	managedClusterClient kubernetes.Interface
+	claimLister          clusterv1alpha1lister.ClusterClaimLister
 }
 
 func (s *distributionInfoSyncer) sync(ctx context.Context, clusterInfo *clusterv1beta1.ManagedClusterInfo) error {
@@ -76,10 +79,16 @@ func (s *distributionInfoSyncer) syncOCPDistributionInfo(ctx context.Context, cl
 		history.Version = historyItem.Version
 		history.Verified = historyItem.Verified
 		ocpDistributionInfo.VersionHistory = append(ocpDistributionInfo.VersionHistory, history)
-		if historyItem.State == "Completed" {
-			ocpDistributionInfo.Version = historyItem.Version
-		}
 	}
+
+	version, err := s.claimLister.Get(clusterclaim.ClaimOpenshiftVersion)
+	if err != nil && !errors.IsNotFound(err) {
+		return fmt.Errorf("Failed to get ocp version, error: %v", err)
+	}
+	if version != nil {
+		ocpDistributionInfo.Version = version.Spec.Value
+	}
+
 	ocpDistributionInfo.ManagedClusterClientConfig = s.getClientConfig(ctx, clusterInfoStatus.CloudVendor)
 	ocpDistributionInfo.UpgradeFailed = false
 	conditions := clusterVersion.Status.Conditions
