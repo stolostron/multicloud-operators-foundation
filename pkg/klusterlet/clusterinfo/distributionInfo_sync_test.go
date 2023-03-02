@@ -2,17 +2,22 @@ package controllers
 
 import (
 	"context"
+	"reflect"
+	"testing"
+	"time"
+
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	configfake "github.com/openshift/client-go/config/clientset/versioned/fake"
 	"github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	kubefake "k8s.io/client-go/kubernetes/fake"
-	"reflect"
-	"testing"
+	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
+	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 )
 
 func newMonitoringSecret() *corev1.Secret {
@@ -29,6 +34,9 @@ func newMonitoringSecret() *corev1.Secret {
 }
 
 func newClusterVersion() *apiconfigv1.ClusterVersion {
+	now := metav1.Now()
+	oneDay := metav1.NewTime(now.AddDate(0, 0, 1))
+	oneMonth := metav1.NewTime(now.AddDate(0, 1, 0))
 	return &apiconfigv1.ClusterVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "version",
@@ -57,10 +65,25 @@ func newClusterVersion() *apiconfigv1.ClusterVersion {
 			},
 			History: []apiconfigv1.UpdateHistory{
 				{
-					Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
-					State:    "Completed",
-					Verified: false,
-					Version:  "4.5.11",
+					Image:          "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+					State:          "Completed",
+					Verified:       false,
+					Version:        "4.6.8",
+					CompletionTime: &oneMonth,
+				},
+				{
+					Image:          "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+					State:          "Completed",
+					Verified:       false,
+					Version:        "4.5.11",
+					CompletionTime: &oneDay,
+				},
+				{
+					Image:          "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+					State:          "Completed",
+					Verified:       false,
+					Version:        "4.4.11",
+					CompletionTime: &now,
 				},
 			},
 			AvailableUpdates: []apiconfigv1.Release{
@@ -185,6 +208,8 @@ func Test_distributionInfo_syncer(t *testing.T) {
 		expectChannelAndURL       bool
 		expectHistoryLen          int
 		expectError               string
+		expectVersion             string
+		claims                    []runtime.Object
 	}{
 		{
 			name: "OCP4.x",
@@ -201,8 +226,13 @@ func Test_distributionInfo_syncer(t *testing.T) {
 			expectUpgradeFail:         false,
 			expectAvailableUpdatesLen: 2,
 			expectChannelAndURL:       true,
-			expectHistoryLen:          1,
+			expectHistoryLen:          3,
 			expectError:               "",
+			claims: []runtime.Object{
+				newClaim(clusterclaim.ClaimOpenshiftVersion, "4.6.8"),
+				newClaim(clusterclaim.ClaimOCMKubeVersion, "v1.20.0"),
+			},
+			expectVersion: "4.6.8",
 		},
 		{
 			name: "OCP3.x",
@@ -214,6 +244,7 @@ func Test_distributionInfo_syncer(t *testing.T) {
 			},
 			configV1Client: newConfigV1Client("3", true),
 			expectError:    "",
+			expectVersion:  "3",
 		},
 		{
 			name: "UpgradeFail",
@@ -232,15 +263,23 @@ func Test_distributionInfo_syncer(t *testing.T) {
 			expectChannelAndURL:       false,
 			expectHistoryLen:          1,
 			expectError:               "",
+			claims:                    []runtime.Object{},
+			expectVersion:             "",
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
+			fakeClusterClient := clusterfake.NewSimpleClientset(test.claims...)
+			clusterInformerFactory := clusterinformers.NewSharedInformerFactory(fakeClusterClient, 10*time.Minute)
+			clusterStore := clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Informer().GetStore()
+			for _, item := range test.claims {
+				clusterStore.Add(item)
+			}
 			syncer := distributionInfoSyncer{
 				configV1Client:       test.configV1Client,
 				managedClusterClient: nil,
+				claimLister:          clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
 			}
 
 			err := syncer.sync(context.TODO(), test.managedClusterInfo)
@@ -253,6 +292,10 @@ func Test_distributionInfo_syncer(t *testing.T) {
 			assert.Equal(t, len(info.Desired.Channels), test.expectDesiredChannelLen)
 			assert.Equal(t, info.UpgradeFailed, test.expectUpgradeFail)
 			assert.Equal(t, len(info.VersionAvailableUpdates), test.expectAvailableUpdatesLen)
+
+			//get the latest succeed version
+			assert.Equal(t, test.expectVersion, info.Version)
+
 			if len(info.VersionAvailableUpdates) != 0 {
 				for _, update := range info.VersionAvailableUpdates {
 					assert.NotEqual(t, update.Version, "")
