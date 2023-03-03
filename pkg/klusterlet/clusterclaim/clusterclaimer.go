@@ -329,8 +329,7 @@ func (c *ClusterClaimer) getOCPVersion() (version, clusterID string, err error) 
 	clusterVersion, err := c.ConfigV1Client.ConfigV1().ClusterVersions().Get(context.TODO(), "version", metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			version = OCP3Version
-			return version, "", nil
+			return OCP3Version, "", nil
 		}
 		klog.Errorf("failed to get OCP cluster version: %v", err)
 		return "", "", err
@@ -338,14 +337,21 @@ func (c *ClusterClaimer) getOCPVersion() (version, clusterID string, err error) 
 
 	clusterID = string(clusterVersion.Spec.ClusterID)
 	historyItems := clusterVersion.Status.History
+
+	var latestCompleteTime *metav1.Time
+	var latestCompleteVersion string
+	// The clusterVersion.Status.History may have several Completed Items.
+	// We need to get the latest one
 	for _, historyItem := range historyItems {
 		if historyItem.State == "Completed" {
-			version = historyItem.Version
-			break
+			if latestCompleteTime.IsZero() || latestCompleteTime.Before(historyItem.CompletionTime) {
+				latestCompleteTime = historyItem.CompletionTime
+				latestCompleteVersion = historyItem.Version
+			}
 		}
 	}
 
-	return version, clusterID, nil
+	return latestCompleteVersion, clusterID, nil
 }
 
 func (c *ClusterClaimer) getOCPOauthRedirectURIs() (string, error) {

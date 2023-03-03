@@ -22,6 +22,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/errors"
+
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	corev1lister "k8s.io/client-go/listers/core/v1"
@@ -380,6 +381,7 @@ func (r *ClusterInfoReconciler) getOCPDistributionInfo(ctx context.Context) (clu
 		history.Verified = historyItem.Verified
 		ocpDistributionInfo.VersionHistory = append(ocpDistributionInfo.VersionHistory, history)
 	}
+
 	ocpDistributionInfo.ManagedClusterClientConfig = r.getClientConfig(ctx)
 	ocpDistributionInfo.UpgradeFailed = false
 	conditions := clusterVersion.Status.Conditions
@@ -392,7 +394,6 @@ func (r *ClusterInfoReconciler) getOCPDistributionInfo(ctx context.Context) (clu
 			break
 		}
 	}
-
 	return ocpDistributionInfo, nil
 }
 

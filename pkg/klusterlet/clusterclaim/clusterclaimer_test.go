@@ -2,10 +2,11 @@ package clusterclaim
 
 import (
 	"fmt"
-	"k8s.io/apimachinery/pkg/types"
 	"sort"
 	"strings"
 	"testing"
+
+	"k8s.io/apimachinery/pkg/types"
 
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	apioauthv1 "github.com/openshift/api/oauth/v1"
@@ -30,6 +31,9 @@ import (
 )
 
 func newClusterVersion() *apiconfigv1.ClusterVersion {
+	now := metav1.Now()
+	oneDay := metav1.NewTime(now.AddDate(0, 0, 1))
+	oneMonth := metav1.NewTime(now.AddDate(0, 1, 0))
 	return &apiconfigv1.ClusterVersion{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "version",
@@ -58,10 +62,25 @@ func newClusterVersion() *apiconfigv1.ClusterVersion {
 			},
 			History: []apiconfigv1.UpdateHistory{
 				{
-					Image:    "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
-					State:    "Completed",
-					Verified: false,
-					Version:  "4.5.11",
+					Image:          "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+					State:          "Completed",
+					Verified:       false,
+					Version:        "4.6.8",
+					CompletionTime: &oneMonth,
+				},
+				{
+					Image:          "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+					State:          "Completed",
+					Verified:       false,
+					Version:        "4.5.11",
+					CompletionTime: &oneDay,
+				},
+				{
+					Image:          "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+					State:          "Completed",
+					Verified:       false,
+					Version:        "4.4.11",
+					CompletionTime: &now,
 				},
 			},
 			AvailableUpdates: []apiconfigv1.Release{
@@ -485,7 +504,7 @@ func TestClusterClaimerList(t *testing.T) {
 			enableSyncLabelsToClusterClaims: true,
 			expectClaims: map[string]string{
 				ClaimK8sID:                      "clusterAWS",
-				ClaimOpenshiftVersion:           "4.5.11",
+				ClaimOpenshiftVersion:           "4.6.8",
 				ClaimOpenshiftID:                "ffd989a0-8391-426d-98ac-86ae6d051433",
 				ClaimOpenshiftInfrastructure:    "{\"infraName\":\"ocp-aws\"}",
 				ClaimOCMPlatform:                PlatformAWS,
@@ -512,7 +531,7 @@ func TestClusterClaimerList(t *testing.T) {
 			enableSyncLabelsToClusterClaims: false,
 			expectClaims: map[string]string{
 				ClaimK8sID:                      "clusterAWS",
-				ClaimOpenshiftVersion:           "4.5.11",
+				ClaimOpenshiftVersion:           "4.6.8",
 				ClaimOpenshiftID:                "ffd989a0-8391-426d-98ac-86ae6d051433",
 				ClaimOpenshiftInfrastructure:    "{\"infraName\":\"ocp-aws\"}",
 				ClaimOCMPlatform:                PlatformAWS,
@@ -536,7 +555,7 @@ func TestClusterClaimerList(t *testing.T) {
 			enableSyncLabelsToClusterClaims: true,
 			expectClaims: map[string]string{
 				ClaimK8sID:                   "clusterOSDGCP",
-				ClaimOpenshiftVersion:        "4.5.11",
+				ClaimOpenshiftVersion:        "4.6.8",
 				ClaimOpenshiftID:             "ffd989a0-8391-426d-98ac-86ae6d051433",
 				ClaimOpenshiftInfrastructure: "{\"infraName\":\"ocp-gcp\"}",
 				ClaimOCMPlatform:             PlatformGCP,
@@ -578,7 +597,7 @@ func TestClusterClaimerList(t *testing.T) {
 			enableSyncLabelsToClusterClaims: true,
 			expectClaims: map[string]string{
 				ClaimK8sID:                      "clusterROKS",
-				ClaimOpenshiftVersion:           "4.5.11",
+				ClaimOpenshiftVersion:           "4.6.8",
 				ClaimOpenshiftID:                "ffd989a0-8391-426d-98ac-86ae6d051433",
 				ClaimOpenshiftInfrastructure:    "{\"infraName\":\"kubernetes\"}",
 				ClaimOCMPlatform:                PlatformIBM,
@@ -772,7 +791,7 @@ func TestGetOCPVersion(t *testing.T) {
 			kubeClient:      newFakeKubeClient(nil),
 			mapper:          newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
 			configV1Client:  newConfigV1Client("4.x", ""),
-			expectVersion:   "4.5.11",
+			expectVersion:   "4.6.8",
 			expectClusterID: "ffd989a0-8391-426d-98ac-86ae6d051433",
 			expectErr:       nil,
 		},
