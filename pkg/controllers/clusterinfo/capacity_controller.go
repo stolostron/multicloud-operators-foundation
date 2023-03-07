@@ -23,6 +23,7 @@ const (
 	LabelNodeRoleOldControlPlane                        = "node-role.kubernetes.io/master"
 	LabelNodeRoleControlPlane                           = "node-role.kubernetes.io/control-plane"
 	LabelNodeRoleInfra                                  = "node-role.kubernetes.io/infra"
+	LabelNodeRoleWorker                                 = "node-role.kubernetes.io/worker"
 )
 
 type CapacityReconciler struct {
@@ -92,17 +93,21 @@ func (r *CapacityReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 }
 
 // for OCP,the master and infra nodes are not included in the subscription cost calculation.
+// the worker nodes are include the nodes with worker label or without controlPlane or infra label.
 func isWorker(node clusterinfov1beta1.NodeStatus) bool {
 	if node.Labels == nil {
 		return true
 	}
 
+	isControlPlane := false
 	for key := range node.Labels {
 		switch key {
+		case LabelNodeRoleWorker:
+			return true
 		case LabelNodeRoleOldControlPlane, LabelNodeRoleControlPlane, LabelNodeRoleInfra:
-			return false
+			isControlPlane = true
 		}
 	}
 
-	return true
+	return !isControlPlane
 }
