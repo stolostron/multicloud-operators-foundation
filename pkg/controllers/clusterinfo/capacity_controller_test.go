@@ -148,3 +148,51 @@ func newCapacity(resources map[clusterv1.ResourceName]int64) clusterv1.ResourceL
 
 	return r
 }
+
+func Test_IsWorker(t *testing.T) {
+	tests := []struct {
+		name     string
+		node     clusterv1beta1.NodeStatus
+		expected bool
+	}{
+		{
+			name: "no label",
+			node: clusterv1beta1.NodeStatus{
+				Name:   "",
+				Labels: nil,
+			},
+			expected: true,
+		},
+		{
+			name: "SNO",
+			node: clusterv1beta1.NodeStatus{
+				Name:   "",
+				Labels: map[string]string{LabelNodeRoleOldControlPlane: "", LabelNodeRoleWorker: ""},
+			},
+			expected: true,
+		},
+		{
+			name: "no worker label",
+			node: clusterv1beta1.NodeStatus{
+				Name:   "",
+				Labels: map[string]string{"myLabel": ""},
+			},
+			expected: true,
+		},
+		{
+			name: "infra node",
+			node: clusterv1beta1.NodeStatus{
+				Name:   "",
+				Labels: map[string]string{LabelNodeRoleInfra: ""},
+			},
+			expected: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if test.expected != isWorker(test.node) {
+				t.Errorf("expected %v, but got %v", test.expected, isWorker(test.node))
+			}
+		})
+	}
+}
