@@ -138,15 +138,10 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		},
 	}
 
-	leaseDurationTime, renewDeadlineTime, retryPeriodTime := convertLeaderElectionOptions(o.LeaseDuration, o.RenewDeadline, o.RetryPeriod)
-
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
 		Scheme:                 scheme,
 		LeaderElectionID:       "foundation-controller",
 		LeaderElection:         o.EnableLeaderElection,
-		LeaseDuration:          leaseDurationTime,
-		RenewDeadline:          renewDeadlineTime,
-		RetryPeriod:            retryPeriodTime,
 		HealthProbeBindAddress: ":8000",
 		NewCache:               filteredcache.NewFilteredCacheBuilder(gvkLabelMap),
 	})
@@ -310,30 +305,4 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	}
 
 	return nil
-}
-
-// convertLeaderElectionOptions convert the LeaderElectionOptions from int to time.Duration
-func convertLeaderElectionOptions(leaseDuration, renewDeadline, retryPeriod int) (leaseDurationTime, renewDeadlineTime, retryPeriodTime *time.Duration) {
-	if leaseDuration < 0 {
-		leaseDurationTime = nil
-	} else {
-		tmpLeaseDurationTime := time.Duration(leaseDuration) * time.Second
-		leaseDurationTime = &tmpLeaseDurationTime
-	}
-
-	if renewDeadline < 0 {
-		renewDeadlineTime = nil
-	} else {
-		tmpRenewDeadlineTime := time.Duration(renewDeadline) * time.Second
-		renewDeadlineTime = &tmpRenewDeadlineTime
-	}
-
-	if retryPeriod < 0 {
-		retryPeriodTime = nil
-	} else {
-		tmpRetryPeriodTime := time.Duration(retryPeriod) * time.Second
-		retryPeriodTime = &tmpRetryPeriodTime
-	}
-
-	return leaseDurationTime, renewDeadlineTime, retryPeriodTime
 }

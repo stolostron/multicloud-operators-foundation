@@ -13,9 +13,6 @@ type ControllerRunOptions struct {
 	LogCertSecret         string
 	EnableInventory       bool
 	EnableLeaderElection  bool
-	LeaseDuration         int
-	RenewDeadline         int
-	RetryPeriod           int
 	EnableAddonDeploy     bool
 	AddonImage            string
 	AddonInstallNamespace string
@@ -31,9 +28,6 @@ func NewControllerRunOptions() *ControllerRunOptions {
 		LogCertSecret:         "ocm-klusterlet-self-signed-secrets",
 		EnableInventory:       true,
 		EnableLeaderElection:  true,
-		LeaseDuration:         -1,
-		RenewDeadline:         -1,
-		RetryPeriod:           -1,
 		EnableAddonDeploy:     false,
 		QPS:                   100.0,
 		Burst:                 200,
@@ -55,11 +49,6 @@ func (o *ControllerRunOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-
-	fs.IntVar(&o.LeaseDuration, "lease-duration", o.LeaseDuration, "Non-leader candidates will wait to force acquire leadership. Default is 15 seconds.")
-	fs.IntVar(&o.RenewDeadline, "renew-deadline", o.RenewDeadline, "Acting controlplane will retry refreshing leadership before giving up. Default is 10 seconds")
-	fs.IntVar(&o.RetryPeriod, "retry-period", o.RetryPeriod, "LeaderElector clients should wait between tries of actions. Default is 2 seconds")
-
 	fs.BoolVar(&o.EnableAddonDeploy, "enable-agent-deploy", o.EnableAddonDeploy,
 		"Enable deploy addon agent.")
 	fs.StringVar(&o.AddonImage, "agent-addon-image", o.AddonImage,
