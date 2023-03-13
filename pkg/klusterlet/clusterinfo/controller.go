@@ -52,6 +52,8 @@ type ClusterInfoReconciler struct {
 	AgentNamespace          string
 	AgentPort               int32
 	Agent                   *agent.Agent
+	// logging info syncer is used for search-ui only to get pod logs
+	DisableLoggingInfoSyncer bool
 }
 
 type clusterInfoStatusSyncer interface {
@@ -81,7 +83,9 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			managedClusterClient: r.ManagedClusterClient,
 			claimLister:          r.ClaimLister,
 		},
-		&loggingInfoSyncer{
+	}
+	if !r.DisableLoggingInfoSyncer {
+		syncers = append(syncers, &loggingInfoSyncer{
 			clusterName:             r.ClusterName,
 			agentName:               r.AgentName,
 			agentNamespace:          r.AgentNamespace,
@@ -90,7 +94,7 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			managementClusterClient: r.ManagementClusterClient,
 			routeV1Client:           r.RouteV1Client,
 			configV1Client:          r.ConfigV1Client,
-		},
+		})
 	}
 	var errs []error
 	for _, s := range syncers {
