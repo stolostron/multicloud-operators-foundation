@@ -29,17 +29,12 @@ func (a *AdmissionHandler) mutateResource(ar *v1.AdmissionRequest) *v1.Admission
 		return serve.ToAdmissionResponse(err)
 	}
 
-	annotations := obj.GetAnnotations()
-
 	if utils.ContainsString(a.SkipOverwriteUserList, ar.UserInfo.Username) {
 		klog.V(4).Infof("Skip add user and group for resource: %+v, name: %+v", ar.Resource.Resource, obj.GetName())
 		reviewResponse := v1.AdmissionResponse{}
 		reviewResponse.Allowed = true
 		return &reviewResponse
 	}
-
-	resAnnotations := MergeUserIdentityToAnnotations(ar.UserInfo, annotations, obj.GetNamespace(), a.Lister)
-	obj.SetAnnotations(resAnnotations)
 
 	reviewResponse := v1.AdmissionResponse{}
 	reviewResponse.Allowed = true
