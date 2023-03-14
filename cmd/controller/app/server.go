@@ -138,10 +138,24 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		},
 	}
 
+	var leaseDuration, renewDeadline, retryPeriod *time.Duration
+	if o.LeaseDuration.Seconds() != 0 {
+		leaseDuration = &o.LeaseDuration
+	}
+	if o.RenewDeadline.Seconds() != 0 {
+		renewDeadline = &o.RenewDeadline
+	}
+	if o.RetryPeriod.Seconds() != 0 {
+		retryPeriod = &o.RetryPeriod
+	}
+
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
 		Scheme:                 scheme,
 		LeaderElectionID:       "foundation-controller",
 		LeaderElection:         o.EnableLeaderElection,
+		LeaseDuration:          leaseDuration,
+		RenewDeadline:          renewDeadline,
+		RetryPeriod:            retryPeriod,
 		HealthProbeBindAddress: ":8000",
 		NewCache:               filteredcache.NewFilteredCacheBuilder(gvkLabelMap),
 	})
