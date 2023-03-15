@@ -7,7 +7,7 @@ import (
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hivefake "github.com/openshift/hive/pkg/client/clientset/versioned/fake"
-	"github.com/stolostron/cluster-lifecycle-api/constants"
+	apiconstants "github.com/stolostron/cluster-lifecycle-api/constants"
 	v1 "k8s.io/api/admission/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,6 +17,8 @@ import (
 	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+
+	"github.com/stolostron/multicloud-operators-foundation/pkg/constants"
 )
 
 const (
@@ -430,14 +432,142 @@ func TestDeleteHosteingCluster(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: "c1",
 						Annotations: map[string]string{
-							constants.AnnotationKlusterletDeployMode:         "Hosted",
-							constants.AnnotationKlusterletHostingClusterName: "c0",
+							apiconstants.AnnotationKlusterletDeployMode:         "Hosted",
+							apiconstants.AnnotationKlusterletHostingClusterName: "c0",
 						},
 					},
 				},
 			},
 			expectedResponse: &v1.AdmissionResponse{
 				Allowed: false,
+			},
+		},
+		{
+			name: "not allowed to delete a hosting cluster with claim",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Delete,
+				Name:      "c0",
+			},
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c0",
+						Labels: map[string]string{
+							constants.LabelFeatureHypershiftAddon: "available",
+						},
+					},
+					Status: clusterv1.ManagedClusterStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ManagedClusterConditionAvailable,
+								Status: metav1.ConditionTrue,
+								Reason: "available",
+							},
+						},
+						ClusterClaims: []clusterv1.ManagedClusterClaim{
+							{
+								Name:  constants.ClusterClaimHostedClusterCountZero,
+								Value: "false",
+							},
+						},
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: false,
+			},
+		},
+		{
+			name: "allow to delete a hosting cluster, no claim",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Delete,
+				Name:      "c0",
+			},
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c0",
+						Labels: map[string]string{
+							constants.LabelFeatureHypershiftAddon: "available",
+						},
+					},
+					Status: clusterv1.ManagedClusterStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ManagedClusterConditionAvailable,
+								Status: metav1.ConditionTrue,
+								Reason: "available",
+							},
+						},
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "allow to delete a hosting cluster, cluster not available",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Delete,
+				Name:      "c0",
+			},
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c0",
+						Labels: map[string]string{
+							constants.LabelFeatureHypershiftAddon: "available",
+						},
+					},
+					Status: clusterv1.ManagedClusterStatus{
+						ClusterClaims: []clusterv1.ManagedClusterClaim{
+							{
+								Name:  constants.ClusterClaimHostedClusterCountZero,
+								Value: "false",
+							},
+						},
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "allow to delete a hosting cluster, hypershift addon not available",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Delete,
+				Name:      "c0",
+			},
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c0",
+					},
+					Status: clusterv1.ManagedClusterStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ManagedClusterConditionAvailable,
+								Status: metav1.ConditionTrue,
+								Reason: "available",
+							},
+						},
+						ClusterClaims: []clusterv1.ManagedClusterClaim{
+							{
+								Name:  constants.ClusterClaimHostedClusterCountZero,
+								Value: "false",
+							},
+						},
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
 			},
 		},
 	}

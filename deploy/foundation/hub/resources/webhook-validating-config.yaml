@@ -29,8 +29,18 @@ webhooks:
         apiVersions:
           - "v1"
         resources:
-          - clusterdeployments
           - clusterpools
+        scope: '*'
+      - apiGroups:
+          - hive.openshift.io
+        operations:
+          - CREATE
+          - UPDATE
+          - DELETE
+        apiVersions:
+          - "v1"
+        resources:
+          - clusterdeployments
         scope: '*'
       - apiGroups:
           - cluster.open-cluster-management.io
