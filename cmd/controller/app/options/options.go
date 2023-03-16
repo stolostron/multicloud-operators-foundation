@@ -3,8 +3,6 @@
 package options
 
 import (
-	"time"
-
 	"github.com/spf13/pflag"
 )
 
@@ -15,9 +13,6 @@ type ControllerRunOptions struct {
 	LogCertSecret         string
 	EnableInventory       bool
 	EnableLeaderElection  bool
-	LeaseDuration         time.Duration
-	RenewDeadline         time.Duration
-	RetryPeriod           time.Duration
 	EnableAddonDeploy     bool
 	AddonImage            string
 	AddonInstallNamespace string
@@ -54,12 +49,6 @@ func (o *ControllerRunOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	fs.DurationVar(&o.LeaseDuration, "lease-duration", o.LeaseDuration,
-		"Non-leader candidates will wait to force acquire leadership.")
-	fs.DurationVar(&o.RenewDeadline, "renew-deadline", o.RenewDeadline,
-		"Acting controlplane will retry refreshing leadership before giving up.")
-	fs.DurationVar(&o.RetryPeriod, "retry-period", o.RetryPeriod,
-		"LeaderElector clients should wait between tries of actions.")
 	fs.BoolVar(&o.EnableAddonDeploy, "enable-agent-deploy", o.EnableAddonDeploy,
 		"Enable deploy addon agent.")
 	fs.StringVar(&o.AddonImage, "agent-addon-image", o.AddonImage,
