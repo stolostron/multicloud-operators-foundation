@@ -142,6 +142,9 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		Scheme:                 scheme,
 		LeaderElectionID:       "foundation-controller",
 		LeaderElection:         o.EnableLeaderElection,
+		LeaseDuration:          &o.LeaseDuration,
+		RenewDeadline:          &o.RenewDeadline,
+		RetryPeriod:            &o.RetryPeriod,
 		HealthProbeBindAddress: ":8000",
 		NewCache:               filteredcache.NewFilteredCacheBuilder(gvkLabelMap),
 	})
