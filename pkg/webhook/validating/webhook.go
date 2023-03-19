@@ -58,11 +58,6 @@ var clusterDeploymentsGVR = metav1.GroupVersionResource{
 	Version:  "v1",
 	Resource: "clusterdeployments",
 }
-var clusterClaimsGVR = metav1.GroupVersionResource{
-	Group:    "hive.openshift.io",
-	Version:  "v1",
-	Resource: "clusterclaims",
-}
 
 var agentClusterOwnerRef = metav1.OwnerReference{
 	Kind:       "AgentCluster",
@@ -79,8 +74,6 @@ func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.Ad
 		return a.validateClusterPool(request)
 	case managedClustersGVR:
 		return a.validateManagedCluster(request)
-	case clusterClaimsGVR:
-		return a.validateClusterClaim(request)
 	default:
 		return a.responseAllowed()
 	}
@@ -143,19 +136,7 @@ func (a *AdmissionHandler) validateClusterDeployment(request *v1.AdmissionReques
 		// clusterset label back.
 		return a.validateAllowUpdateClusterSet(request.UserInfo, oldClusterSet, newClusterSet)
 	case v1.Delete:
-		cdName := request.Name
-		cdNamespace := request.Namespace
-		clusterDeployment, err := a.HiveClient.HiveV1().ClusterDeployments(cdNamespace).Get(
-			context.TODO(), cdName, metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return a.responseAllowed()
-			}
-			return a.responseNotAllowed(err.Error())
-		}
-
-		managedClusterName := clusterDeployment.Name
-		return a.validatingIsHypershiftHostingCluster(managedClusterName)
+		return a.validatingIsHypershiftHostingCluster(request.Name)
 	}
 
 	return a.responseAllowed()
@@ -255,27 +236,6 @@ func (a *AdmissionHandler) validateManagedCluster(request *v1.AdmissionRequest) 
 	return a.responseAllowed()
 }
 
-func (a *AdmissionHandler) validateClusterClaim(request *v1.AdmissionRequest) *v1.AdmissionResponse {
-	switch request.Operation {
-	case v1.Delete:
-		claimName := request.Name
-		cliamNamespace := request.Namespace
-		clusterClaim, err := a.HiveClient.HiveV1().ClusterClaims(cliamNamespace).Get(
-			context.TODO(), claimName, metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return a.responseAllowed()
-			}
-			return a.responseNotAllowed(err.Error())
-		}
-
-		managedClusterName := clusterClaim.Spec.Namespace
-		return a.validatingIsHypershiftHostingCluster(managedClusterName)
-	}
-
-	return a.responseAllowed()
-}
-
 func (a *AdmissionHandler) validatingIsHypershiftHostingCluster(managedClusterName string) *v1.AdmissionResponse {
 	managedCluster, err := a.ClusterLister.Get(managedClusterName)
 	if err != nil {
@@ -283,6 +243,10 @@ func (a *AdmissionHandler) validatingIsHypershiftHostingCluster(managedClusterNa
 			return a.responseAllowed()
 		}
 		return a.responseNotAllowed(err.Error())
+	}
+
+	if !managedCluster.DeletionTimestamp.IsZero() {
+		return a.responseAllowed()
 	}
 
 	hasHostedClusters := false

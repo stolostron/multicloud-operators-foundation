@@ -479,6 +479,40 @@ func TestDeleteHosteingCluster(t *testing.T) {
 			},
 		},
 		{
+			name: "allow to delete a hosting cluster, cluster already in deletion status",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Delete,
+				Name:      "c0",
+			},
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "c0",
+						DeletionTimestamp: &metav1.Time{Time: time.Now()},
+					},
+					Status: clusterv1.ManagedClusterStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ManagedClusterConditionAvailable,
+								Status: metav1.ConditionTrue,
+								Reason: "available",
+							},
+						},
+						ClusterClaims: []clusterv1.ManagedClusterClaim{
+							{
+								Name:  constants.ClusterClaimHostedClusterCountZero,
+								Value: "false",
+							},
+						},
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
 			name: "allow to delete a hosting cluster, no claim",
 			request: &v1.AdmissionRequest{
 				Resource:  managedClustersGVR,
@@ -576,6 +610,223 @@ func TestDeleteHosteingCluster(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			kubeClient := kubefake.NewSimpleClientset()
 			hiveClient := hivefake.NewSimpleClientset()
+			clusterClient := clusterfake.NewSimpleClientset(c.existingManagedClusters...)
+			clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
+			clusterStore := clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore()
+			for _, cluster := range c.existingManagedClusters {
+				if err := clusterStore.Add(cluster); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			admissionHandler := &AdmissionHandler{
+				KubeClient:    kubeClient,
+				HiveClient:    hiveClient,
+				ClusterLister: clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),
+			}
+
+			actualResponse := admissionHandler.validateResource(c.request)
+
+			if !reflect.DeepEqual(actualResponse.Allowed, c.expectedResponse.Allowed) {
+				t.Errorf("case: %v,expected %#v but got: %#v", c.name, c.expectedResponse, actualResponse)
+			}
+		})
+	}
+}
+
+func TestDeleteClusterDeployment(t *testing.T) {
+	cases := []struct {
+		name                       string
+		request                    *v1.AdmissionRequest
+		existingManagedClusters    []runtime.Object
+		existingClusterDeployments []runtime.Object
+		expectedResponse           *v1.AdmissionResponse
+	}{
+		{
+			name: "not allowed to delete the clusterDeployment",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Delete,
+				Name:      "c0",
+			},
+			existingClusterDeployments: []runtime.Object{
+				&hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "c0",
+						Namespace: "test",
+					},
+				},
+			},
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c0",
+						Labels: map[string]string{
+							constants.LabelFeatureHypershiftAddon: "available",
+						},
+					},
+					Status: clusterv1.ManagedClusterStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ManagedClusterConditionAvailable,
+								Status: metav1.ConditionTrue,
+								Reason: "available",
+							},
+						},
+						ClusterClaims: []clusterv1.ManagedClusterClaim{
+							{
+								Name:  constants.ClusterClaimHostedClusterCountZero,
+								Value: "false",
+							},
+						},
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: false,
+			},
+		},
+		{
+			name: "allow to delete, managed cluster not found",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Delete,
+				Name:      "c0",
+			},
+			existingClusterDeployments: []runtime.Object{
+				&hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "c0",
+						Namespace: "test",
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "allow to delete, no claim",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Delete,
+				Name:      "c0",
+			},
+			existingClusterDeployments: []runtime.Object{
+				&hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "c0",
+						Namespace: "test",
+					},
+				},
+			},
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c0",
+						Labels: map[string]string{
+							constants.LabelFeatureHypershiftAddon: "available",
+						},
+					},
+					Status: clusterv1.ManagedClusterStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ManagedClusterConditionAvailable,
+								Status: metav1.ConditionTrue,
+								Reason: "available",
+							},
+						},
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "allow to delete, managed cluster unavailable",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Delete,
+				Name:      "c0",
+			},
+			existingClusterDeployments: []runtime.Object{
+				&hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "c0",
+						Namespace: "test",
+					},
+				},
+			},
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c0",
+						Labels: map[string]string{
+							constants.LabelFeatureHypershiftAddon: "available",
+						},
+					},
+					Status: clusterv1.ManagedClusterStatus{
+						ClusterClaims: []clusterv1.ManagedClusterClaim{
+							{
+								Name:  constants.ClusterClaimHostedClusterCountZero,
+								Value: "false",
+							},
+						},
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "allow to delete, hypershift addon unavailable",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Delete,
+				Name:      "c0",
+			},
+			existingClusterDeployments: []runtime.Object{
+				&hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "c0",
+						Namespace: "test",
+					},
+				},
+			},
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c0",
+					},
+					Status: clusterv1.ManagedClusterStatus{
+						Conditions: []metav1.Condition{
+							{
+								Type:   clusterv1.ManagedClusterConditionAvailable,
+								Status: metav1.ConditionTrue,
+								Reason: "available",
+							},
+						},
+						ClusterClaims: []clusterv1.ManagedClusterClaim{
+							{
+								Name:  constants.ClusterClaimHostedClusterCountZero,
+								Value: "false",
+							},
+						},
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			kubeClient := kubefake.NewSimpleClientset()
+			hiveClient := hivefake.NewSimpleClientset(c.existingClusterDeployments...)
 			clusterClient := clusterfake.NewSimpleClientset(c.existingManagedClusters...)
 			clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
 			clusterStore := clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore()
