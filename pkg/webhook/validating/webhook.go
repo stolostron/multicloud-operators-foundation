@@ -64,7 +64,7 @@ var agentClusterOwnerRef = metav1.OwnerReference{
 	APIVersion: "capi-provider.agent-install.openshift.io/v1alpha1",
 }
 
-func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.AdmissionResponse {
+func (a *AdmissionHandler) ValidateResource(request *v1.AdmissionRequest) *v1.AdmissionResponse {
 	switch request.Resource {
 	case managedClusterSetsGVR:
 		return a.validateManagedClusterSet(request)
@@ -358,7 +358,7 @@ func (a *AdmissionHandler) allowUpdateClusterSet(
 }
 
 func (a *AdmissionHandler) ServeValidateResource(w http.ResponseWriter, r *http.Request) {
-	serve.Serve(w, r, a.validateResource)
+	serve.Serve(w, r, a.ValidateResource)
 }
 
 func (a *AdmissionHandler) responseAllowed() *v1.AdmissionResponse {

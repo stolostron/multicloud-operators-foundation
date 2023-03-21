@@ -162,3 +162,5 @@ ifeq "" "$(wildcard $(KUSTOMIZE))"
 else
 	$(info Using existing kustomize from "$(KUSTOMIZE)")
 endif
+
+include ./test/integration-test.mk

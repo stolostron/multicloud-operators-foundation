@@ -381,7 +381,7 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 
 			admissionHandler := &AdmissionHandler{KubeClient: kubeClient, HiveClient: hiveClient}
 
-			actualResponse := admissionHandler.validateResource(c.request)
+			actualResponse := admissionHandler.ValidateResource(c.request)
 
 			if !reflect.DeepEqual(actualResponse.Allowed, c.expectedResponse.Allowed) {
 				t.Errorf("case: %v,expected %#v but got: %#v", c.name, c.expectedResponse, actualResponse)
@@ -625,7 +625,7 @@ func TestDeleteHosteingCluster(t *testing.T) {
 				ClusterLister: clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),
 			}
 
-			actualResponse := admissionHandler.validateResource(c.request)
+			actualResponse := admissionHandler.ValidateResource(c.request)
 
 			if !reflect.DeepEqual(actualResponse.Allowed, c.expectedResponse.Allowed) {
 				t.Errorf("case: %v,expected %#v but got: %#v", c.name, c.expectedResponse, actualResponse)
@@ -842,7 +842,7 @@ func TestDeleteClusterDeployment(t *testing.T) {
 				ClusterLister: clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),
 			}
 
-			actualResponse := admissionHandler.validateResource(c.request)
+			actualResponse := admissionHandler.ValidateResource(c.request)
 
 			if !reflect.DeepEqual(actualResponse.Allowed, c.expectedResponse.Allowed) {
 				t.Errorf("case: %v,expected %#v but got: %#v", c.name, c.expectedResponse, actualResponse)
