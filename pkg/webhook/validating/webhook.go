@@ -5,15 +5,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
-	"github.com/stolostron/cluster-lifecycle-api/constants"
+	apiconstants "github.com/stolostron/cluster-lifecycle-api/constants"
 	v1 "k8s.io/api/admission/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
@@ -23,6 +25,7 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
+	"github.com/stolostron/multicloud-operators-foundation/pkg/constants"
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/serve"
 )
@@ -61,7 +64,7 @@ var agentClusterOwnerRef = metav1.OwnerReference{
 	APIVersion: "capi-provider.agent-install.openshift.io/v1alpha1",
 }
 
-func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.AdmissionResponse {
+func (a *AdmissionHandler) ValidateResource(request *v1.AdmissionRequest) *v1.AdmissionResponse {
 	switch request.Resource {
 	case managedClusterSetsGVR:
 		return a.validateManagedClusterSet(request)
@@ -79,29 +82,29 @@ func (a *AdmissionHandler) validateResource(request *v1.AdmissionRequest) *v1.Ad
 // validateManagedClusterSet validates the managed cluster set,
 // only allow creating/updating global clusterset and legacy clusterset
 func (a *AdmissionHandler) validateManagedClusterSet(request *v1.AdmissionRequest) *v1.AdmissionResponse {
-	//only handle clusterset create/update request
-	if request.Operation != v1.Create && request.Operation != v1.Update {
-		return a.responseAllowed()
-	}
+	switch request.Operation {
+	case v1.Create, v1.Update:
+		clusterset := &clusterv1beta2.ManagedClusterSet{}
+		if err := json.Unmarshal(request.Object.Raw, clusterset); err != nil {
+			return a.responseNotAllowed(err.Error())
+		}
+		//allow creating/updating global clusterset
+		if clusterset.Name == clustersetutils.GlobalSetName {
+			if equality.Semantic.DeepEqual(clusterset.Spec, clustersetutils.GlobalSet.Spec) {
+				return a.responseAllowed()
+			}
+			return a.responseNotAllowed("Do not allow to create/update global clusterset")
+		}
 
-	clusterset := &clusterv1beta2.ManagedClusterSet{}
-	if err := json.Unmarshal(request.Object.Raw, clusterset); err != nil {
-		return a.responseNotAllowed(err.Error())
-	}
-	//allow creating/updating global clusterset
-	if clusterset.Name == clustersetutils.GlobalSetName {
-		if equality.Semantic.DeepEqual(clusterset.Spec, clustersetutils.GlobalSet.Spec) {
+		//allow creating/updating legacy clusterset
+		if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta2.ExclusiveClusterSetLabel {
 			return a.responseAllowed()
 		}
-		return a.responseNotAllowed("Do not allow to create/update global clusterset")
+
+		return a.responseNotAllowed("Do not allow to create/update this kind of clusterset")
 	}
 
-	//allow creating/updating legacy clusterset
-	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta2.ExclusiveClusterSetLabel {
-		return a.responseAllowed()
-	}
-
-	return a.responseNotAllowed("Do not allow to create/update this kind of clusterset")
+	return a.responseAllowed()
 }
 
 func (a *AdmissionHandler) validateClusterDeployment(request *v1.AdmissionRequest) *v1.AdmissionResponse {
@@ -132,6 +135,8 @@ func (a *AdmissionHandler) validateClusterDeployment(request *v1.AdmissionReques
 		// he/she has permission, but clusterdeployment controller will always sync the clusterdeployment's
 		// clusterset label back.
 		return a.validateAllowUpdateClusterSet(request.UserInfo, oldClusterSet, newClusterSet)
+	case v1.Delete:
+		return a.validatingIsHypershiftHostingCluster(request.Name)
 	}
 
 	return a.responseAllowed()
@@ -211,10 +216,10 @@ func (a *AdmissionHandler) validateManagedCluster(request *v1.AdmissionRequest) 
 
 		var hostedClusters = make([]string, 0)
 		for _, cluster := range clusters {
-			if cluster.GetAnnotations()[constants.AnnotationKlusterletDeployMode] != "Hosted" {
+			if cluster.GetAnnotations()[apiconstants.AnnotationKlusterletDeployMode] != "Hosted" {
 				continue
 			}
-			if cluster.GetAnnotations()[constants.AnnotationKlusterletHostingClusterName] != clusterName {
+			if cluster.GetAnnotations()[apiconstants.AnnotationKlusterletHostingClusterName] != clusterName {
 				continue
 			}
 			hostedClusters = append(hostedClusters, cluster.Name)
@@ -224,7 +229,41 @@ func (a *AdmissionHandler) validateManagedCluster(request *v1.AdmissionRequest) 
 			return a.responseNotAllowed(fmt.Sprintf(
 				"Not allowed to delete, please delete the hosted clusters %v first", hostedClusters))
 		}
+
+		return a.validatingIsHypershiftHostingCluster(clusterName)
+	}
+
+	return a.responseAllowed()
+}
+
+func (a *AdmissionHandler) validatingIsHypershiftHostingCluster(managedClusterName string) *v1.AdmissionResponse {
+	managedCluster, err := a.ClusterLister.Get(managedClusterName)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return a.responseAllowed()
+		}
+		return a.responseNotAllowed(err.Error())
+	}
+
+	if !managedCluster.DeletionTimestamp.IsZero() {
 		return a.responseAllowed()
+	}
+
+	hasHostedClusters := false
+	for _, claim := range managedCluster.Status.ClusterClaims {
+		if claim.Name == constants.ClusterClaimHostedClusterCountZero && strings.EqualFold(claim.Value, "false") {
+			hasHostedClusters = true
+		}
+	}
+
+	// the ClusterClaimKeyHostedClusterCountZero is managed by the hypershift addon, so here we check if the addon
+	// is available;
+	// We only deny this delete request with 100% certainty, because this webhook on delete requests is dangerous
+	if hasHostedClusters && meta.IsStatusConditionPresentAndEqual(managedCluster.Status.Conditions,
+		clusterv1.ManagedClusterConditionAvailable, metav1.ConditionTrue) {
+		if value, ok := managedCluster.GetLabels()[constants.LabelFeatureHypershiftAddon]; ok && value == "available" {
+			return a.responseNotAllowed("Not allowed to delete, the cluster is hosting some hypershift clusters")
+		}
 	}
 
 	return a.responseAllowed()
@@ -319,7 +358,7 @@ func (a *AdmissionHandler) allowUpdateClusterSet(
 }
 
 func (a *AdmissionHandler) ServeValidateResource(w http.ResponseWriter, r *http.Request) {
-	serve.Serve(w, r, a.validateResource)
+	serve.Serve(w, r, a.ValidateResource)
 }
 
 func (a *AdmissionHandler) responseAllowed() *v1.AdmissionResponse {
