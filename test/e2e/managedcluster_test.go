@@ -191,8 +191,8 @@ var _ = ginkgo.Describe("Testing ManagedCluster", func() {
 				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClusterClusterRoleName, metav1.GetOptions{})
 				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-		})
-		ginkgo.It("Check if clusterrole admin/view deleted after managedcluster deleted", func() {
+
+			ginkgo.By("clusterrole admin/view should be deleted after managedcluster deleted")
 			err := util.CleanManagedCluster(clusterClient, testCluster)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			gomega.Eventually(func() bool {

@@ -766,6 +766,16 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 		})
 
 		ginkgo.It("managedCluster clusterRoleBinding and namespace roleBinding should be deleted successfully after managedClusterSet is deleted", func() {
+			ginkgo.By("make sure managedCluster admin clusterRoleBinding be created")
+			gomega.Eventually(func() error {
+				_, err = kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), adminClusterClusterRoleBindingName, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+			gomega.Eventually(func() error {
+				_, err = kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), viewClusterClusterRoleBindingName, metav1.GetOptions{})
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
 			ginkgo.By("delete managedClusterSet")
 			err = clusterClient.ClusterV1beta2().ManagedClusterSets().Delete(context.Background(), managedClusterSet, metav1.DeleteOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
@@ -776,11 +786,12 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				return errors.IsNotFound(err)
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 
-			ginkgo.By("managedCluster view clusterRoleBinding should be deleted")
-			gomega.Eventually(func() bool {
+			//we need the view clusterrolebinding for global set, so it will not be deleted
+			ginkgo.By("managedCluster view clusterRoleBinding should not be deleted")
+			gomega.Eventually(func() error {
 				_, err = kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), viewClusterClusterRoleBindingName, metav1.GetOptions{})
-				return errors.IsNotFound(err)
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 			ginkgo.By("managedCluster namespace admin roleBinding should be deleted")
 			gomega.Eventually(func() bool {
@@ -788,11 +799,12 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				return errors.IsNotFound(err)
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 
-			ginkgo.By("managedCluster namespace view roleBinding should be deleted")
-			gomega.Eventually(func() bool {
+			//we need the view rolebinding for global set, so it will not be deleted
+			ginkgo.By("managedCluster namespace view roleBinding should not be deleted")
+			gomega.Eventually(func() error {
 				_, err = kubeClient.RbacV1().RoleBindings(managedCluster).Get(context.Background(), viewRoleBindingName, metav1.GetOptions{})
-				return errors.IsNotFound(err)
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 			ginkgo.By("clusterPool namespace admin roleBinding should be deleted")
 			gomega.Eventually(func() error {
