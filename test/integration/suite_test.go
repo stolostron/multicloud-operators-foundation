@@ -83,8 +83,7 @@ var _ = ginkgo.BeforeSuite(func() {
 				Webhooks: []admissionv1.ValidatingWebhook{
 					{
 						Name:                    "ocm.validating.webhook.admission.open-cluster-management.io",
-						AdmissionReviewVersions: []string{"v1", "v1beta1"},
-						// AdmissionReviewVersions: []string{"v1"},
+						AdmissionReviewVersions: []string{"v1"},
 						ClientConfig: admissionv1.WebhookClientConfig{
 							Service: &admissionv1.ServiceReference{
 								Path: strPtr(validatingWebhookPath),
