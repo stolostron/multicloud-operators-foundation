@@ -2,14 +2,17 @@ package gc
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	actionv1beta1 "github.com/stolostron/cluster-lifecycle-api/action/v1beta1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	"k8s.io/apimachinery/pkg/api/meta"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
@@ -30,6 +33,7 @@ type Reconciler struct {
 const (
 	gcTimeout                      = 60 * time.Second
 	ClustersetFinalizerName string = "open-cluster-management.io/clusterset"
+	disableRBAC                    = true
 )
 
 func SetupWithManager(mgr manager.Manager) error {
@@ -123,8 +127,70 @@ func (c *CleanGarbageFinalizer) clean() (bool, error) {
 			allFinalizerRmoved = false
 		}
 	}
+	c.cleanClusterRoleBindings("admin")
+	c.cleanClusterRoleBindings("view")
+	c.cleanRoleBindings("admin")
+	c.cleanRoleBindings("view")
+	c.cleanClusterRoles("admin")
+	c.cleanClusterRoles("view")
+
 	if allFinalizerRmoved {
 		return true, nil
 	}
 	return false, nil
+}
+
+func (c *CleanGarbageFinalizer) cleanClusterRoleBindings(role string) error {
+	clusterRolebindingList, err := c.kubeClient.RbacV1().ClusterRoleBindings().List(context.Background(), v1.ListOptions{
+		LabelSelector: clustersetutils.ClusterSetRole + "=" + role,
+	})
+	if err != nil {
+		return err
+	}
+	for _, rb := range clusterRolebindingList.Items {
+		if _, ok := rb.Labels[clusterv1beta2.ClusterSetLabel]; !ok {
+			continue
+		}
+		err := c.kubeClient.RbacV1().ClusterRoleBindings().Delete(context.Background(), rb.Name, v1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *CleanGarbageFinalizer) cleanRoleBindings(role string) error {
+	clusterRolebindingList, err := c.kubeClient.RbacV1().RoleBindings("").List(context.Background(), v1.ListOptions{
+		LabelSelector: clustersetutils.ClusterSetRole + "=" + role,
+	})
+	if err != nil {
+		return err
+	}
+	for _, rb := range clusterRolebindingList.Items {
+		if _, ok := rb.Labels[clusterv1beta2.ClusterSetLabel]; !ok {
+			continue
+		}
+		err := c.kubeClient.RbacV1().RoleBindings(rb.Namespace).Delete(context.Background(), rb.Name, v1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *CleanGarbageFinalizer) cleanClusterRoles(role string) error {
+	clusterRoles, err := c.kubeClient.RbacV1().ClusterRoles().List(context.Background(), v1.ListOptions{})
+	if err != nil {
+		return nil
+	}
+	for _, rb := range clusterRoles.Items {
+		if !strings.HasPrefix(rb.Name, "open-cluster-management:"+role+":") {
+			continue
+		}
+		err := c.kubeClient.RbacV1().ClusterRoles().Delete(context.Background(), rb.Name, v1.DeleteOptions{})
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

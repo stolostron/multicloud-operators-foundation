@@ -57,7 +57,8 @@ import (
 )
 
 var (
-	scheme = runtime.NewScheme()
+	scheme      = runtime.NewScheme()
+	disableRBAC = true
 )
 
 func init() {
@@ -111,10 +112,6 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	}
 
 	clusterInformers := clusterv1informers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
-	kubeInfomers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
-	clusterRoleBindingsInformer := kubeInfomers.Rbac().V1().ClusterRoleBindings()
-	clusterRolesInformer := kubeInfomers.Rbac().V1().ClusterRoles()
-	roleBindingsInformer := kubeInfomers.Rbac().V1().RoleBindings()
 
 	// Get the LogCertSecret namespace
 	logCertSecretNamespace, _, err := k8scache.SplitMetaNamespaceKey(
@@ -164,19 +161,6 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 
-	clusterSetAdminCache := cache.NewClusterSetCache(
-		clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
-		clusterRolesInformer,
-		clusterRoleBindingsInformer,
-		utils.GetAdminResourceFromClusterRole,
-	)
-	clusterSetViewCache := cache.NewClusterSetCache(
-		clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
-		clusterRolesInformer,
-		clusterRoleBindingsInformer,
-		utils.GetViewResourceFromClusterRole,
-	)
-
 	addonMgr, err := addonmanager.New(kubeConfig)
 	if err != nil {
 		klog.Errorf("unable to setup addon manager: %v", err)
@@ -213,10 +197,15 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		klog.Errorf("unable to setup clusterInfo reconciler: %v", err)
 		return err
 	}
-
-	if err = clustersetmapper.SetupWithManager(mgr, kubeClient, globalClusterSetClusterMapper, clusterSetClusterMapper, clusterSetNamespaceMapper); err != nil {
-		klog.Errorf("unable to setup clustersetmapper reconciler: %v", err)
-		return err
+	if !disableRBAC {
+		if err = clustersetmapper.SetupWithManager(mgr, kubeClient, globalClusterSetClusterMapper, clusterSetClusterMapper, clusterSetNamespaceMapper); err != nil {
+			klog.Errorf("unable to setup clustersetmapper reconciler: %v", err)
+			return err
+		}
+		if err = clusterrole.SetupWithManager(mgr, kubeClient); err != nil {
+			klog.Errorf("unable to setup clusterrole reconciler: %v", err)
+			return err
+		}
 	}
 
 	if err = globalclusterset.SetupWithManager(mgr, kubeClient); err != nil {
@@ -234,32 +223,6 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	}
 	if err = imageregistry.SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to setup imageregistry reconciler: %v", err)
-		return err
-	}
-
-	clusterrolebindingSync := syncclusterrolebinding.NewReconciler(
-		kubeClient,
-		clusterRoleBindingsInformer.Lister(),
-		clusterRoleBindingsInformer.Informer().HasSynced,
-		clusterSetAdminCache.Cache,
-		clusterSetViewCache.Cache,
-		globalClusterSetClusterMapper,
-		clusterSetClusterMapper,
-	)
-
-	rolebindingSync := syncrolebinding.NewReconciler(
-		kubeClient,
-		roleBindingsInformer.Lister(),
-		roleBindingsInformer.Informer().HasSynced,
-		clusterSetAdminCache.Cache,
-		clusterSetViewCache.Cache,
-		globalClusterSetClusterMapper,
-		clusterSetClusterMapper,
-		clusterSetNamespaceMapper,
-	)
-
-	if err = clusterrole.SetupWithManager(mgr, kubeClient); err != nil {
-		klog.Errorf("unable to setup clusterrole reconciler: %v", err)
 		return err
 	}
 
@@ -286,13 +249,51 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	go func() {
 		<-mgr.Elected()
 
-		kubeInfomers.Start(ctx.Done())
 		clusterInformers.Start(ctx.Done())
+		if !disableRBAC {
+			kubeInfomers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
+			clusterRoleBindingsInformer := kubeInfomers.Rbac().V1().ClusterRoleBindings()
+			clusterRolesInformer := kubeInfomers.Rbac().V1().ClusterRoles()
+			roleBindingsInformer := kubeInfomers.Rbac().V1().RoleBindings()
 
-		go clusterSetViewCache.Run(5 * time.Second)
-		go clusterSetAdminCache.Run(5 * time.Second)
-		go clusterrolebindingSync.Run(ctx, 5*time.Second)
-		go rolebindingSync.Run(ctx, 5*time.Second)
+			clusterSetAdminCache := cache.NewClusterSetCache(
+				clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
+				clusterRolesInformer,
+				clusterRoleBindingsInformer,
+				utils.GetAdminResourceFromClusterRole,
+			)
+			clusterSetViewCache := cache.NewClusterSetCache(
+				clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
+				clusterRolesInformer,
+				clusterRoleBindingsInformer,
+				utils.GetViewResourceFromClusterRole,
+			)
+			clusterrolebindingSync := syncclusterrolebinding.NewReconciler(
+				kubeClient,
+				clusterRoleBindingsInformer.Lister(),
+				clusterRoleBindingsInformer.Informer().HasSynced,
+				clusterSetAdminCache.Cache,
+				clusterSetViewCache.Cache,
+				globalClusterSetClusterMapper,
+				clusterSetClusterMapper,
+			)
+
+			rolebindingSync := syncrolebinding.NewReconciler(
+				kubeClient,
+				roleBindingsInformer.Lister(),
+				roleBindingsInformer.Informer().HasSynced,
+				clusterSetAdminCache.Cache,
+				clusterSetViewCache.Cache,
+				globalClusterSetClusterMapper,
+				clusterSetClusterMapper,
+				clusterSetNamespaceMapper,
+			)
+			kubeInfomers.Start(ctx.Done())
+			go clusterSetViewCache.Run(5 * time.Second)
+			go clusterSetAdminCache.Run(5 * time.Second)
+			go clusterrolebindingSync.Run(ctx, 5*time.Second)
+			go rolebindingSync.Run(ctx, 5*time.Second)
+		}
 
 		go cleanGarbageFinalizer.Run(ctx.Done())
 
