@@ -21,6 +21,10 @@ spec:
         component: "work-manager"
     spec:
       serviceAccountName: {{ template "work-manager.fullname" . }}
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
       containers:
       - name: acm-agent
         image: "{{ .Values.global.imageOverrides.multicloud_manager }}"
