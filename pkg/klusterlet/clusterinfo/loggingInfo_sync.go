@@ -62,7 +62,7 @@ func (s *loggingInfoSyncer) refreshAgentServer(clusterInfo *clusterv1beta1.Manag
 
 func (s *loggingInfoSyncer) setLoggingEndAddr(ctx context.Context, clusterInfo *clusterv1beta1.ManagedClusterInfo) error {
 	var serviceType = corev1.ServiceTypeClusterIP
-	if clusterInfo.Status.KubeVendor != clusterv1beta1.KubeVendorOpenShift {
+	if clusterInfo.Status.DistributionInfo.Type != clusterv1beta1.DistributionTypeOCP {
 		serviceType = corev1.ServiceTypeLoadBalancer
 	}
 
@@ -99,7 +99,7 @@ func (s *loggingInfoSyncer) setLoggingEndAddr(ctx context.Context, clusterInfo *
 		return nil
 	}
 
-	if clusterInfo.Status.KubeVendor != clusterv1beta1.KubeVendorOpenShift {
+	if clusterInfo.Status.DistributionInfo.Type != clusterv1beta1.DistributionTypeOCP {
 		endPoint, err := s.getEndpointAddressFromService(ctx)
 		if err != nil {
 			return fmt.Errorf("failed to get EndpointAddress from service. error %v", err)
