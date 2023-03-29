@@ -127,12 +127,14 @@ func (c *CleanGarbageFinalizer) clean() (bool, error) {
 			allFinalizerRmoved = false
 		}
 	}
-	c.cleanClusterRoleBindings("admin")
-	c.cleanClusterRoleBindings("view")
-	c.cleanRoleBindings("admin")
-	c.cleanRoleBindings("view")
-	c.cleanClusterRoles("admin")
-	c.cleanClusterRoles("view")
+	if disableRBAC {
+		c.cleanClusterRoleBindings("admin")
+		c.cleanClusterRoleBindings("view")
+		c.cleanRoleBindings("admin")
+		c.cleanRoleBindings("view")
+		c.cleanClusterRoles("admin")
+		c.cleanClusterRoles("view")
+	}
 
 	if allFinalizerRmoved {
 		return true, nil
