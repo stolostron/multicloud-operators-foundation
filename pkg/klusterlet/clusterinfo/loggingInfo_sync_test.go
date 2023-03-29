@@ -141,7 +141,10 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 			managedClusterInfo: &v1beta1.ManagedClusterInfo{
 				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
 				Status: v1beta1.ClusterInfoStatus{
-					KubeVendor: v1beta1.KubeVendorOpenShift,
+					DistributionInfo: v1beta1.DistributionInfo{
+						Type: "OCP",
+						OCP:  v1beta1.OCPDistributionInfo{},
+					},
 				},
 			},
 		},
@@ -152,7 +155,10 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 			managedClusterInfo: &v1beta1.ManagedClusterInfo{
 				ObjectMeta: metav1.ObjectMeta{Name: "local-cluster", Namespace: "local-cluster"},
 				Status: v1beta1.ClusterInfoStatus{
-					KubeVendor: v1beta1.KubeVendorOpenShift,
+					DistributionInfo: v1beta1.DistributionInfo{
+						Type: "OCP",
+						OCP:  v1beta1.OCPDistributionInfo{},
+					},
 				},
 			},
 		},
@@ -162,9 +168,7 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 			agentNamespace: "myns",
 			managedClusterInfo: &v1beta1.ManagedClusterInfo{
 				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
-				Status: v1beta1.ClusterInfoStatus{
-					KubeVendor: v1beta1.KubeVendorIKS,
-				},
+				Status:     v1beta1.ClusterInfoStatus{},
 			},
 			agentService: newAgentLBService(
 				"klusterlet-addon-workmgr",
@@ -184,9 +188,7 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 			agentNamespace: "myns",
 			managedClusterInfo: &v1beta1.ManagedClusterInfo{
 				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
-				Status: v1beta1.ClusterInfoStatus{
-					KubeVendor: v1beta1.KubeVendorIKS,
-				},
+				Status:     v1beta1.ClusterInfoStatus{},
 			},
 			agentService: newAgentLBService(
 				"klusterlet-addon-workmgr",
@@ -200,7 +202,10 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 			managedClusterInfo: &v1beta1.ManagedClusterInfo{
 				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
 				Status: v1beta1.ClusterInfoStatus{
-					KubeVendor: v1beta1.KubeVendorOpenShift,
+					DistributionInfo: v1beta1.DistributionInfo{
+						Type: "OCP",
+						OCP:  v1beta1.OCPDistributionInfo{},
+					},
 				},
 			},
 			agentService: newAgentIPService(
@@ -224,7 +229,10 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 			managedClusterInfo: &v1beta1.ManagedClusterInfo{
 				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
 				Status: v1beta1.ClusterInfoStatus{
-					KubeVendor: v1beta1.KubeVendorOpenShift,
+					DistributionInfo: v1beta1.DistributionInfo{
+						Type: "OCP",
+						OCP:  v1beta1.OCPDistributionInfo{},
+					},
 				},
 			},
 			agentService: newAgentIPService(
@@ -281,7 +289,7 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 				t.Errorf("failed to get service")
 			}
 
-			if test.managedClusterInfo.Status.KubeVendor == v1beta1.KubeVendorOpenShift {
+			if test.managedClusterInfo.Status.DistributionInfo.Type == v1beta1.DistributionTypeOCP {
 				if test.managedClusterInfo.Name == "local-cluster" {
 					assert.Equal(t, test.managedClusterInfo.Status.LoggingEndpoint.Hostname,
 						fmt.Sprintf("%s.%s.svc", test.agentName, test.agentNamespace))
