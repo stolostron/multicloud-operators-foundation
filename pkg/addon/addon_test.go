@@ -148,8 +148,32 @@ func TestManifest(t *testing.T) {
 		expectedCount        int
 	}{
 		{
-			name:              "is OCP",
+			name:              "product is OCP",
 			cluster:           newCluster("cluster1", "OpenShift", map[string]string{}, map[string]string{}),
+			addon:             newAddon("work-manager", "cluster1", "", `{"global":{"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
+			expectedNamespace: "open-cluster-management-agent-addon",
+			expectedImage:     "quay.io/test/multicloud_manager:test",
+			expectedCount:     8,
+		},
+		{
+			name:              "product is ARO",
+			cluster:           newCluster("cluster1", "ARO", map[string]string{}, map[string]string{}),
+			addon:             newAddon("work-manager", "cluster1", "", `{"global":{"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
+			expectedNamespace: "open-cluster-management-agent-addon",
+			expectedImage:     "quay.io/test/multicloud_manager:test",
+			expectedCount:     8,
+		},
+		{
+			name:              "product is ROSA",
+			cluster:           newCluster("cluster1", "ROSA", map[string]string{}, map[string]string{}),
+			addon:             newAddon("work-manager", "cluster1", "", `{"global":{"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
+			expectedNamespace: "open-cluster-management-agent-addon",
+			expectedImage:     "quay.io/test/multicloud_manager:test",
+			expectedCount:     8,
+		},
+		{
+			name:              "product is OSD",
+			cluster:           newCluster("cluster1", "OpenShiftDedicated", map[string]string{}, map[string]string{}),
 			addon:             newAddon("work-manager", "cluster1", "", `{"global":{"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
 			expectedNamespace: "open-cluster-management-agent-addon",
 			expectedImage:     "quay.io/test/multicloud_manager:test",

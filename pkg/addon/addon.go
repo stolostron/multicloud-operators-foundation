@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	"reflect"
 
 	"github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry"
@@ -82,10 +83,17 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 		}
 
 		for _, claim := range cluster.Status.ClusterClaims {
-			if claim.Name == "product.open-cluster-management.io" {
-				addonValues.Product = claim.Value
-				break
+			if claim.Name != clusterclaim.ClaimOCMProduct {
+				continue
 			}
+			switch claim.Value {
+			case clusterclaim.ProductOpenShift, clusterclaim.ProductOSD,
+				clusterclaim.ProductARO, clusterclaim.ProductROKS, clusterclaim.ProductROSA:
+				addonValues.Product = "OpenShift"
+			default:
+				addonValues.Product = claim.Value
+			}
+			break
 		}
 
 		nodeSelector, err := getNodeSelector(cluster)
