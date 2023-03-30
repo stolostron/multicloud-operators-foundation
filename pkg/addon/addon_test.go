@@ -235,7 +235,7 @@ func TestManifest(t *testing.T) {
 		},
 		{
 			name: "hosted mode",
-			cluster: newCluster("local-cluster", "OpenShift",
+			cluster: newCluster("cluster1", "OpenShift",
 				map[string]string{v1alpha1.ClusterImageRegistryLabel: "ns1.imageRegistry1"},
 				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}",
 					v1alpha1.ClusterImageRegistriesAnnotation: newAnnotationRegistries([]v1alpha1.Registries{
@@ -246,8 +246,8 @@ func TestManifest(t *testing.T) {
 			}),
 			expectedNamespace:    "open-cluster-management-agent-addon",
 			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
-			expectedNodeSelector: true,
-			expectedCount:        8,
+			expectedNodeSelector: false,
+			expectedCount:        7,
 		},
 		{
 			name: "hosted mode in klusterlet agent namespace",
@@ -263,7 +263,7 @@ func TestManifest(t *testing.T) {
 			expectedNamespace:         "klusterlet-cluster1",
 			expectedNamespaceOrphaned: true,
 			expectedImage:             "quay.io/test/multicloud-manager:2.5.0",
-			expectedCount:             9,
+			expectedCount:             7,
 		},
 	}
 

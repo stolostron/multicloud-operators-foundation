@@ -173,12 +173,18 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 }
 
 func (r *ClusterInfoReconciler) readAgentConfig() (*corev1.EndpointAddress, *corev1.EndpointPort, error) {
+
 	endpoint := &corev1.EndpointAddress{}
 	port := &corev1.EndpointPort{
 		Name:     "https",
 		Protocol: corev1.ProtocolTCP,
 		Port:     r.AgentPort,
 	}
+
+	if r.AgentRoute == "" && r.AgentService == "" && r.AgentIngress == "" {
+		return endpoint, port, nil
+	}
+
 	// set endpoint by user flag at first, if it is not set, use IP in ingress status
 	ip := net.ParseIP(r.AgentAddress)
 	if ip != nil {

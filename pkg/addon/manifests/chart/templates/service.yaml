@@ -1,4 +1,5 @@
 ---
+{{- if not (eq .Values.installMode "Hosted") }}
 {{- if not (eq .Values.product "") }}
 apiVersion: v1
 kind: Service
@@ -19,4 +20,5 @@ spec:
       targetPort: 4443
   selector:
     component: "work-manager"
+{{- end }}
 {{- end }}

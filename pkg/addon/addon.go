@@ -83,6 +83,9 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 		}
 
 		for _, claim := range cluster.Status.ClusterClaims {
+			if claim.Name != clusterclaim.ClaimOCMProduct {
+				continue
+			}
 			switch claim.Value {
 			case clusterclaim.ProductOpenShift, clusterclaim.ProductOSD,
 				clusterclaim.ProductARO, clusterclaim.ProductROKS, clusterclaim.ProductROSA:
