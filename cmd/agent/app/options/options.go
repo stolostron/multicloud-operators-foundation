@@ -27,6 +27,7 @@ type AgentOptions struct {
 	EnableSyncLabelsToClusterClaims bool
 	EnableNodeCapacity              bool
 	InSecure                        bool
+	DisableLoggingInfoSyncer        bool
 	ComponentNamespace              string
 	QPS                             float32
 	Burst                           int
@@ -38,6 +39,7 @@ func NewAgentOptions() *AgentOptions {
 		MetricsAddr:                     ":8080",
 		KubeConfig:                      "",
 		HubKubeConfig:                   "/var/run/hub/kubeconfig",
+		DisableLoggingInfoSyncer:        false,
 		ClusterName:                     "",
 		AgentName:                       "klusterlet-addon-workmgr",
 		EnableLeaderElection:            false,
@@ -68,6 +70,7 @@ func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 		"The kubeconfig file of the managed cluster. "+
 			"If this is not set, will use '--kubeconfig' to build client to connect to the managed cluster.")
 	fs.StringVar(&o.ClusterName, "cluster-name", o.ClusterName, "The name of the managed cluster.")
+	fs.BoolVar(&o.DisableLoggingInfoSyncer, "disable-logging-syncer", o.DisableLoggingInfoSyncer, "Disable logging syncer, is false by default.")
 	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
 		"This flag is deprecated, you should not use this flag any more")
 	fs.BoolVar(&o.EnableImpersonation, "enable-impersonation", o.EnableImpersonation, "Enable impersonation.")

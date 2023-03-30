@@ -43,6 +43,7 @@ spec:
           - "--cluster-name={{ .Values.clusterName }}"
           - "--agent-name={{ template "work-manager.fullname" . }}"
         {{- if eq .Values.installMode "Hosted" }}
+          - "--disable-logging-syncer=true"
           - "--managed-kubeconfig=/managed/config/kubeconfig"
         {{- end }}
         {{- if eq .Values.enableSyncLabelsToClusterClaims false }}
