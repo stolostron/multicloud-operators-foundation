@@ -4,10 +4,8 @@ package app
 
 import (
 	"context"
-	"fmt"
 	"time"
 
-	"github.com/IBM/controller-filtered-cache/filteredcache"
 	routev1 "github.com/openshift/api/route/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	hiveinternalv1alpha1 "github.com/openshift/hive/apis/hiveinternal/v1alpha1"
@@ -33,8 +31,8 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -53,6 +51,7 @@ import (
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
@@ -130,14 +129,6 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		}
 	}
 
-	// Filter and cache the specific namespace's secret
-	// Update the filteredcache.Selector if you want to watch other namespace's secret or want to filter other resouce.
-	gvkLabelMap := map[schema.GroupVersionKind]filteredcache.Selector{
-		corev1.SchemeGroupVersion.WithKind("Secret"): {
-			FieldSelector: fmt.Sprintf("metadata.namespace==%s", logCertSecretNamespace),
-		},
-	}
-
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
 		Scheme:                 scheme,
 		LeaderElectionID:       "foundation-controller",
@@ -146,7 +137,13 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		RenewDeadline:          &o.RenewDeadline,
 		RetryPeriod:            &o.RetryPeriod,
 		HealthProbeBindAddress: ":8000",
-		NewCache:               filteredcache.NewFilteredCacheBuilder(gvkLabelMap),
+		NewCache: ctrlcache.BuilderWithOptions(ctrlcache.Options{
+			SelectorsByObject: ctrlcache.SelectorsByObject{
+				&corev1.Secret{}: {
+					Field: fields.SelectorFromSet(fields.Set{"metadata.namespace": logCertSecretNamespace}),
+				},
+			},
+		}),
 	})
 	if err != nil {
 		klog.Errorf("unable to start manager: %v", err)
