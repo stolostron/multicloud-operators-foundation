@@ -48,7 +48,6 @@ replace (
 )
 
 require (
-	github.com/IBM/controller-filtered-cache v0.3.4
 	github.com/emicklei/go-restful v2.16.0+incompatible
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/go-logr/logr v1.2.3
@@ -88,7 +87,6 @@ require (
 
 require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
-	github.com/gobuffalo/flect v0.2.5 // indirect
 	github.com/golang-jwt/jwt/v4 v4.2.0 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87 // indirect
