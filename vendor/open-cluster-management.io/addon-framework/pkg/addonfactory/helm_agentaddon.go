@@ -14,10 +14,11 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"k8s.io/klog/v2"
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
-	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
+	"open-cluster-management.io/addon-framework/pkg/agent"
 )
 
 // helmBuiltinValues includes the built-in values for helm agentAddon.
@@ -35,8 +36,9 @@ type helmBuiltinValues struct {
 // the values in helm chart should begin with a lowercase letter, so we need convert it to Values by JsonStructToValues.
 // the default values can be overrided by getValuesFuncs
 type helmDefaultValues struct {
-	HubKubeConfigSecret     string `json:"hubKubeConfigSecret,omitempty"`
-	ManagedKubeConfigSecret string `json:"managedKubeConfigSecret,omitempty"`
+	HubKubeConfigSecret        string                 `json:"hubKubeConfigSecret,omitempty"`
+	ManagedKubeConfigSecret    string                 `json:"managedKubeConfigSecret,omitempty"`
+	HostingClusterCapabilities chartutil.Capabilities `json:"hostingClusterCapabilities,omitempty"`
 }
 
 type HelmAgentAddon struct {
@@ -45,6 +47,7 @@ type HelmAgentAddon struct {
 	getValuesFuncs     []GetValuesFunc
 	agentAddonOptions  agent.AgentAddonOptions
 	trimCRDDescription bool
+	hostingCluster     *clusterv1.ManagedCluster
 }
 
 func newHelmAgentAddon(factory *AgentAddonFactory, chart *chart.Chart) *HelmAgentAddon {
@@ -54,6 +57,7 @@ func newHelmAgentAddon(factory *AgentAddonFactory, chart *chart.Chart) *HelmAgen
 		getValuesFuncs:     factory.getValuesFuncs,
 		agentAddonOptions:  factory.agentAddonOptions,
 		trimCRDDescription: factory.trimCRDDescription,
+		hostingCluster:     factory.hostingCluster,
 	}
 }
 
@@ -214,6 +218,10 @@ func (a *HelmAgentAddon) getDefaultValues(
 	}
 
 	defaultValues.ManagedKubeConfigSecret = fmt.Sprintf("%s-managed-kubeconfig", addon.Name)
+
+	if a.hostingCluster != nil {
+		defaultValues.HostingClusterCapabilities = *a.capabilities(a.hostingCluster, addon)
+	}
 
 	helmDefaultValues, err := JsonStructToValues(defaultValues)
 	if err != nil {

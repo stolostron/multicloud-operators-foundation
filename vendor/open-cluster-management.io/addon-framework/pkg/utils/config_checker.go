@@ -3,8 +3,9 @@ package utils
 import (
 	"crypto/sha256"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 
 	"k8s.io/apiserver/pkg/server/healthz"
@@ -31,7 +32,9 @@ type configChecker struct {
 // Case1: Embeding configchecker into the current server
 //
 // In this case, we simply initialize a configchecker and add it to the current in used healthz.Checkers.
-// You can check here for a reference: https://github.com/open-cluster-management/multicloud-operators-foundation/blob/56270b1520ec5896981db689b3afe0cd893cad8e/cmd/agent/agent.go#L148
+// You can check here for a reference:
+//
+//	https://github.com/open-cluster-management/multicloud-operators-foundation/blob/56270b1520ec5896981db689b3afe0cd893cad8e/cmd/agent/agent.go#L148
 //
 // -----------------------------------------------------------------------------
 //
@@ -39,25 +42,26 @@ type configChecker struct {
 //
 // Example Code:
 // config_checker_server.go
-// type configCheckerServer struct {
-// 	checkers []heathz.HealthChecker
-// }
 //
-// func NewConfigCheckerServer(checkers []healthz.HealthChecker) *configCheckerServer {
-// 	return &configCheckerServer{checkers: checkers}
-// }
+//	type configCheckerServer struct {
+//		checkers []heathz.HealthChecker
+//	}
 //
-// func (s *configCheckerServer) ServerHttp(rw http.ResponseWriter, r *http.Request) {
-// 	for _, c := range s.chekers {
-// 		if c.Name() == r.URL {
-// 			if err := c.Check(); err != nil {
-// 				rw.WriteHeader(500)
-// 			} else {
-// 				rw.WriteHeader(200)
-// 			}
-// 		}
-// 	}
-// }
+//	func NewConfigCheckerServer(checkers []healthz.HealthChecker) *configCheckerServer {
+//		return &configCheckerServer{checkers: checkers}
+//	}
+//
+//	func (s *configCheckerServer) ServerHttp(rw http.ResponseWriter, r *http.Request) {
+//		for _, c := range s.chekers {
+//			if c.Name() == r.URL {
+//				if err := c.Check(); err != nil {
+//					rw.WriteHeader(500)
+//				} else {
+//					rw.WriteHeader(200)
+//				}
+//			}
+//		}
+//	}
 //
 // main.go
 // ...
@@ -84,8 +88,9 @@ func NewConfigChecker(name string, configfiles ...string) (*configChecker, error
 }
 
 // SetReload can update the ‘reload’ fields of config checker
-// If reload equals to false, config checker won't update the checksum value in the cache, and function Check would return error forever if config files are modified.
-// but if reload equals to true, config checker only returns err once, and it updates the cache with the latest checksum of config files.
+// If reload equals to false, config checker won't update the checksum value in the cache, and function Check would
+// return error forever if config files are modified. but if reload equals to true, config checker only returns err
+// once, and it updates the cache with the latest checksum of config files.
 func (c *configChecker) SetReload(reload bool) {
 	c.reload = reload
 }
@@ -97,7 +102,8 @@ func (c *configChecker) Name() string {
 
 // Check would return nil if current configfiles's checksum is equal to cached checksum
 // If checksum not equal, it will return err and update cached checksum with current checksum
-// Note that: configChecker performs a instant update after it returns err, so DO NOT use one configChecker for multible containers!!!
+// Note that: configChecker performs a instant update after it returns err, so DO NOT use one
+// configChecker for multible containers!!!
 func (cc *configChecker) Check(_ *http.Request) error {
 	newChecksum, err := load(cc.configfiles)
 	if err != nil {
@@ -118,7 +124,7 @@ func (cc *configChecker) Check(_ *http.Request) error {
 func load(configfiles []string) ([32]byte, error) {
 	var allContent []byte
 	for _, c := range configfiles {
-		content, err := ioutil.ReadFile(c)
+		content, err := os.ReadFile(filepath.Clean(c))
 		if err != nil {
 			return [32]byte{}, fmt.Errorf("read %s failed, %v", c, err)
 		}

@@ -10,9 +10,10 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
-	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+
+	"open-cluster-management.io/addon-framework/pkg/agent"
 )
 
 const AddonDefaultInstallNamespace = "open-cluster-management-agent-addon"
@@ -34,6 +35,7 @@ type AgentAddonFactory struct {
 	agentAddonOptions agent.AgentAddonOptions
 	// trimCRDDescription flag is used to trim the description of CRDs in manifestWork. disabled by default.
 	trimCRDDescription bool
+	hostingCluster     *clusterv1.ManagedCluster
 }
 
 // NewAgentAddonFactory builds an addonAgentFactory instance with addon name and fs.
@@ -112,6 +114,13 @@ func (f *AgentAddonFactory) WithTrimCRDDescription() *AgentAddonFactory {
 // WithConfigGVRs defines the addon supported configuration GroupVersionResource
 func (f *AgentAddonFactory) WithConfigGVRs(gvrs ...schema.GroupVersionResource) *AgentAddonFactory {
 	f.agentAddonOptions.SupportedConfigGVRs = append(f.agentAddonOptions.SupportedConfigGVRs, gvrs...)
+	return f
+}
+
+// WithHostingCluster defines the hosting cluster used in hosted mode. An AgentAddon may use this to provide
+// additional metadata.
+func (f *AgentAddonFactory) WithHostingCluster(cluster *clusterv1.ManagedCluster) *AgentAddonFactory {
+	f.hostingCluster = cluster
 	return f
 }
 

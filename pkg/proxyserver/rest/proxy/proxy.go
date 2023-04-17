@@ -36,6 +36,9 @@ func (r *ProxyRest) New() runtime.Object {
 	return &v1beta1.ClusterStatus{}
 }
 
+func (r *ProxyRest) Destroy() {
+}
+
 // ConnectMethods returns the list of HTTP methods that can be proxied
 func (r *ProxyRest) ConnectMethods() []string {
 	//TODO: may need more methods

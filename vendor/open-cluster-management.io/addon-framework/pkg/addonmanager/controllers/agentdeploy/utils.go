@@ -1,6 +1,7 @@
 package agentdeploy
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -8,11 +9,12 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	"open-cluster-management.io/api/utils/work/v1/workbuilder"
+	workapiv1 "open-cluster-management.io/api/work/v1"
+
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	"open-cluster-management.io/addon-framework/pkg/agent"
-	"open-cluster-management.io/addon-framework/pkg/common/workbuilder"
-	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	workapiv1 "open-cluster-management.io/api/work/v1"
 )
 
 func addonHasFinalizer(addon *addonapiv1alpha1.ManagedClusterAddOn, finalizer string) bool {
@@ -27,9 +29,16 @@ func addonHasFinalizer(addon *addonapiv1alpha1.ManagedClusterAddOn, finalizer st
 func addonRemoveFinalizer(addon *addonapiv1alpha1.ManagedClusterAddOn, finalizer string) bool {
 	var rst []string
 	for _, f := range addon.Finalizers {
-		if f != finalizer {
-			rst = append(rst, f)
+		if f == finalizer {
+			continue
 		}
+		// remove deperecated finalizers also
+		if f == addonapiv1alpha1.AddonDeprecatedHostingManifestFinalizer ||
+			f == addonapiv1alpha1.AddonDeprecatedPreDeleteHookFinalizer ||
+			f == addonapiv1alpha1.AddonDeprecatedHostingPreDeleteHookFinalizer {
+			continue
+		}
+		rst = append(rst, f)
 	}
 	if len(rst) != len(addon.Finalizers) {
 		addon.SetFinalizers(rst)
@@ -39,10 +48,20 @@ func addonRemoveFinalizer(addon *addonapiv1alpha1.ManagedClusterAddOn, finalizer
 }
 
 func addonAddFinalizer(addon *addonapiv1alpha1.ManagedClusterAddOn, finalizer string) bool {
-	rst := addon.Finalizers
-	if rst == nil {
+	if addon.Finalizers == nil {
 		addon.SetFinalizers([]string{finalizer})
 		return true
+	}
+
+	var rst []string
+	for _, f := range addon.Finalizers {
+		// remove deperecated finalizers also
+		if f == addonapiv1alpha1.AddonDeprecatedHostingManifestFinalizer ||
+			f == addonapiv1alpha1.AddonDeprecatedPreDeleteHookFinalizer ||
+			f == addonapiv1alpha1.AddonDeprecatedHostingPreDeleteHookFinalizer {
+			continue
+		}
+		rst = append(rst, f)
 	}
 
 	for _, f := range addon.Finalizers {
@@ -67,7 +86,7 @@ func newManifestWork(addonNamespace, addonName, clusterName string, manifests []
 			Name:      manifestWorkNameFunc(addonNamespace, addonName),
 			Namespace: clusterName,
 			Labels: map[string]string{
-				constants.AddonLabel: addonName,
+				addonapiv1alpha1.AddonLabelKey: addonName,
 			},
 		},
 		Spec: workapiv1.ManifestWorkSpec{
@@ -79,7 +98,7 @@ func newManifestWork(addonNamespace, addonName, clusterName string, manifests []
 
 	// if the addon namespace is not equal with the manifestwork namespace(cluster name), add the addon namespace label
 	if addonNamespace != clusterName {
-		work.Labels[constants.AddonNamespaceLabel] = addonNamespace
+		work.Labels[addonapiv1alpha1.AddonNamespaceLabelKey] = addonNamespace
 	}
 	return work
 }
@@ -103,8 +122,14 @@ func (b *addonWorksBuilder) isPreDeleteHookObject(obj runtime.Object) (bool, *wo
 	if err != nil {
 		return false, nil
 	}
+
 	labels := accessor.GetLabels()
-	if _, ok := labels[constants.PreDeleteHookLabel]; !ok {
+	annotations := accessor.GetAnnotations()
+
+	// TODO: deprecate PreDeleteHookLabel in the future release.
+	_, hasPreDeleteLabel := labels[addonapiv1alpha1.AddonPreDeleteHookLabelKey]
+	_, hasPreDeleteAnnotation := annotations[addonapiv1alpha1.AddonPreDeleteHookAnnotationKey]
+	if !hasPreDeleteLabel && !hasPreDeleteAnnotation {
 		return false, nil
 	}
 
@@ -165,7 +190,7 @@ func (m *hostingManifest) deployable(hostedModeEnabled bool, installMode string,
 		return false, nil
 	}
 
-	location, exist, err := constants.GetHostedManifestLocation(accessor.GetLabels())
+	location, exist, err := constants.GetHostedManifestLocation(accessor.GetLabels(), accessor.GetAnnotations())
 	if err != nil {
 		return false, err
 	}
@@ -173,7 +198,7 @@ func (m *hostingManifest) deployable(hostedModeEnabled bool, installMode string,
 		return false, nil
 	}
 
-	if exist && location == constants.HostedManifestLocationHostingLabelValue {
+	if exist && location == addonapiv1alpha1.HostedManifestLocationHostingValue {
 		klog.V(4).Infof("will deploy the manifest %s/%s on the hosting cluster in Hosted mode",
 			accessor.GetNamespace(), accessor.GetName())
 		return true, nil
@@ -205,7 +230,7 @@ func (m *managedManifest) deployable(hostedModeEnabled bool, installMode string,
 		return false, nil
 	}
 
-	location, exist, err := constants.GetHostedManifestLocation(accessor.GetLabels())
+	location, exist, err := constants.GetHostedManifestLocation(accessor.GetLabels(), accessor.GetAnnotations())
 	if err != nil {
 		return false, err
 	}
@@ -214,7 +239,7 @@ func (m *managedManifest) deployable(hostedModeEnabled bool, installMode string,
 		return true, nil
 	}
 
-	if !exist || location == constants.HostedManifestLocationManagedLabelValue {
+	if !exist || location == addonapiv1alpha1.HostedManifestLocationManagedValue {
 		klog.V(4).Infof("will deploy the manifest %s/%s on the managed cluster in Hosted mode",
 			accessor.GetNamespace(), accessor.GetName())
 		return true, nil
@@ -242,10 +267,10 @@ func (b *addonWorksBuilder) BuildDeployWorks(addonWorkNamespace string,
 	var owner *metav1.OwnerReference
 	installMode, _ := constants.GetHostedModeInfo(addon.GetAnnotations())
 
-	// only set addon as the owner of works in default mode. should not set owner in hosted mode.
-	if installMode == constants.InstallModeDefault {
-		owner = metav1.NewControllerRef(addon, addonapiv1alpha1.GroupVersion.WithKind("ManagedClusterAddOn"))
-	}
+	// This owner is only added to the manifestWork deployed in managed cluster ns.
+	// the manifestWork in managed cluster ns is cleaned up via the addon ownerRef, so need to add the owner.
+	// the manifestWork in hosting cluster ns is cleaned up by its controller since it and its addon cross ns.
+	owner = metav1.NewControllerRef(addon, addonapiv1alpha1.GroupVersion.WithKind("ManagedClusterAddOn"))
 
 	var deletionOrphaningRules []workapiv1.OrphaningRule
 	for _, object := range objects {
@@ -286,10 +311,16 @@ func (b *addonWorksBuilder) BuildDeployWorks(addonWorkNamespace string,
 		}
 	}
 
+	annotations, err := configsToAnnotations(addon.Status.ConfigReferences)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return b.workBuilder.Build(deployObjects,
 		newAddonWorkObjectMeta(b.processor.manifestWorkNamePrefix(addon.Namespace, addon.Name), addon.Name, addon.Namespace, addonWorkNamespace, owner),
 		workbuilder.ExistingManifestWorksOption(existingWorks),
 		workbuilder.ManifestConfigOption(manifestOptions),
+		workbuilder.ManifestAnnotations(annotations),
 		workbuilder.DeletionOption(deletionOption))
 }
 
@@ -339,7 +370,7 @@ func (b *addonWorksBuilder) BuildHookWork(addonWorkNamespace string,
 	}
 	hookWork.Spec.ManifestConfigs = hookManifestConfigs
 	if addon.Namespace != addonWorkNamespace {
-		hookWork.Labels[constants.AddonNamespaceLabel] = addon.Namespace
+		hookWork.Labels[addonapiv1alpha1.AddonNamespaceLabelKey] = addon.Namespace
 	}
 	return hookWork, nil
 }
@@ -418,21 +449,25 @@ func hookWorkIsCompleted(hookWork *workapiv1.ManifestWork) bool {
 	return true
 }
 
-func newAddonWorkObjectMeta(namePrefix, addonName, addonNamespace, workNamespace string, owner *metav1.OwnerReference) workbuilder.GenerateManifestWorkObjectMeta {
+func newAddonWorkObjectMeta(namePrefix, addonName, addonNamespace, workNamespace string,
+	owner *metav1.OwnerReference) workbuilder.GenerateManifestWorkObjectMeta {
 	return func(index int) metav1.ObjectMeta {
 		objectMeta := metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%d", namePrefix, index),
 			Namespace: workNamespace,
 			Labels: map[string]string{
-				constants.AddonLabel: addonName,
+				addonapiv1alpha1.AddonLabelKey: addonName,
 			},
 		}
-		if owner != nil {
+		// This owner is only added to the manifestWork deployed in managed cluster ns.
+		// the manifestWork in managed cluster ns is cleaned up via the addon ownerRef, so need to add the owner.
+		// the manifestWork in hosting cluster ns is cleaned up by its controller since it and its addon cross ns.
+		if addonNamespace == workNamespace && owner != nil {
 			objectMeta.OwnerReferences = []metav1.OwnerReference{*owner}
 		}
 		// if the addon namespace is not equal with the manifestwork namespace(cluster name), add the addon namespace label
 		if addonNamespace != workNamespace {
-			objectMeta.Labels[constants.AddonNamespaceLabel] = addonNamespace
+			objectMeta.Labels[addonapiv1alpha1.AddonNamespaceLabelKey] = addonNamespace
 		}
 		return objectMeta
 	}
@@ -468,7 +503,7 @@ func getDeletionOrphaningRule(obj runtime.Object) (*workapiv1.OrphaningRule, err
 		return nil, err
 	}
 	annotations := accessor.GetAnnotations()
-	if _, ok := annotations[constants.AnnotationDeletionOrphan]; !ok {
+	if _, ok := annotations[addonapiv1alpha1.DeletionOrphanAnnotationKey]; !ok {
 		return nil, nil
 	}
 
@@ -482,4 +517,45 @@ func getDeletionOrphaningRule(obj runtime.Object) (*workapiv1.OrphaningRule, err
 		Namespace: accessor.GetNamespace(),
 	}
 	return rule, nil
+}
+
+// convert config reference to annotations.
+func configsToAnnotations(configReference []addonapiv1alpha1.ConfigReference) (map[string]string, error) {
+	if len(configReference) == 0 {
+		return nil, nil
+	}
+
+	// annotations is a map stores the config name and config spec hash.
+	//
+	// config name follows the format of <resource>.<group>/<namespace>/<name>, for example,
+	// addondeploymentconfigs.addon.open-cluster-management.io/open-cluster-management/default.
+	// for a cluster scoped resource, the namespace would be empty, for example,
+	// addonhubconfigs.addon.open-cluster-management.io//default.
+	annotations := make(map[string]string, len(configReference))
+	for _, v := range configReference {
+		if v.DesiredConfig == nil {
+			continue
+		}
+		resourceStr := v.Resource
+		if len(v.Group) > 0 {
+			resourceStr += fmt.Sprintf(".%s", v.Group)
+		}
+		resourceStr += fmt.Sprintf("/%s/%s", v.DesiredConfig.Namespace, v.DesiredConfig.Name)
+
+		annotations[resourceStr] = v.DesiredConfig.SpecHash
+	}
+
+	// converts the annotations map into a JSON byte string.
+	jsonBytes, err := json.Marshal(annotations)
+	if err != nil {
+		return nil, err
+	}
+
+	// return a map with key as "open-cluster-management.io/config-spec-hash" and value is the JSON byte string.
+	// For example:
+	// open-cluster-management.io/config-spec-hash: '{"addonhubconfigs.addon.open-cluster-management.io//default":"613d134a2ec072a8a6451af913979f496d657ef5",
+	// "addondeploymentconfigs.addon.open-cluster-management.io/open-cluster-management/default":"cca7df9188fb920dcfab374940452393e2037619"}'
+	return map[string]string{
+		workapiv1.ManifestConfigSpecHashAnnotationKey: string(jsonBytes),
+	}, nil
 }

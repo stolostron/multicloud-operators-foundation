@@ -59,6 +59,9 @@ func (s *REST) New() runtime.Object {
 	return &clusterv1.ManagedCluster{}
 }
 
+func (s *REST) Destroy() {
+}
+
 func (s *REST) NamespaceScoped() bool {
 	return false
 }

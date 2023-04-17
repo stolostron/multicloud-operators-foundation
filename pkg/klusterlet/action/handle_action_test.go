@@ -5,7 +5,7 @@ import (
 
 	actionv1beta1 "github.com/stolostron/cluster-lifecycle-api/action/v1beta1"
 	restutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/rest"
-	corev1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/extensions/v1beta1"
 	extensionv1beta1 "k8s.io/api/extensions/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -32,8 +32,8 @@ func NewKubeWorkSpec() *actionv1beta1.KubeWorkSpec {
 			},
 		},
 		Status: extensionv1beta1.IngressStatus{
-			LoadBalancer: corev1.LoadBalancerStatus{
-				Ingress: []corev1.LoadBalancerIngress{
+			LoadBalancer: corev1.IngressLoadBalancerStatus{
+				Ingress: []corev1.IngressLoadBalancerIngress{
 					{
 						IP: "127.0.0.1",
 					},

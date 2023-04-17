@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
+	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	workapiv1 "open-cluster-management.io/api/work/v1"
+
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 )
 
 const (
@@ -64,12 +66,12 @@ func extractAddonFromWork(work *workapiv1.ManifestWork) (string, string, bool) {
 		return "", "", false
 	}
 
-	addonName, ok := work.Labels[constants.AddonLabel]
+	addonName, ok := work.Labels[addonapiv1alpha1.AddonLabelKey]
 	if !ok {
 		return "", "", false
 	}
 
-	addonNamespace := work.Labels[constants.AddonNamespaceLabel]
+	addonNamespace := work.Labels[addonapiv1alpha1.AddonNamespaceLabelKey]
 
 	isHook := false
 	if strings.HasPrefix(work.Name, constants.PreDeleteHookWorkName(addonName)) {

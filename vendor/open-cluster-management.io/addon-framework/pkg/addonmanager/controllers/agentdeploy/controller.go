@@ -13,12 +13,6 @@ import (
 	errorsutil "k8s.io/apimachinery/pkg/util/errors"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
-	"open-cluster-management.io/addon-framework/pkg/agent"
-	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
-	"open-cluster-management.io/addon-framework/pkg/common/workapplier"
-	"open-cluster-management.io/addon-framework/pkg/common/workbuilder"
-	"open-cluster-management.io/addon-framework/pkg/utils"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
@@ -28,7 +22,14 @@ import (
 	workv1client "open-cluster-management.io/api/client/work/clientset/versioned"
 	workinformers "open-cluster-management.io/api/client/work/informers/externalversions/work/v1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	"open-cluster-management.io/api/utils/work/v1/workapplier"
+	"open-cluster-management.io/api/utils/work/v1/workbuilder"
 	workapiv1 "open-cluster-management.io/api/work/v1"
+
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
+	"open-cluster-management.io/addon-framework/pkg/agent"
+	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
+	"open-cluster-management.io/addon-framework/pkg/utils"
 )
 
 // addonDeployController deploy addon agent resources on the managed cluster.
@@ -63,8 +64,10 @@ func NewAddonDeployController(
 	}
 
 	c := &addonDeployController{
-		workApplier:               workapplier.NewWorkApplierWithTypedClient(workClient, workInformers.Lister()),
-		workBuilder:               workbuilder.NewWorkBuilder(),
+		workApplier: workapplier.NewWorkApplierWithTypedClient(workClient, workInformers.Lister()),
+		// the default manifest limit in a work is 500k
+		// TODO: make the limit configurable
+		workBuilder:               workbuilder.NewWorkBuilder().WithManifestsLimit(500 * 1024),
 		addonClient:               addonClient,
 		managedClusterLister:      clusterInformers.Lister(),
 		managedClusterAddonLister: addonInformers.Lister(),
@@ -92,10 +95,10 @@ func NewAddonDeployController(
 				// in hosted mode, need get the addon namespace from the AddonNamespaceLabel, because
 				// the namespaces of manifestWork and addon may be different.
 				// in default mode, the addon and manifestWork are in the cluster namespace.
-				if addonNamespace, ok := accessor.GetLabels()[constants.AddonNamespaceLabel]; ok {
-					return []string{fmt.Sprintf("%s/%s", addonNamespace, accessor.GetLabels()[constants.AddonLabel])}
+				if addonNamespace, ok := accessor.GetLabels()[addonapiv1alpha1.AddonNamespaceLabelKey]; ok {
+					return []string{fmt.Sprintf("%s/%s", addonNamespace, accessor.GetLabels()[addonapiv1alpha1.AddonLabelKey])}
 				}
-				return []string{fmt.Sprintf("%s/%s", accessor.GetNamespace(), accessor.GetLabels()[constants.AddonLabel])}
+				return []string{fmt.Sprintf("%s/%s", accessor.GetNamespace(), accessor.GetLabels()[addonapiv1alpha1.AddonLabelKey])}
 			},
 			func(obj interface{}) bool {
 				accessor, _ := meta.Accessor(obj)
@@ -104,7 +107,7 @@ func NewAddonDeployController(
 				}
 
 				// only watch the addon deploy/hook manifestWorks here.
-				addonName, ok := accessor.GetLabels()[constants.AddonLabel]
+				addonName, ok := accessor.GetLabels()[addonapiv1alpha1.AddonLabelKey]
 				if !ok {
 					return false
 				}
@@ -240,7 +243,7 @@ func (c *addonDeployController) applyWork(ctx context.Context, appliedType strin
 		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
 			Type:    appliedType,
 			Status:  metav1.ConditionFalse,
-			Reason:  constants.AddonManifestAppliedReasonWorkApplyFailed,
+			Reason:  addonapiv1alpha1.AddonManifestAppliedReasonWorkApplyFailed,
 			Message: fmt.Sprintf("failed to apply manifestWork: %v", err),
 		})
 		return work, err
@@ -251,14 +254,14 @@ func (c *addonDeployController) applyWork(ctx context.Context, appliedType strin
 		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
 			Type:    appliedType,
 			Status:  metav1.ConditionTrue,
-			Reason:  constants.AddonManifestAppliedReasonManifestsApplied,
+			Reason:  addonapiv1alpha1.AddonManifestAppliedReasonManifestsApplied,
 			Message: "manifests of addon are applied successfully",
 		})
 	} else {
 		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
 			Type:    appliedType,
 			Status:  metav1.ConditionFalse,
-			Reason:  constants.AddonManifestAppliedReasonManifestsApplyFailed,
+			Reason:  addonapiv1alpha1.AddonManifestAppliedReasonManifestsApplyFailed,
 			Message: "failed to apply the manifests of addon",
 		})
 	}
@@ -278,10 +281,10 @@ func (c *addonDeployController) buildDeployManifestWorks(installMode, workNamesp
 
 	switch installMode {
 	case constants.InstallModeHosted:
-		appliedType = constants.AddonHostingManifestApplied
+		appliedType = addonapiv1alpha1.ManagedClusterAddOnHostingManifestApplied
 		addonWorkBuilder = newHostingAddonWorksBuilder(agentAddon.GetAgentAddonOptions().HostedModeEnabled, c.workBuilder)
 	case constants.InstallModeDefault:
-		appliedType = constants.AddonManifestApplied
+		appliedType = addonapiv1alpha1.ManagedClusterAddOnManifestApplied
 		addonWorkBuilder = newAddonWorksBuilder(agentAddon.GetAgentAddonOptions().HostedModeEnabled, c.workBuilder)
 	default:
 		return nil, nil, fmt.Errorf("invalid install mode %v", installMode)
@@ -292,7 +295,7 @@ func (c *addonDeployController) buildDeployManifestWorks(installMode, workNamesp
 		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
 			Type:    appliedType,
 			Status:  metav1.ConditionFalse,
-			Reason:  constants.AddonManifestAppliedReasonWorkApplyFailed,
+			Reason:  addonapiv1alpha1.AddonManifestAppliedReasonWorkApplyFailed,
 			Message: fmt.Sprintf("failed to get manifest from agent interface: %v", err),
 		})
 		return nil, nil, err
@@ -311,7 +314,7 @@ func (c *addonDeployController) buildDeployManifestWorks(installMode, workNamesp
 		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
 			Type:    appliedType,
 			Status:  metav1.ConditionFalse,
-			Reason:  constants.AddonManifestAppliedReasonWorkApplyFailed,
+			Reason:  addonapiv1alpha1.AddonManifestAppliedReasonWorkApplyFailed,
 			Message: fmt.Sprintf("failed to build manifestwork: %v", err),
 		})
 		return nil, nil, err
@@ -330,10 +333,10 @@ func (c *addonDeployController) buildHookManifestWork(installMode, workNamespace
 
 	switch installMode {
 	case constants.InstallModeHosted:
-		appliedType = constants.AddonHostingManifestApplied
+		appliedType = addonapiv1alpha1.ManagedClusterAddOnHostingManifestApplied
 		addonWorkBuilder = newHostingAddonWorksBuilder(agentAddon.GetAgentAddonOptions().HostedModeEnabled, c.workBuilder)
 	case constants.InstallModeDefault:
-		appliedType = constants.AddonManifestApplied
+		appliedType = addonapiv1alpha1.ManagedClusterAddOnManifestApplied
 		addonWorkBuilder = newAddonWorksBuilder(agentAddon.GetAgentAddonOptions().HostedModeEnabled, c.workBuilder)
 	default:
 		return nil, fmt.Errorf("invalid install mode %v", installMode)
@@ -344,7 +347,7 @@ func (c *addonDeployController) buildHookManifestWork(installMode, workNamespace
 		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
 			Type:    appliedType,
 			Status:  metav1.ConditionFalse,
-			Reason:  constants.AddonManifestAppliedReasonWorkApplyFailed,
+			Reason:  addonapiv1alpha1.AddonManifestAppliedReasonWorkApplyFailed,
 			Message: fmt.Sprintf("failed to get manifest from agent interface: %v", err),
 		})
 		return nil, err
@@ -358,7 +361,7 @@ func (c *addonDeployController) buildHookManifestWork(installMode, workNamespace
 		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
 			Type:    appliedType,
 			Status:  metav1.ConditionFalse,
-			Reason:  constants.AddonManifestAppliedReasonWorkApplyFailed,
+			Reason:  addonapiv1alpha1.AddonManifestAppliedReasonWorkApplyFailed,
 			Message: fmt.Sprintf("failed to build manifestwork: %v", err),
 		})
 		return nil, err
