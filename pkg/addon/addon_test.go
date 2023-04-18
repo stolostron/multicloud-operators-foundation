@@ -18,7 +18,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	clienttesting "k8s.io/client-go/testing"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
-	addonconstants "open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -211,7 +210,7 @@ func TestManifest(t *testing.T) {
 						{Source: "quay.io/stolostron", Mirror: "quay.io/test"},
 					}, "")}),
 			addon: newAddonWithCustomizedAnnotation("work-manager", "local-cluster", "", map[string]string{
-				addonconstants.HostingClusterNameAnnotationKey: "cluster2",
+				addonapiv1alpha1.HostingClusterNameAnnotationKey: "cluster2",
 			}),
 			expectedNamespace:    "open-cluster-management-agent-addon",
 			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
@@ -227,7 +226,7 @@ func TestManifest(t *testing.T) {
 						{Source: "quay.io/stolostron", Mirror: "quay.io/test"},
 					}, "")}),
 			addon: newAddonWithCustomizedAnnotation("work-manager", "cluster1", "klusterlet-cluster1", map[string]string{
-				addonconstants.HostingClusterNameAnnotationKey: "cluster2",
+				addonapiv1alpha1.HostingClusterNameAnnotationKey: "cluster2",
 			}),
 			expectedNamespace:         "klusterlet-cluster1",
 			expectedNamespaceOrphaned: true,
@@ -265,7 +264,7 @@ func TestManifest(t *testing.T) {
 					}
 
 					hostedMode := false
-					if v, ok := test.cluster.GetAnnotations()[addonconstants.HostingClusterNameAnnotationKey]; ok && v != "" {
+					if v, ok := test.cluster.GetAnnotations()[addonapiv1alpha1.HostingClusterNameAnnotationKey]; ok && v != "" {
 						hostedMode = true
 					}
 					if hostedMode {
@@ -283,10 +282,7 @@ func TestManifest(t *testing.T) {
 					if object.Spec.Type != test.expectServiceType {
 						t.Errorf("expected service type is %s, but got %s ", test.expectServiceType, object.Spec.Type)
 					}
-				case *v1.Namespace:
-					if _, ok := object.Annotations[addonconstants.AnnotationDeletionOrphan]; test.expectedNamespaceOrphaned && !ok {
-						t.Errorf("expected delete option of add-on install namespace is Orphan")
-					}
+
 				}
 			}
 

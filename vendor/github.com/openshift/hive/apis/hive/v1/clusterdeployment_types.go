@@ -1,6 +1,7 @@
 package v1
 
 import (
+	configv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -29,10 +30,6 @@ const (
 	// shown in short output, usable in searching, and adds metrics vectors which can be used to
 	// alert on cluster types differently.
 	HiveClusterTypeLabel = "hive.openshift.io/cluster-type"
-
-	// DefaultClusterType will be used when the above HiveClusterTypeLabel is unset. This
-	// value will not be added as a label, only used for metrics vectors.
-	DefaultClusterType = "unspecified"
 
 	// HiveInstallLogLabel is used on ConfigMaps uploaded by the install manager which contain an install log.
 	HiveInstallLogLabel = "hive.openshift.io/install-log"
@@ -525,6 +522,9 @@ const (
 	// HibernatingReasonPowerStatePaused indicates that we can't/won't discover the state of the
 	// cluster's cloud machines because the powerstate-paused annotation is set.
 	HibernatingReasonPowerStatePaused = "PowerStatePaused"
+	// HibernatingReasonClusterDeploymentDeleted indicates that a Cluster Deployment has been deleted
+	// and that the cluster is deprovisioning unless preserveOnDelete is set to true.
+	HibernatingReasonClusterDeploymentDeleted = "ClusterDeploymentDeleted"
 
 	// ReadyReasonStoppingOrHibernating is used as the reason for the Ready condition when the cluster
 	// is stopping or hibernating. Precise details are available in the Hibernating condition.
@@ -548,6 +548,9 @@ const (
 	// ReadyReasonPowerStatePaused indicates that we can't/won't discover the state of the
 	// cluster's cloud machines because the powerstate-paused annotation is set.
 	ReadyReasonPowerStatePaused = "PowerStatePaused"
+	// ReadyReasonClusterDeploymentDeleted indicates that a Cluster Deployment has been deleted
+	// and that the cluster is deprovisioning unless preserveOnDelete is set to true.
+	ReadyReasonClusterDeploymentDeleted = "ClusterDeploymentDeleted"
 )
 
 // Provisioned status condition reasons
@@ -675,6 +678,10 @@ type ClusterIngress struct {
 	// should be used for this Ingress
 	// +optional
 	ServingCertificate string `json:"servingCertificate,omitempty"`
+
+	// HttpErrorCodePages allows configuring custom HTTP error pages using the IngressController object
+	// +optional
+	HttpErrorCodePages *configv1.ConfigMapNameReference `json:"httpErrorCodePages,omitempty"`
 }
 
 // ControlPlaneConfigSpec contains additional configuration settings for a target

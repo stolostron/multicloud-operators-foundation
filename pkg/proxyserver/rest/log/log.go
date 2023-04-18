@@ -32,6 +32,8 @@ var _ = rest.Connecter(&LogRest{})
 func (r *LogRest) New() runtime.Object {
 	return &v1beta1.ClusterStatus{}
 }
+func (r *LogRest) Destroy() {
+}
 
 // ConnectMethods returns the list of HTTP methods that can be proxied
 func (r *LogRest) ConnectMethods() []string {

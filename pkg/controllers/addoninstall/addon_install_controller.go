@@ -13,7 +13,6 @@ import (
 	errorsutil "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/klog"
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -122,10 +121,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// do not install addon if addon automatic installation is disabled
-	if value, ok := cluster.Annotations[constants.DisableAddonAutomaticInstallationAnnotationKey]; ok &&
+	if value, ok := cluster.Annotations[addonapiv1alpha1.DisableAddonAutomaticInstallationAnnotationKey]; ok &&
 		strings.EqualFold(value, "true") {
 		klog.V(4).Infof("Cluster %q has annotation %q, skip addon deploy",
-			cluster.Name, constants.DisableAddonAutomaticInstallationAnnotationKey)
+			cluster.Name, addonapiv1alpha1.DisableAddonAutomaticInstallationAnnotationKey)
 		return ctrl.Result{}, nil
 	}
 

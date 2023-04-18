@@ -380,7 +380,7 @@ func (r *Reconciler) updateImageRegistryCondition(ctx context.Context, namespace
 		}
 		if !equality.Semantic.DeepEqual(oldStatus, newStatus) {
 			imageRegistry.Status = *newStatus
-			return r.client.Status().Update(ctx, imageRegistry, &client.UpdateOptions{})
+			return r.client.Status().Update(ctx, imageRegistry)
 		}
 		return nil
 	})

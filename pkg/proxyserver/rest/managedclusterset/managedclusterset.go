@@ -55,6 +55,9 @@ func (s *REST) New() runtime.Object {
 	return &clusterv1beta2.ManagedClusterSet{}
 }
 
+func (s *REST) Destroy() {
+}
+
 func (s *REST) NamespaceScoped() bool {
 	return false
 }

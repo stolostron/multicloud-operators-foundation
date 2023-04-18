@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	kubescheme "k8s.io/client-go/kubernetes/scheme"
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -77,7 +76,7 @@ func TestReconciler(t *testing.T) {
 		{
 			name: "cluster with add-on disabled",
 			existingCluster: newManagedCluster(clusterName, map[string]string{
-				constants.DisableAddonAutomaticInstallationAnnotationKey: "true",
+				addonapiv1alpha1.DisableAddonAutomaticInstallationAnnotationKey: "true",
 			}),
 		},
 		{

@@ -19,15 +19,15 @@ import (
 	v1beta1certificateslisters "k8s.io/client-go/listers/certificates/v1beta1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
-	"open-cluster-management.io/addon-framework/pkg/agent"
-	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions/cluster/v1"
 	clusterlister "open-cluster-management.io/api/client/cluster/listers/cluster/v1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+
+	"open-cluster-management.io/addon-framework/pkg/agent"
+	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
 )
 
 var (
@@ -102,7 +102,7 @@ func NewCSRApprovingController(
 				if len(accessor.GetLabels()) == 0 {
 					return false
 				}
-				addonName := accessor.GetLabels()[constants.AddonLabel]
+				addonName := accessor.GetLabels()[addonv1alpha1.AddonLabelKey]
 				if _, ok := agentAddons[addonName]; !ok {
 					return false
 				}
@@ -128,7 +128,7 @@ func (c *csrApprovingController) sync(ctx context.Context, syncCtx factory.SyncC
 		return nil
 	}
 
-	addonName := csr.GetLabels()[constants.AddonLabel]
+	addonName := csr.GetLabels()[addonv1alpha1.AddonLabelKey]
 	agentAddon, ok := c.agentAddons[addonName]
 	if !ok {
 		return nil
@@ -138,7 +138,7 @@ func (c *csrApprovingController) sync(ctx context.Context, syncCtx factory.SyncC
 	if registrationOption == nil {
 		return nil
 	}
-	clusterName, ok := csr.GetLabels()[constants.ClusterLabel]
+	clusterName, ok := csr.GetLabels()[clusterv1.ClusterNameLabelKey]
 	if !ok {
 		return nil
 	}
@@ -346,7 +346,8 @@ func unsafeCovertV1beta1KeyUsageToV1KeyUsage(usages []certificatesv1beta1.KeyUsa
 }
 
 // TODO: remove the following block for deprecating V1beta1 CSR compatibility
-func unsafeCovertV1beta1ExtraValueToV1ExtraValue(extraValues map[string]certificatesv1beta1.ExtraValue) map[string]certificatesv1.ExtraValue {
+func unsafeCovertV1beta1ExtraValueToV1ExtraValue(
+	extraValues map[string]certificatesv1beta1.ExtraValue) map[string]certificatesv1.ExtraValue {
 	v1Values := make(map[string]certificatesv1.ExtraValue)
 	for k := range extraValues {
 		v1Values[k] = certificatesv1.ExtraValue(extraValues[k])
@@ -355,7 +356,9 @@ func unsafeCovertV1beta1ExtraValueToV1ExtraValue(extraValues map[string]certific
 }
 
 // TODO: remove the following block for deprecating V1beta1 CSR compatibility
-func unsafeCovertV1beta1ConditionsToV1Conditions(conditions []certificatesv1beta1.CertificateSigningRequestCondition) []certificatesv1.CertificateSigningRequestCondition {
+func unsafeCovertV1beta1ConditionsToV1Conditions(
+	conditions []certificatesv1beta1.CertificateSigningRequestCondition,
+) []certificatesv1.CertificateSigningRequestCondition {
 	v1Conditions := make([]certificatesv1.CertificateSigningRequestCondition, len(conditions))
 	for i := range conditions {
 		v1Conditions[i] = certificatesv1.CertificateSigningRequestCondition{

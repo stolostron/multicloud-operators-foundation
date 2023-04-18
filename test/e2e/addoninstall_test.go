@@ -11,7 +11,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 
@@ -86,7 +85,7 @@ var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
 			ginkgo.BeforeEach(func() {
 				clusterName = fmt.Sprintf("cluster-default-none-%s", rand.String(5))
 				annotations = map[string]string{
-					constants.DisableAddonAutomaticInstallationAnnotationKey: "true",
+					addonapiv1alpha1.DisableAddonAutomaticInstallationAnnotationKey: "true",
 				}
 			})
 
@@ -114,7 +113,7 @@ var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
 		ginkgo.When("add-on installation is disabled", func() {
 			ginkgo.BeforeEach(func() {
 				clusterName = fmt.Sprintf("cluster-hosted-none-%s", rand.String(5))
-				annotations[constants.DisableAddonAutomaticInstallationAnnotationKey] = "true"
+				annotations[addonapiv1alpha1.DisableAddonAutomaticInstallationAnnotationKey] = "true"
 			})
 
 			haveNoAddonIt()

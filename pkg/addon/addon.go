@@ -14,7 +14,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
-	addonconstants "open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	"open-cluster-management.io/addon-framework/pkg/utils"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
@@ -62,7 +61,7 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 		// if addon is hosted mode, the enableSyncLabelsToClusterClaims,enableNodeCollector is false
 		enableSyncLabelsToClusterClaims := true
 		enableNodeCapacity := true
-		if value, ok := addon.GetAnnotations()[addonconstants.HostingClusterNameAnnotationKey]; ok && value != "" {
+		if value, ok := addon.GetAnnotations()[addonapiv1alpha1.HostingClusterNameAnnotationKey]; ok && value != "" {
 			enableSyncLabelsToClusterClaims = false
 			enableNodeCapacity = false
 		}

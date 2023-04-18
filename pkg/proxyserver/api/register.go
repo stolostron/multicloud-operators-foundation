@@ -132,6 +132,8 @@ var (
 func (s *clusterStatusStorage) New() runtime.Object {
 	return &proxyv1beta1.ClusterStatus{}
 }
+func (s *clusterStatusStorage) Destroy() {
+}
 
 // KindProvider interface
 func (s *clusterStatusStorage) Kind() string {
