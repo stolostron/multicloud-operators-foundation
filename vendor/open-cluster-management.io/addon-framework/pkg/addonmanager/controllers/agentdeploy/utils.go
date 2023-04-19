@@ -1,7 +1,6 @@
 package agentdeploy
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -9,12 +8,11 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
+	"open-cluster-management.io/addon-framework/pkg/agent"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	"open-cluster-management.io/api/utils/work/v1/workbuilder"
 	workapiv1 "open-cluster-management.io/api/work/v1"
-
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
-	"open-cluster-management.io/addon-framework/pkg/agent"
 )
 
 func addonHasFinalizer(addon *addonapiv1alpha1.ManagedClusterAddOn, finalizer string) bool {
@@ -29,16 +27,9 @@ func addonHasFinalizer(addon *addonapiv1alpha1.ManagedClusterAddOn, finalizer st
 func addonRemoveFinalizer(addon *addonapiv1alpha1.ManagedClusterAddOn, finalizer string) bool {
 	var rst []string
 	for _, f := range addon.Finalizers {
-		if f == finalizer {
-			continue
+		if f != finalizer {
+			rst = append(rst, f)
 		}
-		// remove deperecated finalizers also
-		if f == addonapiv1alpha1.AddonDeprecatedHostingManifestFinalizer ||
-			f == addonapiv1alpha1.AddonDeprecatedPreDeleteHookFinalizer ||
-			f == addonapiv1alpha1.AddonDeprecatedHostingPreDeleteHookFinalizer {
-			continue
-		}
-		rst = append(rst, f)
 	}
 	if len(rst) != len(addon.Finalizers) {
 		addon.SetFinalizers(rst)
@@ -48,20 +39,10 @@ func addonRemoveFinalizer(addon *addonapiv1alpha1.ManagedClusterAddOn, finalizer
 }
 
 func addonAddFinalizer(addon *addonapiv1alpha1.ManagedClusterAddOn, finalizer string) bool {
-	if addon.Finalizers == nil {
+	rst := addon.Finalizers
+	if rst == nil {
 		addon.SetFinalizers([]string{finalizer})
 		return true
-	}
-
-	var rst []string
-	for _, f := range addon.Finalizers {
-		// remove deperecated finalizers also
-		if f == addonapiv1alpha1.AddonDeprecatedHostingManifestFinalizer ||
-			f == addonapiv1alpha1.AddonDeprecatedPreDeleteHookFinalizer ||
-			f == addonapiv1alpha1.AddonDeprecatedHostingPreDeleteHookFinalizer {
-			continue
-		}
-		rst = append(rst, f)
 	}
 
 	for _, f := range addon.Finalizers {
@@ -311,16 +292,10 @@ func (b *addonWorksBuilder) BuildDeployWorks(addonWorkNamespace string,
 		}
 	}
 
-	annotations, err := configsToAnnotations(addon.Status.ConfigReferences)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	return b.workBuilder.Build(deployObjects,
 		newAddonWorkObjectMeta(b.processor.manifestWorkNamePrefix(addon.Namespace, addon.Name), addon.Name, addon.Namespace, addonWorkNamespace, owner),
 		workbuilder.ExistingManifestWorksOption(existingWorks),
 		workbuilder.ManifestConfigOption(manifestOptions),
-		workbuilder.ManifestAnnotations(annotations),
 		workbuilder.DeletionOption(deletionOption))
 }
 
@@ -449,8 +424,7 @@ func hookWorkIsCompleted(hookWork *workapiv1.ManifestWork) bool {
 	return true
 }
 
-func newAddonWorkObjectMeta(namePrefix, addonName, addonNamespace, workNamespace string,
-	owner *metav1.OwnerReference) workbuilder.GenerateManifestWorkObjectMeta {
+func newAddonWorkObjectMeta(namePrefix, addonName, addonNamespace, workNamespace string, owner *metav1.OwnerReference) workbuilder.GenerateManifestWorkObjectMeta {
 	return func(index int) metav1.ObjectMeta {
 		objectMeta := metav1.ObjectMeta{
 			Name:      fmt.Sprintf("%s-%d", namePrefix, index),
@@ -517,45 +491,4 @@ func getDeletionOrphaningRule(obj runtime.Object) (*workapiv1.OrphaningRule, err
 		Namespace: accessor.GetNamespace(),
 	}
 	return rule, nil
-}
-
-// convert config reference to annotations.
-func configsToAnnotations(configReference []addonapiv1alpha1.ConfigReference) (map[string]string, error) {
-	if len(configReference) == 0 {
-		return nil, nil
-	}
-
-	// annotations is a map stores the config name and config spec hash.
-	//
-	// config name follows the format of <resource>.<group>/<namespace>/<name>, for example,
-	// addondeploymentconfigs.addon.open-cluster-management.io/open-cluster-management/default.
-	// for a cluster scoped resource, the namespace would be empty, for example,
-	// addonhubconfigs.addon.open-cluster-management.io//default.
-	annotations := make(map[string]string, len(configReference))
-	for _, v := range configReference {
-		if v.DesiredConfig == nil {
-			continue
-		}
-		resourceStr := v.Resource
-		if len(v.Group) > 0 {
-			resourceStr += fmt.Sprintf(".%s", v.Group)
-		}
-		resourceStr += fmt.Sprintf("/%s/%s", v.DesiredConfig.Namespace, v.DesiredConfig.Name)
-
-		annotations[resourceStr] = v.DesiredConfig.SpecHash
-	}
-
-	// converts the annotations map into a JSON byte string.
-	jsonBytes, err := json.Marshal(annotations)
-	if err != nil {
-		return nil, err
-	}
-
-	// return a map with key as "open-cluster-management.io/config-spec-hash" and value is the JSON byte string.
-	// For example:
-	// open-cluster-management.io/config-spec-hash: '{"addonhubconfigs.addon.open-cluster-management.io//default":"613d134a2ec072a8a6451af913979f496d657ef5",
-	// "addondeploymentconfigs.addon.open-cluster-management.io/open-cluster-management/default":"cca7df9188fb920dcfab374940452393e2037619"}'
-	return map[string]string{
-		workapiv1.ManifestConfigSpecHashAnnotationKey: string(jsonBytes),
-	}, nil
 }

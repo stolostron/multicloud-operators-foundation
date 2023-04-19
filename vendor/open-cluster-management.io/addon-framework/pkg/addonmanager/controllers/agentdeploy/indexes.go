@@ -2,12 +2,11 @@ package agentdeploy
 
 import (
 	"fmt"
+	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	"strings"
 
-	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	workapiv1 "open-cluster-management.io/api/work/v1"
-
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
+	workapiv1 "open-cluster-management.io/api/work/v1"
 )
 
 const (

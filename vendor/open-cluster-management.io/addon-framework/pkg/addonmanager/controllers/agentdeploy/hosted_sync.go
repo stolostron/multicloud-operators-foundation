@@ -8,13 +8,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	workapiv1 "open-cluster-management.io/api/work/v1"
-
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
+	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	workapiv1 "open-cluster-management.io/api/work/v1"
 )
 
 type hostedSyncer struct {
@@ -48,7 +47,7 @@ func (s *hostedSyncer) sync(ctx context.Context,
 		if err := s.cleanupDeployWork(ctx, addon); err != nil {
 			return addon, err
 		}
-		addonRemoveFinalizer(addon, addonapiv1alpha1.AddonHostingManifestFinalizer)
+		addonRemoveFinalizer(addon, constants.HostingManifestFinalizer)
 		return addon, nil
 	}
 
@@ -61,22 +60,22 @@ func (s *hostedSyncer) sync(ctx context.Context,
 		}
 
 		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
-			Type:    addonapiv1alpha1.ManagedClusterAddOnHostingClusterValidity,
+			Type:    constants.HostingClusterValidity,
 			Status:  metav1.ConditionFalse,
-			Reason:  addonapiv1alpha1.HostingClusterValidityReasonInvalid,
+			Reason:  constants.HostingClusterValidityReasonInvalid,
 			Message: fmt.Sprintf("hosting cluster %s is not a managed cluster of the hub", hostingClusterName),
 		})
 
-		addonRemoveFinalizer(addon, addonapiv1alpha1.AddonHostingManifestFinalizer)
+		addonRemoveFinalizer(addon, constants.HostingManifestFinalizer)
 		return addon, nil
 	}
 	if err != nil {
 		return addon, err
 	}
 	meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
-		Type:    addonapiv1alpha1.ManagedClusterAddOnHostingClusterValidity,
+		Type:    constants.HostingClusterValidity,
 		Status:  metav1.ConditionTrue,
-		Reason:  addonapiv1alpha1.HostingClusterValidityReasonValid,
+		Reason:  constants.HostingClusterValidityReasonValid,
 		Message: fmt.Sprintf("hosting cluster %s is a managed cluster of the hub", hostingClusterName),
 	})
 
@@ -84,24 +83,24 @@ func (s *hostedSyncer) sync(ctx context.Context,
 		if err = s.cleanupDeployWork(ctx, addon); err != nil {
 			return addon, err
 		}
-		addonRemoveFinalizer(addon, addonapiv1alpha1.AddonHostingManifestFinalizer)
+		addonRemoveFinalizer(addon, constants.HostingManifestFinalizer)
 		return addon, nil
 	}
 
 	if !addon.DeletionTimestamp.IsZero() {
 		// clean up the deploy work until the hook work is completed
-		if addonHasFinalizer(addon, addonapiv1alpha1.AddonHostingPreDeleteHookFinalizer) {
+		if addonHasFinalizer(addon, constants.HostingPreDeleteHookFinalizer) {
 			return addon, nil
 		}
 
 		if err = s.cleanupDeployWork(ctx, addon); err != nil {
 			return addon, err
 		}
-		addonRemoveFinalizer(addon, addonapiv1alpha1.AddonHostingManifestFinalizer)
+		addonRemoveFinalizer(addon, constants.HostingManifestFinalizer)
 		return addon, nil
 	}
 
-	if addonAddFinalizer(addon, addonapiv1alpha1.AddonHostingManifestFinalizer) {
+	if addonAddFinalizer(addon, constants.HostingManifestFinalizer) {
 		return addon, nil
 	}
 
@@ -130,7 +129,7 @@ func (s *hostedSyncer) sync(ctx context.Context,
 	}
 
 	for _, deployWork := range deployWorks {
-		_, err = s.applyWork(ctx, addonapiv1alpha1.ManagedClusterAddOnHostingManifestApplied, deployWork, addon)
+		_, err = s.applyWork(ctx, constants.AddonHostingManifestApplied, deployWork, addon)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -143,7 +142,7 @@ func (s *hostedSyncer) sync(ctx context.Context,
 // to find out the hosting cluster by manifestWork labels and do the cleanup.
 func (s *hostedSyncer) cleanupDeployWork(ctx context.Context,
 	addon *addonapiv1alpha1.ManagedClusterAddOn) (err error) {
-	if !addonHasFinalizer(addon, addonapiv1alpha1.AddonHostingManifestFinalizer) {
+	if !addonHasFinalizer(addon, constants.HostingManifestFinalizer) {
 		return nil
 	}
 

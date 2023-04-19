@@ -4,9 +4,8 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/types"
-	workapiv1 "open-cluster-management.io/api/work/v1"
-
 	"open-cluster-management.io/addon-framework/pkg/agent"
+	workapiv1 "open-cluster-management.io/api/work/v1"
 )
 
 // DeploymentProber is to check the addon status based on status
