@@ -126,7 +126,7 @@ func LoadFilesRecursively(dir string, predicates ...FileInfoPredicate) (map[stri
 				}
 			}
 
-			bs, err := os.ReadFile(filepath.Clean(path))
+			bs, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}

@@ -3,13 +3,8 @@ package addonmanager
 import (
 	"context"
 	"fmt"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	"time"
-
-	"k8s.io/client-go/tools/cache"
-
-	"open-cluster-management.io/addon-framework/pkg/index"
-	"open-cluster-management.io/addon-framework/pkg/manager/controllers/addonconfiguration"
-	"open-cluster-management.io/addon-framework/pkg/manager/controllers/addonowner"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,24 +13,22 @@ import (
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
-	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/addonconfig"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/addonhealthcheck"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/addoninstall"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/agentdeploy"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/certificate"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/clustermanagement"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/registration"
+	"open-cluster-management.io/addon-framework/pkg/agent"
+	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
+	"open-cluster-management.io/addon-framework/pkg/utils"
 	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
 	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	workv1client "open-cluster-management.io/api/client/work/clientset/versioned"
 	workv1informers "open-cluster-management.io/api/client/work/informers/externalversions"
-
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/addonconfig"
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/addonhealthcheck"
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/addoninstall"
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/agentdeploy"
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/certificate"
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/managementaddonconfig"
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/registration"
-	"open-cluster-management.io/addon-framework/pkg/agent"
-	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
-	"open-cluster-management.io/addon-framework/pkg/utils"
 )
 
 // AddonManager is the interface to initialize a manager on hub to manage the addon
@@ -108,10 +101,10 @@ func (a *addonManager) Start(ctx context.Context) error {
 		return err
 	}
 
-	var addonNames []string
-	for key, agentImpl := range a.addonAgents {
+	addonNames := []string{}
+	for key, agent := range a.addonAgents {
 		addonNames = append(addonNames, key)
-		for _, configGVR := range agentImpl.GetAgentAddonOptions().SupportedConfigGVRs {
+		for _, configGVR := range agent.GetAgentAddonOptions().SupportedConfigGVRs {
 			a.addonConfigs[configGVR] = true
 		}
 	}
@@ -163,6 +156,14 @@ func (a *addonManager) Start(ctx context.Context) error {
 		a.addonAgents,
 	)
 
+	clusterManagementController := clustermanagement.NewClusterManagementController(
+		addonClient,
+		clusterInformers.Cluster().V1().ManagedClusters(),
+		addonInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+		addonInformers.Addon().V1alpha1().ClusterManagementAddOns(),
+		a.addonAgents,
+	)
+
 	addonInstallController := addoninstall.NewAddonInstallController(
 		addonClient,
 		clusterInformers.Cluster().V1().ManagedClusters(),
@@ -177,54 +178,13 @@ func (a *addonManager) Start(ctx context.Context) error {
 		a.addonAgents,
 	)
 
-	// This is a duplicate controller in general addon-manager. This should be removed when we
-	// alway enable the addon-manager
-	addonOwnerController := addonowner.NewAddonOwnerController(
-		addonClient,
-		addonInformers.Addon().V1alpha1().ManagedClusterAddOns(),
-		addonInformers.Addon().V1alpha1().ClusterManagementAddOns(),
-		utils.ManagedBySelf,
-	)
-
-	var addonConfigController, managementAddonConfigController, addonConfigurationController factory.Controller
+	var addonConfigController factory.Controller
 	if len(a.addonConfigs) != 0 {
 		addonConfigController = addonconfig.NewAddonConfigController(
 			addonClient,
 			addonInformers.Addon().V1alpha1().ManagedClusterAddOns(),
 			dynamicInformers,
 			a.addonConfigs,
-		)
-		managementAddonConfigController = managementaddonconfig.NewManagementAddonConfigController(
-			addonClient,
-			addonInformers.Addon().V1alpha1().ClusterManagementAddOns(),
-			dynamicInformers,
-			a.addonConfigs,
-		)
-
-		// start addonConfiguration controller, note this is to handle the case when the general addon-manager
-		// is not started, we should consider to remove this when the general addon-manager are always started.
-		// This controller will also ignore the installStrategy part.
-		err = addonInformers.Addon().V1alpha1().ClusterManagementAddOns().Informer().AddIndexers(
-			cache.Indexers{
-				index.ClusterManagementAddonByPlacement: index.IndexClusterManagementAddonByPlacement,
-			})
-		if err != nil {
-			return err
-		}
-
-		err = addonInformers.Addon().V1alpha1().ManagedClusterAddOns().Informer().AddIndexers(
-			cache.Indexers{
-				index.ManagedClusterAddonByName: index.IndexManagedClusterAddonByName,
-			})
-		if err != nil {
-			return err
-		}
-		addonConfigurationController = addonconfiguration.NewAddonConfigurationController(
-			addonClient,
-			addonInformers.Addon().V1alpha1().ManagedClusterAddOns(),
-			addonInformers.Addon().V1alpha1().ClusterManagementAddOns(),
-			nil, nil,
-			utils.ManagedBySelf,
 		)
 	}
 
@@ -271,17 +231,11 @@ func (a *addonManager) Start(ctx context.Context) error {
 
 	go deployController.Run(ctx, 1)
 	go registrationController.Run(ctx, 1)
+	go clusterManagementController.Run(ctx, 1)
 	go addonInstallController.Run(ctx, 1)
 	go addonHealthCheckController.Run(ctx, 1)
-	go addonOwnerController.Run(ctx, 1)
 	if addonConfigController != nil {
 		go addonConfigController.Run(ctx, 1)
-	}
-	if managementAddonConfigController != nil {
-		go managementAddonConfigController.Run(ctx, 1)
-	}
-	if addonConfigurationController != nil {
-		go addonConfigurationController.Run(ctx, 1)
 	}
 	if csrApproveController != nil {
 		go csrApproveController.Run(ctx, 1)

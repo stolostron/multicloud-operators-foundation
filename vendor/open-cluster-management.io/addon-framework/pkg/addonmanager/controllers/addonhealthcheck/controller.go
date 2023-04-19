@@ -13,6 +13,10 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
+	"open-cluster-management.io/addon-framework/pkg/agent"
+	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
+	"open-cluster-management.io/addon-framework/pkg/utils"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
@@ -20,11 +24,6 @@ import (
 	workinformers "open-cluster-management.io/api/client/work/informers/externalversions/work/v1"
 	worklister "open-cluster-management.io/api/client/work/listers/work/v1"
 	workapiv1 "open-cluster-management.io/api/work/v1"
-
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
-	"open-cluster-management.io/addon-framework/pkg/agent"
-	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
-	"open-cluster-management.io/addon-framework/pkg/utils"
 )
 
 // addonHealthCheckController reconciles instances of ManagedClusterAddon on the hub.
@@ -116,8 +115,7 @@ func (c *addonHealthCheckController) sync(ctx context.Context, syncCtx factory.S
 	return c.syncAddonHealthChecker(ctx, managedClusterAddon, agentAddon)
 }
 
-func (c *addonHealthCheckController) syncAddonHealthChecker(ctx context.Context,
-	addon *addonapiv1alpha1.ManagedClusterAddOn, agentAddon agent.AgentAddon) error {
+func (c *addonHealthCheckController) syncAddonHealthChecker(ctx context.Context, addon *addonapiv1alpha1.ManagedClusterAddOn, agentAddon agent.AgentAddon) error {
 	// for in-place edit
 	addon = addon.DeepCopy()
 	// reconcile health check mode
@@ -128,10 +126,12 @@ func (c *addonHealthCheckController) syncAddonHealthChecker(ctx context.Context,
 	}
 
 	switch agentAddon.GetAgentAddonOptions().HealthProber.Type {
-	case agent.HealthProberTypeWork, agent.HealthProberTypeNone:
+	case agent.HealthProberTypeWork:
+		fallthrough
+	case agent.HealthProberTypeNone:
 		expectedHealthCheckMode = addonapiv1alpha1.HealthCheckModeCustomized
 	case agent.HealthProberTypeLease:
-		expectedHealthCheckMode = addonapiv1alpha1.HealthCheckModeLease
+		fallthrough
 	default:
 		expectedHealthCheckMode = addonapiv1alpha1.HealthCheckModeLease
 	}
@@ -183,17 +183,17 @@ func (c *addonHealthCheckController) probeAddonStatus(ctx context.Context, addon
 		switch {
 		case workCond == nil:
 			meta.SetStatusCondition(&addonCopy.Status.Conditions, metav1.Condition{
-				Type:    addonapiv1alpha1.ManagedClusterAddOnConditionAvailable,
+				Type:    "Available",
 				Status:  metav1.ConditionUnknown,
-				Reason:  addonapiv1alpha1.AddonAvailableReasonWorkNotApply,
+				Reason:  "WorkNotApplied",
 				Message: "Work is not applied yet",
 			})
 			return utils.PatchAddonCondition(ctx, c.addonClient, addonCopy, addon)
 		case workCond.Status == metav1.ConditionFalse:
 			meta.SetStatusCondition(&addonCopy.Status.Conditions, metav1.Condition{
-				Type:    addonapiv1alpha1.ManagedClusterAddOnConditionAvailable,
+				Type:    "Available",
 				Status:  metav1.ConditionFalse,
-				Reason:  addonapiv1alpha1.AddonAvailableReasonWorkApplyFailed,
+				Reason:  "WorkApplyFailed",
 				Message: workCond.Message,
 			})
 			return utils.PatchAddonCondition(ctx, c.addonClient, addonCopy, addon)
@@ -204,9 +204,9 @@ func (c *addonHealthCheckController) probeAddonStatus(ctx context.Context, addon
 
 	if agentAddon.GetAgentAddonOptions().HealthProber.WorkProber == nil {
 		meta.SetStatusCondition(&addonCopy.Status.Conditions, metav1.Condition{
-			Type:    addonapiv1alpha1.ManagedClusterAddOnConditionAvailable,
+			Type:    "Available",
 			Status:  metav1.ConditionTrue,
-			Reason:  addonapiv1alpha1.AddonAvailableReasonWorkApply,
+			Reason:  "WorkApplied",
 			Message: "Addon work is applied",
 		})
 		return utils.PatchAddonCondition(ctx, c.addonClient, addonCopy, addon)
@@ -220,9 +220,9 @@ func (c *addonHealthCheckController) probeAddonStatus(ctx context.Context, addon
 		// mark condition to unknown
 		if result == nil {
 			meta.SetStatusCondition(&addonCopy.Status.Conditions, metav1.Condition{
-				Type:    addonapiv1alpha1.ManagedClusterAddOnConditionAvailable,
+				Type:    "Available",
 				Status:  metav1.ConditionUnknown,
-				Reason:  addonapiv1alpha1.AddonAvailableReasonNoProbeResult,
+				Reason:  "NoProbeResult",
 				Message: "Probe results are not returned",
 			})
 			return utils.PatchAddonCondition(ctx, c.addonClient, addonCopy, addon)
@@ -231,9 +231,9 @@ func (c *addonHealthCheckController) probeAddonStatus(ctx context.Context, addon
 		err := agentAddon.GetAgentAddonOptions().HealthProber.WorkProber.HealthCheck(field.ResourceIdentifier, *result)
 		if err != nil {
 			meta.SetStatusCondition(&addonCopy.Status.Conditions, metav1.Condition{
-				Type:    addonapiv1alpha1.ManagedClusterAddOnConditionAvailable,
+				Type:    "Available",
 				Status:  metav1.ConditionFalse,
-				Reason:  addonapiv1alpha1.AddonAvailableReasonProbeUnavailable,
+				Reason:  "ProbeUnavailable",
 				Message: fmt.Sprintf("Probe addon unavailable with err %v", err),
 			})
 			return utils.PatchAddonCondition(ctx, c.addonClient, addonCopy, addon)
@@ -241,9 +241,9 @@ func (c *addonHealthCheckController) probeAddonStatus(ctx context.Context, addon
 	}
 
 	meta.SetStatusCondition(&addonCopy.Status.Conditions, metav1.Condition{
-		Type:    addonapiv1alpha1.ManagedClusterAddOnConditionAvailable,
+		Type:    "Available",
 		Status:  metav1.ConditionTrue,
-		Reason:  addonapiv1alpha1.AddonAvailableReasonProbeAvailable,
+		Reason:  "ProbeAvailable",
 		Message: "Addon is available",
 	})
 	return utils.PatchAddonCondition(ctx, c.addonClient, addonCopy, addon)
