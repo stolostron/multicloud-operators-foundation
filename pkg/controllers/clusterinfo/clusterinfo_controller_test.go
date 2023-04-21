@@ -123,8 +123,8 @@ func validateError(t *testing.T, err, expectedErrorType error) {
 	}
 }
 
-func newTestClusterInfoReconciler(existingObjs []runtime.Object) *ClusterInfReconciler {
-	return &ClusterInfReconciler{
+func newTestClusterInfoReconciler(existingObjs []runtime.Object) *ClusterInfoReconciler {
+	return &ClusterInfoReconciler{
 		client: fake.NewFakeClientWithScheme(scheme, existingObjs...),
 		scheme: scheme,
 	}
@@ -262,18 +262,20 @@ func TestReconcile(t *testing.T) {
 }
 
 func Test_getLogCA(t *testing.T) {
-	logCertSecretNamespace = "open-cluster-management"
-	logCertSecretName = "ocm-klusterlet-self-signed-secrets"
-
 	tests := []struct {
-		name         string
-		existingObjs []runtime.Object
-		expectCAData []byte
+		name                   string
+		logCertSecretNamespace string
+		logCertSecretName      string
+		existingObjs           []runtime.Object
+		expectError            bool
+		expectCAData           []byte
 	}{
 		{
-			name: "get log ca",
+			name:                   "get log ca",
+			logCertSecretNamespace: "open-cluster-management",
+			logCertSecretName:      "open-cluster-management",
 			existingObjs: []runtime.Object{&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: logCertSecretName, Namespace: logCertSecretNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: "open-cluster-management", Namespace: "open-cluster-management"},
 				Data: map[string][]byte{
 					"ca.crt": {123},
 				},
@@ -281,14 +283,24 @@ func Test_getLogCA(t *testing.T) {
 			expectCAData: []byte{123},
 		},
 		{
-			name:         "no cert secret",
+			name:                   "no cert secret",
+			logCertSecretNamespace: "open-cluster-management",
+			logCertSecretName:      "open-cluster-management",
+			existingObjs:           []runtime.Object{},
+			expectError:            true,
+			expectCAData:           nil,
+		},
+		{
+			name:         "no cert secret is sepecified",
 			existingObjs: []runtime.Object{},
 			expectCAData: nil,
 		},
 		{
-			name: "no ca data",
+			name:                   "no ca data",
+			logCertSecretNamespace: "open-cluster-management",
+			logCertSecretName:      "open-cluster-management",
 			existingObjs: []runtime.Object{&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: logCertSecretName, Namespace: logCertSecretNamespace},
+				ObjectMeta: metav1.ObjectMeta{Name: "open-cluster-management", Namespace: "open-cluster-management"},
 				Data:       nil,
 			}},
 			expectCAData: nil,
@@ -297,8 +309,13 @@ func Test_getLogCA(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			logCertSecretNamespace = test.logCertSecretNamespace
+			logCertSecretName = test.logCertSecretName
 			svrc := newTestClusterInfoReconciler(test.existingObjs)
-			caData, _ := svrc.getLogCA()
+			caData, err := svrc.getLogCA()
+			if !test.expectError && err != nil {
+				t.Errorf("unexpected error %v", err)
+			}
 
 			assert.Equal(t, test.expectCAData, caData)
 		})

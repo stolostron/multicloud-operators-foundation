@@ -38,23 +38,29 @@ var (
 	logCertSecretName      string
 )
 
-type ClusterInfReconciler struct {
+type ClusterInfoReconciler struct {
 	client client.Client
 	scheme *runtime.Scheme
 }
 
 func SetupWithManager(mgr manager.Manager, logCertSecret string) error {
 	var err error
-	logCertSecretNamespace, logCertSecretName, err = cache.SplitMetaNamespaceKey(logCertSecret)
-	if err != nil {
-		return err
-	}
-	if logCertSecretNamespace == "" {
-		logCertSecretNamespace, err = utils.GetComponentNamespace()
+
+	if len(logCertSecret) != 0 {
+		logCertSecretNamespace, logCertSecretName, err = cache.SplitMetaNamespaceKey(logCertSecret)
 		if err != nil {
 			return err
 		}
+		if logCertSecretNamespace == "" {
+			logCertSecretNamespace, err = utils.GetComponentNamespace()
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		klog.Warning("The log cert secret is not specified, ignore it")
 	}
+
 	if err = add(mgr, newClusterInfoReconciler(mgr)); err != nil {
 		return err
 	}
@@ -69,8 +75,7 @@ func SetupWithManager(mgr manager.Manager, logCertSecret string) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newClusterInfoReconciler(mgr manager.Manager) reconcile.Reconciler {
-
-	return &ClusterInfReconciler{
+	return &ClusterInfoReconciler{
 		client: mgr.GetClient(),
 		scheme: mgr.GetScheme(),
 	}
@@ -124,10 +129,11 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			return requests
 		}),
 	))
-	return nil
+
+	return err
 }
 
-func (r *ClusterInfReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	cluster := &clusterv1.ManagedCluster{}
 
 	err := r.client.Get(ctx, types.NamespacedName{Name: req.Name}, cluster)
@@ -174,6 +180,7 @@ func (r *ClusterInfReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 			update = true
 		}
 	}
+
 	caData, err := r.getLogCA()
 	if err != nil {
 		klog.Errorf("failed to get log CA. %v", err)
@@ -212,7 +219,7 @@ func (r *ClusterInfReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterInfReconciler) deleteClusterInfo(name string) error {
+func (r *ClusterInfoReconciler) deleteClusterInfo(name string) error {
 	err := r.client.Delete(context.Background(), &clusterinfov1beta1.ManagedClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -222,7 +229,7 @@ func (r *ClusterInfReconciler) deleteClusterInfo(name string) error {
 	return client.IgnoreNotFound(err)
 }
 
-func (r *ClusterInfReconciler) newClusterInfoByManagedCluster(cluster *clusterv1.ManagedCluster) *clusterinfov1beta1.ManagedClusterInfo {
+func (r *ClusterInfoReconciler) newClusterInfoByManagedCluster(cluster *clusterv1.ManagedCluster) *clusterinfov1beta1.ManagedClusterInfo {
 	endpoint := ""
 	if len(cluster.Spec.ManagedClusterClientConfigs) != 0 {
 		endpoint = cluster.Spec.ManagedClusterClientConfigs[0].URL
@@ -249,7 +256,12 @@ func (r *ClusterInfReconciler) newClusterInfoByManagedCluster(cluster *clusterv1
 	}
 }
 
-func (r *ClusterInfReconciler) getLogCA() ([]byte, error) {
+func (r *ClusterInfoReconciler) getLogCA() ([]byte, error) {
+	if len(logCertSecretName) == 0 {
+		// the log cert secret is not specified, ignore it
+		return nil, nil
+	}
+
 	logCertSecret := &corev1.Secret{}
 	err := r.client.Get(context.TODO(), types.NamespacedName{Name: logCertSecretName, Namespace: logCertSecretNamespace}, logCertSecret)
 	if err != nil {
