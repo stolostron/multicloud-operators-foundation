@@ -71,8 +71,8 @@ require (
 	k8s.io/klog/v2 v2.90.1
 	k8s.io/kube-aggregator v0.26.2
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280
-	open-cluster-management.io/addon-framework v0.6.1
-	open-cluster-management.io/api v0.10.1-0.20230404062739-ddf72e2f1bea
+	open-cluster-management.io/addon-framework v0.6.2-0.20230421053119-ce46221f80ce
+	open-cluster-management.io/api v0.10.1-0.20230420092852-4b470f802838
 	sigs.k8s.io/controller-runtime v0.14.4
 	sigs.k8s.io/yaml v1.3.0
 )
