@@ -45,7 +45,7 @@ func (s *Server) listenAndServe() error {
 		Addr:    net.JoinHostPort(s.address.String(), strconv.FormatUint(uint64(s.port), 10)),
 		Handler: &s.handler,
 		TLSConfig: &tls.Config{
-			MinVersion:         tls.VersionTLS12,
+			MinVersion:         tls.VersionTLS13,
 			GetConfigForClient: s.getConfigForClient,
 		},
 		MaxHeaderBytes: 1 << 20,

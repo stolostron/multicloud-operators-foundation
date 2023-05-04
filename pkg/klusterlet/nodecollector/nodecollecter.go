@@ -258,7 +258,7 @@ func (r *resourceCollector) newPrometheusClient(caData []byte) (prometheusv1.API
 		return nil, fmt.Errorf("no cert found in ca file")
 	}
 
-	httpTransport.TLSClientConfig = &tls.Config{RootCAs: r.certPool, MinVersion: tls.VersionTLS12}
+	httpTransport.TLSClientConfig = &tls.Config{RootCAs: r.certPool, MinVersion: tls.VersionTLS13}
 
 	roundTripper, err := transport.NewBearerAuthWithRefreshRoundTripper("", r.tokenFile, httpTransport)
 	if err != nil {
