@@ -63,7 +63,7 @@ func InitializeTLS(s *options.AgentOptions) (*agent.TLSOptions, error) {
 	tlsOptions := &agent.TLSOptions{
 		CertFile: s.TLSCertFile,
 		KeyFile:  s.TLSPrivateKeyFile,
-		Config:   &tls.Config{MinVersion: tls.VersionTLS12},
+		Config:   &tls.Config{MinVersion: tls.VersionTLS13},
 	}
 
 	if len(s.ClientCAFile) > 0 {
