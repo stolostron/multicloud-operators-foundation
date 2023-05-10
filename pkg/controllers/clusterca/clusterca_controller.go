@@ -7,9 +7,9 @@ import (
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
@@ -56,50 +56,82 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 }
 
 func (r *ClusterCaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	clusterinfo := &clusterinfov1beta1.ManagedClusterInfo{}
+	clusterInfo := &clusterinfov1beta1.ManagedClusterInfo{}
 
-	err := r.client.Get(ctx, req.NamespacedName, clusterinfo)
+	err := r.client.Get(ctx, req.NamespacedName, clusterInfo)
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	cluster := &clusterv1.ManagedCluster{}
 
-	err = r.client.Get(ctx, types.NamespacedName{Name: clusterinfo.Name}, cluster)
+	err = r.client.Get(ctx, types.NamespacedName{Name: clusterInfo.Name}, cluster)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
 
-	updatedClientConfig, needUpdate := updateClientConfig(cluster.Spec.ManagedClusterClientConfigs, clusterinfo.Status.DistributionInfo.OCP.ManagedClusterClientConfig)
-	if !needUpdate {
-		return ctrl.Result{}, nil
+	updatedClientConfig, needUpdateMC, needUpdateMCI := updateClientConfig(
+		cluster.Spec.ManagedClusterClientConfigs,
+		clusterInfo.Status.DistributionInfo.OCP.ManagedClusterClientConfig,
+		clusterInfo.Status.DistributionInfo.OCP.LastAppliedAPIServerURL)
+
+	if needUpdateMC {
+		cluster.Spec.ManagedClusterClientConfigs = updatedClientConfig
+		err = r.client.Update(ctx, cluster, &client.UpdateOptions{})
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
-	cluster.Spec.ManagedClusterClientConfigs = updatedClientConfig
-	err = r.client.Update(ctx, cluster, &client.UpdateOptions{})
-
-	if err != nil {
-		return ctrl.Result{}, err
+	if needUpdateMCI {
+		clusterInfo.Status.DistributionInfo.OCP.LastAppliedAPIServerURL =
+			clusterInfo.Status.DistributionInfo.OCP.ManagedClusterClientConfig.URL
+		// retry if update managed cluster info status failed with conflict, because if we do not
+		// retry but return err here, next reconcile will stop at "updateClientConfig", since the
+		// clientConfig of the ManagedCluster CR has already been updated successfully above in the current
+		// reconcile, the "updateClientConfig" func will return needUpdateMCI=false in the next reconcile loop.
+		err = r.UpdateManagedClusterInfoStatus(ctx, clusterInfo)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 	return ctrl.Result{}, nil
 }
 
-// updateClientConfig merge config from clusterinfoconfigs to clusterconfigs
-func updateClientConfig(clusterConfigs []clusterv1.ClientConfig, clusterinfoConfig clusterinfov1beta1.ClientConfig) ([]clusterv1.ClientConfig, bool) {
+func (r *ClusterCaReconciler) UpdateManagedClusterInfoStatus(
+	ctx context.Context, instance *clusterinfov1beta1.ManagedClusterInfo) error {
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		return r.client.Status().Update(ctx, instance)
+	})
+}
+
+// updateClientConfig merge config from clusterinfoconfigs to clusterconfigs, it returns 3 parameters:
+//   - the updated cluster clientConfig
+//   - whether it is needed to update the managedCluster object
+//   - whether it is needed to update the managedClusterInfo object, only if the lastAppliedURL
+//     changes, this will be true
+func updateClientConfig(clusterConfigs []clusterv1.ClientConfig, clusterinfoConfig clusterinfov1beta1.ClientConfig,
+	lastAppliedURL string) ([]clusterv1.ClientConfig, bool, bool) {
 	// If clusterinfo config is null return clusterconfigs
 	if len(clusterinfoConfig.URL) == 0 {
-		return clusterConfigs, false
+		return clusterConfigs, false, false
 	}
 
+	// The lastAppliedURL comes from the value of infrastructures config(status.apiServerURL), if the
+	// infrastructures config value changes, here we will replace the old clientConfig URL instead of
+	// prepending a new one.
 	for i, cluConfig := range clusterConfigs {
-		if cluConfig.URL != clusterinfoConfig.URL {
+		if cluConfig.URL != clusterinfoConfig.URL && cluConfig.URL != lastAppliedURL {
 			continue
 		}
-		if !reflect.DeepEqual(cluConfig.CABundle, clusterinfoConfig.CABundle) {
-			clusterConfigs[i].CABundle = clusterinfoConfig.CABundle
-			return clusterConfigs, true
+
+		if reflect.DeepEqual(cluConfig.CABundle, clusterinfoConfig.CABundle) && cluConfig.URL == clusterinfoConfig.URL {
+			return clusterConfigs, false, false
 		}
-		return clusterConfigs, false
+
+		clusterConfigs[i].URL = clusterinfoConfig.URL
+		clusterConfigs[i].CABundle = clusterinfoConfig.CABundle
+		return clusterConfigs, true, cluConfig.URL != clusterinfoConfig.URL
 	}
 
 	// do not have ca bundle in cluster config, *prepend* the clusterinfo config to the managed cluster config.
@@ -113,5 +145,5 @@ func updateClientConfig(clusterConfigs []clusterv1.ClientConfig, clusterinfoConf
 		CABundle: clusterinfoConfig.CABundle,
 	}}, clusterConfigs...)
 
-	return clusterConfigs, true
+	return clusterConfigs, true, true
 }

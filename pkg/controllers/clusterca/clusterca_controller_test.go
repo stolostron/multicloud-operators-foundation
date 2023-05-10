@@ -13,15 +13,18 @@ func Test_updateClientConfig(t *testing.T) {
 		name              string
 		clusterConfig     []clusterv1.ClientConfig
 		clusterinfoConfig clusterinfov1beta1.ClientConfig
+		lastAppliedURL    string
 		wantConfig        []clusterv1.ClientConfig
-		wantUpdate        bool
+		wantUpdateMC      bool
+		wantUpdateMCI     bool
 	}{
 		{
 			name:              "all nil",
 			clusterConfig:     []clusterv1.ClientConfig{},
 			clusterinfoConfig: clusterinfov1beta1.ClientConfig{},
 			wantConfig:        []clusterv1.ClientConfig{},
-			wantUpdate:        false,
+			wantUpdateMC:      false,
+			wantUpdateMCI:     false,
 		},
 		{
 			name:          "clusterconfig is null",
@@ -36,7 +39,8 @@ func Test_updateClientConfig(t *testing.T) {
 					CABundle: []byte("ca data"),
 				},
 			},
-			wantUpdate: true,
+			wantUpdateMC:  true,
+			wantUpdateMCI: true,
 		},
 		{
 			name: "clusterinfoconfig is null",
@@ -53,7 +57,8 @@ func Test_updateClientConfig(t *testing.T) {
 					CABundle: []byte("ca data"),
 				},
 			},
-			wantUpdate: false,
+			wantUpdateMC:  false,
+			wantUpdateMCI: false,
 		},
 		{
 			name: "both of them is not null, and order matters",
@@ -77,7 +82,8 @@ func Test_updateClientConfig(t *testing.T) {
 					CABundle: []byte("ca data"),
 				},
 			},
-			wantUpdate: true,
+			wantUpdateMC:  true,
+			wantUpdateMCI: true,
 		},
 		{
 			name: "update cluster config",
@@ -105,15 +111,83 @@ func Test_updateClientConfig(t *testing.T) {
 					CABundle: []byte("new info data"),
 				},
 			},
-			wantUpdate: true,
+			wantUpdateMC:  true,
+			wantUpdateMCI: false,
+		},
+		{
+			name: "replace the last applied url with new url",
+			clusterConfig: []clusterv1.ClientConfig{
+				{
+					URL:      "https:clusterurl.com:443",
+					CABundle: []byte("ca data"),
+				},
+			},
+			clusterinfoConfig: clusterinfov1beta1.ClientConfig{
+				URL:      "https:infourl.com:443",
+				CABundle: []byte("ca data"),
+			},
+			lastAppliedURL: "https:clusterurl.com:443",
+			wantConfig: []clusterv1.ClientConfig{
+				{
+					URL:      "https:infourl.com:443",
+					CABundle: []byte("ca data"),
+				},
+			},
+			wantUpdateMC:  true,
+			wantUpdateMCI: true,
+		},
+		{
+			name: "replace the last applied url with new url, order not change",
+			clusterConfig: []clusterv1.ClientConfig{
+				{
+					URL:      "https:clusterurl-1.com:443",
+					CABundle: []byte("new info data"),
+				},
+				{
+					URL:      "https:clusterurl.com:443",
+					CABundle: []byte("ca data"),
+				},
+				{
+					URL:      "https:clusterurl-2.com:443",
+					CABundle: []byte("new info data"),
+				},
+			},
+			clusterinfoConfig: clusterinfov1beta1.ClientConfig{
+				URL:      "https:infourl.com:443",
+				CABundle: []byte("ca data"),
+			},
+			lastAppliedURL: "https:clusterurl.com:443",
+			wantConfig: []clusterv1.ClientConfig{
+				{
+					URL:      "https:clusterurl-1.com:443",
+					CABundle: []byte("new info data"),
+				},
+				{
+					URL:      "https:infourl.com:443",
+					CABundle: []byte("ca data"),
+				},
+				{
+					URL:      "https:clusterurl-2.com:443",
+					CABundle: []byte("new info data"),
+				},
+			},
+			wantUpdateMC:  true,
+			wantUpdateMCI: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			returnConfig, needUpdate := updateClientConfig(test.clusterConfig, test.clusterinfoConfig)
-			if needUpdate != test.wantUpdate {
-				t.Errorf("case: %v, needupdate is: %v, wantUpdate is : %v", test.name, needUpdate, test.wantUpdate)
+			returnConfig, needUpdateMC, needUpdateMCI := updateClientConfig(
+				test.clusterConfig, test.clusterinfoConfig, test.lastAppliedURL)
+			if needUpdateMC != test.wantUpdateMC {
+				t.Errorf("case: %v, expected update managed cluster: %v, but got : %v",
+					test.name, test.wantUpdateMC, needUpdateMC)
+				return
+			}
+			if needUpdateMCI != test.wantUpdateMCI {
+				t.Errorf("case: %v, expected update managed cluster info: %v, but got : %v",
+					test.name, test.wantUpdateMCI, needUpdateMCI)
 				return
 			}
 			if !reflect.DeepEqual(returnConfig, test.wantConfig) {
