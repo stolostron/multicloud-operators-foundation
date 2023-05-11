@@ -103,6 +103,12 @@ func newCluster(name string, resources map[clusterv1.ResourceName]int64) *cluste
 			Name: name,
 		},
 		Status: clusterv1.ManagedClusterStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:   clusterv1.ManagedClusterConditionAvailable,
+					Status: metav1.ConditionTrue,
+				},
+			},
 			Capacity: newCapacity(resources),
 		},
 	}

@@ -6,6 +6,7 @@ import (
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -49,6 +50,12 @@ func (r *CapacityReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	if !cluster.GetDeletionTimestamp().IsZero() {
 		return reconcile.Result{}, nil
 	}
+
+	if !meta.IsStatusConditionTrue(cluster.Status.Conditions, clusterv1.ManagedClusterConditionAvailable) {
+		// only update the capacity when cluster is available
+		return reconcile.Result{}, nil
+	}
+
 	capacity := cluster.DeepCopy().Status.Capacity
 	if capacity == nil {
 		capacity = clusterv1.ResourceList{}
