@@ -391,6 +391,97 @@ func TestClusterInfoReconciler_getOCPDistributionInfo(t *testing.T) {
 	}
 }
 
+func TestLastAppliedAPIServerURLNotChanged(t *testing.T) {
+	cir := NewClusterInfoReconciler(true)
+	tests := []struct {
+		name                      string
+		configV1Client            openshiftclientset.Interface
+		expectChannel             string
+		expectDesiredVersion      string
+		expectDesiredChannelLen   int
+		expectUpgradeFail         bool
+		expectAvailableUpdatesLen int
+		expectChannelAndURL       bool
+		expectHistoryLen          int
+		expectError               string
+	}{
+		{
+			name:                      "OCP4.x",
+			configV1Client:            newConfigV1Client("4.x", false),
+			expectChannel:             "stable-4.5",
+			expectDesiredVersion:      "4.6.8",
+			expectDesiredChannelLen:   7,
+			expectUpgradeFail:         false,
+			expectAvailableUpdatesLen: 2,
+			expectChannelAndURL:       true,
+			expectHistoryLen:          1,
+			expectError:               "",
+		},
+		{
+			name:           "OCP3.x",
+			configV1Client: newConfigV1Client("3", true),
+			expectError:    "",
+		},
+		{
+			name:                      "UpgradeFail",
+			configV1Client:            newConfigV1Client("4.x", true),
+			expectChannel:             "stable-4.5",
+			expectDesiredChannelLen:   7,
+			expectDesiredVersion:      "4.6.8",
+			expectUpgradeFail:         true,
+			expectAvailableUpdatesLen: 2,
+			expectChannelAndURL:       false,
+			expectHistoryLen:          1,
+			expectError:               "",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cir.ConfigV1Client = test.configV1Client
+			lastAppliedAPIServerURL := "https://test-api:443"
+			ocpVersion := "4.12.3"
+			distributionInfo, err := cir.getDistributionInfo(context.Background(),
+				clusterclaim.ProductOpenShift, ocpVersion, lastAppliedAPIServerURL)
+			if err != nil {
+				assert.Equal(t, err.Error(), test.expectError)
+			}
+
+			info := distributionInfo.OCP
+			assert.Equal(t, info.Version, ocpVersion)
+			assert.Equal(t, info.LastAppliedAPIServerURL, lastAppliedAPIServerURL)
+			assert.Equal(t, info.Channel, test.expectChannel)
+			assert.Equal(t, info.DesiredVersion, test.expectDesiredVersion)
+			assert.Equal(t, len(info.Desired.Channels), test.expectDesiredChannelLen)
+			assert.Equal(t, info.UpgradeFailed, test.expectUpgradeFail)
+			assert.Equal(t, len(info.VersionAvailableUpdates), test.expectAvailableUpdatesLen)
+			if len(info.VersionAvailableUpdates) != 0 {
+				for _, update := range info.VersionAvailableUpdates {
+					assert.NotEqual(t, update.Version, "")
+					assert.NotEqual(t, update.Image, "")
+					if test.expectChannelAndURL {
+						assert.NotEqual(t, update.URL, "")
+						assert.NotEqual(t, len(update.Channels), 0)
+					} else {
+						assert.Equal(t, update.URL, "")
+						assert.Equal(t, len(update.Channels), 0)
+					}
+
+				}
+			}
+			assert.Equal(t, len(info.VersionHistory), test.expectHistoryLen)
+			if len(info.VersionHistory) != 0 {
+				for _, history := range info.VersionHistory {
+					assert.NotEqual(t, history.Version, "")
+					assert.NotEqual(t, history.Image, "")
+					assert.Equal(t, history.State, "Completed")
+					assert.Equal(t, history.Verified, false)
+				}
+			}
+		})
+	}
+}
+
 func newClusterVersion() *apiconfigv1.ClusterVersion {
 	return &apiconfigv1.ClusterVersion{
 		ObjectMeta: metav1.ObjectMeta{

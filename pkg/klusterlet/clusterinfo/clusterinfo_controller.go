@@ -125,8 +125,8 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		}
 	}
 
-	// Get distribution info
-	newStatus.DistributionInfo, err = r.getDistributionInfo(ctx, product, ocpVersion)
+	newStatus.DistributionInfo, err = r.getDistributionInfo(ctx,
+		product, ocpVersion, clusterInfo.Status.DistributionInfo.OCP.LastAppliedAPIServerURL)
 	if err != nil {
 		log.Error(err, "Failed to get distribution info")
 		errs = append(errs, fmt.Errorf("failed to get distribution info, error:%v ", err))
@@ -458,7 +458,8 @@ func (r *ClusterInfoReconciler) getClusterCA(ctx context.Context, kubeAPIServer 
 	return nil
 }
 
-func (r *ClusterInfoReconciler) getDistributionInfo(ctx context.Context, product, ocpVersion string) (clusterv1beta1.DistributionInfo, error) {
+func (r *ClusterInfoReconciler) getDistributionInfo(ctx context.Context,
+	product, ocpVersion, lastAppliedAPIServerURL string) (clusterv1beta1.DistributionInfo, error) {
 	var err error
 	var distributionInfo = clusterv1beta1.DistributionInfo{
 		Type: clusterv1beta1.DistributionTypeUnknown,
@@ -471,6 +472,10 @@ func (r *ClusterInfoReconciler) getDistributionInfo(ctx context.Context, product
 			return distributionInfo, err
 		}
 		distributionInfo.OCP.Version = ocpVersion
+		if lastAppliedAPIServerURL != "" {
+			// do not override the LastAppliedAPIServerURL to empty
+			distributionInfo.OCP.LastAppliedAPIServerURL = lastAppliedAPIServerURL
+		}
 	}
 	return distributionInfo, nil
 }
