@@ -7,7 +7,6 @@ import (
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -70,12 +69,12 @@ func (r *ClusterCaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		return ctrl.Result{}, err
 	}
 
-	updatedClientConfig, needUpdateMC, needUpdateMCI := updateClientConfig(
+	updatedClientConfig, needUpdate := updateClientConfig(
 		cluster.Spec.ManagedClusterClientConfigs,
 		clusterInfo.Status.DistributionInfo.OCP.ManagedClusterClientConfig,
 		clusterInfo.Status.DistributionInfo.OCP.LastAppliedAPIServerURL)
 
-	if needUpdateMC {
+	if needUpdate {
 		cluster.Spec.ManagedClusterClientConfigs = updatedClientConfig
 		err = r.client.Update(ctx, cluster, &client.UpdateOptions{})
 		if err != nil {
@@ -83,14 +82,11 @@ func (r *ClusterCaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		}
 	}
 
-	if needUpdateMCI {
+	if clusterInfo.Status.DistributionInfo.OCP.LastAppliedAPIServerURL !=
+		clusterInfo.Status.DistributionInfo.OCP.ManagedClusterClientConfig.URL {
 		clusterInfo.Status.DistributionInfo.OCP.LastAppliedAPIServerURL =
 			clusterInfo.Status.DistributionInfo.OCP.ManagedClusterClientConfig.URL
-		// retry if update managed cluster info status failed with conflict, because if we do not
-		// retry but return err here, next reconcile will stop at "updateClientConfig", since the
-		// clientConfig of the ManagedCluster CR has already been updated successfully above in the current
-		// reconcile, the "updateClientConfig" func will return needUpdateMCI=false in the next reconcile loop.
-		err = r.UpdateManagedClusterInfoStatus(ctx, clusterInfo)
+		err = r.client.Status().Update(ctx, clusterInfo)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -98,23 +94,14 @@ func (r *ClusterCaReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterCaReconciler) UpdateManagedClusterInfoStatus(
-	ctx context.Context, instance *clusterinfov1beta1.ManagedClusterInfo) error {
-	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		return r.client.Status().Update(ctx, instance)
-	})
-}
-
-// updateClientConfig merge config from clusterinfoconfigs to clusterconfigs, it returns 3 parameters:
+// updateClientConfig merge config from clusterinfoconfigs to clusterconfigs, it returns 2 parameters:
 //   - the updated cluster clientConfig
 //   - whether it is needed to update the managedCluster object
-//   - whether it is needed to update the managedClusterInfo object, only if the lastAppliedURL
-//     changes, this will be true
 func updateClientConfig(clusterConfigs []clusterv1.ClientConfig, clusterinfoConfig clusterinfov1beta1.ClientConfig,
-	lastAppliedURL string) ([]clusterv1.ClientConfig, bool, bool) {
+	lastAppliedURL string) ([]clusterv1.ClientConfig, bool) {
 	// If clusterinfo config is null return clusterconfigs
 	if len(clusterinfoConfig.URL) == 0 {
-		return clusterConfigs, false, false
+		return clusterConfigs, false
 	}
 
 	// The lastAppliedURL comes from the value of infrastructures config(status.apiServerURL), if the
@@ -126,12 +113,12 @@ func updateClientConfig(clusterConfigs []clusterv1.ClientConfig, clusterinfoConf
 		}
 
 		if reflect.DeepEqual(cluConfig.CABundle, clusterinfoConfig.CABundle) && cluConfig.URL == clusterinfoConfig.URL {
-			return clusterConfigs, false, false
+			return clusterConfigs, false
 		}
 
 		clusterConfigs[i].URL = clusterinfoConfig.URL
 		clusterConfigs[i].CABundle = clusterinfoConfig.CABundle
-		return clusterConfigs, true, cluConfig.URL != clusterinfoConfig.URL
+		return clusterConfigs, true
 	}
 
 	// do not have ca bundle in cluster config, *prepend* the clusterinfo config to the managed cluster config.
@@ -145,5 +132,5 @@ func updateClientConfig(clusterConfigs []clusterv1.ClientConfig, clusterinfoConf
 		CABundle: clusterinfoConfig.CABundle,
 	}}, clusterConfigs...)
 
-	return clusterConfigs, true, true
+	return clusterConfigs, true
 }

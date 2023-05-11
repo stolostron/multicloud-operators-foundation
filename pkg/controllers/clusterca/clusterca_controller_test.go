@@ -16,7 +16,6 @@ func Test_updateClientConfig(t *testing.T) {
 		lastAppliedURL    string
 		wantConfig        []clusterv1.ClientConfig
 		wantUpdateMC      bool
-		wantUpdateMCI     bool
 	}{
 		{
 			name:              "all nil",
@@ -24,7 +23,6 @@ func Test_updateClientConfig(t *testing.T) {
 			clusterinfoConfig: clusterinfov1beta1.ClientConfig{},
 			wantConfig:        []clusterv1.ClientConfig{},
 			wantUpdateMC:      false,
-			wantUpdateMCI:     false,
 		},
 		{
 			name:          "clusterconfig is null",
@@ -39,8 +37,7 @@ func Test_updateClientConfig(t *testing.T) {
 					CABundle: []byte("ca data"),
 				},
 			},
-			wantUpdateMC:  true,
-			wantUpdateMCI: true,
+			wantUpdateMC: true,
 		},
 		{
 			name: "clusterinfoconfig is null",
@@ -57,8 +54,7 @@ func Test_updateClientConfig(t *testing.T) {
 					CABundle: []byte("ca data"),
 				},
 			},
-			wantUpdateMC:  false,
-			wantUpdateMCI: false,
+			wantUpdateMC: false,
 		},
 		{
 			name: "both of them is not null, and order matters",
@@ -82,8 +78,7 @@ func Test_updateClientConfig(t *testing.T) {
 					CABundle: []byte("ca data"),
 				},
 			},
-			wantUpdateMC:  true,
-			wantUpdateMCI: true,
+			wantUpdateMC: true,
 		},
 		{
 			name: "update cluster config",
@@ -111,8 +106,7 @@ func Test_updateClientConfig(t *testing.T) {
 					CABundle: []byte("new info data"),
 				},
 			},
-			wantUpdateMC:  true,
-			wantUpdateMCI: false,
+			wantUpdateMC: true,
 		},
 		{
 			name: "replace the last applied url with new url",
@@ -133,8 +127,7 @@ func Test_updateClientConfig(t *testing.T) {
 					CABundle: []byte("ca data"),
 				},
 			},
-			wantUpdateMC:  true,
-			wantUpdateMCI: true,
+			wantUpdateMC: true,
 		},
 		{
 			name: "replace the last applied url with new url, order not change",
@@ -171,25 +164,20 @@ func Test_updateClientConfig(t *testing.T) {
 					CABundle: []byte("new info data"),
 				},
 			},
-			wantUpdateMC:  true,
-			wantUpdateMCI: true,
+			wantUpdateMC: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			returnConfig, needUpdateMC, needUpdateMCI := updateClientConfig(
+			returnConfig, needUpdate := updateClientConfig(
 				test.clusterConfig, test.clusterinfoConfig, test.lastAppliedURL)
-			if needUpdateMC != test.wantUpdateMC {
+			if needUpdate != test.wantUpdateMC {
 				t.Errorf("case: %v, expected update managed cluster: %v, but got : %v",
-					test.name, test.wantUpdateMC, needUpdateMC)
+					test.name, test.wantUpdateMC, needUpdate)
 				return
 			}
-			if needUpdateMCI != test.wantUpdateMCI {
-				t.Errorf("case: %v, expected update managed cluster info: %v, but got : %v",
-					test.name, test.wantUpdateMCI, needUpdateMCI)
-				return
-			}
+
 			if !reflect.DeepEqual(returnConfig, test.wantConfig) {
 				t.Errorf("case:%v, returnConfig:%v, wantConfig:%v.", test.name, returnConfig, test.wantConfig)
 			}
