@@ -110,6 +110,7 @@ var map_OCPDistributionInfo = map[string]string{
 	"versionAvailableUpdates":    "VersionAvailableUpdates contains the list of updates that are appropriate for this cluster. This list may be empty if no updates are recommended, if the update service is unavailable, or if an invalid channel has been specified.",
 	"versionHistory":             "VersionHistory contains a list of the most recent versions applied to the cluster. This value may be empty during cluster startup, and then will be updated when a new update is being applied. The newest update is first in the list and it is ordered by recency. Updates in the history have state Completed if the rollout completed - if an update was failing or halfway applied the state will be Partial. Only a limited amount of update history is preserved.",
 	"managedClusterClientConfig": "Controller will sync this field to managedcluster's ManagedClusterClientConfigs",
+	"lastAppliedAPIServerURL":    "LastAppliedAPIServerURL is a valid URI with scheme 'https', address and optionally a port (defaulting to 443). it can be used by components like the web console to tell users where to find the Kubernetes API. This is the api server url that has been applied to the managedcluster resource successfully",
 }
 
 func (OCPDistributionInfo) SwaggerDoc() map[string]string {

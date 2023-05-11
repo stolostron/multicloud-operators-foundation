@@ -197,19 +197,20 @@ func newConfigV1Client(version string, failingStatus bool) openshiftclientset.In
 
 func Test_distributionInfo_syncer(t *testing.T) {
 	tests := []struct {
-		name                      string
-		managedClusterInfo        *v1beta1.ManagedClusterInfo
-		configV1Client            openshiftclientset.Interface
-		expectChannel             string
-		expectDesiredVersion      string
-		expectDesiredChannelLen   int
-		expectUpgradeFail         bool
-		expectAvailableUpdatesLen int
-		expectChannelAndURL       bool
-		expectHistoryLen          int
-		expectError               string
-		expectVersion             string
-		claims                    []runtime.Object
+		name                          string
+		managedClusterInfo            *v1beta1.ManagedClusterInfo
+		configV1Client                openshiftclientset.Interface
+		expectChannel                 string
+		expectDesiredVersion          string
+		expectDesiredChannelLen       int
+		expectUpgradeFail             bool
+		expectAvailableUpdatesLen     int
+		expectChannelAndURL           bool
+		expectLastAppliedAPIServerURL string
+		expectHistoryLen              int
+		expectError                   string
+		expectVersion                 string
+		claims                        []runtime.Object
 	}{
 		{
 			name: "OCP4.x",
@@ -217,17 +218,24 @@ func Test_distributionInfo_syncer(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
 				Status: v1beta1.ClusterInfoStatus{
 					KubeVendor: v1beta1.KubeVendorOpenShift,
+					DistributionInfo: v1beta1.DistributionInfo{
+						Type: v1beta1.DistributionTypeOCP,
+						OCP: v1beta1.OCPDistributionInfo{
+							LastAppliedAPIServerURL: "http://test-last-applied-url",
+						},
+					},
 				},
 			},
-			configV1Client:            newConfigV1Client("4.x", false),
-			expectChannel:             "stable-4.5",
-			expectDesiredVersion:      "4.6.8",
-			expectDesiredChannelLen:   7,
-			expectUpgradeFail:         false,
-			expectAvailableUpdatesLen: 2,
-			expectChannelAndURL:       true,
-			expectHistoryLen:          3,
-			expectError:               "",
+			configV1Client:                newConfigV1Client("4.x", false),
+			expectChannel:                 "stable-4.5",
+			expectDesiredVersion:          "4.6.8",
+			expectDesiredChannelLen:       7,
+			expectUpgradeFail:             false,
+			expectAvailableUpdatesLen:     2,
+			expectChannelAndURL:           true,
+			expectHistoryLen:              3,
+			expectLastAppliedAPIServerURL: "http://test-last-applied-url",
+			expectError:                   "",
 			claims: []runtime.Object{
 				newClaim(clusterclaim.ClaimOpenshiftVersion, "4.6.8"),
 				newClaim(clusterclaim.ClaimOCMKubeVersion, "v1.20.0"),
@@ -292,6 +300,7 @@ func Test_distributionInfo_syncer(t *testing.T) {
 			assert.Equal(t, len(info.Desired.Channels), test.expectDesiredChannelLen)
 			assert.Equal(t, info.UpgradeFailed, test.expectUpgradeFail)
 			assert.Equal(t, len(info.VersionAvailableUpdates), test.expectAvailableUpdatesLen)
+			assert.Equal(t, info.LastAppliedAPIServerURL, test.expectLastAppliedAPIServerURL)
 
 			//get the latest succeed version
 			assert.Equal(t, test.expectVersion, info.Version)

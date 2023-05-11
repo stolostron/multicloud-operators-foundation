@@ -33,6 +33,7 @@ func (s *distributionInfoSyncer) sync(ctx context.Context, clusterInfo *clusterv
 }
 
 func (s *distributionInfoSyncer) syncOCPDistributionInfo(ctx context.Context, clusterInfoStatus *clusterv1beta1.ClusterInfoStatus) error {
+	lastAppliedAPIServerURL := clusterInfoStatus.DistributionInfo.OCP.LastAppliedAPIServerURL
 	clusterInfoStatus.DistributionInfo = clusterv1beta1.DistributionInfo{
 		Type: clusterv1beta1.DistributionTypeOCP,
 	}
@@ -54,6 +55,8 @@ func (s *distributionInfoSyncer) syncOCPDistributionInfo(ctx context.Context, cl
 			URL:      string(clusterVersion.Status.Desired.URL),
 			Channels: clusterVersion.Status.Desired.Channels,
 		},
+		// do not override the LastAppliedAPIServerURL to empty
+		LastAppliedAPIServerURL: lastAppliedAPIServerURL,
 	}
 
 	availableUpdates := clusterVersion.Status.AvailableUpdates

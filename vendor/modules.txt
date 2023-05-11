@@ -405,7 +405,7 @@ github.com/spf13/pflag
 # github.com/stoewer/go-strcase v1.2.0
 ## explicit; go 1.11
 github.com/stoewer/go-strcase
-# github.com/stolostron/cluster-lifecycle-api v0.0.0-20230222063645-5b18b26381ff
+# github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143
 ## explicit; go 1.18
 github.com/stolostron/cluster-lifecycle-api/action/v1beta1
 github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1

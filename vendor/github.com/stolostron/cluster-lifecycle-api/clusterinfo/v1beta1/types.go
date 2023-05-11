@@ -218,6 +218,12 @@ type OCPDistributionInfo struct {
 	// Controller will sync this field to managedcluster's ManagedClusterClientConfigs
 	// +optional
 	ManagedClusterClientConfig ClientConfig `json:"managedClusterClientConfig,omitempty"`
+
+	// LastAppliedAPIServerURL is a valid URI with scheme 'https', address and optionally
+	// a port (defaulting to 443). it can be used by components like the web console to
+	// tell users where to find the Kubernetes API.
+	// This is the api server url that has been applied to the managedcluster resource successfully
+	LastAppliedAPIServerURL string `json:"lastAppliedAPIServerURL"`
 }
 
 // DistributionType is type of distribution

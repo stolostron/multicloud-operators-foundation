@@ -134,6 +134,9 @@ spec:
                         desiredVersion:
                           description: DesiredVersion is the version that the cluster is reconciling towards. Deprecated in release 2.3 and will be removed in the future. User Desired instead.
                           type: string
+                        lastAppliedAPIServerURL:
+                          description: LastAppliedAPIServerURL is a valid URI with scheme 'https', address and optionally a port (defaulting to 443). it can be used by components like the web console to tell users where to find the Kubernetes API. This is the api server url that has been applied to the managedcluster resource successfully
+                          type: string
                         managedClusterClientConfig:
                           description: Controller will sync this field to managedcluster's ManagedClusterClientConfigs
                           type: object
