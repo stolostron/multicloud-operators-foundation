@@ -553,8 +553,8 @@ github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An
 github.com/spf13/viper v1.7.0/go.mod h1:8WkrPz2fc9jxqZNCJI/76HCieCp4Q8HaLFoCha5qpdg=
 github.com/spf13/viper v1.8.1/go.mod h1:o0Pch8wJ9BVSWGQMbra6iw0oQ5oktSIBaujf1rJH9Ns=
 github.com/stoewer/go-strcase v1.2.0/go.mod h1:IBiWB2sKIp3wVVQ3Y035++gc+knqhUQag1KpM8ahLw8=
-github.com/stolostron/cluster-lifecycle-api v0.0.0-20221107031926-6f0a02d2aaf5 h1:+6YaBfE6Zy7du0LOxrdMEp96sXrNqlKU4kOBXxf5yqo=
-github.com/stolostron/cluster-lifecycle-api v0.0.0-20221107031926-6f0a02d2aaf5/go.mod h1:pNeVzujoHsTHDloNHVfp1QPYlQy8MkXMuuZme96/x8M=
+github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143 h1:lPHc9Kaa3bZs4domKspWKyCZmN5uL4b0RWZXDhEiVgY=
+github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143/go.mod h1:pNeVzujoHsTHDloNHVfp1QPYlQy8MkXMuuZme96/x8M=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.2.0/go.mod h1:qt09Ya8vawLte6SNmTgCsAVtYtaKzEcn8ATUoHMkEqE=

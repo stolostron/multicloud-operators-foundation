@@ -66,7 +66,7 @@ require (
 	github.com/prometheus/common v0.32.1
 	github.com/smartystreets/goconvey v1.7.2
 	github.com/spf13/pflag v1.0.5
-	github.com/stolostron/cluster-lifecycle-api v0.0.0-20221107031926-6f0a02d2aaf5
+	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143
 	github.com/stretchr/testify v1.7.2
 	golang.org/x/net v0.1.0
 	k8s.io/api v0.25.0
