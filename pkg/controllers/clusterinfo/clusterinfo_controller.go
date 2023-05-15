@@ -61,13 +61,13 @@ func SetupWithManager(mgr manager.Manager, logCertSecret string) error {
 		klog.Warning("The log cert secret is not specified, ignore it")
 	}
 
-	if err = add(mgr, newClusterInfoReconciler(mgr)); err != nil {
+	if err = add("clusterinfo-controller", mgr, newClusterInfoReconciler(mgr)); err != nil {
 		return err
 	}
-	if err = add(mgr, newAutoDetectReconciler(mgr)); err != nil {
+	if err = add("clusterdetector-controller", mgr, newAutoDetectReconciler(mgr)); err != nil {
 		return err
 	}
-	if err = add(mgr, newCapacityReconciler(mgr)); err != nil {
+	if err = add("clustercapcity-controller", mgr, newCapacityReconciler(mgr)); err != nil {
 		return err
 	}
 	return nil
@@ -82,9 +82,9 @@ func newClusterInfoReconciler(mgr manager.Manager) reconcile.Reconciler {
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
+func add(name string, mgr manager.Manager, r reconcile.Reconciler) error {
 	// Create a new controller
-	c, err := controller.New("clusterinfo-controller", mgr, controller.Options{Reconciler: r})
+	c, err := controller.New(name, mgr, controller.Options{Reconciler: r})
 	if err != nil {
 		return err
 	}
@@ -150,16 +150,18 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				return reconcile.Result{}, err
 			}
 
-			cluster.ObjectMeta.Finalizers = utils.RemoveString(cluster.ObjectMeta.Finalizers, clusterFinalizerName)
-			return reconcile.Result{}, r.client.Update(context.TODO(), cluster)
+			patch := client.MergeFrom(cluster.DeepCopy())
+			cluster.Finalizers = utils.RemoveString(cluster.ObjectMeta.Finalizers, clusterFinalizerName)
+			return reconcile.Result{}, r.client.Patch(ctx, cluster, patch)
 		}
 
 		return reconcile.Result{}, nil
 	}
 
 	if !utils.ContainsString(cluster.GetFinalizers(), clusterFinalizerName) {
-		cluster.ObjectMeta.Finalizers = append(cluster.ObjectMeta.Finalizers, clusterFinalizerName)
-		return reconcile.Result{}, r.client.Update(context.TODO(), cluster)
+		patch := client.MergeFrom(cluster.DeepCopy())
+		cluster.Finalizers = append(cluster.Finalizers, clusterFinalizerName)
+		return reconcile.Result{}, r.client.Patch(ctx, cluster, patch)
 	}
 
 	clusterInfo := &clusterinfov1beta1.ManagedClusterInfo{}

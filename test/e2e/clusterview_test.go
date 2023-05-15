@@ -41,7 +41,7 @@ func validateClusterView(UserDynamicClient dynamic.Interface, ViewGVR, resourceG
 	}
 
 	if len(resourceList) != len(expectedNames) {
-		return fmt.Errorf("validateClusterView: reources count %v != expected count %v", len(resourceList), len(expectedNames))
+		return fmt.Errorf("validateClusterView: reources count %v != expected count %v, resources: %+v", len(resourceList), len(expectedNames), resourceList)
 	}
 	for _, item := range resourceList {
 		name, _, err := unstructured.NestedString(item.Object, "metadata", "name")
@@ -168,15 +168,14 @@ var _ = ginkgo.Describe("Testing ClusterView to get managedClusters", func() {
 		err = util.CleanManagedCluster(clusterClient, cluster3)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		clusterInRole := []string{cluster1, cluster3}
+		expectedClusters = []string{cluster1}
 		rules = []rbacv1.PolicyRule{
 			helpers.NewRule("list", "watch").Groups("clusterview.open-cluster-management.io").Resources("managedclusters").RuleOrDie(),
-			helpers.NewRule("list", "get").Groups("cluster.open-cluster-management.io").Resources("managedclusters").Names(clusterInRole...).RuleOrDie(),
+			helpers.NewRule("list", "get").Groups("cluster.open-cluster-management.io").Resources("managedclusters").Names(expectedClusters...).RuleOrDie(),
 		}
 		err = util.UpdateClusterRole(kubeClient, clusterRoleName, rules)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		expectedClusters = []string{cluster1}
 		gomega.Eventually(func() error {
 			return validateClusterView(userDynamicClient, managedClusterViewGVR,
 				util.ManagedClusterGVR, expectedClusters)
