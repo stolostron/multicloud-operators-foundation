@@ -2,6 +2,7 @@ apiVersion: tekton.dev/v1beta1
 kind: PipelineRun
 metadata:
   annotations:
+    build.appstudio.openshift.io/repo: https://github.com/stolostron/multicloud-operators-foundation?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
     build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
@@ -14,7 +15,7 @@ metadata:
     appstudio.openshift.io/component: multicloud-manager
     pipelines.appstudio.openshift.io/type: build
   name: multicloud-manager-on-pull-request
-  namespace: red-hat-acm-tenant
+  namespace: crt-redhat-acm-tenant
 spec:
   params:
   - name: dockerfile
@@ -24,7 +25,7 @@ spec:
   - name: image-expires-after
     value: 5d
   - name: output-image
-    value: quay.io/redhat-user-workloads/red-hat-acm-tenant/mce-24/multicloud-manager:on-pr-{{revision}}
+    value: quay.io/redhat-user-workloads/crt-redhat-acm-tenant/mce-24/multicloud-manager:on-pr-{{revision}}
   - name: path-context
     value: .
   - name: revision
@@ -128,7 +129,7 @@ spec:
       - name: pipelinerun-uid
         value: $(context.pipelineRun.uid)
       taskRef:
-        bundle: quay.io/redhat-appstudio-tekton-catalog/task-init:0.1@sha256:0eb72d475b171056373384d99dffc9e331264e7f181e50b20e337457d5b87857
+        bundle: quay.io/redhat-appstudio-tekton-catalog/task-init:0.1@sha256:8c06b307b7f74622503b80ff0b81ffda63129959f52f8ed8f753d8ab98f38411
         name: init
     - name: clone-repository
       params:
