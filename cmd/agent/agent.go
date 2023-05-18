@@ -203,7 +203,8 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			o.EnableNodeCapacity)
 		go resourceCollector.Start(ctx)
 
-		leaseUpdater := lease.NewLeaseUpdater(managementClusterKubeClient, AddonName, componentNamespace).
+		leaseUpdater := lease.NewLeaseUpdater(managementClusterKubeClient, AddonName,
+			componentNamespace, lease.CheckManagedClusterHealthFunc(managedClusterKubeClient.Discovery())).
 			WithHubLeaseConfig(hubConfig, o.ClusterName)
 		go leaseUpdater.Start(ctx)
 
