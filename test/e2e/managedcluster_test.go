@@ -90,23 +90,25 @@ var _ = ginkgo.Describe("Testing ManagedCluster", func() {
 			newApiserver, err = ocpClient.ConfigV1().APIServers().Update(context.TODO(), newApiserver, metav1.UpdateOptions{})
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-			gomega.Eventually(func() bool {
+			gomega.Eventually(func() error {
 				cluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.Background(), defaultManagedCluster, metav1.GetOptions{})
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				if err != nil {
+					return err
+				}
 
 				if len(cluster.Spec.ManagedClusterClientConfigs) == 0 {
-					return false
+					return fmt.Errorf("cluster.Spec.ManagedClusterClientConfigs should not be 0")
 				}
 				for _, config := range cluster.Spec.ManagedClusterClientConfigs {
 					if config.URL != apiserverAddress {
 						continue
 					}
 					if reflect.DeepEqual(config.CABundle, fakeSecret.Data["tls.crt"]) {
-						return true
+						return nil
 					}
 				}
-				return false
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+				return fmt.Errorf("cannot found config")
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 			//rollback apiserver and delete secret
 			newApiserver.Spec.ServingCerts.NamedCertificates = []configv1.APIServerNamedServingCert{}
@@ -161,20 +163,22 @@ var _ = ginkgo.Describe("Testing ManagedCluster", func() {
 			serviceAccountCa, err := utils.GetCAFromServiceAccount(context.TODO(), kubeClient)
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
-			gomega.Eventually(func() bool {
+			gomega.Eventually(func() error {
 				cluster, err := clusterClient.ClusterV1().ManagedClusters().Get(context.Background(), defaultManagedCluster, metav1.GetOptions{})
-				gomega.Expect(err).ToNot(gomega.HaveOccurred())
+				if err != nil {
+					return err
+				}
 
 				if len(cluster.Spec.ManagedClusterClientConfigs) == 0 {
-					return false
+					return fmt.Errorf("cluster.Spec.ManagedClusterClientConfigs should not be 0")
 				}
 				for _, config := range cluster.Spec.ManagedClusterClientConfigs {
 					if reflect.DeepEqual(config.CABundle, serviceAccountCa) {
-						return true
+						return nil
 					}
 				}
-				return false
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+				return fmt.Errorf("cannot found config")
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 		})
 
 	})
