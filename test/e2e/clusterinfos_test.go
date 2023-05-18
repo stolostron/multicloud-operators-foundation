@@ -91,8 +91,18 @@ var _ = ginkgo.Describe("Testing ManagedClusterInfo", func() {
 			err := util.DeleteClusterResource(dynamicClient, util.ManagedClusterGVR, testManagedClusterName)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
+			// managedClusterInfo should be deleted
 			gomega.Eventually(func() bool {
 				existing, err := util.HasResource(dynamicClient, util.ClusterInfoGVR, testManagedClusterName, testManagedClusterName)
+				if err != nil {
+					return false
+				}
+				return existing
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.BeTrue())
+
+			// managedCluster should be deleted
+			gomega.Eventually(func() bool {
+				existing, err := util.HasClusterResource(dynamicClient, util.ManagedClusterGVR, testManagedClusterName)
 				if err != nil {
 					return false
 				}

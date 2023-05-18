@@ -37,7 +37,7 @@ rules:
     verbs: ["get", "list", "watch", "update", "patch"]
   - apiGroups: ["cluster.open-cluster-management.io"]
     resources: ["managedclusters","managedclustersets","placementdecisions","placementdecisions/status"]
-    verbs: ["get", "list", "watch", "update"]
+    verbs: ["get", "list", "watch", "update", "patch"]
   - apiGroups: ["cluster.open-cluster-management.io"]
     resources: ["managedclustersetbindings"]
     verbs: ["create", "update", "get", "list", "watch", "delete", "deletecollection", "patch"]
