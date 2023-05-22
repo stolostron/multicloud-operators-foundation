@@ -55,6 +55,11 @@ type AgentAddonOptions struct {
 	// +optional
 	InstallStrategy *InstallStrategy
 
+	// Updaters select a set of resources and define the strategies to update them.
+	// UpdateStrategy is Update if no Updater is defined for a resource.
+	// +optional
+	Updaters []Updater
+
 	// HealthProber defines how is the healthiness status of the ManagedClusterAddon probed.
 	// Note that the prescribed prober type here only applies to the automatically installed
 	// addons configured via InstallStrategy.
@@ -88,6 +93,10 @@ type RegistrationOption struct {
 	// A csr will be created from the managed cluster for addon agent with each CSRConfiguration.
 	// +required
 	CSRConfigurations func(cluster *clusterv1.ManagedCluster) []addonapiv1alpha1.RegistrationConfig
+
+	// Namespace is the namespace where registraiton credential will be put on the managed cluster. It
+	// will be overridden by installNamespace on ManagedClusterAddon spec if set
+	Namespace string
 
 	// CSRApproveCheck checks whether the addon agent registration should be approved by the hub.
 	// Addon hub controller can implement this func to auto-approve all the CSRs. A better CSR check is
@@ -133,6 +142,14 @@ func (s *InstallStrategy) GetManagedClusterFilter() func(cluster *clusterv1.Mana
 	return s.managedClusterFilter
 }
 
+type Updater struct {
+	// ResourceIdentifier sets what resources the strategy applies to
+	ResourceIdentifier workapiv1.ResourceIdentifier
+
+	// UpdateStrategy defines the strategy used to update the manifests.
+	UpdateStrategy workapiv1.UpdateStrategy
+}
+
 type HealthProber struct {
 	Type HealthProberType
 
@@ -151,7 +168,7 @@ type WorkHealthProber struct {
 
 // ProbeField defines the field of a resource to be probed
 type ProbeField struct {
-	// ResourceIdentifier sets what resource shoule be probed
+	// ResourceIdentifier sets what resource should be probed
 	ResourceIdentifier workapiv1.ResourceIdentifier
 
 	// ProbeRules sets the rules to probe the field
