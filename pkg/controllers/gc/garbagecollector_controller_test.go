@@ -41,7 +41,7 @@ var (
 
 func TestMain(m *testing.M) {
 	t := &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "deploy", "foundation", "hub", "resources", "crds")},
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "deploy", "foundation", "hub", "crds")},
 	}
 
 	actionv1beta1.AddToScheme(cliScheme.Scheme)

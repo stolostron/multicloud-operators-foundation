@@ -1,0 +1,19 @@
+resources:
+- ../../crds
+- ../../rbac
+- ../../ocm-controller
+- ../../ocm-proxyserver
+- ../../ocm-webhook
+
+
+images:
+- name: quay.io/stolostron/multicloud-manager
+  newName: quay.io/stolostron/multicloud-manager
+  newTag: latest
+
+
+patchesStrategicMerge:
+- patch.yaml
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization

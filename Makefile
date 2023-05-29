@@ -69,19 +69,33 @@ deploy-hub:
 deploy-klusterlet:
 	deploy/managedcluster/klusterlet/install.sh
 
+deploy-ocm-controller: ensure-kustomize
+	cp deploy/foundation/hub/overlays/ocm-controller/kustomization.yaml deploy/foundation/hub/overlays/ocm-controller/kustomization.yaml.tmp
+	cd deploy/foundation/hub/overlays/ocm-controller && ../../../../../$(KUSTOMIZE) edit set image 'quay.io/stolostron/multicloud-manager'=$(FOUNDATION_IMAGE_NAME)
+	cp deploy/foundation/hub/overlays/ocm-controller/patch.yaml deploy/foundation/hub/overlays/ocm-controller/patch.yaml.tmp
+	$(SED_CMD) -i.tmp "s,quay.io/stolostron/multicloud-manager,$(FOUNDATION_IMAGE_NAME)," deploy/foundation/hub/overlays/ocm-controller/patch.yaml
+	$(KUSTOMIZE) build deploy/foundation/hub/overlays/ocm-controller | $(KUBECTL) apply -f -
+	mv deploy/foundation/hub/overlays/ocm-controller/kustomization.yaml.tmp deploy/foundation/hub/overlays/ocm-controller/kustomization.yaml
+	mv deploy/foundation/hub/overlays/ocm-controller/patch.yaml.tmp deploy/foundation/hub/overlays/ocm-controller/patch.yaml
+
 deploy-foundation: ensure-kustomize
-	cp deploy/foundation/hub/kustomization.yaml deploy/foundation/hub/kustomization.yaml.tmp
-	cd deploy/foundation/hub && ../../../$(KUSTOMIZE) edit set image 'quay.io/stolostron/multicloud-manager'=$(FOUNDATION_IMAGE_NAME)
-	$(SED_CMD) -i.tmp "s,quay.io/stolostron/multicloud-manager,$(FOUNDATION_IMAGE_NAME)," deploy/foundation/hub/patches.yaml
-	$(KUSTOMIZE) build deploy/foundation/hub | $(KUBECTL) apply -f -
-	mv deploy/foundation/hub/kustomization.yaml.tmp deploy/foundation/hub/kustomization.yaml
-	mv deploy/foundation/hub/patches.yaml.tmp deploy/foundation/hub/patches.yaml
+	cp deploy/foundation/hub/overlays/foundation/kustomization.yaml deploy/foundation/hub/overlays/foundation/kustomization.yaml.tmp
+	cd deploy/foundation/hub/overlays/foundation && ../../../../../$(KUSTOMIZE) edit set image 'quay.io/stolostron/multicloud-manager'=$(FOUNDATION_IMAGE_NAME)
+	cp deploy/foundation/hub/overlays/foundation/patch.yaml deploy/foundation/hub/overlays/foundation/patch.yaml.tmp
+	$(SED_CMD) -i.tmp "s,quay.io/stolostron/multicloud-manager,$(FOUNDATION_IMAGE_NAME)," deploy/foundation/hub/overlays/foundation/patch.yaml
+	$(KUSTOMIZE) build deploy/foundation/hub/overlays/foundation | $(KUBECTL) apply -f -
+	mv deploy/foundation/hub/overlays/foundation/kustomization.yaml.tmp deploy/foundation/hub/overlays/foundation/kustomization.yaml
+	mv deploy/foundation/hub/overlays/foundation/patch.yaml.tmp deploy/foundation/hub/overlays/foundation/patch.yaml
 
 clean-foundation-agent:
 	$(KUBECTL) get managedclusteraddons -A | grep work-manager | awk '{print $$1" "$$2}' | xargs -n 2 $(KUBECTL) delete managedclusteraddons -n
 
 clean-foundation-hub:
-	$(KUBECTL) delete -k deploy/foundation/hub/resource
+	$(KUBECTL) delete -k deploy/foundation/hub/ocm-controller
+	$(KUBECTL) delete -k deploy/foundation/hub/ocm-proxyserver
+	$(KUBECTL) delete -k deploy/foundation/hub/ocm-webhook
+	$(KUBECTL) delete -k deploy/foundation/hub/rbac
+	$(KUBECTL) delete -k deploy/foundation/hub/crds
 
 clean-foundation: clean-foundation-hub clean-foundation-agent
 

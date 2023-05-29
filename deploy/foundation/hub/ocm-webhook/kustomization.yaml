@@ -1,0 +1,9 @@
+resources:
+  - ocm-webhook.yaml
+  - ocm-webhook-svc.yaml
+  - webhook-mutating-config.yaml
+  - webhook-validating-config.yaml
+
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization

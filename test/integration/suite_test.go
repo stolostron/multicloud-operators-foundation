@@ -150,7 +150,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		CRDDirectoryPaths: []string{
 			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "cluster", "v1"),
 			filepath.Join(".", "vendor", "open-cluster-management.io", "api", "cluster", "v1beta2"),
-			filepath.Join(".", "deploy", "foundation", "hub", "resources", "crds"),
+			filepath.Join(".", "deploy", "foundation", "hub", "crds"),
 		},
 		WebhookInstallOptions: webhookInstallOptions,
 	}

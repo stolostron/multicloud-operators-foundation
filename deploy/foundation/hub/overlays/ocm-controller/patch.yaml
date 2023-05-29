@@ -1,0 +1,14 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: ocm-controller
+  namespace: open-cluster-management
+spec:
+  template:
+    spec:
+      containers:
+        - name: ocm-controller
+          args:
+            - "/controller"
+            - "--enable-agent-deploy=true"
+            - "--agent-addon-image=quay.io/stolostron/multicloud-manager"
