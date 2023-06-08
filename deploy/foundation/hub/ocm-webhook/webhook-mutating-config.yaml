@@ -1,0 +1,55 @@
+# Copyright Contributors to the Open Cluster Management project
+
+apiVersion: admissionregistration.k8s.io/v1
+kind: MutatingWebhookConfiguration
+metadata:
+  annotations:
+    service.beta.openshift.io/inject-cabundle: "true"
+  labels:
+    app: ocm-webhook
+  name: ocm-mutating-webhook
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: ocm-webhook
+      namespace: open-cluster-management
+      path: /mutating
+      port: 443
+  name: ocm.mutating.webhook.admission.open-cluster-management.io
+  sideEffects: None
+  rules:
+  - apiGroups:
+    - apps.open-cluster-management.io
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    resources:
+    - deployables
+    - channels
+    - subscriptions
+    - placementrules
+    scope: '*'
+  - apiGroups:
+    - app.k8s.io
+    apiVersions:
+    - v1beta1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - applications
+    scope: '*'
+  - apiGroups:
+      - hive.openshift.io
+    operations:
+      - CREATE
+    apiVersions:
+      - "v1"
+    resources:
+      - clusterdeployments
+      - clusterpools
+      - clusterclaims
+    scope: '*'

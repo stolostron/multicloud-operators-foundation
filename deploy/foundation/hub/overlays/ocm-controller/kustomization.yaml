@@ -1,5 +1,7 @@
 resources:
-- resources
+- ../../crds
+- ../../rbac
+- ../../ocm-controller
 
 
 images:
@@ -9,7 +11,7 @@ images:
 
 
 patchesStrategicMerge:
-- patches.yaml
+- patch.yaml
 
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization

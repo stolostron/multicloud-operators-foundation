@@ -3,7 +3,7 @@
 This document is to summarise ManagedClusterImageRegistry CRD. ManagedClusterImageRegistry is defined as a configuration
 to override the images of pods deployed on the managed clusters.
 
-ManagedClusterImageRegistry is a namespace-scoped CRD, and the definition is [here](../../deploy/foundation/hub/resources/crds/imageregistry.open-cluster-management.io_managedclusterimageregistries.crd.yaml).
+ManagedClusterImageRegistry is a namespace-scoped CRD, and the definition is [here](../../deploy/foundation/hub/crds/imageregistry.open-cluster-management.io_managedclusterimageregistries.crd.yaml).
 
 ManagedClusterImageRegistry refers a Placement to select a set of ManagedClusters which need to override images from custom image registry.
 

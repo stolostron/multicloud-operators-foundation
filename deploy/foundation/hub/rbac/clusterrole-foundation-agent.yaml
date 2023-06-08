@@ -27,3 +27,6 @@ rules:
   - apiGroups: ["proxy.open-cluster-management.io"]
     resources: ["clusterstatuses/aggregator"]
     verbs: ["get", "create"]
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "update","create","patch"]

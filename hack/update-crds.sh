@@ -10,6 +10,6 @@ source "$(dirname "${BASH_SOURCE}")/init.sh"
 
 for f in $CRD_FILES
 do
-    cp $f ./deploy/foundation/hub/resources/crds
+    cp $f ./deploy/foundation/hub/crds
 done
 

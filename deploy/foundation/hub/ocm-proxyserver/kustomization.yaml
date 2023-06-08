@@ -1,0 +1,9 @@
+resources:
+  - ocm-clusterview-api-svc-v1alpha1.yaml
+  - ocm-clusterview-api-svc.yaml
+  - ocm-proxyserver-api-svc.yaml
+  - ocm-proxyserver.yaml
+  - ocm-proxyserver-svc.yaml
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization

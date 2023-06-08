@@ -29,7 +29,7 @@ spec:
           volumeMounts:
             - mountPath: /var/run/ocm-webhook
               name: webhook-cert
-      serviceAccountName: foundation-hub-sa
+      serviceAccountName: ocm-foundation-sa
       volumes:
         - name: webhook-cert
           secret:

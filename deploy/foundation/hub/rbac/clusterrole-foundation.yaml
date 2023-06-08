@@ -1,15 +1,9 @@
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: foundation-hub-sa
-  namespace: open-cluster-management
+# Copyright Contributors to the Open Cluster Management project
 
----
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: foundation-hub
+  name: open-cluster-management:ocm:foundation
 rules:
   - apiGroups: ["","events.k8s.io"]
     resources: ["configmaps", "namespaces", "events", "endpoints", "secrets"]
@@ -20,9 +14,6 @@ rules:
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["clusterroles","clusterrolebindings"]
     verbs: ["get", "list", "watch", "create", "update", "delete", "escalate", "bind"]
-  - apiGroups: ["cluster.open-cluster-management.io"]
-    resources: ["managedclustersetbindings"]
-    verbs: ["create", "update", "get", "list", "watch", "delete", "deletecollection", "patch"]
   - apiGroups: ["authorization.k8s.io"]
     resources: ["subjectaccessreviews"]
     verbs: ["get", "create"]
@@ -36,23 +27,29 @@ rules:
     resources: ["deployables", "deployables/status"]
     verbs: ["get", "list", "watch", "update", "patch"]
   - apiGroups: ["cluster.open-cluster-management.io"]
-    resources: ["managedclusters","managedclustersets","placementdecisions","placementdecisions/status"]
-    verbs: ["get", "list", "watch", "update", "patch"]
+    resources: ["managedclustersets", "placementdecisions", "placementdecisions/status"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: [ "cluster.open-cluster-management.io" ]
+    resources: [ "managedclusters"]
+    verbs: [ "get", "list", "watch", "update", "patch" ]
   - apiGroups: ["cluster.open-cluster-management.io"]
     resources: ["managedclustersetbindings"]
     verbs: ["create", "update", "get", "list", "watch", "delete", "deletecollection", "patch"]
-  - apiGroups: ["cluster.open-cluster-management.io"]
-    resources: ["managedclustersets/join"]
-    verbs: ["create"]
   - apiGroups: ["cluster.open-cluster-management.io"]
     resources: ["managedclustersets/bind"]
     resourceNames: ["global"]
     verbs: ["create"]
   - apiGroups: ["cluster.open-cluster-management.io"]
-    resources: ["managedclusters/status"]
-    verbs: ["update", "patch"]
+    resources: ["managedclustersets/join"]
+    verbs: ["create"]
   - apiGroups: [ "imageregistry.open-cluster-management.io" ]
-    resources: [ "managedclusterimageregistries","managedclusterimageregistries/status" ]
+    resources: [ "managedclusterimageregistries", "managedclusterimageregistries/status" ]
+    verbs: [ "get", "list", "watch", "update" ]
+  - apiGroups: [ "cluster.open-cluster-management.io" ]
+    resources: [ "managedclusters/status"]
+    verbs: ["patch", "update" ]
+  - apiGroups: ["work.open-cluster-management.io"]
+    resources: ["manifestworks"]
     verbs: ["get", "list", "watch", "update"]
   - apiGroups: ["action.open-cluster-management.io"]
     resources: ["managedclusteractions", "managedclusteractions/status"]
@@ -68,19 +65,25 @@ rules:
     verbs: ["get", "create"]
   - apiGroups: ["hive.openshift.io"]
     resources: ["clusterdeployments", "clusterpools", "clusterclaims", "machinepools"]
-    verbs: ["update", "get", "list", "watch"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: [ "hiveinternal.openshift.io" ]
+    resources: [ "clustersyncs" ]
+    verbs: [ "get", "list", "watch" ]
   - apiGroups: ["coordination.k8s.io"]
     resources: ["leases"]
     verbs: ["get", "create", "update"]
+  - apiGroups: ["clusterview.open-cluster-management.io"]
+    resources: ["managedclusters","managedclustersets"]
+    verbs: ["list", "get", "watch"]
   - apiGroups: ["work.open-cluster-management.io"]
     resources: ["manifestworks"]
     verbs: ["create", "update", "get", "list", "watch", "delete", "deletecollection", "patch"]
   - apiGroups: ["addon.open-cluster-management.io"]
     resources: ["managedclusteraddons/finalizers"]
     verbs: ["update"]
-  - apiGroups: [ "addon.open-cluster-management.io" ]
-    resources: [ "clustermanagementaddons/finalizers" ]
-    verbs: [ "update" ]
+  - apiGroups: ["addon.open-cluster-management.io"]
+    resources: ["clustermanagementaddons/finalizers"]
+    verbs: ["update"]
   - apiGroups: ["addon.open-cluster-management.io"]
     resources: ["clustermanagementaddons"]
     verbs: ["get", "list", "watch"]
@@ -90,20 +93,15 @@ rules:
   - apiGroups: ["addon.open-cluster-management.io"]
     resources: ["managedclusteraddons/status"]
     verbs: ["update", "patch"]
+  - apiGroups: [ "metal3.io" ]
+    resources: [ "baremetalhosts" ]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: [ "agent-install.openshift.io" ]
+    resources: [ "agents", "infraenvs" ]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: [ "extensions.hive.openshift.io" ]
+    resources: [ "agentclusterinstalls" ]
+    verbs: ["get", "list", "watch", "update"]
   - apiGroups: ["addon.open-cluster-management.io"]
     resources: ["addondeploymentconfigs"]
     verbs: ["get", "list", "watch"]
-
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: foundation-hub
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: foundation-hub
-subjects:
-  - kind: ServiceAccount
-    name: foundation-hub-sa
-    namespace: open-cluster-management

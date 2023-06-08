@@ -1,0 +1,12 @@
+resources:
+- action.open-cluster-management.io_managedclusteractions.crd.yaml
+- internal.open-cluster-management.io_managedclusterinfos.crd.yaml
+- imageregistry.open-cluster-management.io_managedclusterimageregistries.crd.yaml
+- view.open-cluster-management.io_managedclusterviews.crd.yaml
+- hive.openshift.io_clusterclaims.yaml
+- hive.openshift.io_clusterdeployments.yaml
+- hive.openshift.io_clusterpools.yaml
+
+
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
