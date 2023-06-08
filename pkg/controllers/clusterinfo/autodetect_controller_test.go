@@ -302,3 +302,85 @@ func TestParseOCPVersion(t *testing.T) {
 		})
 	}
 }
+
+func TestSyncLabelsReconcile(t *testing.T) {
+	ctx := context.Background()
+	tests := []struct {
+		name               string
+		managedCluster     runtime.Object
+		managedClusterInfo runtime.Object
+		expectedErrorType  error
+		req                reconcile.Request
+		expectedLabelCnt   int
+	}{
+		{
+			name: "sync all labels",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: ManagedClusterName,
+					Labels: map[string]string{
+						"cloud": "Amazon",
+						"name":  "test",
+					},
+				},
+				Spec: clusterv1.ManagedClusterSpec{},
+			},
+			managedClusterInfo: &clusterv1beta1.ManagedClusterInfo{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ManagedClusterName,
+					Namespace: ManagedClusterName,
+				},
+				Spec: clusterv1beta1.ClusterInfoSpec{},
+			},
+
+			req: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: ManagedClusterName,
+				},
+			},
+			expectedErrorType: nil,
+			expectedLabelCnt:  2,
+		},
+		{
+			name: "exclude labels",
+			managedCluster: &clusterv1.ManagedCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: ManagedClusterName,
+					Labels: map[string]string{
+						"cloud":                      "Amazon",
+						"name":                       "test",
+						"app.kubernetes.io/instance": "test",
+					},
+				},
+				Spec: clusterv1.ManagedClusterSpec{},
+			},
+			managedClusterInfo: &clusterv1beta1.ManagedClusterInfo{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      ManagedClusterName,
+					Namespace: ManagedClusterName,
+				},
+				Spec: clusterv1beta1.ClusterInfoSpec{},
+			},
+
+			req: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: ManagedClusterName,
+				},
+			},
+			expectedErrorType: nil,
+			expectedLabelCnt:  2,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			svrc, _ := newTestAutoDetectReconciler([]runtime.Object{test.managedCluster, test.managedClusterInfo})
+			_, err := svrc.Reconcile(ctx, test.req)
+			validateError(t, err, test.expectedErrorType)
+			clusterInfo := &clusterv1beta1.ManagedClusterInfo{}
+			err = svrc.client.Get(ctx, types.NamespacedName{Name: ManagedClusterName, Namespace: ManagedClusterName}, clusterInfo)
+			validateError(t, err, nil)
+			assert.Equal(t, len(clusterInfo.Labels), test.expectedLabelCnt)
+		})
+	}
+}
