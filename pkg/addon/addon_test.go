@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	kubeinformers "k8s.io/client-go/informers"
 	"os"
 	"testing"
+	"time"
 
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stolostron/cluster-lifecycle-api/imageregistry/v1alpha1"
@@ -99,7 +101,7 @@ func newAddonWithCustomizedAnnotation(name, cluster, installNamespace string, an
 }
 
 func newAgentAddon(t *testing.T) agent.AgentAddon {
-	registrationOption := NewRegistrationOption(nil, WorkManagerAddonName)
+	registrationOption := NewRegistrationOption(nil, nil, WorkManagerAddonName)
 	getValuesFunc := NewGetValuesFunc(addonImage)
 	agentAddon, err := addonfactory.NewAgentAddonFactory(WorkManagerAddonName, ChartFS, ChartDir).
 		WithScheme(scheme).
@@ -304,11 +306,11 @@ func TestCreateOrUpdateRoleBinding(t *testing.T) {
 			initObjects: []runtime.Object{},
 			clusterName: "cluster1",
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
-				if len(actions) != 2 {
+				if len(actions) != 1 {
 					t.Errorf("expecte 2 actions, but got %v", actions)
 				}
 
-				createAction := actions[1].(clienttesting.CreateActionImpl)
+				createAction := actions[0].(clienttesting.CreateActionImpl)
 				createObject := createAction.Object.(*rbacv1.RoleBinding)
 
 				groups := agent.DefaultGroups("cluster1", "work-manager")
@@ -342,7 +344,7 @@ func TestCreateOrUpdateRoleBinding(t *testing.T) {
 			},
 			clusterName: "cluster1",
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
-				if len(actions) != 1 {
+				if len(actions) != 0 {
 					t.Errorf("expecte 0 actions, but got %v", actions)
 				}
 			},
@@ -365,18 +367,18 @@ func TestCreateOrUpdateRoleBinding(t *testing.T) {
 					RoleRef: rbacv1.RoleRef{
 						APIGroup: "rbac.authorization.k8s.io",
 						Kind:     "ClusterRole",
-						Name:     clusterRoleName,
+						Name:     "test",
 					},
 				},
 			},
 			clusterName: "cluster1",
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
-				if len(actions) != 2 {
+				if len(actions) != 1 {
 					t.Errorf("expecte 2 actions, but got %v", actions)
 				}
 
-				updateAction := actions[1].(clienttesting.UpdateActionImpl)
-				updateObject := updateAction.Object.(*rbacv1.RoleBinding)
+				updatedAction := actions[0].(clienttesting.UpdateActionImpl)
+				updateObject := updatedAction.Object.(*rbacv1.RoleBinding)
 
 				groups := agent.DefaultGroups("cluster1", "work-manager")
 
@@ -390,7 +392,15 @@ func TestCreateOrUpdateRoleBinding(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			kubeClient := fakekube.NewSimpleClientset(test.initObjects...)
-			err := createOrUpdateRoleBinding(kubeClient, "work-manager", test.clusterName)
+			kubeInformers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
+			for _, obj := range test.initObjects {
+				kubeInformers.Rbac().V1().RoleBindings().Informer().GetStore().Add(obj)
+			}
+			opt := NewRegistrationOption(kubeClient, kubeInformers.Rbac().V1().RoleBindings(), "work-manager")
+			err := opt.PermissionConfig(
+				&clusterv1.ManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: test.clusterName}},
+				&addonapiv1alpha1.ManagedClusterAddOn{ObjectMeta: metav1.ObjectMeta{Name: "work-manager"}},
+			)
 			if err != nil {
 				t.Errorf("createOrUpdateRoleBinding expected no error, but got %v", err)
 			}
