@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	rbacv1informers "k8s.io/client-go/informers/rbac/v1"
 	"reflect"
 
 	"github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry"
@@ -96,26 +97,29 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 	}
 }
 
-func NewRegistrationOption(kubeClient kubernetes.Interface, addonName string) *agent.RegistrationOption {
+func NewRegistrationOption(kubeClient kubernetes.Interface, rolebindingInformer rbacv1informers.RoleBindingInformer, addonName string) *agent.RegistrationOption {
 	return &agent.RegistrationOption{
 		CSRConfigurations: agent.KubeClientSignerConfigurations(addonName, addonName),
 		CSRApproveCheck:   utils.DefaultCSRApprover(addonName),
 		PermissionConfig: func(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) error {
-			return createOrUpdateRoleBinding(kubeClient, addonName, cluster.Name)
+			return createOrUpdateRoleBinding(kubeClient, rolebindingInformer, addonName, cluster.Name)
 		},
 	}
 }
 
 // createOrUpdateRoleBinding create or update a role binding for a given cluster
-func createOrUpdateRoleBinding(kubeClient kubernetes.Interface, addonName, clusterName string) error {
+func createOrUpdateRoleBinding(kubeClient kubernetes.Interface, rolebindingInformer rbacv1informers.RoleBindingInformer, addonName, clusterName string) error {
 	groups := agent.DefaultGroups(clusterName, addonName)
 	acmRoleBinding := helpers.NewRoleBindingForClusterRole(clusterRoleName, clusterName).Groups(groups[0]).BindingOrDie()
 
 	// role and rolebinding have the same name
-	binding, err := kubeClient.RbacV1().RoleBindings(clusterName).Get(context.TODO(), roleBindingName, metav1.GetOptions{})
+	binding, err := rolebindingInformer.Lister().RoleBindings(clusterName).Get(roleBindingName)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			_, err = kubeClient.RbacV1().RoleBindings(clusterName).Create(context.TODO(), &acmRoleBinding, metav1.CreateOptions{})
+			if errors.IsAlreadyExists(err) {
+				return nil
+			}
 		}
 		return err
 	}
