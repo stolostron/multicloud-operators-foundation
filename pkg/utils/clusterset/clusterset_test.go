@@ -1,6 +1,7 @@
 package utils
 
 import (
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 	"reflect"
 	"testing"
 
@@ -120,4 +121,37 @@ func Test_GenerateClustersetSubjects(t *testing.T) {
 	BuildAdminRole("s1")
 	BuildViewRole("s1")
 	BuildBindRole("s1")
+}
+
+func Test_FilterSubjects(t *testing.T) {
+	tc := []struct {
+		name         string
+		input        []rbacv1.Subject
+		expectOutput []rbacv1.Subject
+	}{
+		{
+			name: "filter all",
+			input: []rbacv1.Subject{
+				{Kind: rbacv1.UserKind, Name: "system:admin"},
+				{Kind: rbacv1.UserKind, Name: "user1"},
+				{Kind: rbacv1.GroupKind, Name: "system:cluster-admins"},
+				{Kind: rbacv1.GroupKind, Name: "group1"},
+				{Kind: rbacv1.ServiceAccountKind, Name: "sa1"},
+				{Kind: rbacv1.ServiceAccountKind, Name: "sa2"},
+			},
+			expectOutput: []rbacv1.Subject{
+				{Kind: rbacv1.UserKind, Name: "user1"},
+				{Kind: rbacv1.GroupKind, Name: "group1"},
+			},
+		},
+	}
+
+	for _, tt := range tc {
+		t.Run(tt.name, func(t *testing.T) {
+			output := filterSubjects(tt.input)
+			if !apiequality.Semantic.DeepEqual(output, tt.expectOutput) {
+				t.Errorf("expect %v, but got %v", tt.expectOutput, output)
+			}
+		})
+	}
 }

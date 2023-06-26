@@ -107,10 +107,11 @@ func TestApplyClusterRoleBinding(t *testing.T) {
 	defer close(stopCh)
 
 	var labels = make(map[string]string)
-	rb1 := createClusterrolebinding("crb1", "r1", labels, []rbacv1.Subject{})
-	rb2 := createClusterrolebinding("crb2", "r2", labels, []rbacv1.Subject{})
+	rb1 := createClusterrolebinding("crb1", GenerateClusterRoleName("r1", "admin"), labels, []rbacv1.Subject{})
+	rb2 := createClusterrolebinding("crb2", GenerateClusterRoleName("r2", "admin"), labels, []rbacv1.Subject{})
+	rb3 := createClusterrolebinding("crb3", GenerateClusterRoleName("r3", "admin"), labels, []rbacv1.Subject{})
 
-	objs = append(objs, rb1)
+	objs = append(objs, rb1, rb3)
 
 	client := k8sfake.NewSimpleClientset(objs...)
 	informers := informers.NewSharedInformerFactory(client, 10*time.Minute)
@@ -133,6 +134,22 @@ func TestApplyClusterRoleBinding(t *testing.T) {
 	applied = verifyApply(ctx, client, rb2)
 	if !applied {
 		t.Errorf("Error to apply clusterolebinding.")
+	}
+
+	rb1Copy := rb1.DeepCopy()
+	rb1Copy.Subjects = []rbacv1.Subject{{Kind: rbacv1.UserKind, Name: "user1"}}
+	err = ApplyClusterRoleBinding(ctx, client, informers.Rbac().V1().ClusterRoleBindings().Lister(), rb1Copy)
+	if err != nil {
+		t.Errorf("Error to apply clusterolebinding. Error:%v", err)
+	}
+	applied = verifyApply(ctx, client, rb1Copy)
+	if !applied {
+		t.Errorf("Error to apply clusterolebinding.")
+	}
+
+	err = ApplyClusterRoleBinding(ctx, client, informers.Rbac().V1().ClusterRoleBindings().Lister(), rb3)
+	if err != nil {
+		t.Errorf("Error to apply clusterolebinding. Error:%v", err)
 	}
 }
 
@@ -547,7 +564,8 @@ func TestApplyRoleBinding(t *testing.T) {
 	var labels = make(map[string]string)
 	rb1 := createRolebinding("crb1", "local-cluster", "r1", labels, []rbacv1.Subject{})
 	rb2 := createRolebinding("crb2", "local-cluster", "r2", labels, []rbacv1.Subject{})
-	objs = append(objs, rb1)
+	rb3 := createRolebinding("crb3", "local-cluster", "r2", labels, []rbacv1.Subject{})
+	objs = append(objs, rb1, rb3)
 	client := k8sfake.NewSimpleClientset(objs...)
 	informers := informers.NewSharedInformerFactory(client, 10*time.Minute)
 	informers.Rbac().V1().RoleBindings().Informer().GetIndexer().Add(rb1)
@@ -570,6 +588,22 @@ func TestApplyRoleBinding(t *testing.T) {
 	if !applied {
 		t.Errorf("Error to apply clusterolebinding.")
 	}
+
+	rb1Copy := rb1.DeepCopy()
+	rb1.Subjects = []rbacv1.Subject{{Kind: rbacv1.UserKind, Name: "user1"}}
+	err = ApplyRoleBinding(ctx, client, informers.Rbac().V1().RoleBindings().Lister(), rb1Copy)
+	if err != nil {
+		t.Errorf("Error to apply clusterolebinding. Error:%v", err)
+	}
+	applied = verifyAppliedRolebinding(ctx, client, rb1Copy)
+	if !applied {
+		t.Errorf("Error to apply clusterolebinding.")
+	}
+
+	err = ApplyRoleBinding(ctx, client, informers.Rbac().V1().RoleBindings().Lister(), rb3)
+	if err != nil {
+		t.Errorf("Error to apply clusterolebinding. Error:%v", err)
+	}
 }
 
 func verifyAppliedRolebinding(ctx context.Context, client kubernetes.Interface, required *rbacv1.RoleBinding) bool {
@@ -584,4 +618,64 @@ func verifyAppliedRolebinding(ctx context.Context, client kubernetes.Interface, 
 		return false
 	}
 	return true
+}
+
+func verifyAppliedClusterRole(client kubernetes.Interface, required *rbacv1.ClusterRole) bool {
+	existing, err := client.RbacV1().ClusterRoles().Get(context.TODO(), required.Name, metav1.GetOptions{})
+	if err != nil {
+		return false
+	}
+	if !reflect.DeepEqual(existing.Rules, required.Rules) {
+		return false
+	}
+	if !reflect.DeepEqual(existing.Labels, required.Labels) {
+		return false
+	}
+	return true
+}
+
+func createClusterRole(name string, labels map[string]string, rules []rbacv1.PolicyRule) *rbacv1.ClusterRole {
+	return &rbacv1.ClusterRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   name,
+			Labels: labels,
+		},
+		Rules: rules,
+	}
+}
+
+func TestApplyClusterRole(t *testing.T) {
+	c1 := createClusterRole(GenerateClusterRoleName("c1", "admin"), map[string]string{}, []rbacv1.PolicyRule{})
+	c2 := createClusterRole(GenerateClusterRoleName("c2", "admin"), map[string]string{}, []rbacv1.PolicyRule{})
+	client := k8sfake.NewSimpleClientset(c2)
+	err := ApplyClusterRole(client, c1)
+	if err != nil {
+		t.Errorf("Error to apply clusterole. Error:%v", err)
+	}
+	applied := verifyAppliedClusterRole(client, c1)
+	if !applied {
+		t.Errorf("Error to apply clusterole.")
+	}
+
+	c2Copy := c2.DeepCopy()
+	c2Copy.Labels["k"] = "v"
+	c2Copy.Rules = []rbacv1.PolicyRule{{Verbs: []string{"*"}}}
+	err = ApplyClusterRole(client, c2Copy)
+	if err != nil {
+		t.Errorf("Error to apply clusterole. Error:%v", err)
+	}
+	applied = verifyAppliedClusterRole(client, c2Copy)
+	if !applied {
+		t.Errorf("Error to apply clusterole.")
+	}
+
+	err = DeleteClusterRole(client, c1.Name)
+	if err != nil {
+		t.Errorf("Error to delete clusterole. Error:%v", err)
+	}
+
+	err = DeleteClusterRole(client, "test2")
+	if err != nil {
+		t.Errorf("Error to delete clusterole. Error:%v", err)
+	}
 }
