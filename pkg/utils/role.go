@@ -51,6 +51,9 @@ func ApplyClusterRoleBinding(ctx context.Context, kubeClient kubernetes.Interfac
 	if err != nil {
 		if errors.IsNotFound(err) {
 			_, err := kubeClient.RbacV1().ClusterRoleBindings().Create(ctx, required, metav1.CreateOptions{})
+			if errors.IsAlreadyExists(err) {
+				return nil
+			}
 			return err
 		}
 		return err
@@ -82,6 +85,9 @@ func ApplyRoleBinding(ctx context.Context, kubeClient kubernetes.Interface, role
 	if err != nil {
 		if errors.IsNotFound(err) {
 			_, err = kubeClient.RbacV1().RoleBindings(required.Namespace).Create(ctx, required, metav1.CreateOptions{})
+			if errors.IsAlreadyExists(err) {
+				return nil
+			}
 		}
 		return err
 	}

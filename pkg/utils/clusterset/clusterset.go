@@ -7,6 +7,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 )
 
@@ -20,6 +21,12 @@ const (
 	DefaultSetName              string = "default"
 	GlobalSetName               string = "global"
 	GlobalSetNameSpace          string = "open-cluster-management-global-set"
+)
+
+// subjects that should not be put into the rolebinding
+var (
+	ignoreGroup = sets.New[string]("system:cluster-admins", "system:masters", "system:cluster-readers")
+	ignoreUser  = sets.New[string]("system:admin", "system:kube-controller-manager")
 )
 
 var GlobalSet = &clusterv1beta2.ManagedClusterSet{
@@ -82,8 +89,10 @@ func GenerateClustersetSubjects(cache *cache.AuthCache) map[string][]rbacv1.Subj
 	}
 
 	for set, users := range clustersetToUsers {
-		subjects := authorizationutil.BuildRBACSubjects(users, clustersetToGroups[set])
-		clustersetToSubjects[set] = subjects
+		subjects := filterSubjects(authorizationutil.BuildRBACSubjects(users, clustersetToGroups[set]))
+		if len(subjects) > 0 {
+			clustersetToSubjects[set] = subjects
+		}
 	}
 
 	for set, groups := range clustersetToGroups {
@@ -91,11 +100,41 @@ func GenerateClustersetSubjects(cache *cache.AuthCache) map[string][]rbacv1.Subj
 			continue
 		}
 		var nullUsers []string
-		subjects := authorizationutil.BuildRBACSubjects(nullUsers, groups)
-		clustersetToSubjects[set] = subjects
+		subjects := filterSubjects(authorizationutil.BuildRBACSubjects(nullUsers, groups))
+		if len(subjects) > 0 {
+			clustersetToSubjects[set] = subjects
+		}
 	}
 
 	return clustersetToSubjects
+}
+
+// filterSubjects filters subject with:
+// 1. ignore all subject with specified user and group
+// 2. ignore all subject with sa kind
+// This works since we do not need to create bindings for cluster-admin users
+// and we do not need to create bindings for any service account. The feature
+// is only used to control the user access automatically.
+// TODO consider an explicit sa list rather than wildcard
+func filterSubjects(subjects []rbacv1.Subject) []rbacv1.Subject {
+	output := []rbacv1.Subject{}
+	for _, subject := range subjects {
+		switch subject.Kind {
+		case rbacv1.GroupKind:
+			if ignoreGroup.Has(subject.Name) {
+				continue
+			}
+		case rbacv1.UserKind:
+			if ignoreUser.Has(subject.Name) {
+				continue
+			}
+		case rbacv1.ServiceAccountKind:
+			continue
+		}
+		output = append(output, subject)
+	}
+
+	return output
 }
 
 // BuildAdminRole builds the admin clusterrole for the clusterset.
