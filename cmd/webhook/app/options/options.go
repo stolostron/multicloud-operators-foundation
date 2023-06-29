@@ -92,7 +92,7 @@ func cachingCertificateLoader(certFile, keyFile string) func() (*tls.Certificate
 func ConfigTLS(o *Options) *tls.Config {
 	dynamicCertLoader := cachingCertificateLoader(o.CertFile, o.KeyFile)
 	return &tls.Config{
-		MinVersion: tls.VersionTLS13,
+		MinVersion: tls.VersionTLS12,
 		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
 			return dynamicCertLoader()
 		},
