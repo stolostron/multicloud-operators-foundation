@@ -71,7 +71,7 @@ func (o *Options) APIServerConfig() (*genericapiserver.Config, error) {
 	if err := o.SecureServing.ApplyTo(&serverConfig.SecureServing, &serverConfig.LoopbackClientConfig); err != nil {
 		return nil, err
 	}
-	serverConfig.SecureServing.MinTLSVersion = tls.VersionTLS13
+	serverConfig.SecureServing.MinTLSVersion = tls.VersionTLS12
 
 	if err := o.Authentication.ApplyTo(&serverConfig.Authentication, serverConfig.SecureServing, nil); err != nil {
 		return nil, err
