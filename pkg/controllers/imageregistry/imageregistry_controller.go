@@ -83,23 +83,24 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					return []reconcile.Request{}
 				}
 
+				labels := placementDecision.GetLabels()
+				if len(labels) == 0 || labels[clusterv1beta1.PlacementLabel] == "" {
+					klog.V(2).Infof("Could not get placement label in placementDecision %v", placementDecision.Name)
+					return []reconcile.Request{}
+				}
+
 				imageRegistryList := &v1alpha1.ManagedClusterImageRegistryList{}
 				err := mgr.GetClient().List(context.TODO(), imageRegistryList, client.InNamespace(placementDecision.Namespace))
 				if err != nil {
 					klog.Errorf("Could not list imageRegistry %v", err)
 					return []reconcile.Request{}
 				}
-				labels := placementDecision.GetLabels()
-				placementName := labels[clusterv1beta1.PlacementLabel]
-				if placementName == "" {
-					klog.Errorf("Could not get placement label in placementDecision %v", placementDecision.Name)
-					return []reconcile.Request{}
-				}
+
 				var requests []reconcile.Request
 				for _, imageRegistry := range imageRegistryList.Items {
 					switch imageRegistry.Spec.PlacementRef.Group {
 					case clusterv1beta1.GroupName:
-						if imageRegistry.Spec.PlacementRef.Name == placementName {
+						if imageRegistry.Spec.PlacementRef.Name == labels[clusterv1beta1.PlacementLabel] {
 							requests = append(requests, reconcile.Request{
 								NamespacedName: types.NamespacedName{
 									Name:      imageRegistry.Name,
