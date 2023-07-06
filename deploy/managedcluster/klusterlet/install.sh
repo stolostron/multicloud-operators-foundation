@@ -5,7 +5,7 @@ set -o nounset
 set -o pipefail
 
 KUBECTL=${KUBECTL:-kubectl}
-REGISTRATION_OPERATOR_BRANCH=${REGISTRATION_OPERATOR_BRANCH:-main}
+OCM_BRANCH=${OCM_BRANCH:-main}
 
 # On openshift, OLM is installed into openshift-operator-lifecycle-manager
 $KUBECTL get namespace openshift-operator-lifecycle-manager 1>/dev/null 2>&1
@@ -13,20 +13,21 @@ if [ $? -eq 0 ]; then
   export OLM_NAMESPACE=openshift-operator-lifecycle-manager
 fi
 
-rm -rf registration-operator
+rm -rf ocm
 
-echo "############  Cloning registration-operator"
-git clone --depth 1 --branch "$REGISTRATION_OPERATOR_BRANCH" https://github.com/stolostron/registration-operator.git
+echo "############  Cloning ocm"
+git clone --depth 1 --branch "$OCM_BRANCH" https://github.com/stolostron/ocm.git
 
-cd registration-operator || {
-  printf "cd failed, registration-operator does not exist"
+cd ocm || {
+  printf "cd failed, ocm does not exist"
   return 1
 }
 
 echo "############  Deploying klusterlet"
+export MANAGED_CLUSTER_NAME=cluster1
 make hub-kubeconfig
 make cluster-ip
-make deploy-spoke
+make deploy-spoke-operator apply-spoke-cr
 if [ $? -ne 0 ]; then
  echo "############  Failed to deploy klusterlet"
  exit 1
@@ -94,6 +95,6 @@ echo "############  ManagedCluster klusterlet is installed successfully!!"
 
 echo "############  Cleanup"
 cd ../ || exist
-rm -rf registration-operator
+rm -rf ocm
 
 echo "############  Finished installation!!!"
