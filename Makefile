@@ -1,3 +1,6 @@
+# explicitly enable CGO
+export CGO_ENABLED=1
+
 all: build
 .PHONY: all
 
