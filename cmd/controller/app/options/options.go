@@ -15,6 +15,7 @@ type ControllerRunOptions struct {
 	LogCertSecret         string
 	EnableInventory       bool
 	EnableLeaderElection  bool
+	EnableRBAC            bool
 	LeaseDuration         time.Duration
 	RenewDeadline         time.Duration
 	RetryPeriod           time.Duration
@@ -34,6 +35,7 @@ func NewControllerRunOptions() *ControllerRunOptions {
 		EnableInventory:       true,
 		EnableLeaderElection:  true,
 		EnableAddonDeploy:     false,
+		EnableRBAC:            true,
 		QPS:                   100.0,
 		Burst:                 200,
 		AddonImage:            "quay.io/stolostron/multicloud-manager:latest",
@@ -51,6 +53,8 @@ func (o *ControllerRunOptions) AddFlags(fs *pflag.FlagSet) {
 		"log cert secret name.")
 	fs.BoolVar(&o.EnableInventory, "enable-inventory", o.EnableInventory,
 		"enable multi-cluster inventory")
+	fs.BoolVar(&o.EnableRBAC, "enable-rbac", o.EnableRBAC,
+		"enable automatic rbac setting for clusters")
 	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
