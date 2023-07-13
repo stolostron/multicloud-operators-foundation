@@ -21,6 +21,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+var excludeLabels = []string{
+	"app.kubernetes.io/instance",
+}
+
 // AutoDetectReconciler auto detects platform related labels and sync to managedcluster
 type AutoDetectReconciler struct {
 	client client.Client
@@ -124,6 +128,12 @@ func (r *AutoDetectReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 
 	if len(labels) == 0 && len(clusterInfo.ObjectMeta.Labels) == 0 {
 		return ctrl.Result{}, nil
+	}
+
+	for _, excludeLabel := range excludeLabels {
+		if _, ok := labels[excludeLabel]; ok {
+			delete(labels, excludeLabel)
+		}
 	}
 
 	if !reflect.DeepEqual(labels, clusterInfo.ObjectMeta.Labels) {
