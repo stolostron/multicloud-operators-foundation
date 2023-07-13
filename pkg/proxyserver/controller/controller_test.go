@@ -88,7 +88,7 @@ func (c *testContent) newController() {
 	c.serviceInfoGetter = getter.NewProxyServiceInfoGetter()
 	c.configMapLabels = map[string]string{"config": "acm-proxyserver"}
 	c.controller = NewProxyServiceInfoController(kubeClient, c.configMapLabels,
-		c.kubeSharedInformers, c.serviceInfoGetter, c.stopCh)
+		c.kubeSharedInformers.Core().V1().ConfigMaps(), c.serviceInfoGetter, c.stopCh)
 }
 
 func (c *testContent) runController() {
