@@ -14,7 +14,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/informers"
+	informercorev1 "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/kubernetes"
 	v1 "k8s.io/client-go/listers/core/v1"
 	"k8s.io/client-go/rest"
@@ -27,7 +27,6 @@ type ProxyServiceInfoController struct {
 	serviceInfoGetter *getter.ProxyServiceInfoGetter
 	client            kubernetes.Interface
 	labelSelector     *metav1.LabelSelector
-	informerFactory   informers.SharedInformerFactory
 	lister            v1.ConfigMapLister
 	synced            cache.InformerSynced
 	workqueue         workqueue.RateLimitingInterface
@@ -37,15 +36,13 @@ type ProxyServiceInfoController struct {
 func NewProxyServiceInfoController(
 	client kubernetes.Interface,
 	configMapLabels map[string]string,
-	informerFactory informers.SharedInformerFactory,
+	configMapInformer informercorev1.ConfigMapInformer,
 	getter *getter.ProxyServiceInfoGetter,
 	stopCh <-chan struct{}) *ProxyServiceInfoController {
-	configMapInformer := informerFactory.Core().V1().ConfigMaps()
 	controller := &ProxyServiceInfoController{
 		serviceInfoGetter: getter,
 		client:            client,
 		labelSelector:     &metav1.LabelSelector{MatchLabels: configMapLabels},
-		informerFactory:   informerFactory,
 		lister:            configMapInformer.Lister(),
 		synced:            configMapInformer.Informer().HasSynced,
 		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "proxyServiceInfoController"),

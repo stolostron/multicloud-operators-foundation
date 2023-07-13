@@ -3,6 +3,7 @@
 package app
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"time"
 
@@ -57,7 +58,22 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 
 	informerFactory := informers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
 	proxyGetter := getter.NewProxyServiceInfoGetter()
-	ctrl := controller.NewProxyServiceInfoController(kubeClient, configMapLabels, informerFactory, proxyGetter, stopCh)
+	configmapInformerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, 10*time.Minute, informers.WithTweakListOptions(
+		func(listOptions *metav1.ListOptions) {
+			matchExpressions := []metav1.LabelSelectorRequirement{}
+			for key, value := range configMapLabels {
+				matchExpressions = append(matchExpressions,
+					metav1.LabelSelectorRequirement{
+						Key:      key,
+						Values:   []string{value},
+						Operator: metav1.LabelSelectorOpIn,
+					})
+			}
+			selector := &metav1.LabelSelector{MatchExpressions: matchExpressions}
+			listOptions.LabelSelector = metav1.FormatLabelSelector(selector)
+		}))
+	ctrl := controller.NewProxyServiceInfoController(kubeClient, configMapLabels,
+		configmapInformerFactory.Core().V1().ConfigMaps(), proxyGetter, stopCh)
 
 	apiServerConfig, err := s.APIServerConfig()
 	if err != nil {
@@ -77,6 +93,7 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 	go ctrl.Run()
 	clusterInformers.Start(stopCh)
 	informerFactory.Start(stopCh)
+	configmapInformerFactory.Start(stopCh)
 
 	return proxyServer.Run(stopCh)
 }
