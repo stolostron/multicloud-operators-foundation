@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"reflect"
@@ -14,6 +15,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -22,7 +24,6 @@ import (
 	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
 
 	"open-cluster-management.io/addon-framework/pkg/agent"
-	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
 )
 
 func MergeRelatedObjects(modified *bool, objs *[]addonapiv1alpha1.ObjectReference, obj addonapiv1alpha1.ObjectReference) {
@@ -305,7 +306,7 @@ func ManagedByAddonManager(obj interface{}) bool {
 	return value == addonapiv1alpha1.AddonLifecycleAddonManagerAnnotationValue
 }
 
-func ManagedBySelf(agentAddons map[string]agent.AgentAddon) factory.EventFilterFunc {
+func ManagedBySelf(agentAddons map[string]agent.AgentAddon) func(obj interface{}) bool {
 	return func(obj interface{}) bool {
 		accessor, _ := meta.Accessor(obj)
 		if _, ok := agentAddons[accessor.GetName()]; !ok {
@@ -327,6 +328,14 @@ func ManagedBySelf(agentAddons map[string]agent.AgentAddon) factory.EventFilterF
 	}
 }
 
+func FilterByAddonName(agentAddons map[string]agent.AgentAddon) func(obj interface{}) bool {
+	return func(obj interface{}) bool {
+		accessor, _ := meta.Accessor(obj)
+		_, ok := agentAddons[accessor.GetName()]
+		return ok
+	}
+}
+
 func IsOwnedByCMA(addon *addonapiv1alpha1.ManagedClusterAddOn) bool {
 	for _, owner := range addon.OwnerReferences {
 		if owner.Kind != "ClusterManagementAddOn" {
@@ -338,4 +347,24 @@ func IsOwnedByCMA(addon *addonapiv1alpha1.ManagedClusterAddOn) bool {
 		return true
 	}
 	return false
+}
+
+// GetSpecHash returns the sha256 hash of the spec field of the given object
+func GetSpecHash(obj *unstructured.Unstructured) (string, error) {
+	if obj == nil {
+		return "", fmt.Errorf("object is nil")
+	}
+	spec, ok := obj.Object["spec"]
+	if !ok {
+		return "", fmt.Errorf("object has no spec field")
+	}
+
+	specBytes, err := json.Marshal(spec)
+	if err != nil {
+		return "", err
+	}
+
+	hash := sha256.Sum256(specBytes)
+
+	return fmt.Sprintf("%x", hash), nil
 }

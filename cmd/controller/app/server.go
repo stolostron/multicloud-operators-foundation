@@ -12,6 +12,30 @@ import (
 	actionv1beta1 "github.com/stolostron/cluster-lifecycle-api/action/v1beta1"
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"github.com/stolostron/cluster-lifecycle-api/imageregistry/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/apimachinery/pkg/runtime"
+	kubeinformers "k8s.io/client-go/informers"
+	"k8s.io/client-go/kubernetes"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	k8scache "k8s.io/client-go/tools/cache"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog"
+	"open-cluster-management.io/addon-framework/pkg/addonfactory"
+	"open-cluster-management.io/addon-framework/pkg/addonmanager"
+	afutils "open-cluster-management.io/addon-framework/pkg/utils"
+	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
+	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
+	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
+	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	clusterv1alaph1 "open-cluster-management.io/api/cluster/v1alpha1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
+	ctrl "sigs.k8s.io/controller-runtime"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+
 	"github.com/stolostron/multicloud-operators-foundation/cmd/controller/app/options"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/addon"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
@@ -30,29 +54,6 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/imageregistry"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/runtime"
-	kubeinformers "k8s.io/client-go/informers"
-	"k8s.io/client-go/kubernetes"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	k8scache "k8s.io/client-go/tools/cache"
-	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/klog"
-	"open-cluster-management.io/addon-framework/pkg/addonfactory"
-	"open-cluster-management.io/addon-framework/pkg/addonmanager"
-	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
-	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
-	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	clusterv1alaph1 "open-cluster-management.io/api/cluster/v1alpha1"
-	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
-	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
-
-	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
 )
 
 var (
@@ -170,7 +171,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		registrationOption := addon.NewRegistrationOption(kubeClient, roleBindingsInformer, addon.WorkManagerAddonName)
 		agentAddon, err := addonfactory.NewAgentAddonFactory(addon.WorkManagerAddonName, addon.ChartFS, addon.ChartDir).
 			WithScheme(scheme).
-			WithConfigGVRs(addonfactory.AddOnDeploymentConfigGVR).
+			WithConfigGVRs(afutils.AddOnDeploymentConfigGVR).
 			WithGetValuesFuncs(
 				addon.NewGetValuesFunc(o.AddonImage),
 				addonfactory.GetValuesFromAddonAnnotation,

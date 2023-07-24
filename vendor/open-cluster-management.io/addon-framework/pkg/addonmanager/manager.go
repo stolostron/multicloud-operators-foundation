@@ -5,12 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"k8s.io/client-go/tools/cache"
-
-	"open-cluster-management.io/addon-framework/pkg/index"
-	"open-cluster-management.io/addon-framework/pkg/manager/controllers/addonconfiguration"
-	"open-cluster-management.io/addon-framework/pkg/manager/controllers/addonowner"
-
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -18,6 +12,7 @@ import (
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/cache"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformers "open-cluster-management.io/api/client/addon/informers/externalversions"
@@ -34,6 +29,9 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/registration"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
+	"open-cluster-management.io/addon-framework/pkg/index"
+	"open-cluster-management.io/addon-framework/pkg/manager/controllers/addonconfiguration"
+	"open-cluster-management.io/addon-framework/pkg/manager/controllers/addonowner"
 	"open-cluster-management.io/addon-framework/pkg/utils"
 )
 
@@ -49,6 +47,14 @@ type AddonManager interface {
 
 	// Start starts all registered addon agent.
 	Start(ctx context.Context) error
+
+	// StartWithInformers starts all registered addon agent with the given informers.
+	StartWithInformers(ctx context.Context,
+		kubeInformers kubeinformers.SharedInformerFactory,
+		workInformers workv1informers.SharedInformerFactory,
+		addonInformers addoninformers.SharedInformerFactory,
+		clusterInformers clusterv1informers.SharedInformerFactory,
+		dynamicInformers dynamicinformer.DynamicSharedInformerFactory) error
 }
 
 type addonManager struct {
@@ -77,12 +83,17 @@ func (a *addonManager) Trigger(clusterName, addonName string) {
 }
 
 func (a *addonManager) Start(ctx context.Context) error {
-	dynamicClient, err := dynamic.NewForConfig(a.config)
+	kubeClient, err := kubernetes.NewForConfig(a.config)
 	if err != nil {
 		return err
 	}
 
-	kubeClient, err := kubernetes.NewForConfig(a.config)
+	workClient, err := workv1client.NewForConfig(a.config)
+	if err != nil {
+		return err
+	}
+
+	dynamicClient, err := dynamic.NewForConfig(a.config)
 	if err != nil {
 		return err
 	}
@@ -97,24 +108,29 @@ func (a *addonManager) Start(ctx context.Context) error {
 		return err
 	}
 
-	workClient, err := workv1client.NewForConfig(a.config)
-	if err != nil {
-		return err
-	}
-
-	v1CSRSupported, v1beta1Supported, err := utils.IsCSRSupported(kubeClient)
-	if err != nil {
-		return err
-	}
+	addonInformers := addoninformers.NewSharedInformerFactory(addonClient, 10*time.Minute)
+	clusterInformers := clusterv1informers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
+	dynamicInformers := dynamicinformer.NewDynamicSharedInformerFactory(dynamicClient, 10*time.Minute)
 
 	var addonNames []string
-	for key, agentImpl := range a.addonAgents {
+	for key := range a.addonAgents {
 		addonNames = append(addonNames, key)
-		for _, configGVR := range agentImpl.GetAgentAddonOptions().SupportedConfigGVRs {
-			a.addonConfigs[configGVR] = true
-		}
 	}
-	addonInformers := addoninformers.NewSharedInformerFactory(addonClient, 10*time.Minute)
+	kubeInformers := kubeinformers.NewSharedInformerFactoryWithOptions(kubeClient, 10*time.Minute,
+		kubeinformers.WithTweakListOptions(func(listOptions *metav1.ListOptions) {
+			selector := &metav1.LabelSelector{
+				MatchExpressions: []metav1.LabelSelectorRequirement{
+					{
+						Key:      addonv1alpha1.AddonLabelKey,
+						Operator: metav1.LabelSelectorOpIn,
+						Values:   addonNames,
+					},
+				},
+			}
+			listOptions.LabelSelector = metav1.FormatLabelSelector(selector)
+		}),
+	)
+
 	workInformers := workv1informers.NewSharedInformerFactoryWithOptions(workClient, 10*time.Minute,
 		workv1informers.WithTweakListOptions(func(listOptions *metav1.ListOptions) {
 			selector := &metav1.LabelSelector{
@@ -129,22 +145,94 @@ func (a *addonManager) Start(ctx context.Context) error {
 			listOptions.LabelSelector = metav1.FormatLabelSelector(selector)
 		}),
 	)
-	clusterInformers := clusterv1informers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
-	kubeInfomers := kubeinformers.NewSharedInformerFactoryWithOptions(kubeClient, 10*time.Minute,
-		kubeinformers.WithTweakListOptions(func(listOptions *metav1.ListOptions) {
-			selector := &metav1.LabelSelector{
-				MatchExpressions: []metav1.LabelSelectorRequirement{
-					{
-						Key:      addonv1alpha1.AddonLabelKey,
-						Operator: metav1.LabelSelectorOpIn,
-						Values:   addonNames,
-					},
-				},
-			}
-			listOptions.LabelSelector = metav1.FormatLabelSelector(selector)
-		}),
+
+	// addonDeployController
+	err = workInformers.Work().V1().ManifestWorks().Informer().AddIndexers(
+		cache.Indexers{
+			index.ManifestWorkByAddon:           index.IndexManifestWorkByAddon,
+			index.ManifestWorkByHostedAddon:     index.IndexManifestWorkByHostedAddon,
+			index.ManifestWorkHookByHostedAddon: index.IndexManifestWorkHookByHostedAddon,
+		},
 	)
-	dynamicInformers := dynamicinformer.NewDynamicSharedInformerFactory(dynamicClient, 10*time.Minute)
+	if err != nil {
+		return err
+	}
+
+	// addonConfigController
+	err = addonInformers.Addon().V1alpha1().ManagedClusterAddOns().Informer().AddIndexers(
+		cache.Indexers{index.AddonByConfig: index.IndexAddonByConfig},
+	)
+	if err != nil {
+		return err
+	}
+
+	// managementAddonConfigController
+	err = addonInformers.Addon().V1alpha1().ClusterManagementAddOns().Informer().AddIndexers(
+		cache.Indexers{index.ClusterManagementAddonByConfig: index.IndexClusterManagementAddonByConfig})
+	if err != nil {
+		return err
+	}
+
+	err = addonInformers.Addon().V1alpha1().ClusterManagementAddOns().Informer().AddIndexers(
+		cache.Indexers{
+			index.ClusterManagementAddonByPlacement: index.IndexClusterManagementAddonByPlacement,
+		})
+	if err != nil {
+		return err
+	}
+	err = addonInformers.Addon().V1alpha1().ManagedClusterAddOns().Informer().AddIndexers(
+		cache.Indexers{
+			index.ManagedClusterAddonByName: index.IndexManagedClusterAddonByName,
+		})
+	if err != nil {
+		return err
+	}
+
+	err = a.StartWithInformers(ctx, kubeInformers, workInformers, addonInformers, clusterInformers, dynamicInformers)
+	if err != nil {
+		return err
+	}
+
+	kubeInformers.Start(ctx.Done())
+	workInformers.Start(ctx.Done())
+	addonInformers.Start(ctx.Done())
+	clusterInformers.Start(ctx.Done())
+	dynamicInformers.Start(ctx.Done())
+	return nil
+}
+
+func (a *addonManager) StartWithInformers(ctx context.Context,
+	kubeInformers kubeinformers.SharedInformerFactory,
+	workInformers workv1informers.SharedInformerFactory,
+	addonInformers addoninformers.SharedInformerFactory,
+	clusterInformers clusterv1informers.SharedInformerFactory,
+	dynamicInformers dynamicinformer.DynamicSharedInformerFactory) error {
+
+	kubeClient, err := kubernetes.NewForConfig(a.config)
+	if err != nil {
+		return err
+	}
+
+	addonClient, err := addonv1alpha1client.NewForConfig(a.config)
+	if err != nil {
+		return err
+	}
+
+	workClient, err := workv1client.NewForConfig(a.config)
+	if err != nil {
+		return err
+	}
+
+	v1CSRSupported, v1beta1Supported, err := utils.IsCSRSupported(kubeClient)
+	if err != nil {
+		return err
+	}
+
+	for _, agentImpl := range a.addonAgents {
+		for _, configGVR := range agentImpl.GetAgentAddonOptions().SupportedConfigGVRs {
+			a.addonConfigs[configGVR] = true
+		}
+	}
 
 	deployController := agentdeploy.NewAddonDeployController(
 		workClient,
@@ -183,34 +271,22 @@ func (a *addonManager) Start(ctx context.Context) error {
 		addonConfigController = addonconfig.NewAddonConfigController(
 			addonClient,
 			addonInformers.Addon().V1alpha1().ManagedClusterAddOns(),
+			addonInformers.Addon().V1alpha1().ClusterManagementAddOns(),
 			dynamicInformers,
 			a.addonConfigs,
+			utils.FilterByAddonName(a.addonAgents),
 		)
 		managementAddonConfigController = managementaddonconfig.NewManagementAddonConfigController(
 			addonClient,
 			addonInformers.Addon().V1alpha1().ClusterManagementAddOns(),
 			dynamicInformers,
 			a.addonConfigs,
+			utils.FilterByAddonName(a.addonAgents),
 		)
 
 		// start addonConfiguration controller, note this is to handle the case when the general addon-manager
 		// is not started, we should consider to remove this when the general addon-manager are always started.
 		// This controller will also ignore the installStrategy part.
-		err = addonInformers.Addon().V1alpha1().ClusterManagementAddOns().Informer().AddIndexers(
-			cache.Indexers{
-				index.ClusterManagementAddonByPlacement: index.IndexClusterManagementAddonByPlacement,
-			})
-		if err != nil {
-			return err
-		}
-
-		err = addonInformers.Addon().V1alpha1().ManagedClusterAddOns().Informer().AddIndexers(
-			cache.Indexers{
-				index.ManagedClusterAddonByName: index.IndexManagedClusterAddonByName,
-			})
-		if err != nil {
-			return err
-		}
 		addonConfigurationController = addonconfiguration.NewAddonConfigurationController(
 			addonClient,
 			addonInformers.Addon().V1alpha1().ManagedClusterAddOns(),
@@ -230,7 +306,7 @@ func (a *addonManager) Start(ctx context.Context) error {
 		csrApproveController = certificate.NewCSRApprovingController(
 			kubeClient,
 			clusterInformers.Cluster().V1().ManagedClusters(),
-			kubeInfomers.Certificates().V1().CertificateSigningRequests(),
+			kubeInformers.Certificates().V1().CertificateSigningRequests(),
 			nil,
 			addonInformers.Addon().V1alpha1().ManagedClusterAddOns(),
 			a.addonAgents,
@@ -238,7 +314,7 @@ func (a *addonManager) Start(ctx context.Context) error {
 		csrSignController = certificate.NewCSRSignController(
 			kubeClient,
 			clusterInformers.Cluster().V1().ManagedClusters(),
-			kubeInfomers.Certificates().V1().CertificateSigningRequests(),
+			kubeInformers.Certificates().V1().CertificateSigningRequests(),
 			addonInformers.Addon().V1alpha1().ManagedClusterAddOns(),
 			a.addonAgents,
 		)
@@ -247,19 +323,13 @@ func (a *addonManager) Start(ctx context.Context) error {
 			kubeClient,
 			clusterInformers.Cluster().V1().ManagedClusters(),
 			nil,
-			kubeInfomers.Certificates().V1beta1().CertificateSigningRequests(),
+			kubeInformers.Certificates().V1beta1().CertificateSigningRequests(),
 			addonInformers.Addon().V1alpha1().ManagedClusterAddOns(),
 			a.addonAgents,
 		)
 	}
 
 	a.syncContexts = append(a.syncContexts, deployController.SyncContext())
-
-	go addonInformers.Start(ctx.Done())
-	go workInformers.Start(ctx.Done())
-	go clusterInformers.Start(ctx.Done())
-	go kubeInfomers.Start(ctx.Done())
-	go dynamicInformers.Start(ctx.Done())
 
 	go deployController.Run(ctx, 1)
 	go registrationController.Run(ctx, 1)
