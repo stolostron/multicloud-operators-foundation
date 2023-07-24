@@ -24,47 +24,51 @@ import (
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
 
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/controllers/managementaddonconfig"
 	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
+	"open-cluster-management.io/addon-framework/pkg/index"
+	"open-cluster-management.io/addon-framework/pkg/utils"
 )
 
 const (
 	controllerName = "addon-config-controller"
-	byAddOnConfig  = "by-addon-config"
 )
 
 type enqueueFunc func(obj interface{})
 
 // addonConfigController reconciles all interested addon config types (GroupVersionResource) on the hub.
 type addonConfigController struct {
-	addonClient   addonv1alpha1client.Interface
-	addonLister   addonlisterv1alpha1.ManagedClusterAddOnLister
-	addonIndexer  cache.Indexer
-	configListers map[schema.GroupResource]dynamiclister.Lister
-	queue         workqueue.RateLimitingInterface
+	addonClient                  addonv1alpha1client.Interface
+	addonLister                  addonlisterv1alpha1.ManagedClusterAddOnLister
+	addonIndexer                 cache.Indexer
+	configListers                map[schema.GroupResource]dynamiclister.Lister
+	queue                        workqueue.RateLimitingInterface
+	addonFilterFunc              factory.EventFilterFunc
+	configGVRs                   map[schema.GroupVersionResource]bool
+	clusterManagementAddonLister addonlisterv1alpha1.ClusterManagementAddOnLister
 }
 
 func NewAddonConfigController(
 	addonClient addonv1alpha1client.Interface,
 	addonInformers addoninformerv1alpha1.ManagedClusterAddOnInformer,
+	clusterManagementAddonInformers addoninformerv1alpha1.ClusterManagementAddOnInformer,
 	configInformerFactory dynamicinformer.DynamicSharedInformerFactory,
 	configGVRs map[schema.GroupVersionResource]bool,
+	addonFilterFunc factory.EventFilterFunc,
 ) factory.Controller {
 	syncCtx := factory.NewSyncContext(controllerName)
 
 	c := &addonConfigController{
-		addonClient:   addonClient,
-		addonLister:   addonInformers.Lister(),
-		addonIndexer:  addonInformers.Informer().GetIndexer(),
-		configListers: map[schema.GroupResource]dynamiclister.Lister{},
-		queue:         syncCtx.Queue(),
+		addonClient:                  addonClient,
+		addonLister:                  addonInformers.Lister(),
+		addonIndexer:                 addonInformers.Informer().GetIndexer(),
+		configListers:                map[schema.GroupResource]dynamiclister.Lister{},
+		queue:                        syncCtx.Queue(),
+		addonFilterFunc:              addonFilterFunc,
+		configGVRs:                   configGVRs,
+		clusterManagementAddonLister: clusterManagementAddonInformers.Lister(),
 	}
 
 	configInformers := c.buildConfigInformers(configInformerFactory, configGVRs)
-
-	if err := addonInformers.Informer().AddIndexers(cache.Indexers{byAddOnConfig: c.indexByConfig}); err != nil {
-		utilruntime.HandleError(err)
-	}
 
 	return factory.New().
 		WithSyncContext(syncCtx).
@@ -81,7 +85,8 @@ func (c *addonConfigController) buildConfigInformers(
 	configGVRs map[schema.GroupVersionResource]bool,
 ) []factory.Informer {
 	configInformers := []factory.Informer{}
-	for gvr := range configGVRs {
+	for gvrRaw := range configGVRs {
+		gvr := gvrRaw // copy the value since it will be used in the closure
 		genericInformer := configInformerFactory.ForResource(gvr)
 		indexInformer := genericInformer.Informer()
 		_, err := indexInformer.AddEventHandler(
@@ -110,7 +115,8 @@ func (c *addonConfigController) enqueueAddOnsByConfig(gvr schema.GroupVersionRes
 			return
 		}
 
-		objs, err := c.addonIndexer.ByIndex(byAddOnConfig, fmt.Sprintf("%s/%s/%s", gvr.Group, gvr.Resource, namespaceName))
+		objs, err := c.addonIndexer.ByIndex(index.AddonByConfig,
+			fmt.Sprintf("%s/%s/%s", gvr.Group, gvr.Resource, namespaceName))
 		if err != nil {
 			utilruntime.HandleError(fmt.Errorf("error to get addons: %v", err))
 			return
@@ -126,25 +132,6 @@ func (c *addonConfigController) enqueueAddOnsByConfig(gvr schema.GroupVersionRes
 	}
 }
 
-func (c *addonConfigController) indexByConfig(obj interface{}) ([]string, error) {
-	addon, ok := obj.(*addonapiv1alpha1.ManagedClusterAddOn)
-	if !ok {
-		return nil, fmt.Errorf("obj is supposed to be a ManagedClusterAddOn, but is %T", obj)
-	}
-
-	configNames := []string{}
-	for _, configReference := range addon.Status.ConfigReferences {
-		if configReference.Name == "" {
-			// bad config reference, ignore
-			continue
-		}
-
-		configNames = append(configNames, getIndex(configReference))
-	}
-
-	return configNames, nil
-}
-
 func (c *addonConfigController) sync(ctx context.Context, syncCtx factory.SyncContext, key string) error {
 	addonNamespace, addonName, err := cache.SplitMetaNamespaceKey(key)
 	if err != nil {
@@ -154,15 +141,27 @@ func (c *addonConfigController) sync(ctx context.Context, syncCtx factory.SyncCo
 
 	addon, err := c.addonLister.ManagedClusterAddOns(addonNamespace).Get(addonName)
 	if errors.IsNotFound(err) {
-		// addon cloud be deleted, ignore
+		// addon could be deleted, ignore
 		return nil
 	}
 	if err != nil {
 		return err
 	}
 
-	addonCopy := addon.DeepCopy()
+	cma, err := c.clusterManagementAddonLister.Get(addonName)
+	if errors.IsNotFound(err) {
+		// cluster management addon could be deleted, ignore
+		return nil
+	}
+	if err != nil {
+		return err
+	}
 
+	if !c.addonFilterFunc(cma) {
+		return nil
+	}
+
+	addonCopy := addon.DeepCopy()
 	if err := c.updateConfigSpecHashAndGenerations(addonCopy); err != nil {
 		return err
 	}
@@ -176,6 +175,14 @@ func (c *addonConfigController) updateConfigSpecHashAndGenerations(addon *addona
 		supportedConfigSet[config] = true
 	}
 	for index, configReference := range addon.Status.ConfigReferences {
+
+		if !utils.ContainGR(
+			c.configGVRs,
+			configReference.ConfigGroupResource.Group,
+			configReference.ConfigGroupResource.Resource) {
+			continue
+		}
+
 		lister, ok := c.configListers[schema.GroupResource{Group: configReference.ConfigGroupResource.Group, Resource: configReference.ConfigGroupResource.Resource}]
 		if !ok {
 			continue
@@ -209,8 +216,10 @@ func (c *addonConfigController) updateConfigSpecHashAndGenerations(addon *addona
 			if configReference.DesiredConfig == nil {
 				continue
 			}
-			if configReference.ConfigGroupResource == addonconfig.ConfigGroupResource && configReference.DesiredConfig.ConfigReferent == addonconfig.ConfigReferent {
-				specHash, err := managementaddonconfig.GetSpecHash(config)
+
+			if configReference.ConfigGroupResource == addonconfig.ConfigGroupResource &&
+				configReference.DesiredConfig.ConfigReferent == addonconfig.ConfigReferent {
+				specHash, err := utils.GetSpecHash(config)
 				if err != nil {
 					return err
 				}
@@ -264,12 +273,4 @@ func (c *addonConfigController) patchConfigReferences(ctx context.Context, old, 
 		"status",
 	)
 	return err
-}
-
-func getIndex(config addonapiv1alpha1.ConfigReference) string {
-	if config.Namespace != "" {
-		return fmt.Sprintf("%s/%s/%s/%s", config.Group, config.Resource, config.Namespace, config.Name)
-	}
-
-	return fmt.Sprintf("%s/%s/%s", config.Group, config.Resource, config.Name)
 }

@@ -14,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	errorsutil "k8s.io/apimachinery/pkg/util/errors"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog/v2"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
@@ -33,6 +32,7 @@ import (
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
+	"open-cluster-management.io/addon-framework/pkg/index"
 )
 
 // addonDeployController deploy addon agent resources on the managed cluster.
@@ -54,18 +54,6 @@ func NewAddonDeployController(
 	workInformers workinformers.ManifestWorkInformer,
 	agentAddons map[string]agent.AgentAddon,
 ) factory.Controller {
-	err := workInformers.Informer().AddIndexers(
-		cache.Indexers{
-			byAddon:           indexByAddon,
-			byHostedAddon:     indexByHostedAddon,
-			hookByHostedAddon: indexHookByHostedAddon,
-		},
-	)
-
-	if err != nil {
-		utilruntime.HandleError(err)
-	}
-
 	c := &addonDeployController{
 		workApplier: workapplier.NewWorkApplierWithTypedClient(workClient, workInformers.Lister()),
 		// the default manifest limit in a work is 500k
@@ -191,7 +179,7 @@ func (c *addonDeployController) sync(ctx context.Context, syncCtx factory.SyncCo
 		&defaultSyncer{
 			buildWorks:     c.buildDeployManifestWorks,
 			applyWork:      c.applyWork,
-			getWorkByAddon: c.getWorksByAddonFn(byAddon),
+			getWorkByAddon: c.getWorksByAddonFn(index.ManifestWorkByAddon),
 			deleteWork:     c.workApplier.Delete,
 			agentAddon:     agentAddon,
 		},
@@ -200,7 +188,7 @@ func (c *addonDeployController) sync(ctx context.Context, syncCtx factory.SyncCo
 			applyWork:      c.applyWork,
 			deleteWork:     c.workApplier.Delete,
 			getCluster:     c.managedClusterLister.Get,
-			getWorkByAddon: c.getWorksByAddonFn(byHostedAddon),
+			getWorkByAddon: c.getWorksByAddonFn(index.ManifestWorkByHostedAddon),
 			agentAddon:     agentAddon},
 		&defaultHookSyncer{
 			buildWorks: c.buildHookManifestWork,
@@ -211,10 +199,10 @@ func (c *addonDeployController) sync(ctx context.Context, syncCtx factory.SyncCo
 			applyWork:      c.applyWork,
 			deleteWork:     c.workApplier.Delete,
 			getCluster:     c.managedClusterLister.Get,
-			getWorkByAddon: c.getWorksByAddonFn(hookByHostedAddon),
+			getWorkByAddon: c.getWorksByAddonFn(index.ManifestWorkHookByHostedAddon),
 			agentAddon:     agentAddon},
 		&healthCheckSyncer{
-			getWorkByAddon: c.getWorksByAddonFn(byAddon),
+			getWorkByAddon: c.getWorksByAddonFn(index.ManifestWorkByAddon),
 			agentAddon:     agentAddon,
 		},
 	}
@@ -358,7 +346,7 @@ func (c *addonDeployController) buildDeployManifestWorks(installMode, workNamesp
 		return nil, nil, nil
 	}
 
-	manifestOptions := getManifestConfigOption(agentAddon)
+	manifestOptions := getManifestConfigOption(agentAddon, cluster, addon)
 	existingWorksCopy := []workapiv1.ManifestWork{}
 	for _, work := range existingWorks {
 		existingWorksCopy = append(existingWorksCopy, *work)

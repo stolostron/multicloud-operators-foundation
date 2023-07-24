@@ -26,13 +26,12 @@ import (
 // 2. use configuration in install strategy
 // 3. use configuration in the default configuration in cma
 type addonConfigurationController struct {
-	addonClient                   addonv1alpha1client.Interface
-	clusterManagementAddonLister  addonlisterv1alpha1.ClusterManagementAddOnLister
-	clusterManagementAddonIndexer cache.Indexer
-	managedClusterAddonIndexer    cache.Indexer
-	addonFilterFunc               factory.EventFilterFunc
-	placementLister               clusterlisterv1beta1.PlacementLister
-	placementDecisionLister       clusterlisterv1beta1.PlacementDecisionLister
+	addonClient                  addonv1alpha1client.Interface
+	clusterManagementAddonLister addonlisterv1alpha1.ClusterManagementAddOnLister
+	managedClusterAddonIndexer   cache.Indexer
+	addonFilterFunc              factory.EventFilterFunc
+	placementLister              clusterlisterv1beta1.PlacementLister
+	placementDecisionLister      clusterlisterv1beta1.PlacementDecisionLister
 
 	reconcilers []addonConfigurationReconcile
 }
@@ -58,11 +57,10 @@ func NewAddonConfigurationController(
 	addonFilterFunc factory.EventFilterFunc,
 ) factory.Controller {
 	c := &addonConfigurationController{
-		addonClient:                   addonClient,
-		clusterManagementAddonLister:  clusterManagementAddonInformers.Lister(),
-		clusterManagementAddonIndexer: clusterManagementAddonInformers.Informer().GetIndexer(),
-		managedClusterAddonIndexer:    addonInformers.Informer().GetIndexer(),
-		addonFilterFunc:               addonFilterFunc,
+		addonClient:                  addonClient,
+		clusterManagementAddonLister: clusterManagementAddonInformers.Lister(),
+		managedClusterAddonIndexer:   addonInformers.Informer().GetIndexer(),
+		addonFilterFunc:              addonFilterFunc,
 	}
 
 	c.reconcilers = []addonConfigurationReconcile{
