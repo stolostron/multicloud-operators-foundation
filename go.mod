@@ -28,14 +28,14 @@ replace (
 // pin kube and hive version
 replace (
 	github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20230410203125-bb0124b40f86
-	k8s.io/api => k8s.io/api v0.26.2
-	k8s.io/apimachinery => k8s.io/apimachinery v0.26.2
-	k8s.io/apiserver => k8s.io/apiserver v0.26.2
-	k8s.io/cli-runtime => k8s.io/cli-runtime v0.26.2
-	k8s.io/client-go => k8s.io/client-go v0.26.2
-	k8s.io/code-generator => k8s.io/code-generator v0.26.2
-	k8s.io/component-base => k8s.io/component-base v0.26.2
-	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.26.2
+	k8s.io/api => k8s.io/api v0.26.7
+	k8s.io/apimachinery => k8s.io/apimachinery v0.26.7
+	k8s.io/apiserver => k8s.io/apiserver v0.26.7
+	k8s.io/cli-runtime => k8s.io/cli-runtime v0.26.7
+	k8s.io/client-go => k8s.io/client-go v0.26.7
+	k8s.io/code-generator => k8s.io/code-generator v0.26.7
+	k8s.io/component-base => k8s.io/component-base v0.26.7
+	k8s.io/kube-aggregator => k8s.io/kube-aggregator v0.26.7
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.14.2
 )
 
@@ -57,19 +57,19 @@ require (
 	github.com/prometheus/common v0.39.0
 	github.com/smartystreets/goconvey v1.7.2
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace
-	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230510064049-824d580bc143
+	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230810064008-81160dedc4f8
 	github.com/stretchr/testify v1.8.1
 	golang.org/x/net v0.8.0
-	k8s.io/api v0.26.2
-	k8s.io/apimachinery v0.26.2
-	k8s.io/apiserver v0.26.2
-	k8s.io/cli-runtime v0.26.2
+	k8s.io/api v0.26.7
+	k8s.io/apimachinery v0.26.7
+	k8s.io/apiserver v0.26.7
+	k8s.io/cli-runtime v0.26.7
 	k8s.io/client-go v12.0.0+incompatible
-	k8s.io/code-generator v0.26.2
-	k8s.io/component-base v0.26.2
+	k8s.io/code-generator v0.26.7
+	k8s.io/component-base v0.26.7
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.90.1
-	k8s.io/kube-aggregator v0.26.2
+	k8s.io/kube-aggregator v0.26.7
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280
 	open-cluster-management.io/addon-framework v0.7.1-0.20230717024311-aec7c39629a8
 	open-cluster-management.io/api v0.11.1-0.20230609103311-088e8fe86139
@@ -93,7 +93,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/internal/retry v1.10.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.10.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.10.0 // indirect
-	k8s.io/kms v0.26.2 // indirect
+	k8s.io/kms v0.26.7 // indirect
 )
 
 // golang
@@ -169,7 +169,7 @@ require (
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.5.0 // indirect
-	golang.org/x/mod v0.8.0 // indirect
+	golang.org/x/mod v0.9.0 // indirect
 	golang.org/x/oauth2 v0.5.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.6.0 // indirect
@@ -190,7 +190,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.26.2 // indirect
 	k8s.io/gengo v0.0.0-20220902162205-c0856e24416d // indirect
 	k8s.io/utils v0.0.0-20230313181309-38a27ef9d749 // indirect
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.35 // indirect
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.0.37 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kustomize/api v0.12.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.13.9 // indirect
