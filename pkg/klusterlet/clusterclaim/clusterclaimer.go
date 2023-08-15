@@ -31,6 +31,7 @@ const (
 	ClaimK8sID                      = "id.k8s.io"
 	ClaimOpenshiftID                = "id.openshift.io"
 	ClaimOpenshiftVersion           = "version.openshift.io"
+	ClaimMicroShiftVersion          = "version.microshift.io"
 	ClaimOpenshiftInfrastructure    = "infrastructure.openshift.io"
 	ClaimOpenshiftOauthRedirectURIs = "oauthredirecturis.openshift.io"
 	// ClaimControlPlaneTopology expresses the expectations for operands that normally run on control nodes of Openshift.
@@ -75,17 +76,17 @@ const (
 )
 
 const (
-	ProductAKS       = "AKS"
-	ProductEKS       = "EKS"
-	ProductGKE       = "GKE"
-	ProductICP       = "ICP"
-	ProductIKS       = "IKS"
-	ProductOpenShift = "OpenShift"
-	ProductOSD       = "OpenShiftDedicated"
-	ProductROSA      = "ROSA"
-	ProductARO       = "ARO"
-	ProductROKS      = "ROKS"
-
+	ProductAKS        = "AKS"
+	ProductEKS        = "EKS"
+	ProductGKE        = "GKE"
+	ProductICP        = "ICP"
+	ProductIKS        = "IKS"
+	ProductOpenShift  = "OpenShift"
+	ProductOSD        = "OpenShiftDedicated"
+	ProductROSA       = "ROSA"
+	ProductARO        = "ARO"
+	ProductROKS       = "ROKS"
+	ProductMicroShift = "MicroShift"
 	// ProductOther other (unable to auto detect)
 	ProductOther = "Other"
 )
@@ -107,7 +108,10 @@ func init() {
 		clusterv1beta1.LabelCloudVendor,
 		clusterv1beta1.LabelKubeVendor,
 		clusterv1beta1.LabelManagedBy,
-		clusterv1beta1.OCPVersion)
+		clusterv1beta1.OCPVersion,
+		clusterv1beta1.OCPVersionMajor,
+		clusterv1beta1.OCPVersionMajorMinor,
+		clusterv1beta1.MicroShiftVersion)
 }
 
 type ClusterClaimer struct {
@@ -175,33 +179,43 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 		claims = append(claims, newClusterClaim(ClaimK8sID, managedClusterID))
 	}
 
-	version, clusterID, err := c.getOCPVersion()
+	isOpenShift, err := c.isOpenShift()
 	if err != nil {
-		klog.Errorf("failed to get OCP version and clusterID, error: %v ", err)
-		return claims, err
+		klog.Errorf("failed to check if the cluster is openshift.err:%v", err)
 	}
-	if clusterID != "" {
-		claims = append(claims, newClusterClaim(ClaimOpenshiftID, clusterID))
-	}
-	if version != "" {
-		claims = append(claims, newClusterClaim(ClaimOpenshiftVersion, version))
-	}
+	if isOpenShift {
+		version, clusterID, err := c.getOCPVersion()
+		if err != nil {
+			klog.Errorf("failed to get OCP version and clusterID, error: %v ", err)
+			return claims, err
+		}
+		if clusterID != "" {
+			claims = append(claims, newClusterClaim(ClaimOpenshiftID, clusterID))
+		}
+		if version != "" {
+			claims = append(claims, newClusterClaim(ClaimOpenshiftVersion, version))
+		}
 
-	redirectURIs, err := c.getOCPOauthRedirectURIs()
-	if err != nil {
-		return claims, err
-	}
-	if redirectURIs != "" {
-		claims = append(claims, newClusterClaim(ClaimOpenshiftOauthRedirectURIs, redirectURIs))
-	}
+		redirectURIs, err := c.getOCPOauthRedirectURIs()
+		if err != nil {
+			return claims, err
+		}
+		if redirectURIs != "" {
+			claims = append(claims, newClusterClaim(ClaimOpenshiftOauthRedirectURIs, redirectURIs))
+		}
 
-	infraConfig, err := c.getInfraConfig()
-	if err != nil {
-		klog.Errorf("failed to get infraConfig, error: %v ", err)
-		return claims, err
-	}
-	if infraConfig != "" {
-		claims = append(claims, newClusterClaim(ClaimOpenshiftInfrastructure, infraConfig))
+		infraConfig, err := c.getInfraConfig()
+		if err != nil {
+			klog.Errorf("failed to get infraConfig, error: %v ", err)
+			return claims, err
+		}
+		if infraConfig != "" {
+			claims = append(claims, newClusterClaim(ClaimOpenshiftInfrastructure, infraConfig))
+		}
+		controlPlaneTopology := c.getControlPlaneTopology()
+		if controlPlaneTopology != "" {
+			claims = append(claims, newClusterClaim(ClaimControlPlaneTopology, string(controlPlaneTopology)))
+		}
 	}
 
 	_, _, consoleURL, err := c.getMasterAddresses()
@@ -229,11 +243,6 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 		claims = append(claims, newClusterClaim(ClaimOCMRegion, region))
 	}
 
-	controlPlaneTopology := c.getControlPlaneTopology()
-	if controlPlaneTopology != "" {
-		claims = append(claims, newClusterClaim(ClaimControlPlaneTopology, string(controlPlaneTopology)))
-	}
-
 	if c.EnableSyncLabelsToClusterClaims {
 		syncedClaims, err := c.syncLabelsToClaims()
 		if err != nil {
@@ -245,6 +254,14 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 		}
 	}
 
+	microShiftVersion, err := c.getMicroShiftVersion()
+	if err != nil {
+		klog.Errorf("failed to get microshift version: %v", err)
+		return claims, err
+	}
+	if len(microShiftVersion) != 0 {
+		claims = append(claims, newClusterClaim(ClaimMicroShiftVersion, microShiftVersion))
+	}
 	return claims, nil
 }
 
@@ -356,15 +373,6 @@ func (c *ClusterClaimer) getOCPVersion() (version, clusterID string, err error) 
 }
 
 func (c *ClusterClaimer) getOCPOauthRedirectURIs() (string, error) {
-	isOpenShift, err := c.isOpenShift()
-	if err != nil {
-		klog.Errorf("failed to check if the cluster is openshift.err:%v", err)
-		return "", err
-	}
-	if !isOpenShift {
-		return "", nil
-	}
-
 	oauthclient, err := c.OauthV1Client.OauthV1().OAuthClients().Get(
 		context.TODO(), "openshift-challenging-client", metav1.GetOptions{})
 	if err != nil {
@@ -384,15 +392,6 @@ type InfraConfig struct {
 }
 
 func (c *ClusterClaimer) getInfraConfig() (string, error) {
-	isOpenShift, err := c.isOpenShift()
-	if err != nil {
-		klog.Errorf("failed to check if the cluster is openshift.err:%v", err)
-		return "", err
-	}
-	if !isOpenShift {
-		return "", nil
-	}
-
 	infrastructure, err := c.ConfigV1Client.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -674,6 +673,15 @@ func (c *ClusterClaimer) getPlatformProduct() (string, string, error) {
 		}
 	}
 
+	microShiftVersion, err := c.getMicroShiftVersion()
+	if err != nil {
+		klog.Errorf("failed to check if cluster is microshift. %v", err)
+		return "", "", err
+	}
+	if microShiftVersion != "" {
+		product = ProductMicroShift
+	}
+
 	var architecture, providerID string
 	if architecture, providerID, err = c.getNodeInfo(); err != nil {
 		klog.Errorf("failed to get node info: %v", err)
@@ -754,7 +762,7 @@ func (c *ClusterClaimer) syncLabelsToClaims() ([]*clusterv1alpha1.ClusterClaim, 
 
 		// ignore the label if its value is empty. (the value of ClusterCliam can not be empty)
 		if len(value) == 0 {
-			klog.V(4).Infof("skip syncing label %q of ManagedClusterInfo to ClusterCliam because its value is empty.", label)
+			klog.V(4).Infof("skip syncing label %q of ManagedClusterInfo to ClusterClaim because its value is empty.", label)
 			continue
 		}
 
@@ -765,4 +773,24 @@ func (c *ClusterClaimer) syncLabelsToClaims() ([]*clusterv1alpha1.ClusterClaim, 
 		claims = append(claims, claim)
 	}
 	return claims, nil
+}
+
+func (c *ClusterClaimer) getMicroShiftVersion() (string, error) {
+	configmap, err := c.KubeClient.CoreV1().ConfigMaps("kube-public").Get(context.TODO(), "microshift-version", metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return "", nil
+	}
+	if err != nil {
+		return "", err
+	}
+	if configmap.Data == nil {
+		return "", fmt.Errorf("failed to get version in microshift-version configmap")
+	}
+
+	version := configmap.Data["version"]
+	if version == "" {
+		return "", fmt.Errorf("get a invalid version in microshift-version configmap")
+	}
+
+	return version, nil
 }

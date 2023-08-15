@@ -478,6 +478,14 @@ func fakeHubClient(clusterName string, labels map[string]string) client.Client {
 	return fake.NewFakeClientWithScheme(s, clusterInfo)
 }
 
+func newMicroShiftVersionConfigmap(version string) *corev1.ConfigMap {
+	configmap := newConfigmap("kube-public", "microshift-version")
+	configmap.Data = map[string]string{
+		"version": version,
+	}
+	return configmap
+}
+
 func TestClusterClaimerList(t *testing.T) {
 	tests := []struct {
 		name                            string
@@ -607,6 +615,20 @@ func TestClusterClaimerList(t *testing.T) {
 				ClaimControlPlaneTopology:       "HighlyAvailable",
 				ClaimOpenshiftOauthRedirectURIs: "https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
 				"abc.testlabel":                 "testLabel",
+			},
+			expectErr: nil,
+		},
+		{
+			name:        "claims of microshift",
+			clusterName: "microshift",
+			kubeClient:  newFakeKubeClient([]runtime.Object{newEndpointKubernetes(), newNode(""), newMicroShiftVersionConfigmap("4.13.6")}),
+			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{}),
+			expectClaims: map[string]string{
+				ClaimK8sID:             "microshift",
+				ClaimOCMPlatform:       PlatformOther,
+				ClaimOCMProduct:        ProductMicroShift,
+				ClaimMicroShiftVersion: "4.13.6",
+				ClaimOCMKubeVersion:    "v0.0.0-master+$Format:%H$",
 			},
 			expectErr: nil,
 		},
@@ -883,13 +905,6 @@ func TestGetInfraConfig(t *testing.T) {
 			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
 			configV1Client:    newConfigV1Client("4.x", PlatformGCP),
 			expectInfraConfig: "{\"infraName\":\"ocp-gcp\"}",
-			expectErr:         nil,
-		},
-		{
-			name:              "is not OCP",
-			kubeClient:        newFakeKubeClient(nil),
-			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{}),
-			expectInfraConfig: "",
 			expectErr:         nil,
 		},
 	}

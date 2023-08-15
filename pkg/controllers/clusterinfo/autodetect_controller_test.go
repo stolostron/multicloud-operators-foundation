@@ -248,6 +248,70 @@ func TestOSDVendorOcpVersion(t *testing.T) {
 	}
 }
 
+func TestMicroShiftVendorVersion(t *testing.T) {
+	tests := []struct {
+		name              string
+		existingObjs      []runtime.Object
+		expectedErrorType error
+		req               reconcile.Request
+		expectedLabel     map[string]string
+	}{
+		{
+			name: "UpdateManagedClusterLabelsMicroshift",
+			existingObjs: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: ManagedClusterName,
+						Labels: map[string]string{
+							clusterv1beta1.LabelCloudVendor: clusterv1beta1.AutoDetect,
+							clusterv1beta1.LabelKubeVendor:  clusterv1beta1.AutoDetect,
+						},
+					},
+					Spec: clusterv1.ManagedClusterSpec{},
+					Status: clusterv1.ManagedClusterStatus{ClusterClaims: []clusterv1.ManagedClusterClaim{
+						{Name: clusterclaims.ClaimMicroShiftVersion, Value: "4.14.1"},
+					}},
+				},
+				&clusterv1beta1.ManagedClusterInfo{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      ManagedClusterName,
+						Namespace: ManagedClusterName,
+					},
+					Spec: clusterv1beta1.ClusterInfoSpec{},
+					Status: clusterv1beta1.ClusterInfoStatus{
+						KubeVendor:  clusterv1beta1.KubeVendorMicroShift,
+						CloudVendor: clusterv1beta1.CloudVendorOther,
+					},
+				},
+			},
+			expectedLabel: map[string]string{clusterv1beta1.LabelCloudVendor: "Other",
+				clusterv1beta1.LabelKubeVendor: "MicroShift",
+				"microshiftVersion":            "4.14.1"},
+			expectedErrorType: nil,
+			req: reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: ManagedClusterName,
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			ctx := context.Background()
+			svrc, client := newTestAutoDetectReconciler(test.existingObjs)
+			_, err := svrc.Reconcile(ctx, test.req)
+			validateError(t, err, test.expectedErrorType)
+			cluster := &clusterv1.ManagedCluster{}
+			err = client.Get(context.Background(), types.NamespacedName{Name: ManagedClusterName}, cluster)
+			validateError(t, err, nil)
+			if !reflect.DeepEqual(cluster.Labels, test.expectedLabel) {
+				t.Errorf("Labels not equal, actual %v, expected %v", cluster.Labels, test.expectedLabel)
+			}
+		})
+	}
+}
+
 func TestParseOCPVersion(t *testing.T) {
 	tests := []struct {
 		name       string
