@@ -41,6 +41,7 @@ for i in {1..7}; do
     echo "!!!!!!!!!!  the cluster-manager-registration-controller is not ready within 3 minutes"
     $KUBECTL -n open-cluster-management-hub get pods -oyaml
     $KUBECTL -n open-cluster-management-hub get deployments -oyaml
+    $KUBECTL describe project open-cluster-management
     $KUBECTL -n open-cluster-management get pods -oyaml
     $KUBECTL -n open-cluster-management get deployments -oyaml
     exit 1
