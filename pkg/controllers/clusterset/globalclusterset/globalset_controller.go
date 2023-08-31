@@ -58,9 +58,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &clusterv1beta2.ManagedClusterSet{}},
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta2.ManagedClusterSet{}),
 		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(a client.Object) []reconcile.Request {
+			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 				clusterset, ok := a.(*clusterv1beta2.ManagedClusterSet)
 				if !ok {
 					klog.Error("clusterset handler received non-clusterset object")
@@ -82,9 +82,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			}),
 		),
 	)
-	err = c.Watch(&source.Kind{Type: &clusterv1beta2.ManagedClusterSetBinding{}},
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta2.ManagedClusterSetBinding{}),
 		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(a client.Object) []reconcile.Request {
+			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 				clustersetbinding, ok := a.(*clusterv1beta2.ManagedClusterSetBinding)
 				if !ok {
 					klog.Error("clustersetbinding handler received non-clustersetbinding object")

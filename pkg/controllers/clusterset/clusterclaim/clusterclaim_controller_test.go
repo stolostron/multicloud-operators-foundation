@@ -43,7 +43,7 @@ func TestMain(m *testing.M) {
 func newTestReconciler(clusterdepObjs []runtime.Object, clusterclaimObjs []runtime.Object) *Reconciler {
 	objs := append(clusterclaimObjs, clusterdepObjs...)
 	r := &Reconciler{
-		client: fake.NewFakeClientWithScheme(scheme, objs...),
+		client: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objs...).Build(),
 		scheme: scheme,
 	}
 	return r

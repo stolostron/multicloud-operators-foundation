@@ -280,11 +280,8 @@ func newClusterClaim(name, value string) *clusterv1alpha1.ClusterClaim {
 func (c *ClusterClaimer) isOpenShift() (bool, error) {
 	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "project.openshift.io", Kind: "Project"}, "v1")
 	if err != nil {
-		if meta.IsNoMatchError(err) {
-			return false, nil
-		}
-		klog.Errorf("failed to mapping project:%v", err)
-		return false, err
+		klog.V(4).Infof("failed to mapping project.project.openshift.io:%v", err)
+		return false, nil
 	}
 
 	return true, nil
@@ -295,11 +292,8 @@ func (c *ClusterClaimer) isOpenshiftDedicated() (bool, error) {
 	// defined in https://github.com/openshift/rbac-permissions-operator/blob/master/pkg/apis/managed/v1alpha1/subjectpermission_types.go
 	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "managed.openshift.io", Kind: "SubjectPermission"}, "v1alpha1")
 	if err != nil {
-		if meta.IsNoMatchError(err) {
-			return false, nil
-		}
-		klog.Errorf("failed to mapping SubjectPermission:%v", err)
-		return false, err
+		klog.V(4).Infof("failed to mapping subjectpermission.managed.openshift.io:%v", err)
+		return false, nil
 	}
 	return true, nil
 }
@@ -320,11 +314,9 @@ func (c *ClusterClaimer) isROSA() (bool, error) {
 func (c *ClusterClaimer) isARO() (bool, error) {
 	_, err := c.Mapper.RESTMapping(schema.GroupKind{Group: "aro.openshift.io", Kind: "Cluster"}, "v1alpha1")
 	if err != nil {
-		if meta.IsNoMatchError(err) {
-			return false, nil
-		}
-		klog.Errorf("failed to mapping project:%v", err)
-		return false, err
+		// From v0.15.0, controller-runtime doesn't return NoMatchError, so we don't need to check it.
+		klog.V(4).Infof("failed to mapping cluster.aro.openshift.io:%v", err)
+		return false, nil
 	}
 	return true, nil
 }

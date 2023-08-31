@@ -66,16 +66,16 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// watch for changes of ManagedClusterImageRegistry
-	err = c.Watch(&source.Kind{Type: &v1alpha1.ManagedClusterImageRegistry{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(source.Kind(mgr.GetCache(), &v1alpha1.ManagedClusterImageRegistry{}), &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	// watch for the changes of PlacementDecision.
 	// queue all ManagedClusterImageRegistries if a Placement is referred to multi ManagedClusterImageRegistry.
-	err = c.Watch(&source.Kind{Type: &clusterv1beta1.PlacementDecision{}},
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta1.PlacementDecision{}),
 		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(a client.Object) []reconcile.Request {
+			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 				placementDecision, ok := a.(*clusterv1beta1.PlacementDecision)
 				if !ok {
 					// not a placementDecision, returning empty

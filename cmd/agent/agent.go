@@ -37,6 +37,7 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Needed for misc auth.
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
@@ -148,7 +149,13 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		os.Exit(1)
 	}
 
-	restMapper, err := apiutil.NewDynamicRESTMapper(managedClusterConfig, apiutil.WithLazyDiscovery)
+	httpClient, err := rest.HTTPClientFor(managedClusterConfig)
+	if err != nil {
+		setupLog.Error(err, "Unable to create managed cluster httpclient.")
+		os.Exit(1)
+	}
+
+	restMapper, err := apiutil.NewDynamicRESTMapper(managedClusterConfig, httpClient)
 	if err != nil {
 		setupLog.Error(err, "Unable to create restmapper.")
 		os.Exit(1)

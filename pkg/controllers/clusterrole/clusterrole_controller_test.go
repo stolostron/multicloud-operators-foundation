@@ -51,6 +51,7 @@ func TestMain(m *testing.M) {
 	var err error
 	if cfg, err = t.Start(); err != nil {
 		klog.Errorf("Failed to start, %v", err)
+		os.Exit(1)
 	}
 
 	// AddToSchemes may be used to add all resources defined in the project to a Scheme
@@ -122,7 +123,7 @@ func validateError(t *testing.T, err, expectedErrorType error) {
 
 func newTestReconciler(existingObjs, existingRoleOjb []runtime.Object) *Reconciler {
 	return &Reconciler{
-		client:     fake.NewFakeClientWithScheme(scheme, existingObjs...),
+		client:     fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(existingObjs...).Build(),
 		scheme:     scheme,
 		kubeClient: k8sfake.NewSimpleClientset(existingRoleOjb...),
 	}

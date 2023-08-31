@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
 
@@ -149,7 +150,7 @@ func TestClusterInfoReconcile(t *testing.T) {
 	s.AddKnownTypes(clusterv1beta1.SchemeGroupVersion, &clusterv1beta1.ManagedClusterInfo{})
 	clusterv1beta1.AddToScheme(s)
 
-	c := fake.NewFakeClientWithScheme(s, clusterInfo)
+	c := fake.NewClientBuilder().WithObjects(clusterInfo).WithStatusSubresource(clusterInfo).WithScheme(s).Build()
 
 	fr := NewClusterInfoReconciler()
 
@@ -199,7 +200,7 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 	s.AddKnownTypes(clusterv1beta1.SchemeGroupVersion, &clusterv1beta1.ManagedClusterInfo{})
 	clusterv1beta1.AddToScheme(s)
 
-	c := fake.NewFakeClientWithScheme(s, clusterInfo)
+	c := fake.NewClientBuilder().WithScheme(s).WithObjects(clusterInfo).WithStatusSubresource(clusterInfo).Build()
 
 	fr := NewFailedClusterInfoReconciler()
 

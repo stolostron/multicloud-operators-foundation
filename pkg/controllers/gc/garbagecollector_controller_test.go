@@ -49,6 +49,7 @@ func TestMain(m *testing.M) {
 	var err error
 	if cfg, err = t.Start(); err != nil {
 		klog.Errorf("Failed to start, %v", err)
+		os.Exit(1)
 	}
 
 	// AddToSchemes may be used to add all resources defined in the project to a Scheme
@@ -108,7 +109,7 @@ func TestControllerReconcile(t *testing.T) {
 
 func newTestReconciler(existingObjs []runtime.Object) *Reconciler {
 	return &Reconciler{
-		client: fake.NewFakeClientWithScheme(scheme, existingObjs...),
+		client: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(existingObjs...).Build(),
 		scheme: scheme,
 	}
 }
