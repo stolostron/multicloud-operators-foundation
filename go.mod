@@ -1,6 +1,6 @@
 module github.com/stolostron/multicloud-operators-foundation
 
-go 1.19
+go 1.20
 
 // Determined by go.mod in github.com/openshift/hive
 replace (
