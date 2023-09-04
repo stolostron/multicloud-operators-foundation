@@ -8,6 +8,7 @@ Check the [CONTRIBUTING Doc](CONTRIBUTING.md) for how to contribute to the repo.
 
 ------
 
+
 ## Getting Started
 
 This is a guide on how to build and deploy stolostron Foundation from code.
@@ -24,10 +25,10 @@ make images
 
 ### Prerequisites
 
-Need to install **Cluster Manager** and **Klusterlet** before deploy Foundation components. The installation instruction is [here](https://open-cluster-management.io). 
+Need to install **Cluster Manager** and **Klusterlet** before deploy Foundation components. The installation instruction is [here](https://open-cluster-management.io).
 
 Need to approve and accept the managed clusters registered to the Hub.
- 
+
 * Approve CSR on Hub cluster.
 
     ```sh
