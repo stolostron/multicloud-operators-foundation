@@ -10,6 +10,7 @@ import (
 
 	"github.com/stolostron/multicloud-operators-foundation/cmd/controller/app"
 	"github.com/stolostron/multicloud-operators-foundation/cmd/controller/app/options"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
 	"k8s.io/component-base/cli/flag"
@@ -17,10 +18,15 @@ import (
 	"k8s.io/klog/v2"
 
 	"github.com/spf13/pflag"
+
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
+
+	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+
 	s := options.NewControllerRunOptions()
 	s.AddFlags(pflag.CommandLine)
 	klog.InitFlags(nil)

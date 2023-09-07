@@ -89,18 +89,18 @@ func add(name string, mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &clusterv1.ManagedCluster{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{}), &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
-	if err := c.Watch(&source.Kind{Type: &clusterinfov1beta1.ManagedClusterInfo{}},
+	if err := c.Watch(source.Kind(mgr.GetCache(), &clusterinfov1beta1.ManagedClusterInfo{}),
 		&handler.EnqueueRequestForObject{}); err != nil {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &corev1.Secret{}}, handler.EnqueueRequestsFromMapFunc(
-		handler.MapFunc(func(a client.Object) []reconcile.Request {
+	err = c.Watch(source.Kind(mgr.GetCache(), &corev1.Secret{}), handler.EnqueueRequestsFromMapFunc(
+		handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 			certSecret, ok := a.(*corev1.Secret)
 			if !ok {
 				// not a secret, returning empty

@@ -18,6 +18,7 @@ import (
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
 	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
@@ -34,6 +35,7 @@ import (
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 
 	"github.com/stolostron/multicloud-operators-foundation/cmd/controller/app/options"
@@ -138,13 +140,14 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		RenewDeadline:          &o.RenewDeadline,
 		RetryPeriod:            &o.RetryPeriod,
 		HealthProbeBindAddress: ":8000",
-		NewCache: ctrlcache.BuilderWithOptions(ctrlcache.Options{
-			SelectorsByObject: ctrlcache.SelectorsByObject{
+		NewCache: func(config *rest.Config, opts ctrlcache.Options) (ctrlcache.Cache, error) {
+			opts.ByObject = map[client.Object]ctrlcache.ByObject{
 				&corev1.Secret{}: {
 					Field: fields.SelectorFromSet(fields.Set{"metadata.namespace": logCertSecretNamespace}),
 				},
-			},
-		}),
+			}
+			return ctrlcache.New(config, opts)
+		},
 	})
 	if err != nil {
 		klog.Errorf("unable to start manager: %v", err)

@@ -126,6 +126,8 @@ var (
 	_ = rest.Lister(&clusterStatusStorage{})
 	_ = rest.Getter(&clusterStatusStorage{})
 	_ = rest.Scoper(&clusterStatusStorage{})
+
+	_ = rest.SingularNameProvider(&clusterStatusStorage{})
 )
 
 // Storage interface
@@ -162,4 +164,9 @@ func (s *clusterStatusStorage) NamespaceScoped() bool {
 
 func (s *clusterStatusStorage) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
 	return nil, nil
+}
+
+// SingularNameProvider interface
+func (s *clusterStatusStorage) GetSingularName() string {
+	return "clusterstatus"
 }

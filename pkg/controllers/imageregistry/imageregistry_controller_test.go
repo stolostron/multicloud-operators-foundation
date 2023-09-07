@@ -46,10 +46,10 @@ func init() {
 	_ = v1alpha1.AddToScheme(scheme)
 }
 
-func newFakeReconciler(existingObjs []runtime.Object) *Reconciler {
+func newFakeReconciler(existingObjs []client.Object) *Reconciler {
 	fakeClient := fake.NewClientBuilder()
 	return &Reconciler{
-		client:   fakeClient.WithScheme(scheme).WithRuntimeObjects(existingObjs...).Build(),
+		client:   fakeClient.WithScheme(scheme).WithObjects(existingObjs...).WithStatusSubresource(existingObjs...).Build(),
 		scheme:   scheme,
 		recorder: record.NewFakeRecorder(100),
 	}
@@ -253,7 +253,7 @@ func TestReconcile(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			existingObjs := []runtime.Object{}
+			existingObjs := []client.Object{}
 			for _, cluster := range test.clusters {
 				existingObjs = append(existingObjs, cluster)
 			}

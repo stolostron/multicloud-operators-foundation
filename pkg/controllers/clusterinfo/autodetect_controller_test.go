@@ -20,7 +20,7 @@ import (
 )
 
 func newTestAutoDetectReconciler(existingObjs []runtime.Object) (*AutoDetectReconciler, client.Client) {
-	client := fake.NewFakeClientWithScheme(scheme, existingObjs...)
+	client := fake.NewClientBuilder().WithRuntimeObjects(existingObjs...).WithScheme(scheme).Build()
 	return &AutoDetectReconciler{
 		client: client,
 		scheme: scheme,

@@ -54,7 +54,7 @@ func newTestReconciler(managedClusters, clusterpoolObjs, clusterdeploymentObjs [
 	objs := append(clusterdeploymentObjs, clusterpoolObjs...)
 	objs = append(objs, managedClusters...)
 	r := &Reconciler{
-		client: fake.NewFakeClientWithScheme(scheme, objs...),
+		client: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(objs...).Build(),
 		scheme: scheme,
 	}
 	return r

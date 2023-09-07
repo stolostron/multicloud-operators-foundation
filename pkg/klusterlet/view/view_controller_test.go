@@ -18,6 +18,7 @@ import (
 	"k8s.io/client-go/restmapper"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -64,7 +65,7 @@ func newUnstructured() *unstructured.Unstructured {
 	}
 }
 
-func newTestReconciler(existingObjs []runtime.Object) *ViewReconciler {
+func newTestReconciler(existingObjs []client.Object) *ViewReconciler {
 	resources := []*restmapper.APIGroupResources{
 		{
 			Group: metav1.APIGroup{
@@ -131,7 +132,9 @@ func newTestReconciler(existingObjs []runtime.Object) *ViewReconciler {
 	}
 
 	viewReconciler := &ViewReconciler{
-		Client:                      fake.NewFakeClientWithScheme(scheme, existingObjs...),
+		Client: fake.NewClientBuilder().WithScheme(scheme).
+			WithObjects(existingObjs...).WithStatusSubresource(existingObjs...).
+			Build(),
 		Log:                         ctrl.Log.WithName("controllers").WithName("ManagedClusterView"),
 		Scheme:                      scheme,
 		ManagedClusterDynamicClient: dynamicfake.NewSimpleDynamicClient(scheme, newUnstructured()),
@@ -161,14 +164,14 @@ func TestReconcile(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name              string
-		existingObjs      []runtime.Object
+		existingObjs      []client.Object
 		expectedErrorType error
 		req               reconcile.Request
 		requeue           bool
 	}{
 		{
 			name:         "managedClusterViewNotFound",
-			existingObjs: []runtime.Object{},
+			existingObjs: []client.Object{},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      managedClusterViewName,
@@ -178,7 +181,7 @@ func TestReconcile(t *testing.T) {
 		},
 		{
 			name: "managedClusterViewWaitOK",
-			existingObjs: []runtime.Object{
+			existingObjs: []client.Object{
 				&viewv1beta1.ManagedClusterView{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      managedClusterViewName,
@@ -402,7 +405,7 @@ func TestQueryResource(t *testing.T) {
 		},
 	}
 
-	svrc := newTestReconciler([]runtime.Object{})
+	svrc := newTestReconciler([]client.Object{})
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := svrc.queryResource(test.managedClusterView)

@@ -138,3 +138,9 @@ func (s *REST) Get(ctx context.Context, name string, options *metav1.GetOptions)
 
 	return nil, errors.NewForbidden(clusterv1.Resource("managedclusters"), "", fmt.Errorf("the user cannot get the managedCluster %v", name))
 }
+
+var _ = rest.SingularNameProvider(&REST{})
+
+func (s *REST) GetSingularName() string {
+	return "managedcluster"
+}

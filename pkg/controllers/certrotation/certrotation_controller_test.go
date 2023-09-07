@@ -2,6 +2,9 @@ package certrotation
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	apiequality "k8s.io/apimachinery/pkg/api/equality"
@@ -11,8 +14,6 @@ import (
 	kubescheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"testing"
-	"time"
 )
 
 var (
@@ -24,7 +25,7 @@ var (
 func newTestReconciler(existingObjs ...runtime.Object) *Reconciler {
 	s := kubescheme.Scheme
 	s.AddKnownTypes(corev1.SchemeGroupVersion)
-	client := fake.NewFakeClientWithScheme(s, existingObjs...)
+	client := fake.NewClientBuilder().WithRuntimeObjects(existingObjs...).WithScheme(s).Build()
 	return &Reconciler{
 		client:                 client,
 		scheme:                 scheme,

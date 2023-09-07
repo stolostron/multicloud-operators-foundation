@@ -223,7 +223,7 @@ func TestReconcile(t *testing.T) {
 
 			infomerFactory := informers.NewSharedInformerFactory(fakekubeClient, 10*time.Minute)
 			handler.val = c.prometheusData
-			client := fake.NewClientBuilder().WithScheme(s).WithObjects(clusterinfo).Build()
+			client := fake.NewClientBuilder().WithScheme(s).WithObjects(clusterinfo).WithStatusSubresource(clusterinfo).Build()
 
 			store := infomerFactory.Core().V1().Nodes().Informer().GetStore()
 			for _, obj := range c.resources {

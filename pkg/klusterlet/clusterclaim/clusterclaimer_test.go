@@ -475,7 +475,7 @@ func fakeHubClient(clusterName string, labels map[string]string) client.Client {
 	s.AddKnownTypes(clusterv1beta1.SchemeGroupVersion, &clusterv1beta1.ManagedClusterInfo{})
 	clusterv1beta1.AddToScheme(s)
 
-	return fake.NewFakeClientWithScheme(s, clusterInfo)
+	return fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(clusterInfo).Build()
 }
 
 func newMicroShiftVersionConfigmap(version string) *corev1.ConfigMap {
