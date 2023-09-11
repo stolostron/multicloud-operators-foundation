@@ -101,7 +101,7 @@ var ProductOCPList = []string{
 }
 
 // internalLabels includes the labels managed by ACM.
-var internalLabels = sets.String{}
+var internalLabels = sets.Set[string]{}
 
 func init() {
 	internalLabels.Insert(clusterv1beta1.LabelClusterID,
@@ -109,8 +109,6 @@ func init() {
 		clusterv1beta1.LabelKubeVendor,
 		clusterv1beta1.LabelManagedBy,
 		clusterv1beta1.OCPVersion,
-		clusterv1beta1.OCPVersionMajor,
-		clusterv1beta1.OCPVersionMajorMinor,
 		clusterv1beta1.MicroShiftVersion)
 }
 
