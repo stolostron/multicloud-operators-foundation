@@ -1201,10 +1201,17 @@ func TestSyncLabelsToClaims(t *testing.T) {
 		{
 			name: "internal labels",
 			labels: map[string]string{
-				clusterv1beta1.LabelCloudVendor: "a",
-				clusterv1beta1.LabelKubeVendor:  "b",
-				clusterv1beta1.LabelManagedBy:   "c",
-				clusterv1beta1.OCPVersion:       "d",
+				clusterv1beta1.LabelCloudVendor:     "a",
+				clusterv1beta1.LabelKubeVendor:      "b",
+				clusterv1beta1.LabelManagedBy:       "c",
+				clusterv1beta1.OCPVersion:           "d",
+				clusterv1beta1.OCPVersionMajor:      "4.x",
+				clusterv1beta1.OCPVersionMajorMinor: "4.x",
+			},
+			claims: []*clusterv1alpha1.ClusterClaim{
+				// ocpversionmajor and ocpversionmajorminor has been dependied by GRC, SD, and some customer TAMs. Should not be added into internalLabels set.
+				newClusterClaim(strings.ToLower(clusterv1beta1.OCPVersionMajor), "4.x"),
+				newClusterClaim(strings.ToLower(clusterv1beta1.OCPVersionMajorMinor), "4.x"),
 			},
 		},
 		{
