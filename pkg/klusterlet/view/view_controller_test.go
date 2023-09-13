@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
@@ -372,7 +373,7 @@ func TestQueryResource(t *testing.T) {
 					},
 				},
 			},
-			expectedErrorType: fmt.Errorf("the server doesn't have a resource type \"deploymentts\""),
+			expectedErrorType: errors.New("fail to mapping GroupKind deploymentts, GroupKindVersion , resource:deploymentts err: no matches for kind \"deploymentts\" in version \"\""),
 			expectedConditions: []metav1.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
