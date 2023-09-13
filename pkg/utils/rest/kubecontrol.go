@@ -68,6 +68,7 @@ func NewKubeControl(mapper meta.RESTMapper, config *rest.Config) *KubeControl {
 // The resourceOrKindArg should be in the format of {resource}.{version}.{group}, or {resource}.
 // If it is {resource}.{group}, it will be mistakenly parsed to {resource: {resource}, version: {group or part of group if there is "." in group} }
 // which will trigger the reload of restmapper and introduce performance degradation.
+// This is a copy from: https://github.com/kubernetes/cli-runtime/blob/e7b1ca8f27e99b474a841c85a379bf25702dfcb9/pkg/resource/builder.go#L768
 // TODO: refactor restmapper to avoid frequent reload.
 func MappingFor(mapper meta.RESTMapper, resourceOrKindArg string) (*meta.RESTMapping, error) {
 	fullySpecifiedGVR, groupResource := schema.ParseResourceArg(resourceOrKindArg)
@@ -96,10 +97,7 @@ func MappingFor(mapper meta.RESTMapper, resourceOrKindArg string) (*meta.RESTMap
 
 	mapping, err := mapper.RESTMapping(groupKind, gvk.Version)
 	if err != nil {
-		// if we error out here, it is because we could not match a resource or a kind
-		// for the given argument. To maintain consistency with previous behavior,
-		// announce that a resource type could not be found.
-		return nil, fmt.Errorf("the server doesn't have a resource type %q", groupResource.Resource)
+		return nil, fmt.Errorf("fail to mapping GroupKind %v, GroupKindVersion %v, resource:%s err: %v", groupKind, gvk.Version, resourceOrKindArg, err)
 	}
 
 	return mapping, nil
