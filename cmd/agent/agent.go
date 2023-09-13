@@ -29,21 +29,23 @@ import (
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 
+	cacheddiscovery "k8s.io/client-go/discovery/cached"
+
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth" // Needed for misc auth.
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
-	"k8s.io/client-go/rest"
+	"k8s.io/client-go/restmapper"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/component-base/cli/flag"
 	"k8s.io/component-base/logs"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
@@ -149,17 +151,12 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		os.Exit(1)
 	}
 
-	httpClient, err := rest.HTTPClientFor(managedClusterConfig)
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(managedClusterConfig)
 	if err != nil {
-		setupLog.Error(err, "Unable to create managed cluster httpclient.")
+		setupLog.Error(err, "Failed to create discovery client")
 		os.Exit(1)
 	}
-
-	restMapper, err := apiutil.NewDynamicRESTMapper(managedClusterConfig, httpClient)
-	if err != nil {
-		setupLog.Error(err, "Unable to create restmapper.")
-		os.Exit(1)
-	}
+	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(cacheddiscovery.NewMemCacheClient(discoveryClient))
 
 	componentNamespace := o.ComponentNamespace
 	if len(componentNamespace) == 0 {
