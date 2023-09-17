@@ -1,13 +1,18 @@
 package e2e
 
 import (
+	"context"
+
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 
 	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	apixv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
 var viewGVR = schema.GroupVersionResource{
@@ -112,5 +117,108 @@ var _ = ginkgo.Describe("Testing ManagedClusterView if agent is lost", func() {
 				return condition["type"], nil
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.Equal(""))
 		})
+	})
+})
+
+var _ = ginkgo.Describe("Test ManagedClusterView to map a new applied CRD", func() {
+	ginkgo.It("Create an example CR, and use managedclusterview to get it", func() {
+		var err error
+		// create an example CRD
+		_, err = apixClient.CustomResourceDefinitions().Create(context.TODO(), &apixv1.CustomResourceDefinition{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "examplecrds.example.com",
+			},
+			Spec: apixv1.CustomResourceDefinitionSpec{
+				Group: "example.com",
+				Versions: []apixv1.CustomResourceDefinitionVersion{{
+					Name:    "v1",
+					Served:  true,
+					Storage: true,
+					Schema: &apixv1.CustomResourceValidation{
+						OpenAPIV3Schema: &apixv1.JSONSchemaProps{
+							Type: "object",
+							Properties: map[string]apixv1.JSONSchemaProps{
+								"name": {
+									Type: "string",
+								},
+							},
+						},
+					},
+				}},
+				Scope: apixv1.NamespaceScoped,
+				Names: apixv1.CustomResourceDefinitionNames{
+					Kind:     "ExampleCRD",
+					Plural:   "examplecrds",
+					Singular: "examplecrd",
+				},
+			},
+		}, metav1.CreateOptions{})
+		gomega.Expect(err).To(gomega.BeNil())
+
+		// create example CR
+		runtimeExampleGVR := schema.GroupVersionResource{
+			Group:    "example.com",
+			Version:  "v1",
+			Resource: "examplecrds",
+		}
+		gomega.Eventually(func() error {
+			_, err = dynamicClient.Resource(runtimeExampleGVR).Namespace("default").Create(context.TODO(), &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"kind":       "ExampleCRD",
+					"apiVersion": runtimeExampleGVR.Group + "/v1",
+					"metadata": map[string]interface{}{
+						"name":      "example-crd",
+						"namespace": "default",
+					},
+				},
+			}, metav1.CreateOptions{})
+			return err
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.Succeed())
+
+		// create mcv with only resource for example
+		runtimeMCVGVR := schema.GroupVersionResource{
+			Group:    "view.open-cluster-management.io",
+			Version:  "v1beta1",
+			Resource: "managedclusterviews",
+		}
+		gomega.Eventually(func() error {
+			_, err = dynamicClient.Resource(runtimeMCVGVR).Namespace(defaultManagedCluster).Create(context.TODO(), &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"kind":       "ManagedClusterView",
+					"apiVersion": runtimeMCVGVR.Group + "/v1beta1",
+					"metadata": map[string]interface{}{
+						"name":      "example-mcv",
+						"namespace": defaultManagedCluster,
+					},
+					"spec": map[string]interface{}{
+						"scope": map[string]interface{}{
+							"resource":  "examplecrd",
+							"name":      "example-crd",
+							"namespace": "default",
+						},
+					},
+				},
+			}, metav1.CreateOptions{})
+			return err
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.Succeed())
+
+		// eventually valid
+		gomega.Eventually(func() (interface{}, error) {
+			managedClusterView, err := util.GetResource(dynamicClient, viewGVR, defaultManagedCluster,
+				"example-mcv")
+			if err != nil {
+				return "", err
+			}
+			// check the managedClusterView status
+			condition, err := util.GetConditionFromStatus(managedClusterView)
+			if err != nil {
+				return "", err
+			}
+
+			if condition == nil {
+				return "", nil
+			}
+			return condition["type"], nil
+		}, eventuallyTimeout, eventuallyInterval).Should(gomega.Equal("Processing"))
 	})
 })

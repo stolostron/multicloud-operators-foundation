@@ -12,6 +12,7 @@ import (
 	cacheddiscovery "k8s.io/client-go/discovery/cached"
 
 	viewv1beta1 "github.com/stolostron/cluster-lifecycle-api/view/v1beta1"
+	restutil "github.com/stolostron/multicloud-operators-foundation/pkg/utils/rest"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -187,10 +188,11 @@ func TestReconcile(t *testing.T) {
 		t.Fatalf("Failed to create discovery client, %v", err)
 	}
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(cacheddiscovery.NewMemCacheClient(discoveryClient))
+	reloadMapper := restutil.NewReloadMapper(restMapper)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			svrc := newTestReconciler(test.existingObjs, restMapper)
+			svrc := newTestReconciler(test.existingObjs, reloadMapper)
 			res, err := svrc.Reconcile(ctx, test.req)
 			validateErrorAndStatusConditions(t, err, test.expectedErrorType, nil, nil)
 
@@ -382,8 +384,9 @@ func TestQueryResource(t *testing.T) {
 		t.Fatalf("Failed to create discovery client, %v", err)
 	}
 	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(cacheddiscovery.NewMemCacheClient(discoveryClient))
+	reloadMapper := restutil.NewReloadMapper(restMapper)
 
-	svrc := newTestReconciler([]client.Object{}, restMapper)
+	svrc := newTestReconciler([]client.Object{}, reloadMapper)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := svrc.queryResource(test.managedClusterView)

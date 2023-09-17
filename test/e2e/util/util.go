@@ -22,6 +22,8 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
+
+	apixv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 )
 
 const kubeConfigFileEnv = "KUBECONFIG"
@@ -82,6 +84,20 @@ func NewKubeClient() (kubernetes.Interface, error) {
 	}
 
 	return kubernetes.NewForConfig(cfg)
+}
+
+func NewAPIExtensionClient() (apixv1client.ApiextensionsV1Interface, error) {
+	kubeConfigFile, err := getKubeConfigFile()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return apixv1client.NewForConfig(cfg)
 }
 
 func NewOCPClient() (openshiftclientset.Interface, error) {
