@@ -18,9 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
 	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
@@ -46,6 +44,7 @@ const (
 )
 
 const (
+	// Only clusterclaims synced from labels have this label
 	labelCustomizedOnly = "open-cluster-management.io/spoke-only"
 	labelHubManaged     = "open-cluster-management.io/hub-managed"
 
@@ -103,6 +102,9 @@ var ProductOCPList = []string{
 // internalLabels includes the labels managed by ACM.
 var internalLabels = sets.Set[string]{}
 
+// stableClaims should not be deleted in any scenario once they are created.
+var stableClaims = sets.Set[string]{}
+
 func init() {
 	internalLabels.Insert(clusterv1beta1.LabelClusterID,
 		clusterv1beta1.LabelCloudVendor,
@@ -110,19 +112,16 @@ func init() {
 		clusterv1beta1.LabelManagedBy,
 		clusterv1beta1.OCPVersion,
 		clusterv1beta1.MicroShiftVersion)
+
+	stableClaims.Insert(ClaimK8sID, ClaimOCMKubeVersion, ClaimOCMPlatform, ClaimOCMProduct, ClaimOpenshiftVersion, ClaimOpenshiftID)
 }
 
 type ClusterClaimer struct {
-	ClusterName                     string
-	Product                         string
-	Platform                        string
-	HubClient                       client.Client
-	KubeClient                      kubernetes.Interface
-	ConfigV1Client                  openshiftclientset.Interface
-	OauthV1Client                   openshiftoauthclientset.Interface
-	Mapper                          meta.RESTMapper
-	managedclusterID                string
-	EnableSyncLabelsToClusterClaims bool
+	KubeClient       kubernetes.Interface
+	ConfigV1Client   openshiftclientset.Interface
+	OauthV1Client    openshiftoauthclientset.Interface
+	Mapper           meta.RESTMapper
+	managedclusterID string
 }
 
 // getManagedClusterID returns the managed cluster ID of the cluster.
@@ -158,16 +157,15 @@ func (c *ClusterClaimer) getManagedClusterID() (string, error) {
 	return string(uuid.NewUUID()), nil
 }
 
-func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
+func (c *ClusterClaimer) GenerateExpectClusterClaims() ([]*clusterv1alpha1.ClusterClaim, error) {
 	var claims []*clusterv1alpha1.ClusterClaim
-	err := c.updatePlatformProduct()
-	if err != nil {
-		klog.Errorf("failed to update platform and product. err:%v", err)
-		return claims, err
-	}
 
-	claims = append(claims, newClusterClaim(ClaimOCMPlatform, c.Platform))
-	claims = append(claims, newClusterClaim(ClaimOCMProduct, c.Product))
+	platform, product, err := c.getPlatformProduct()
+	if err != nil {
+		return nil, err
+	}
+	claims = append(claims, newClusterClaim(ClaimOCMPlatform, platform))
+	claims = append(claims, newClusterClaim(ClaimOCMProduct, product))
 
 	managedClusterID, err := c.getManagedClusterID()
 	if err != nil {
@@ -239,17 +237,6 @@ func (c *ClusterClaimer) List() ([]*clusterv1alpha1.ClusterClaim, error) {
 	}
 	if region != "" {
 		claims = append(claims, newClusterClaim(ClaimOCMRegion, region))
-	}
-
-	if c.EnableSyncLabelsToClusterClaims {
-		syncedClaims, err := c.syncLabelsToClaims()
-		if err != nil {
-			klog.Errorf("failed to sync labels to claims: %v", err)
-			return claims, err
-		}
-		if len(syncedClaims) != 0 {
-			claims = append(claims, syncedClaims...)
-		}
 	}
 
 	microShiftVersion, err := c.getMicroShiftVersion()
@@ -556,23 +543,6 @@ func (c *ClusterClaimer) getNodeInfo() (architecture, providerID string, err err
 	return
 }
 
-func (c *ClusterClaimer) updatePlatformProduct() (err error) {
-	// platform and product are constant, update only when they are empty or Other.
-	// there is a case cannot get project api using RESTMapping during the OCP is failed to upgrade. in this case the OCP
-	// is detected Other, we need to retry to detect the product type.
-	if c.Platform != "" && c.Platform != PlatformOther && c.Product != "" && c.Product != ProductOther {
-		return nil
-	}
-
-	platform, product, err := c.getPlatformProduct()
-	if err != nil {
-		return err
-	}
-	c.Product = product
-	c.Platform = platform
-	return
-}
-
 func (c *ClusterClaimer) getPlatformProduct() (string, string, error) {
 	kubeVersion, err := c.getKubeVersion()
 	if err != nil {
@@ -710,59 +680,6 @@ func (c *ClusterClaimer) getControlPlaneTopology() configv1.TopologyMode {
 	}
 
 	return infra.Status.ControlPlaneTopology
-}
-
-func (c *ClusterClaimer) syncLabelsToClaims() ([]*clusterv1alpha1.ClusterClaim, error) {
-	var claims []*clusterv1alpha1.ClusterClaim
-	request := types.NamespacedName{Namespace: c.ClusterName, Name: c.ClusterName}
-	clusterInfo := &clusterv1beta1.ManagedClusterInfo{}
-	err := c.HubClient.Get(context.TODO(), request, clusterInfo)
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return claims, nil
-		}
-		return claims, err
-	}
-
-	// do not create claim if the label is managed by ACM.
-	// if the label format is aaa/bbb, the name of claim will be bbb.aaa.
-	// Besides, "_" and "/" in the label name will be replaced with "-" and "." respectively.
-	for label, value := range clusterInfo.Labels {
-		if internalLabels.Has(label) || strings.Contains(label, "open-cluster-management.io") {
-			continue
-		}
-
-		// convert the string to lower case
-		name := strings.ToLower(label)
-
-		// and then replace invalid characters
-		subs := strings.Split(name, "/")
-		if len(subs) == 2 {
-			name = fmt.Sprintf("%s.%s", subs[1], subs[0])
-		} else if len(subs) > 2 {
-			name = strings.ReplaceAll(name, "/", ".")
-		}
-		name = strings.ReplaceAll(name, "_", "-")
-
-		// ignore the label if the transformed name is still not a valid resource name
-		if errs := validation.IsDNS1123Subdomain(name); len(errs) > 0 {
-			klog.V(4).Infof("skip syncing label %q of ManagedClusterInfo to ClusterCliam because it's an invalid resource name", label)
-			continue
-		}
-
-		// ignore the label if its value is empty. (the value of ClusterCliam can not be empty)
-		if len(value) == 0 {
-			klog.V(4).Infof("skip syncing label %q of ManagedClusterInfo to ClusterClaim because its value is empty.", label)
-			continue
-		}
-
-		claim := newClusterClaim(name, value)
-		if claim.Labels != nil {
-			claim.Labels[labelCustomizedOnly] = ""
-		}
-		claims = append(claims, claim)
-	}
-	return claims, nil
 }
 
 func (c *ClusterClaimer) getMicroShiftVersion() (string, error) {

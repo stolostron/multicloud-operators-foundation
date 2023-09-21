@@ -20,7 +20,7 @@ func (r *ClusterInfoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	claimSource := clusterclaim.NewClusterClaimSource(r.ClaimInformer)
 	nodeSource := &nodeSource{nodeInformer: r.NodeInformer.Informer()}
 	return ctrl.NewControllerManagedBy(mgr).
-		WatchesRawSource(claimSource, &clusterclaim.ClusterClaimEventHandler{}).
+		WatchesRawSource(claimSource, clusterclaim.NewClusterClaimEventHandler()).
 		WatchesRawSource(nodeSource, &nodeEventHandler{}).
 		For(&clusterv1beta1.ManagedClusterInfo{}).
 		Complete(r)
