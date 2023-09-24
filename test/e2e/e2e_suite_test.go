@@ -2,6 +2,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
@@ -111,7 +112,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		// check the distributionInfo
 		isOcp, err = util.IsOCP(managedClusterInfo)
 		if err != nil {
-			return err
+			return fmt.Errorf("get managed cluster info err: %v", err)
 		}
 		return nil
 	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
