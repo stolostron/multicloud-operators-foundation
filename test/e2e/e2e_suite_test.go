@@ -14,6 +14,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
+	apixv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
@@ -32,6 +33,7 @@ const (
 )
 
 var (
+	apixClient            apixv1client.ApiextensionsV1Interface
 	dynamicClient         dynamic.Interface
 	kubeClient            kubernetes.Interface
 	hiveClient            hiveclient.Interface
@@ -62,6 +64,9 @@ var _ = ginkgo.BeforeSuite(func() {
 	if foundationNS == "" {
 		foundationNS = "open-cluster-management"
 	}
+
+	apixClient, err = util.NewAPIExtensionClient()
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	dynamicClient, err = util.NewDynamicClient()
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())

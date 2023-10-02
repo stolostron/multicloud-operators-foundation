@@ -2,29 +2,56 @@ package controllers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"testing"
 	"time"
 
+	gmg "github.com/onsi/gomega"
+	cacheddiscovery "k8s.io/client-go/discovery/cached"
+
 	viewv1beta1 "github.com/stolostron/cluster-lifecycle-api/view/v1beta1"
+	restutil "github.com/stolostron/multicloud-operators-foundation/pkg/utils/rest"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/discovery"
 	dynamicfake "k8s.io/client-go/dynamic/fake"
+	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 var (
 	scheme = runtime.NewScheme()
 )
+
+func setupEnvtest(t *testing.T) (*rest.Config, func(t *testing.T)) {
+	t.Log("Setup envtest")
+
+	testEnv := &envtest.Environment{}
+	g := gmg.NewWithT(t)
+
+	cfg, err := testEnv.Start()
+	g.Expect(err).NotTo(gmg.HaveOccurred())
+	g.Expect(cfg).NotTo(gmg.BeNil())
+
+	teardownFunc := func(t *testing.T) {
+		t.Log("Stop envtest")
+		g.Expect(testEnv.Stop()).To(gmg.Succeed())
+	}
+
+	return cfg, teardownFunc
+}
 
 func TestMain(m *testing.M) {
 	// AddToSchemes may be used to add all resources defined in the project to a Scheme
@@ -64,78 +91,15 @@ func newUnstructured() *unstructured.Unstructured {
 	}
 }
 
-func newTestReconciler(existingObjs []runtime.Object) *ViewReconciler {
-	resources := []*restmapper.APIGroupResources{
-		{
-			Group: metav1.APIGroup{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Deployment",
-					APIVersion: "apps/v1",
-				},
-				Name: "apps",
-				Versions: []metav1.GroupVersionForDiscovery{
-					{
-						GroupVersion: "v1",
-						Version:      "v1",
-					},
-				},
-				PreferredVersion: metav1.GroupVersionForDiscovery{
-					GroupVersion: "v1",
-					Version:      "v1",
-				},
-				ServerAddressByClientCIDRs: nil,
-			},
-			VersionedResources: map[string][]metav1.APIResource{
-				"v1": {
-					{
-						Name:         "deployments",
-						SingularName: "deployment",
-						Group:        "apps",
-						Kind:         "Deployment",
-						Version:      "v1",
-					},
-				},
-			},
-		},
-		{
-			Group: metav1.APIGroup{
-				TypeMeta: metav1.TypeMeta{
-					Kind:       "Secret",
-					APIVersion: "v1",
-				},
-				Name: "",
-				Versions: []metav1.GroupVersionForDiscovery{
-					{
-						GroupVersion: "v1",
-						Version:      "v1",
-					},
-				},
-				PreferredVersion: metav1.GroupVersionForDiscovery{
-					GroupVersion: "v1",
-					Version:      "v1",
-				},
-				ServerAddressByClientCIDRs: nil,
-			},
-			VersionedResources: map[string][]metav1.APIResource{
-				"v1": {
-					{
-						Name:         "secrets",
-						SingularName: "secret",
-						Group:        "",
-						Kind:         "Secret",
-						Version:      "v1",
-					},
-				},
-			},
-		},
-	}
-
+func newTestReconciler(existingObjs []client.Object, fakeMapper meta.RESTMapper) *ViewReconciler {
 	viewReconciler := &ViewReconciler{
-		Client:                      fake.NewFakeClientWithScheme(scheme, existingObjs...),
+		Client: fake.NewClientBuilder().WithScheme(scheme).
+			WithObjects(existingObjs...).WithStatusSubresource(existingObjs...).
+			Build(),
 		Log:                         ctrl.Log.WithName("controllers").WithName("ManagedClusterView"),
 		Scheme:                      scheme,
 		ManagedClusterDynamicClient: dynamicfake.NewSimpleDynamicClient(scheme, newUnstructured()),
-		Mapper:                      newFakeRestMapper(resources),
+		Mapper:                      fakeMapper,
 	}
 
 	return viewReconciler
@@ -161,14 +125,14 @@ func TestReconcile(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
 		name              string
-		existingObjs      []runtime.Object
+		existingObjs      []client.Object
 		expectedErrorType error
 		req               reconcile.Request
 		requeue           bool
 	}{
 		{
 			name:         "managedClusterViewNotFound",
-			existingObjs: []runtime.Object{},
+			existingObjs: []client.Object{},
 			req: reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name:      managedClusterViewName,
@@ -178,7 +142,7 @@ func TestReconcile(t *testing.T) {
 		},
 		{
 			name: "managedClusterViewWaitOK",
-			existingObjs: []runtime.Object{
+			existingObjs: []client.Object{
 				&viewv1beta1.ManagedClusterView{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      managedClusterViewName,
@@ -216,9 +180,19 @@ func TestReconcile(t *testing.T) {
 		},
 	}
 
+	restCfg, tearDownFn := setupEnvtest(t)
+	defer tearDownFn(t)
+
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restCfg)
+	if err != nil {
+		t.Fatalf("Failed to create discovery client, %v", err)
+	}
+	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(cacheddiscovery.NewMemCacheClient(discoveryClient))
+	reloadMapper := restutil.NewReloadMapper(restMapper)
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			svrc := newTestReconciler(test.existingObjs)
+			svrc := newTestReconciler(test.existingObjs, reloadMapper)
 			res, err := svrc.Reconcile(ctx, test.req)
 			validateErrorAndStatusConditions(t, err, test.expectedErrorType, nil, nil)
 
@@ -240,7 +214,7 @@ func TestQueryResource(t *testing.T) {
 		expectedConditions []metav1.Condition
 	}{
 		{
-			name: "queryResourceOK",
+			name: "queryResource Resource Only",
 			managedClusterView: &viewv1beta1.ManagedClusterView{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      managedClusterViewName,
@@ -248,9 +222,7 @@ func TestQueryResource(t *testing.T) {
 				},
 				Spec: viewv1beta1.ViewSpec{
 					Scope: viewv1beta1.ViewScope{
-						Group:     "apps",
-						Version:   "v1",
-						Kind:      "Deployment",
+						Resource:  "deployment",
 						Name:      "deployment_test",
 						Namespace: "default",
 					},
@@ -264,7 +236,7 @@ func TestQueryResource(t *testing.T) {
 			},
 		},
 		{
-			name: "queryResourceOK2",
+			name: "queryResource GVK",
 			managedClusterView: &viewv1beta1.ManagedClusterView{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      managedClusterViewName,
@@ -272,7 +244,9 @@ func TestQueryResource(t *testing.T) {
 				},
 				Spec: viewv1beta1.ViewSpec{
 					Scope: viewv1beta1.ViewScope{
-						Resource:  "deployment",
+						Group:     "apps",
+						Version:   "v1",
+						Kind:      "Deployment",
 						Name:      "deployment_test",
 						Namespace: "default",
 					},
@@ -369,7 +343,7 @@ func TestQueryResource(t *testing.T) {
 					},
 				},
 			},
-			expectedErrorType: fmt.Errorf("the server doesn't have a resource type \"deploymentts\""),
+			expectedErrorType: errors.New("fail to mapping GroupKind deploymentts, GroupKindVersion , resource:deploymentts err: no matches for kind \"deploymentts\" in version \"\""),
 			expectedConditions: []metav1.Condition{
 				{
 					Type:   viewv1beta1.ConditionViewProcessing,
@@ -402,15 +376,21 @@ func TestQueryResource(t *testing.T) {
 		},
 	}
 
-	svrc := newTestReconciler([]runtime.Object{})
+	restCfg, tearDownFn := setupEnvtest(t)
+	defer tearDownFn(t)
+
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(restCfg)
+	if err != nil {
+		t.Fatalf("Failed to create discovery client, %v", err)
+	}
+	restMapper := restmapper.NewDeferredDiscoveryRESTMapper(cacheddiscovery.NewMemCacheClient(discoveryClient))
+	reloadMapper := restutil.NewReloadMapper(restMapper)
+
+	svrc := newTestReconciler([]client.Object{}, reloadMapper)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := svrc.queryResource(test.managedClusterView)
 			validateErrorAndStatusConditions(t, err, test.expectedErrorType, test.expectedConditions, test.managedClusterView)
 		})
 	}
-}
-
-func newFakeRestMapper(resources []*restmapper.APIGroupResources) meta.RESTMapper {
-	return restmapper.NewDiscoveryRESTMapper(resources)
 }

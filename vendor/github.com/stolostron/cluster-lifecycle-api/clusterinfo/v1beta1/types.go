@@ -253,6 +253,8 @@ const (
 	KubeVendorIKS KubeVendorType = "IKS"
 	// KubeVendorOSD OpenShiftDedicated
 	KubeVendorOSD KubeVendorType = "OpenShiftDedicated"
+	// KubeVendorMicroShift MicroShift
+	KubeVendorMicroShift KubeVendorType = "MicroShift"
 	// KubeVendorOther other (unable to auto detect)
 	KubeVendorOther KubeVendorType = "Other"
 )
@@ -309,6 +311,8 @@ const (
 	OCPVersionMajor = "openshiftVersion-major"
 	// OCPVersionMajorMinor is the version of OCP cluster without patch, like 4.11
 	OCPVersionMajorMinor = "openshiftVersion-major-minor"
+	// MicroShiftVersion is the version of MicroShift
+	MicroShiftVersion = "microshiftVersion"
 )
 
 // +genclient

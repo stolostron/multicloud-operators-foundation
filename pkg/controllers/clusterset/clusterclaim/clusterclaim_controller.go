@@ -54,7 +54,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &hivev1.ClusterClaim{}},
+	err = c.Watch(source.Kind(mgr.GetCache(), &hivev1.ClusterClaim{}),
 		&handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
@@ -62,9 +62,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	//watch clusterdeployment's claim
 	err = c.Watch(
-		&source.Kind{Type: &hivev1.ClusterDeployment{}},
+		source.Kind(mgr.GetCache(), &hivev1.ClusterDeployment{}),
 		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(a client.Object) []reconcile.Request {
+			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 				clusterDeployment, ok := a.(*hivev1.ClusterDeployment)
 				if !ok {
 					// not a ClusterDeployment, returning empty

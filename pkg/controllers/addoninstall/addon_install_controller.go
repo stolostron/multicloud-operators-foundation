@@ -70,14 +70,14 @@ func add(mgr manager.Manager, r *Reconciler) error {
 	}
 
 	// watch ManagedCluster as the primary resource
-	err = c.Watch(&source.Kind{Type: &clusterv1.ManagedCluster{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{}), &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	// watch ManagedClusterAddOn as additional resource
-	err = c.Watch(&source.Kind{Type: &addonapiv1alpha1.ManagedClusterAddOn{}}, handler.EnqueueRequestsFromMapFunc(
-		handler.MapFunc(func(a client.Object) []reconcile.Request {
+	err = c.Watch(source.Kind(mgr.GetCache(), &addonapiv1alpha1.ManagedClusterAddOn{}), handler.EnqueueRequestsFromMapFunc(
+		handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 			addOn, ok := a.(*addonapiv1alpha1.ManagedClusterAddOn)
 			if !ok {
 				klog.Error("invalid ManagedClusterAddOn object")

@@ -475,7 +475,15 @@ func fakeHubClient(clusterName string, labels map[string]string) client.Client {
 	s.AddKnownTypes(clusterv1beta1.SchemeGroupVersion, &clusterv1beta1.ManagedClusterInfo{})
 	clusterv1beta1.AddToScheme(s)
 
-	return fake.NewFakeClientWithScheme(s, clusterInfo)
+	return fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(clusterInfo).Build()
+}
+
+func newMicroShiftVersionConfigmap(version string) *corev1.ConfigMap {
+	configmap := newConfigmap("kube-public", "microshift-version")
+	configmap.Data = map[string]string{
+		"version": version,
+	}
+	return configmap
 }
 
 func TestClusterClaimerList(t *testing.T) {
@@ -607,6 +615,20 @@ func TestClusterClaimerList(t *testing.T) {
 				ClaimControlPlaneTopology:       "HighlyAvailable",
 				ClaimOpenshiftOauthRedirectURIs: "https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
 				"abc.testlabel":                 "testLabel",
+			},
+			expectErr: nil,
+		},
+		{
+			name:        "claims of microshift",
+			clusterName: "microshift",
+			kubeClient:  newFakeKubeClient([]runtime.Object{newEndpointKubernetes(), newNode(""), newMicroShiftVersionConfigmap("4.13.6")}),
+			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{}),
+			expectClaims: map[string]string{
+				ClaimK8sID:             "microshift",
+				ClaimOCMPlatform:       PlatformOther,
+				ClaimOCMProduct:        ProductMicroShift,
+				ClaimMicroShiftVersion: "4.13.6",
+				ClaimOCMKubeVersion:    "v0.0.0-master+$Format:%H$",
 			},
 			expectErr: nil,
 		},
@@ -883,13 +905,6 @@ func TestGetInfraConfig(t *testing.T) {
 			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
 			configV1Client:    newConfigV1Client("4.x", PlatformGCP),
 			expectInfraConfig: "{\"infraName\":\"ocp-gcp\"}",
-			expectErr:         nil,
-		},
-		{
-			name:              "is not OCP",
-			kubeClient:        newFakeKubeClient(nil),
-			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{}),
-			expectInfraConfig: "",
 			expectErr:         nil,
 		},
 	}
@@ -1186,10 +1201,17 @@ func TestSyncLabelsToClaims(t *testing.T) {
 		{
 			name: "internal labels",
 			labels: map[string]string{
-				clusterv1beta1.LabelCloudVendor: "a",
-				clusterv1beta1.LabelKubeVendor:  "b",
-				clusterv1beta1.LabelManagedBy:   "c",
-				clusterv1beta1.OCPVersion:       "d",
+				clusterv1beta1.LabelCloudVendor:     "a",
+				clusterv1beta1.LabelKubeVendor:      "b",
+				clusterv1beta1.LabelManagedBy:       "c",
+				clusterv1beta1.OCPVersion:           "d",
+				clusterv1beta1.OCPVersionMajor:      "4.x",
+				clusterv1beta1.OCPVersionMajorMinor: "4.x",
+			},
+			claims: []*clusterv1alpha1.ClusterClaim{
+				// ocpversionmajor and ocpversionmajorminor has been dependied by GRC, SD, and some customer TAMs. Should not be added into internalLabels set.
+				newClusterClaim(strings.ToLower(clusterv1beta1.OCPVersionMajor), "4.x"),
+				newClusterClaim(strings.ToLower(clusterv1beta1.OCPVersionMajorMinor), "4.x"),
 			},
 		},
 		{

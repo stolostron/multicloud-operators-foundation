@@ -86,35 +86,39 @@ func (r *AutoDetectReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 	}
 
 	for _, claim := range cluster.Status.ClusterClaims {
-		if claim.Name != clusterclaims.ClaimOpenshiftVersion {
-			continue
-		}
+		switch claim.Name {
+		case clusterclaims.ClaimMicroShiftVersion:
+			if labels[clusterinfov1beta1.MicroShiftVersion] != claim.Value {
+				labels[clusterinfov1beta1.MicroShiftVersion] = claim.Value
+				needUpdate = true
+			}
+		case clusterclaims.ClaimOpenshiftVersion:
+			if labels[clusterinfov1beta1.OCPVersion] != claim.Value {
+				labels[clusterinfov1beta1.OCPVersion] = claim.Value
+				needUpdate = true
+			}
 
-		if labels[clusterinfov1beta1.OCPVersion] != claim.Value {
-			labels[clusterinfov1beta1.OCPVersion] = claim.Value
-			needUpdate = true
-		}
+			// parse the full OCP version and add two more labels
+			major, minor, _ := parseOCPVersion(claim.Value)
+			if len(major) == 0 {
+				continue
+			}
 
-		// parse the full OCP version and add two more labels
-		major, minor, _ := parseOCPVersion(claim.Value)
-		if len(major) == 0 {
-			continue
-		}
+			if labels[clusterinfov1beta1.OCPVersionMajor] != major {
+				labels[clusterinfov1beta1.OCPVersionMajor] = major
+				needUpdate = true
+			}
 
-		if labels[clusterinfov1beta1.OCPVersionMajor] != major {
-			labels[clusterinfov1beta1.OCPVersionMajor] = major
-			needUpdate = true
-		}
+			if len(minor) == 0 {
+				// no clusterinfov1beta1.OCPVersionMajorMinor label for OCP 311
+				continue
+			}
 
-		if len(minor) == 0 {
-			// no clusterinfov1beta1.OCPVersionMajorMinor label for OCP 311
-			continue
-		}
-
-		ocpVersionMajorMinor := fmt.Sprintf("%s.%s", major, minor)
-		if labels[clusterinfov1beta1.OCPVersionMajorMinor] != ocpVersionMajorMinor {
-			labels[clusterinfov1beta1.OCPVersionMajorMinor] = ocpVersionMajorMinor
-			needUpdate = true
+			ocpVersionMajorMinor := fmt.Sprintf("%s.%s", major, minor)
+			if labels[clusterinfov1beta1.OCPVersionMajorMinor] != ocpVersionMajorMinor {
+				labels[clusterinfov1beta1.OCPVersionMajorMinor] = ocpVersionMajorMinor
+				needUpdate = true
+			}
 		}
 	}
 

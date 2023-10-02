@@ -59,7 +59,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &hivev1.ClusterDeployment{}},
+	err = c.Watch(source.Kind(mgr.GetCache(), &hivev1.ClusterDeployment{}),
 		&handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
@@ -67,9 +67,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	//watch all clusterpool related clusterdeployments
 	err = c.Watch(
-		&source.Kind{Type: &hivev1.ClusterPool{}},
+		source.Kind(mgr.GetCache(), &hivev1.ClusterPool{}),
 		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(a client.Object) []reconcile.Request {
+			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 				clusterPool, ok := a.(*hivev1.ClusterPool)
 				if !ok {
 					// not a clusterpool, returning empty
@@ -108,9 +108,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 	//watch managedcluster related clusterdeployment
 	err = c.Watch(
-		&source.Kind{Type: &clusterv1.ManagedCluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{}),
 		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(a client.Object) []reconcile.Request {
+			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 				managedCluster, ok := a.(*clusterv1.ManagedCluster)
 				if !ok {
 					// not a managedcluster, returning empty

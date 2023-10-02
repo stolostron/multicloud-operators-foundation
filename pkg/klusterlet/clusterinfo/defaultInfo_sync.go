@@ -80,6 +80,8 @@ func getKubeVendor(product string) (kubeVendor clusterv1beta1.KubeVendorType) {
 		return clusterv1beta1.KubeVendorICP
 	case clusterclaim.ProductOSD:
 		return clusterv1beta1.KubeVendorOSD
+	case clusterclaim.ProductMicroShift:
+		return clusterv1beta1.KubeVendorMicroShift
 	}
 
 	if isProductOCP(product) {

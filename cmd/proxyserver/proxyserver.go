@@ -16,10 +16,15 @@ import (
 	"k8s.io/component-base/logs"
 
 	"k8s.io/klog/v2"
+
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
 
 func main() {
 	rand.Seed(time.Now().UTC().UnixNano())
+
+	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	opts := options.NewOptions()
 	opts.AddFlags(pflag.CommandLine)

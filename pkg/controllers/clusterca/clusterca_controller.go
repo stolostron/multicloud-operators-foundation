@@ -47,7 +47,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &clusterinfov1beta1.ManagedClusterInfo{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterinfov1beta1.ManagedClusterInfo{}), &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}

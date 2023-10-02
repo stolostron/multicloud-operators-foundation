@@ -63,16 +63,16 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 		return err
 	}
 
-	err = c.Watch(&source.Kind{Type: &clusterv1beta2.ManagedClusterSet{}}, &handler.EnqueueRequestForObject{})
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta2.ManagedClusterSet{}), &handler.EnqueueRequestForObject{})
 	if err != nil {
 		return err
 	}
 
 	// Watch for changes to ClusterPool
 	err = c.Watch(
-		&source.Kind{Type: &hivev1.ClusterPool{}},
+		source.Kind(mgr.GetCache(), &hivev1.ClusterPool{}),
 		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(a client.Object) []reconcile.Request {
+			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 				clusterPool, ok := a.(*hivev1.ClusterPool)
 				if !ok {
 					klog.Error("clusterPool handler received non-clusterPool object")
@@ -90,9 +90,9 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 
 	// Watch for changes to ClusterClaim
 	err = c.Watch(
-		&source.Kind{Type: &hivev1.ClusterClaim{}},
+		source.Kind(mgr.GetCache(), &hivev1.ClusterClaim{}),
 		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(a client.Object) []reconcile.Request {
+			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 				clusterClaim, ok := a.(*hivev1.ClusterClaim)
 				if !ok {
 					klog.Error("clusterClaim handler received non-clusterClaim object")
@@ -108,9 +108,9 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 
 	// Watch for changes to ClusterDeployment
 	err = c.Watch(
-		&source.Kind{Type: &hivev1.ClusterDeployment{}},
+		source.Kind(mgr.GetCache(), &hivev1.ClusterDeployment{}),
 		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(a client.Object) []reconcile.Request {
+			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 				clusterDeployment, ok := a.(*hivev1.ClusterDeployment)
 				if !ok {
 					klog.Error("clusterDeployment handler received non-clusterDeployment object")
@@ -126,9 +126,9 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 
 	// Watch for changes to ManagedCluster
 	err = c.Watch(
-		&source.Kind{Type: &clusterv1.ManagedCluster{}},
+		source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{}),
 		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(a client.Object) []reconcile.Request {
+			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
 				managedCluster, ok := a.(*clusterv1.ManagedCluster)
 				if !ok {
 					klog.Error("managedCluster handler received non-managedCluster object")

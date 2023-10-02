@@ -18,6 +18,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/nodecollector"
 	viewctrl "github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/view"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils/rest"
 	restutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/rest"
 	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
 
@@ -29,8 +30,12 @@ import (
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 
+	cacheddiscovery "k8s.io/client-go/discovery/cached"
+	"k8s.io/client-go/restmapper"
+
 	"github.com/spf13/pflag"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
@@ -42,7 +47,6 @@ import (
 	"k8s.io/component-base/logs"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 )
@@ -148,11 +152,13 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		os.Exit(1)
 	}
 
-	restMapper, err := apiutil.NewDynamicRESTMapper(managedClusterConfig, apiutil.WithLazyDiscovery)
+	discoveryClient, err := discovery.NewDiscoveryClientForConfig(managedClusterConfig)
 	if err != nil {
-		setupLog.Error(err, "Unable to create restmapper.")
+		setupLog.Error(err, "Failed to create discovery client")
 		os.Exit(1)
 	}
+	reloadMapper := rest.NewReloadMapper(restmapper.NewDeferredDiscoveryRESTMapper(
+		cacheddiscovery.NewMemCacheClient(discoveryClient)))
 
 	componentNamespace := o.ComponentNamespace
 	if len(componentNamespace) == 0 {
@@ -214,7 +220,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			ctrl.Log.WithName("controllers").WithName("ManagedClusterAction"),
 			mgr.GetScheme(),
 			managedClusterDynamicClient,
-			restutils.NewKubeControl(restMapper, managedClusterConfig),
+			restutils.NewKubeControl(reloadMapper, managedClusterConfig),
 			o.EnableImpersonation,
 		)
 		viewReconciler := &viewctrl.ViewReconciler{
@@ -222,7 +228,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			Log:                         ctrl.Log.WithName("controllers").WithName("ManagedClusterView"),
 			Scheme:                      mgr.GetScheme(),
 			ManagedClusterDynamicClient: managedClusterDynamicClient,
-			Mapper:                      restMapper,
+			Mapper:                      reloadMapper,
 		}
 
 		clusterInfoReconciler := clusterinfoctl.ClusterInfoReconciler{
@@ -249,7 +255,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			KubeClient:                      managedClusterKubeClient,
 			ConfigV1Client:                  openshiftClient,
 			OauthV1Client:                   osOauthClient,
-			Mapper:                          restMapper,
+			Mapper:                          reloadMapper,
 			EnableSyncLabelsToClusterClaims: o.EnableSyncLabelsToClusterClaims,
 		}
 
