@@ -250,20 +250,24 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			Agent:                    agent,
 		}
 		clusterClaimer := clusterclaimctl.ClusterClaimer{
-			ClusterName:                     o.ClusterName,
-			HubClient:                       mgr.GetClient(),
-			KubeClient:                      managedClusterKubeClient,
-			ConfigV1Client:                  openshiftClient,
-			OauthV1Client:                   osOauthClient,
-			Mapper:                          reloadMapper,
-			EnableSyncLabelsToClusterClaims: o.EnableSyncLabelsToClusterClaims,
+			KubeClient:     managedClusterKubeClient,
+			ConfigV1Client: openshiftClient,
+			OauthV1Client:  osOauthClient,
+			Mapper:         reloadMapper,
 		}
 
-		clusterClaimReconciler := clusterclaimctl.ClusterClaimReconciler{
-			Log:               ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
-			ClusterClient:     managedClusterClusterClient,
-			ClusterInformers:  clusterInformerFactory.Cluster().V1alpha1().ClusterClaims(),
-			ListClusterClaims: clusterClaimer.List,
+		clusterClaimReconciler, err := clusterclaimctl.NewClusterClaimReconciler(
+			ctrl.Log.WithName("controllers").WithName("ClusterClaim"),
+			o.ClusterName,
+			managedClusterClusterClient,
+			mgr.GetClient(),
+			clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
+			clusterClaimer.GenerateExpectClusterClaims,
+			o.EnableSyncLabelsToClusterClaims,
+		)
+		if err != nil {
+			setupLog.Error(err, "unable to create controller", "controller", "ClusterClaim")
+			os.Exit(1)
 		}
 
 		if err = actionReconciler.SetupWithManager(mgr); err != nil {
@@ -281,7 +285,8 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			os.Exit(1)
 		}
 
-		if err = clusterClaimReconciler.SetupWithManager(mgr); err != nil {
+		if err = clusterClaimReconciler.SetupWithManager(mgr,
+			clusterInformerFactory.Cluster().V1alpha1().ClusterClaims()); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterClaim")
 			os.Exit(1)
 		}

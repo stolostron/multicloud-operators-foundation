@@ -1,9 +1,6 @@
 package clusterclaim
 
 import (
-	"fmt"
-	"sort"
-	"strings"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -14,7 +11,6 @@ import (
 	configfake "github.com/openshift/client-go/config/clientset/versioned/fake"
 	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
 	oauthfake "github.com/openshift/client-go/oauth/clientset/versioned/fake"
-	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -23,11 +19,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	kubefake "k8s.io/client-go/kubernetes/fake"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/restmapper"
-	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func newClusterVersion() *apiconfigv1.ClusterVersion {
@@ -458,26 +450,6 @@ func newConfigmap(namespace, name string) *corev1.ConfigMap {
 	}
 }
 
-func fakeHubClient(clusterName string, labels map[string]string) client.Client {
-	clusterInfo := &clusterv1beta1.ManagedClusterInfo{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      clusterName,
-			Namespace: clusterName,
-			Labels: map[string]string{
-				clusterv1beta1.LabelClusterID:   "1234",
-				clusterv1beta1.LabelCloudVendor: "AWS",
-				clusterv1beta1.LabelKubeVendor:  "OCP",
-			},
-		},
-	}
-	clusterInfo.SetLabels(labels)
-	s := scheme.Scheme
-	s.AddKnownTypes(clusterv1beta1.SchemeGroupVersion, &clusterv1beta1.ManagedClusterInfo{})
-	clusterv1beta1.AddToScheme(s)
-
-	return fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(clusterInfo).Build()
-}
-
 func newMicroShiftVersionConfigmap(version string) *corev1.ConfigMap {
 	configmap := newConfigmap("kube-public", "microshift-version")
 	configmap.Data = map[string]string{
@@ -488,28 +460,24 @@ func newMicroShiftVersionConfigmap(version string) *corev1.ConfigMap {
 
 func TestClusterClaimerList(t *testing.T) {
 	tests := []struct {
-		name                            string
-		clusterName                     string
-		hubClient                       client.Client
-		kubeClient                      kubernetes.Interface
-		configV1Client                  openshiftclientset.Interface
-		oauthV1Client                   openshiftoauthclientset.Interface
-		mapper                          meta.RESTMapper
-		enableSyncLabelsToClusterClaims bool
-		expectClaims                    map[string]string
-		expectErr                       error
+		name           string
+		clusterName    string
+		kubeClient     kubernetes.Interface
+		configV1Client openshiftclientset.Interface
+		oauthV1Client  openshiftoauthclientset.Interface
+		mapper         meta.RESTMapper
+		expectClaims   map[string]string
+		expectErr      error
 	}{
 		{
 			name:           "claims of OCP on AWS",
 			clusterName:    "clusterAWS",
-			hubClient:      fakeHubClient("clusterAWS", map[string]string{"testLabel/abc": "testLabel"}),
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAWS), newConfigmapConsoleConfig()}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
 			configV1Client: newConfigV1Client("4.x", PlatformAWS),
 			oauthV1Client: newOauthV1Client([]string{
 				"https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
 			}),
-			enableSyncLabelsToClusterClaims: true,
 			expectClaims: map[string]string{
 				ClaimK8sID:                      "clusterAWS",
 				ClaimOpenshiftVersion:           "4.6.8",
@@ -522,21 +490,18 @@ func TestClusterClaimerList(t *testing.T) {
 				ClaimOCMRegion:                  "region-aws",
 				ClaimControlPlaneTopology:       "HighlyAvailable",
 				ClaimOpenshiftOauthRedirectURIs: "https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
-				"abc.testlabel":                 "testLabel",
 			},
 			expectErr: nil,
 		},
 		{
 			name:           "claims of OCP on AWS disable enableSyncLabelsToClusterClaims",
 			clusterName:    "clusterAWS",
-			hubClient:      fakeHubClient("clusterAWS", map[string]string{"testLabel/abc": "testLabel"}),
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAWS), newConfigmapConsoleConfig()}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
 			configV1Client: newConfigV1Client("4.x", PlatformAWS),
 			oauthV1Client: newOauthV1Client([]string{
 				"https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
 			}),
-			enableSyncLabelsToClusterClaims: false,
 			expectClaims: map[string]string{
 				ClaimK8sID:                      "clusterAWS",
 				ClaimOpenshiftVersion:           "4.6.8",
@@ -553,14 +518,13 @@ func TestClusterClaimerList(t *testing.T) {
 			expectErr: nil,
 		},
 		{
-			name:                            "claims of OSD on GCP",
-			clusterName:                     "clusterOSDGCP",
-			hubClient:                       fakeHubClient("clusterOSDGCP", map[string]string{"open-cluster-management.io/agent": "abc"}),
-			kubeClient:                      newFakeKubeClient([]runtime.Object{newNode(PlatformGCP), newConfigmapConsoleConfig()}),
-			mapper:                          newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources, osdAPIGroupResources}),
-			configV1Client:                  newConfigV1Client("4.x", PlatformGCP),
-			oauthV1Client:                   newOauthV1Client(nil),
-			enableSyncLabelsToClusterClaims: true,
+			name:           "claims of OSD on GCP",
+			clusterName:    "clusterOSDGCP",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformGCP), newConfigmapConsoleConfig()}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources, osdAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", PlatformGCP),
+			oauthV1Client:  newOauthV1Client(nil),
+
 			expectClaims: map[string]string{
 				ClaimK8sID:                   "clusterOSDGCP",
 				ClaimOpenshiftVersion:        "4.6.8",
@@ -576,14 +540,12 @@ func TestClusterClaimerList(t *testing.T) {
 			expectErr: nil,
 		},
 		{
-			name:                            "claims of non-OCP",
-			clusterName:                     "clusterNonOCP",
-			hubClient:                       fakeHubClient("clusterNonOCP", map[string]string{}),
-			kubeClient:                      newFakeKubeClient([]runtime.Object{newNode(PlatformGCP), newEndpoint()}),
-			mapper:                          newFakeRestMapper([]*restmapper.APIGroupResources{}),
-			configV1Client:                  newConfigV1Client("3", ""),
-			oauthV1Client:                   newOauthV1Client(nil),
-			enableSyncLabelsToClusterClaims: true,
+			name:           "claims of non-OCP",
+			clusterName:    "clusterNonOCP",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformGCP), newEndpoint()}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{}),
+			configV1Client: newConfigV1Client("3", ""),
+			oauthV1Client:  newOauthV1Client(nil),
 			expectClaims: map[string]string{
 				ClaimK8sID:          "clusterNonOCP",
 				ClaimOCMPlatform:    PlatformGCP,
@@ -595,14 +557,12 @@ func TestClusterClaimerList(t *testing.T) {
 		{
 			name:           "claims of IBM Cloud (ROKS)",
 			clusterName:    "clusterROKS",
-			hubClient:      fakeHubClient("clusterROKS", map[string]string{"testLabel/abc": "testLabel"}),
 			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformIBM), newConfigmapConsoleConfig()}),
 			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
 			configV1Client: newConfigV1Client("4.x", PlatformIBM),
 			oauthV1Client: newOauthV1Client([]string{
 				"https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
 			}),
-			enableSyncLabelsToClusterClaims: true,
 			expectClaims: map[string]string{
 				ClaimK8sID:                      "clusterROKS",
 				ClaimOpenshiftVersion:           "4.6.8",
@@ -614,7 +574,6 @@ func TestClusterClaimerList(t *testing.T) {
 				ClaimOCMKubeVersion:             "v0.0.0-master+$Format:%H$",
 				ClaimControlPlaneTopology:       "HighlyAvailable",
 				ClaimOpenshiftOauthRedirectURIs: "https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
-				"abc.testlabel":                 "testLabel",
 			},
 			expectErr: nil,
 		},
@@ -636,16 +595,14 @@ func TestClusterClaimerList(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			clusterClaimer := ClusterClaimer{ClusterName: test.clusterName,
-				HubClient:                       test.hubClient,
-				KubeClient:                      test.kubeClient,
-				Mapper:                          test.mapper,
-				ConfigV1Client:                  test.configV1Client,
-				OauthV1Client:                   test.oauthV1Client,
-				managedclusterID:                test.clusterName,
-				EnableSyncLabelsToClusterClaims: test.enableSyncLabelsToClusterClaims,
+			clusterClaimer := ClusterClaimer{
+				KubeClient:       test.kubeClient,
+				Mapper:           test.mapper,
+				ConfigV1Client:   test.configV1Client,
+				OauthV1Client:    test.oauthV1Client,
+				managedclusterID: test.clusterName,
 			}
-			claims, err := clusterClaimer.List()
+			claims, err := clusterClaimer.GenerateExpectClusterClaims()
 			assert.Equal(t, test.expectErr, err)
 
 			assert.Equal(t, len(claims), len(test.expectClaims))
@@ -1181,86 +1138,10 @@ func TestUpdatePlatformProduct(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, Mapper: test.mapper, ConfigV1Client: test.configV1Client}
-			err := clusterClaimer.updatePlatformProduct()
+			platform, product, err := clusterClaimer.getPlatformProduct()
 			assert.Equal(t, test.expectErr, err)
-			assert.Equal(t, test.expectPlatform, clusterClaimer.Platform)
-			assert.Equal(t, test.expectProduct, clusterClaimer.Product)
-		})
-	}
-}
-
-func TestSyncLabelsToClaims(t *testing.T) {
-	tests := []struct {
-		name   string
-		labels map[string]string
-		claims []*clusterv1alpha1.ClusterClaim
-	}{
-		{
-			name: "no label",
-		},
-		{
-			name: "internal labels",
-			labels: map[string]string{
-				clusterv1beta1.LabelCloudVendor:     "a",
-				clusterv1beta1.LabelKubeVendor:      "b",
-				clusterv1beta1.LabelManagedBy:       "c",
-				clusterv1beta1.OCPVersion:           "d",
-				clusterv1beta1.OCPVersionMajor:      "4.x",
-				clusterv1beta1.OCPVersionMajorMinor: "4.x",
-			},
-			claims: []*clusterv1alpha1.ClusterClaim{
-				// ocpversionmajor and ocpversionmajorminor has been dependied by GRC, SD, and some customer TAMs. Should not be added into internalLabels set.
-				newClusterClaim(strings.ToLower(clusterv1beta1.OCPVersionMajor), "4.x"),
-				newClusterClaim(strings.ToLower(clusterv1beta1.OCPVersionMajorMinor), "4.x"),
-			},
-		},
-		{
-			name: "too long & empty value",
-			labels: map[string]string{
-				fmt.Sprintf("%s.com/xyz", strings.Repeat("x", 253)): "value",
-				"empty-label": "",
-			},
-		},
-		{
-			name: "with transformation",
-			labels: map[string]string{
-				"UPPERCASE":   "UPPERCASE",
-				"abc.com/def": "abc.com/def",
-				"abc/def/ghi": "abc/def/ghi",
-				"under_score": "under_score",
-			},
-			claims: []*clusterv1alpha1.ClusterClaim{
-				newClusterClaim("uppercase", "UPPERCASE"),
-				newClusterClaim("def.abc.com", "abc.com/def"),
-				newClusterClaim("abc.def.ghi", "abc/def/ghi"),
-				newClusterClaim("under-score", "under_score"),
-			},
-		},
-		{
-			name: "without transformation",
-			labels: map[string]string{
-				"label": "value",
-			},
-			claims: []*clusterv1alpha1.ClusterClaim{
-				newClusterClaim("label", "value"),
-			},
-		},
-	}
-
-	clusterName := "test-cluster"
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			hubClient := fakeHubClient(clusterName, test.labels)
-			clusterClaimer := ClusterClaimer{HubClient: hubClient, ClusterName: clusterName}
-			actual, err := clusterClaimer.syncLabelsToClaims()
-			assert.Equal(t, nil, err)
-			assert.Equal(t, len(test.claims), len(actual))
-			sort.SliceStable(test.claims, func(i, j int) bool { return test.claims[i].Name < test.claims[j].Name })
-			sort.SliceStable(actual, func(i, j int) bool { return actual[i].Name < actual[j].Name })
-			for i, claim := range test.claims {
-				assert.Equal(t, claim.Name, actual[i].Name)
-				assert.Equal(t, claim.Spec.Value, actual[i].Spec.Value)
-			}
+			assert.Equal(t, test.expectPlatform, platform)
+			assert.Equal(t, test.expectProduct, product)
 		})
 	}
 }
