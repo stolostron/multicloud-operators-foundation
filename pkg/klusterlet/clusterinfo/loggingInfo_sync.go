@@ -206,6 +206,11 @@ func (s *loggingInfoSyncer) getIngressDomain(ctx context.Context) (string, error
 	if err != nil {
 		return "", fmt.Errorf("failed to get configv1.ingress. error %v", err)
 	}
+
+	if clusterIngress.Spec.AppsDomain != "" {
+		return clusterIngress.Spec.AppsDomain, nil
+	}
+
 	if clusterIngress.Spec.Domain == "" {
 		return "", fmt.Errorf("ingress domain not found or empty in Ingress")
 	}
