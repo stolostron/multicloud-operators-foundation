@@ -25,7 +25,7 @@ type distributionInfoSyncer struct {
 func (s *distributionInfoSyncer) sync(ctx context.Context, clusterInfo *clusterv1beta1.ManagedClusterInfo) error {
 	// currently we only support OCP in DistributionInfo
 	switch clusterInfo.Status.KubeVendor {
-	case clusterv1beta1.KubeVendorOpenShift:
+	case clusterv1beta1.KubeVendorOpenShift, clusterv1beta1.KubeVendorOSD:
 		return s.syncOCPDistributionInfo(ctx, &clusterInfo.Status)
 	}
 
