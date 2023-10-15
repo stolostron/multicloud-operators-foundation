@@ -213,6 +213,36 @@ func Test_distributionInfo_syncer(t *testing.T) {
 		claims                        []runtime.Object
 	}{
 		{
+			name: "OSD",
+			managedClusterInfo: &v1beta1.ManagedClusterInfo{
+				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
+				Status: v1beta1.ClusterInfoStatus{
+					KubeVendor: v1beta1.KubeVendorOSD,
+					DistributionInfo: v1beta1.DistributionInfo{
+						Type: v1beta1.DistributionTypeOCP,
+						OCP: v1beta1.OCPDistributionInfo{
+							LastAppliedAPIServerURL: "http://test-last-applied-url",
+						},
+					},
+				},
+			},
+			configV1Client:                newConfigV1Client("4.x", false),
+			expectChannel:                 "stable-4.5",
+			expectDesiredVersion:          "4.6.8",
+			expectDesiredChannelLen:       7,
+			expectUpgradeFail:             false,
+			expectAvailableUpdatesLen:     2,
+			expectChannelAndURL:           true,
+			expectHistoryLen:              3,
+			expectLastAppliedAPIServerURL: "http://test-last-applied-url",
+			expectError:                   "",
+			claims: []runtime.Object{
+				newClaim(clusterclaim.ClaimOpenshiftVersion, "4.6.8"),
+				newClaim(clusterclaim.ClaimOCMKubeVersion, "v1.20.0"),
+			},
+			expectVersion: "4.6.8",
+		},
+		{
 			name: "OCP4.x",
 			managedClusterInfo: &v1beta1.ManagedClusterInfo{
 				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
