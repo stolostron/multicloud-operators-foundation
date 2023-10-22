@@ -12,4 +12,9 @@ const (
 	// it is required in Hosted mode, and the hosting cluster MUST be one of the managed cluster of the hub.
 	// The value of the annotation should be the ManagedCluster name of the hosting cluster.
 	AnnotationKlusterletHostingClusterName string = "import.open-cluster-management.io/hosting-cluster-name"
+
+	// AnnotationKlusterletConfig is an annotation of ManagedCluster, which references to the name of the
+	// KlusterletConfig adopted by this managed cluster. If it is missing on a ManagedCluster, no KlusterletConfig
+	// will be used for this managed cluster.
+	AnnotationKlusterletConfig string = "agent.open-cluster-management.io/klusterlet-config"
 )
