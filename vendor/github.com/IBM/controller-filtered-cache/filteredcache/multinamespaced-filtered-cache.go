@@ -61,7 +61,7 @@ type multiNamespacefilteredCache struct {
 // Get implements Reader
 // If the resource is in the cache, Get function get fetch in from the informer
 // Otherwise, resource will be get by the k8s client
-func (c multiNamespacefilteredCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (c multiNamespacefilteredCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	cache, ok := c.namespaceToCache[key.Namespace]
 	if !ok {
 		return fmt.Errorf("unable to get: %v because of unknown namespace for the cache", key)
@@ -120,17 +120,47 @@ type multiNamespaceInformer struct {
 }
 
 // AddEventHandler adds the handler to each namespaced informer
-func (i *multiNamespaceInformer) AddEventHandler(handler toolscache.ResourceEventHandler) {
-	for _, informer := range i.namespaceToInformer {
-		informer.AddEventHandler(handler)
+func (i *multiNamespaceInformer) AddEventHandler(handler toolscache.ResourceEventHandler) (toolscache.ResourceEventHandlerRegistration, error) {
+	handles := handlerRegistration{handles: make(map[string]toolscache.ResourceEventHandlerRegistration, len(i.namespaceToInformer))}
+	for ns, informer := range i.namespaceToInformer {
+		registration, err := informer.AddEventHandler(handler)
+		if err != nil {
+			return nil, err
+		}
+		handles.handles[ns] = registration
 	}
+	return handles, nil
 }
 
 // AddEventHandlerWithResyncPeriod adds the handler with a resync period to each namespaced informer
-func (i *multiNamespaceInformer) AddEventHandlerWithResyncPeriod(handler toolscache.ResourceEventHandler, resyncPeriod time.Duration) {
-	for _, informer := range i.namespaceToInformer {
-		informer.AddEventHandlerWithResyncPeriod(handler, resyncPeriod)
+func (i *multiNamespaceInformer) AddEventHandlerWithResyncPeriod(handler toolscache.ResourceEventHandler, resyncPeriod time.Duration) (toolscache.ResourceEventHandlerRegistration, error) {
+	handles := handlerRegistration{handles: make(map[string]toolscache.ResourceEventHandlerRegistration, len(i.namespaceToInformer))}
+	for ns, informer := range i.namespaceToInformer {
+		registration, err := informer.AddEventHandlerWithResyncPeriod(handler, resyncPeriod)
+		if err != nil {
+			return nil, err
+		}
+		handles.handles[ns] = registration
 	}
+	return handles, nil
+}
+
+// RemoveEventHandler removes a formerly added event handler given by its registration handle.
+func (i *multiNamespaceInformer) RemoveEventHandler(h toolscache.ResourceEventHandlerRegistration) error {
+	handles, ok := h.(handlerRegistration)
+	if !ok {
+		return fmt.Errorf("it is not the registration returned by multiNamespaceInformer")
+	}
+	for ns, informer := range i.namespaceToInformer {
+		registration, ok := handles.handles[ns]
+		if !ok {
+			continue
+		}
+		if err := informer.RemoveEventHandler(registration); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // HasSynced checks if each namespaced informer has synced

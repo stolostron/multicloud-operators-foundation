@@ -65,7 +65,7 @@ func NewEnhancedFilteredCacheBuilder(gvkLabelsMap map[schema.GroupVersionKind][]
 	}
 }
 
-//buildInformersMap generates informersMap of the specified resource
+// buildInformersMap generates informersMap of the specified resource
 func buildInformersMap(config *rest.Config, opts cache.Options, gvkLabelsMap map[schema.GroupVersionKind][]Selector, resync time.Duration) (map[schema.GroupVersionKind][]toolscache.SharedIndexInformer, error) {
 	// Initialize informersMap
 	informersMap := make(map[schema.GroupVersionKind][]toolscache.SharedIndexInformer)
@@ -123,7 +123,7 @@ type enhancedFilteredCache struct {
 // Get implements Reader
 // If the resource is in the cache, Get function get fetch in from the informer
 // Otherwise, resource will be get by the k8s client
-func (efc enhancedFilteredCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (efc enhancedFilteredCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 
 	// Get the GVK of the runtime object
 	gvk, err := apiutil.GVKForObject(obj, efc.Scheme)
@@ -150,7 +150,7 @@ func (efc enhancedFilteredCache) Get(ctx context.Context, key client.ObjectKey, 
 	}
 
 	// Passthrough
-	return efc.fallback.Get(ctx, key, obj)
+	return efc.fallback.Get(ctx, key, obj, opts...)
 }
 
 // getFromStore gets the resource from the cache
@@ -408,18 +408,65 @@ type enhancedFilteredCacheInformer struct {
 	informers []toolscache.SharedIndexInformer
 }
 
-// AddEventHandler adds the handler to each internal informer
-func (efci *enhancedFilteredCacheInformer) AddEventHandler(handler toolscache.ResourceEventHandler) {
-	for _, informer := range efci.informers {
-		informer.AddEventHandler(handler)
+type indexedHandlerRegistration struct {
+	handles map[int]toolscache.ResourceEventHandlerRegistration
+}
+
+// HasSynced asserts that the handler has been called for the full initial state of the informer.
+// This uses syncer to be compatible between client-go 1.27+ and older versions when the interface changed.
+func (h indexedHandlerRegistration) HasSynced() bool {
+	for _, reg := range h.handles {
+		if s, ok := reg.(syncer); ok {
+			if !s.HasSynced() {
+				return false
+			}
+		}
 	}
+	return true
+}
+
+// AddEventHandler adds the handler to each internal informer
+func (efci *enhancedFilteredCacheInformer) AddEventHandler(handler toolscache.ResourceEventHandler) (toolscache.ResourceEventHandlerRegistration, error) {
+	handles := indexedHandlerRegistration{handles: make(map[int]toolscache.ResourceEventHandlerRegistration, len(efci.informers))}
+	for i, informer := range efci.informers {
+		registration, err := informer.AddEventHandler(handler)
+		if err != nil {
+			return nil, err
+		}
+		handles.handles[i] = registration
+	}
+	return handles, nil
 }
 
 // AddEventHandlerWithResyncPeriod adds the handler with a resync period to each internal informer
-func (efci *enhancedFilteredCacheInformer) AddEventHandlerWithResyncPeriod(handler toolscache.ResourceEventHandler, resyncPeriod time.Duration) {
-	for _, informer := range efci.informers {
-		informer.AddEventHandlerWithResyncPeriod(handler, resyncPeriod)
+func (efci *enhancedFilteredCacheInformer) AddEventHandlerWithResyncPeriod(handler toolscache.ResourceEventHandler, resyncPeriod time.Duration) (toolscache.ResourceEventHandlerRegistration, error) {
+	handles := indexedHandlerRegistration{handles: make(map[int]toolscache.ResourceEventHandlerRegistration, len(efci.informers))}
+	for i, informer := range efci.informers {
+		registration, err := informer.AddEventHandlerWithResyncPeriod(handler, resyncPeriod)
+		if err != nil {
+			return nil, err
+		}
+		handles.handles[i] = registration
 	}
+	return handles, nil
+}
+
+// RemoveEventHandler removes a formerly added event handler given by its registration handle.
+func (efci *enhancedFilteredCacheInformer) RemoveEventHandler(h toolscache.ResourceEventHandlerRegistration) error {
+	handles, ok := h.(indexedHandlerRegistration)
+	if !ok {
+		return fmt.Errorf("it is not the registration returned by enhancedFilteredCacheInformer")
+	}
+	for i, informer := range efci.informers {
+		registration, ok := handles.handles[i]
+		if !ok {
+			continue
+		}
+		if err := informer.RemoveEventHandler(registration); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // HasSynced checks if each internal informer has synced

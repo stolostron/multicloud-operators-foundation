@@ -75,7 +75,7 @@ type Selector struct {
 	FieldSelector string
 }
 
-//buildInformerMap generates informerMap of the specified resource
+// buildInformerMap generates informerMap of the specified resource
 func buildInformerMap(config *rest.Config, opts cache.Options, gvkLabelMap map[schema.GroupVersionKind]Selector, resync time.Duration) (map[schema.GroupVersionKind]toolscache.SharedIndexInformer, error) {
 	// Initialize informerMap
 	informerMap := make(map[schema.GroupVersionKind]toolscache.SharedIndexInformer)
@@ -131,7 +131,7 @@ type filteredCache struct {
 // Get implements Reader
 // If the resource is in the cache, Get function get fetch in from the informer
 // Otherwise, resource will be get by the k8s client
-func (c filteredCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (c filteredCache) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 
 	// Get the GVK of the runtime object
 	gvk, err := apiutil.GVKForObject(obj, c.Scheme)
@@ -150,7 +150,7 @@ func (c filteredCache) Get(ctx context.Context, key client.ObjectKey, obj client
 	}
 
 	// Passthrough
-	return c.fallback.Get(ctx, key, obj)
+	return c.fallback.Get(ctx, key, obj, opts...)
 }
 
 // getFromStore gets the resource from the cache
@@ -533,4 +533,25 @@ func KeyToNamespacedKey(ns string, baseKey string) string {
 		return ns + "/" + baseKey
 	}
 	return allNamespacesNamespace + "/" + baseKey
+}
+
+type handlerRegistration struct {
+	handles map[string]toolscache.ResourceEventHandlerRegistration
+}
+
+type syncer interface {
+	HasSynced() bool
+}
+
+// HasSynced asserts that the handler has been called for the full initial state of the informer.
+// This uses syncer to be compatible between client-go 1.27+ and older versions when the interface changed.
+func (h handlerRegistration) HasSynced() bool {
+	for _, reg := range h.handles {
+		if s, ok := reg.(syncer); ok {
+			if !s.HasSynced() {
+				return false
+			}
+		}
+	}
+	return true
 }
