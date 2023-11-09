@@ -285,5 +285,6 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		}
 	}
 	run(context.TODO())
+	
 	panic("unreachable")
 }
