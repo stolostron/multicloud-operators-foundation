@@ -16,9 +16,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
-
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
@@ -129,6 +129,20 @@ func NewDynamicClient() (dynamic.Interface, error) {
 	}
 
 	return dynamicClient, nil
+}
+
+func NewDiscoveryClient() (discovery.DiscoveryInterface, error) {
+	kubeConfigFile, err := getKubeConfigFile()
+	if err != nil {
+		return nil, err
+	}
+
+	cfg, err := clientcmd.BuildConfigFromFlags("", kubeConfigFile)
+	if err != nil {
+		return nil, err
+	}
+
+	return discovery.NewDiscoveryClientForConfig(cfg)
 }
 
 func NewDynamicClientWithImpersonate(user string, groups []string) (dynamic.Interface, error) {
