@@ -8,17 +8,19 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
-	"github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
-	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
-
 	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/version"
+	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
+
+	"github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry"
 	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
+
+	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 )
 
 func TestE2E(t *testing.T) {
@@ -33,6 +35,7 @@ const (
 
 var (
 	dynamicClient         dynamic.Interface
+	discoveryClient       discovery.DiscoveryInterface
 	kubeClient            kubernetes.Interface
 	hiveClient            hiveclient.Interface
 	clusterClient         clusterclient.Interface
@@ -42,8 +45,8 @@ var (
 	imageRegistryClient   imageregistry.Interface
 	defaultManagedCluster string
 	foundationNS          string
-	deployedByACM         = false
 	isOcp                 = false
+	hubVersionInfo        *version.Info
 )
 
 // This suite is sensitive to the following environment variables:
@@ -66,6 +69,9 @@ var _ = ginkgo.BeforeSuite(func() {
 	dynamicClient, err = util.NewDynamicClient()
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
+	discoveryClient, err = util.NewDiscoveryClient()
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
 	kubeClient, err = util.NewKubeClient()
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
@@ -79,6 +85,8 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 	imageRegistryClient, err = util.NewImageRegistryClient()
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
 	cfg, err := util.NewKubeConfig()
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	addonClient, err = addonv1alpha1client.NewForConfig(cfg)
@@ -91,6 +99,13 @@ var _ = ginkgo.BeforeSuite(func() {
 	if err != nil {
 		err = util.AcceptManagedCluster(kubeClient, clusterClient, defaultManagedCluster)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	}
+
+	hubVersionInfo, err = discoveryClient.ServerVersion()
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+	if hubVersionInfo != nil {
+		ginkgo.By("hub version: " + hubVersionInfo.String())
 	}
 
 	gomega.Eventually(func() error {
