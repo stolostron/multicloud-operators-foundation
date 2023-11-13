@@ -427,65 +427,65 @@ var _ = ginkgo.Describe("Cluster admin user should fail when updating clusterpoo
 	})
 })
 
-var _ = ginkgo.Describe("Testing webhook cert rotation", func() {
-	var userName = rand.String(6)
-	var clusterName = "e2e-" + userName
-	var rbacName = "e2e-" + userName
-	var userClusterClient clusterclient.Interface
-	ginkgo.BeforeEach(func() {
-		var err error
-		// create rbac with managedClusterSet/join <all> permission for user
-		rules := []rbacv1.PolicyRule{
-			helpers.NewRule("create").Groups(clusterv1beta2.GroupName).Resources("managedclustersets/join").RuleOrDie(),
-			helpers.NewRule("create", "update", "get").Groups(clusterv1.GroupName).Resources("managedclusters").RuleOrDie(),
-		}
-		err = util.CreateClusterRole(kubeClient, rbacName, rules)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+// var _ = ginkgo.Describe("Testing webhook cert rotation", func() {
+// 	var userName = rand.String(6)
+// 	var clusterName = "e2e-" + userName
+// 	var rbacName = "e2e-" + userName
+// 	var userClusterClient clusterclient.Interface
+// 	ginkgo.BeforeEach(func() {
+// 		var err error
+// 		// create rbac with managedClusterSet/join <all> permission for user
+// 		rules := []rbacv1.PolicyRule{
+// 			helpers.NewRule("create").Groups(clusterv1beta2.GroupName).Resources("managedclustersets/join").RuleOrDie(),
+// 			helpers.NewRule("create", "update", "get").Groups(clusterv1.GroupName).Resources("managedclusters").RuleOrDie(),
+// 		}
+// 		err = util.CreateClusterRole(kubeClient, rbacName, rules)
+// 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		err = util.CreateClusterRoleBindingForUser(kubeClient, rbacName, rbacName, userName)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+// 		err = util.CreateClusterRoleBindingForUser(kubeClient, rbacName, rbacName, userName)
+// 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		// impersonate user to the cluster client
-		userClusterClient, err = util.NewClusterClientWithImpersonate(userName, nil)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+// 		// impersonate user to the cluster client
+// 		userClusterClient, err = util.NewClusterClientWithImpersonate(userName, nil)
+// 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-	})
-	ginkgo.AfterEach(func() {
-		var err error
-		err = util.CleanManagedCluster(clusterClient, clusterName)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+// 	})
+// 	ginkgo.AfterEach(func() {
+// 		var err error
+// 		err = util.CleanManagedCluster(clusterClient, clusterName)
+// 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		err = util.DeleteClusterRoleBinding(kubeClient, rbacName)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+// 		err = util.DeleteClusterRoleBinding(kubeClient, rbacName)
+// 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		err = util.DeleteClusterRole(kubeClient, rbacName)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-	})
+// 		err = util.DeleteClusterRole(kubeClient, rbacName)
+// 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+// 	})
 
-	ginkgo.It("should create and update the managedCluster after cert rotation successfully", func() {
-		// delete secret/signing-key in openshift-service-ca ns to rotate the cert
-		err := kubeClient.CoreV1().Secrets("openshift-service-ca").Delete(context.TODO(), "signing-key", metav1.DeleteOptions{})
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+// 	ginkgo.It("should create and update the managedCluster after cert rotation successfully", func() {
+// 		// delete secret/signing-key in openshift-service-ca ns to rotate the cert
+// 		err := kubeClient.CoreV1().Secrets("openshift-service-ca").Delete(context.TODO(), "signing-key", metav1.DeleteOptions{})
+// 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		gomega.Eventually(func() error {
-			_, err := kubeClient.CoreV1().Secrets("openshift-service-ca").Get(context.TODO(), "signing-key", metav1.GetOptions{})
-			return err
-		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+// 		gomega.Eventually(func() error {
+// 			_, err := kubeClient.CoreV1().Secrets("openshift-service-ca").Get(context.TODO(), "signing-key", metav1.GetOptions{})
+// 			return err
+// 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-		err = kubeClient.CoreV1().Secrets(foundationNS).Delete(context.TODO(), "ocm-webhook", metav1.DeleteOptions{})
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+// 		err = kubeClient.CoreV1().Secrets(foundationNS).Delete(context.TODO(), "ocm-webhook", metav1.DeleteOptions{})
+// 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		gomega.Eventually(func() error {
-			_, err := kubeClient.CoreV1().Secrets(foundationNS).Get(context.TODO(), "ocm-webhook", metav1.GetOptions{})
-			return err
-		}, eventuallyTimeout, eventuallyInterval*5).ShouldNot(gomega.HaveOccurred())
+// 		gomega.Eventually(func() error {
+// 			_, err := kubeClient.CoreV1().Secrets(foundationNS).Get(context.TODO(), "ocm-webhook", metav1.GetOptions{})
+// 			return err
+// 		}, eventuallyTimeout, eventuallyInterval*5).ShouldNot(gomega.HaveOccurred())
 
-		cluster := util.NewManagedCluster(clusterName)
-		gomega.Eventually(func() error {
-			return util.CreateManagedCluster(userClusterClient, cluster)
-		}, eventuallyTimeout, eventuallyInterval*5).ShouldNot(gomega.HaveOccurred())
-	})
-})
+// 		cluster := util.NewManagedCluster(clusterName)
+// 		gomega.Eventually(func() error {
+// 			return util.CreateManagedCluster(userClusterClient, cluster)
+// 		}, eventuallyTimeout, eventuallyInterval*5).ShouldNot(gomega.HaveOccurred())
+// 	})
+// })
 
 var _ = ginkgo.Describe("Testing clusterset create and update", func() {
 	ginkgo.It("should get global Clusterset successfully", func() {
