@@ -41,26 +41,38 @@ func TestCapacityReconcile(t *testing.T) {
 		{
 			name:               "ManagedClusterNotFound",
 			existingCluster:    newCluster("bar", nil),
-			existinClusterInfo: newClusterInfo("bar", nil, 1),
+			existinClusterInfo: newClusterInfo("bar", true, nil, 1),
 			expectedNotFound:   true,
 		},
 		{
 			name:               "ManagedClusterInfoNotFound",
 			existingCluster:    newCluster(ManagedClusterName, map[clusterv1.ResourceName]int64{"cpu": 1}),
-			existinClusterInfo: newClusterInfo("bar", nil, 1),
+			existinClusterInfo: newClusterInfo("bar", true, nil, 1),
 			expectedCapacity:   newCapacity(map[clusterv1.ResourceName]int64{"cpu": 1}),
 		},
 		{
-			name:               "UpdateManagedClusterCapacity",
-			existingCluster:    newCluster(ManagedClusterName, map[clusterv1.ResourceName]int64{"cpu": 1}),
-			existinClusterInfo: newClusterInfo(ManagedClusterName, map[string]bool{"node1": false}, 2),
-			expectedCapacity:   newCapacity(map[clusterv1.ResourceName]int64{"cpu": 1, "socket_worker": 0, "core_worker": 0}),
+			name:            "Do not update ocp Capacity",
+			existingCluster: newCluster(ManagedClusterName, map[clusterv1.ResourceName]int64{"cpu": 1}),
+			existinClusterInfo: newClusterInfo(ManagedClusterName, true,
+				map[string]string{"node1": LabelNodeRoleOldControlPlane, "node2": LabelNodeRoleControlPlane}, 2),
+			expectedCapacity: newCapacity(map[clusterv1.ResourceName]int64{"cpu": 1, "socket_worker": 0, "core_worker": 0}),
 		},
 		{
-			name:               "UpdateManagedClusterCapacityWithWorker",
-			existingCluster:    newCluster(ManagedClusterName, map[clusterv1.ResourceName]int64{"cpu": 1}),
-			existinClusterInfo: newClusterInfo(ManagedClusterName, map[string]bool{"node1": false, "node2": true}, 2),
-			expectedCapacity:   newCapacity(map[clusterv1.ResourceName]int64{"cpu": 1, "socket_worker": 2, "core_worker": 2}),
+			name:            "Update ocp Capacity",
+			existingCluster: newCluster(ManagedClusterName, map[clusterv1.ResourceName]int64{"cpu": 1}),
+			existinClusterInfo: newClusterInfo(ManagedClusterName, true,
+				map[string]string{"node1": LabelNodeRoleControlPlane, "node2": LabelNodeRoleInfra,
+					"node3": "node-role.kubernetes.io/worker", "node4": ""}, 2),
+			expectedCapacity: newCapacity(map[clusterv1.ResourceName]int64{"cpu": 1, "socket_worker": 4, "core_worker": 4}),
+		},
+
+		{
+			name:            "Update non-ocp Capacity",
+			existingCluster: newCluster(ManagedClusterName, map[clusterv1.ResourceName]int64{"cpu": 8}),
+			existinClusterInfo: newClusterInfo(ManagedClusterName, false,
+				map[string]string{"node1": LabelNodeRoleControlPlane, "node2": LabelNodeRoleInfra,
+					"node3": "node-role.kubernetes.io/worker", "node4": ""}, 2),
+			expectedCapacity: newCapacity(map[clusterv1.ResourceName]int64{"cpu": 8, "socket_worker": 0, "core_worker": 8}),
 		},
 	}
 
@@ -96,7 +108,7 @@ func newCluster(name string, resources map[clusterv1.ResourceName]int64) *cluste
 	}
 }
 
-func newClusterInfo(name string, resources map[string]bool, val int64) *clusterv1beta1.ManagedClusterInfo {
+func newClusterInfo(name string, isOCP bool, nodes map[string]string, val int64) *clusterv1beta1.ManagedClusterInfo {
 	info := &clusterv1beta1.ManagedClusterInfo{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -106,19 +118,20 @@ func newClusterInfo(name string, resources map[string]bool, val int64) *clusterv
 			NodeList: []clusterv1beta1.NodeStatus{},
 		},
 	}
+	if isOCP {
+		info.Status.DistributionInfo.Type = clusterv1beta1.DistributionTypeOCP
+	}
 
-	for name, isworker := range resources {
+	for nodeName, nodeRole := range nodes {
 		node := clusterv1beta1.NodeStatus{
-			Name: name,
+			Name: nodeName,
 			Capacity: clusterv1beta1.ResourceList{
 				"cpu":    *resource.NewQuantity(val, resource.DecimalSI),
 				"socket": *resource.NewQuantity(val, resource.DecimalSI),
 			},
 		}
-		if isworker {
-			node.Labels = map[string]string{
-				"node-role.kubernetes.io/worker": "",
-			}
+		node.Labels = map[string]string{
+			nodeRole: "",
 		}
 		info.Status.NodeList = append(info.Status.NodeList, node)
 	}
@@ -134,4 +147,52 @@ func newCapacity(resources map[clusterv1.ResourceName]int64) clusterv1.ResourceL
 	}
 
 	return r
+}
+
+func Test_IsWorker(t *testing.T) {
+	tests := []struct {
+		name     string
+		node     clusterv1beta1.NodeStatus
+		expected bool
+	}{
+		{
+			name: "no label",
+			node: clusterv1beta1.NodeStatus{
+				Name:   "",
+				Labels: nil,
+			},
+			expected: true,
+		},
+		{
+			name: "SNO",
+			node: clusterv1beta1.NodeStatus{
+				Name:   "",
+				Labels: map[string]string{LabelNodeRoleOldControlPlane: "", LabelNodeRoleWorker: ""},
+			},
+			expected: true,
+		},
+		{
+			name: "no worker label",
+			node: clusterv1beta1.NodeStatus{
+				Name:   "",
+				Labels: map[string]string{"myLabel": ""},
+			},
+			expected: true,
+		},
+		{
+			name: "infra node",
+			node: clusterv1beta1.NodeStatus{
+				Name:   "",
+				Labels: map[string]string{LabelNodeRoleInfra: ""},
+			},
+			expected: false,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if test.expected != isWorker(test.node) {
+				t.Errorf("expected %v, but got %v", test.expected, isWorker(test.node))
+			}
+		})
+	}
 }
