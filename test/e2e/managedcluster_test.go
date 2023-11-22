@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"strconv"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -156,8 +157,24 @@ var _ = ginkgo.Describe("Testing ManagedCluster", func() {
 		})
 
 		ginkgo.It("Get CA from service account", func() {
-			//Only need to test this case in ocp
+			// Only need to test this case in ocp (kubernetes version < 1.24)
 			if !isOcp {
+				ginkgo.By("hub is not ocp, skip running this test")
+				return
+			}
+
+			if hubVersionInfo == nil {
+				ginkgo.By("hub version is nil, skip running this test")
+				return
+			}
+			major, err := strconv.Atoi(hubVersionInfo.Major)
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+			minor, err := strconv.Atoi(hubVersionInfo.Minor)
+			gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+			// check if the hub version is 1.24 or above
+			if major != 1 || minor >= 24 {
+				ginkgo.By(fmt.Sprintf("hub version is %s, skip running this test", hubVersionInfo.String()))
 				return
 			}
 			serviceAccountCa, err := utils.GetCAFromServiceAccount(context.TODO(), kubeClient)
