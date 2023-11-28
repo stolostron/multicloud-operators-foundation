@@ -77,17 +77,23 @@ func (o *Options) APIServerConfig() (*genericapiserver.Config, error) {
 		return nil, err
 	}
 
-	//TODO: add custormer authorization here
+	// TODO: add custormer authorization here
 	if err := o.Authorization.ApplyTo(&serverConfig.Authorization); err != nil {
 		return nil, err
 	}
 
 	// enable OpenAPI schemas
+	namer := openapinamer.NewDefinitionNamer(api.Scheme)
+
 	serverConfig.OpenAPIConfig = genericapiserver.DefaultOpenAPIConfig(
-		openapi.GetOpenAPIDefinitions, openapinamer.NewDefinitionNamer(api.Scheme))
+		openapi.GetOpenAPIDefinitions, namer)
 	serverConfig.OpenAPIConfig.Info.Title = "foundation-proxy-server"
 	serverConfig.OpenAPIConfig.Info.Version = "0.0.1"
 
+	// related issue https://github.com/kubernetes/kubernetes/pull/114998 brought from apiserver upgrade to 0.28.3
+	serverConfig.OpenAPIV3Config = genericapiserver.DefaultOpenAPIV3Config(openapi.GetOpenAPIDefinitions, namer)
+	serverConfig.OpenAPIV3Config.Info.Title = "foundation-proxy-server"
+	serverConfig.OpenAPIV3Config.Info.Version = "0.0.1"
 	return serverConfig, nil
 }
 
