@@ -10,7 +10,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 	"math/big"
 	"os"
@@ -131,5 +131,5 @@ func readAll(filePath string) ([]byte, error) {
 		return nil, err
 	}
 
-	return ioutil.ReadAll(f)
+	return io.ReadAll(f)
 }

@@ -3,7 +3,6 @@ package nodecollector
 import (
 	"context"
 	"encoding/json"
-	"io/ioutil"
 	"net"
 	"os"
 	"testing"
@@ -36,7 +35,7 @@ func TestReconcile(t *testing.T) {
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
-	ioutil.WriteFile("/tmp/token", []byte("test"), 0644)
+	os.WriteFile("/tmp/token", []byte("test"), 0644)
 	defer os.Remove("/tmp/token")
 
 	s := scheme.Scheme

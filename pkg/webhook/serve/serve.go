@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	v1 "k8s.io/api/admission/v1"
@@ -44,7 +44,7 @@ func Serve(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 		writerErrorResponse(errmsg, w)
 		return
 	}
-	data, err := ioutil.ReadAll(r.Body)
+	data, err := io.ReadAll(r.Body)
 	if err != nil {
 		errmsg = fmt.Sprintf("Can not read request body, err: %v", err)
 		writerErrorResponse(errmsg, w)
