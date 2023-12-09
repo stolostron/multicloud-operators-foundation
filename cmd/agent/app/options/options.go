@@ -22,7 +22,6 @@ type AgentOptions struct {
 	ClientCAFile                    string
 	Port                            int
 	AgentPort                       int
-	EnableLeaderElection            bool
 	EnableImpersonation             bool
 	EnableSyncLabelsToClusterClaims bool
 	EnableNodeCapacity              bool
@@ -42,7 +41,6 @@ func NewAgentOptions() *AgentOptions {
 		DisableLoggingInfoSyncer:        false,
 		ClusterName:                     "",
 		AgentName:                       "klusterlet-addon-workmgr",
-		EnableLeaderElection:            false,
 		EnableImpersonation:             false,
 		EnableSyncLabelsToClusterClaims: true,
 		EnableNodeCapacity:              true,
@@ -71,8 +69,6 @@ func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 			"If this is not set, will use '--kubeconfig' to build client to connect to the managed cluster.")
 	fs.StringVar(&o.ClusterName, "cluster-name", o.ClusterName, "The name of the managed cluster.")
 	fs.BoolVar(&o.DisableLoggingInfoSyncer, "disable-logging-syncer", o.DisableLoggingInfoSyncer, "Disable logging syncer, is false by default.")
-	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
-		"This flag is deprecated, you should not use this flag any more")
 	fs.BoolVar(&o.EnableImpersonation, "enable-impersonation", o.EnableImpersonation, "Enable impersonation.")
 	fs.BoolVar(&o.EnableSyncLabelsToClusterClaims, "enable-sync-labels-to-clusterclaims", o.EnableSyncLabelsToClusterClaims, "Enable to create clusterclaims on the managed cluster")
 	fs.BoolVar(&o.EnableNodeCapacity, "enable-node-capacity", o.EnableNodeCapacity, "Enable node capacity.")
