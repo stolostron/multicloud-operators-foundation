@@ -3,7 +3,6 @@ package addon
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	kubeinformers "k8s.io/client-go/informers"
 	"os"
 	"testing"
@@ -128,7 +127,7 @@ func output(t *testing.T, name string, objects ...runtime.Object) {
 			t.Fatalf("failed yaml marshal %v", err)
 		}
 
-		err = ioutil.WriteFile(fmt.Sprintf("%v/%v-%v.yaml", tmpDir, i, o.GetObjectKind().GroupVersionKind().Kind), data, 0644)
+		err = os.WriteFile(fmt.Sprintf("%v/%v-%v.yaml", tmpDir, i, o.GetObjectKind().GroupVersionKind().Kind), data, 0644)
 		if err != nil {
 			t.Fatalf("failed to Marshal object.%v", err)
 		}

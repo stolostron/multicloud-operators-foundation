@@ -2,10 +2,10 @@ package utils
 
 import (
 	"fmt"
-	"io/ioutil"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clusterapiv1 "open-cluster-management.io/api/cluster/v1"
+	"os"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -13,7 +13,7 @@ import (
 )
 
 func GetComponentNamespace() (string, error) {
-	nsBytes, err := ioutil.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
 		return "open-cluster-management-agent-addon", err
 	}
