@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/go-logr/logr"
@@ -17,6 +18,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
+	corev1lister "k8s.io/client-go/listers/core/v1"
 	"k8s.io/klog"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1alpha1lister "open-cluster-management.io/api/client/cluster/listers/cluster/v1alpha1"
@@ -31,7 +33,8 @@ func NewClusterClaimReconciler(
 	clusterClient clusterclientset.Interface,
 	hubClient client.Client,
 	clusterClaimLister clusterv1alpha1lister.ClusterClaimLister,
-	generateExpectClusterClaims func() ([]*clusterv1alpha1.ClusterClaim, error),
+	nodeLister corev1lister.NodeLister,
+	generateExpectClusterClaimsByClaimer func() ([]*clusterv1alpha1.ClusterClaim, error),
 	enableSyncLabelsToClaim bool) (*clusterClaimReconciler, error) {
 
 	hubManaged, err := labels.NewRequirement(labelHubManaged, selection.Exists, nil)
@@ -48,15 +51,29 @@ func NewClusterClaimReconciler(
 	}
 
 	return &clusterClaimReconciler{
-		log:                         log,
-		clusterName:                 clusterName,
-		clusterClient:               clusterClient,
-		clusterClaimLister:          clusterClaimLister,
-		hubClient:                   hubClient,
-		generateExpectClusterClaims: generateExpectClusterClaims,
-		hubManagedSelector:          labels.NewSelector().Add(*hubManaged).Add(*notCustomizedOnly),
-		customizedOnlyselector:      labels.NewSelector().Add(*hubManaged).Add(*customizedOnly),
-		enableSyncLabelsToClaim:     enableSyncLabelsToClaim,
+		log:                log,
+		clusterName:        clusterName,
+		clusterClient:      clusterClient,
+		clusterClaimLister: clusterClaimLister,
+		hubClient:          hubClient,
+		generateExpectClusterClaims: func() ([]*clusterv1alpha1.ClusterClaim, error) {
+			expectedClaims, err := generateExpectClusterClaimsByClaimer()
+			if err != nil {
+				return nil, err
+			}
+
+			// append cluster schedulable claim
+			isSchedulable, err := getClusterSchedulable(nodeLister)
+			if err != nil {
+				return nil, err
+			}
+			expectedClaims = append(expectedClaims, newClusterClaim(ClaimClusterSchedulable, strconv.FormatBool(isSchedulable)))
+
+			return expectedClaims, nil
+		},
+		hubManagedSelector:      labels.NewSelector().Add(*hubManaged).Add(*notCustomizedOnly),
+		customizedOnlyselector:  labels.NewSelector().Add(*hubManaged).Add(*customizedOnly),
+		enableSyncLabelsToClaim: enableSyncLabelsToClaim,
 	}, nil
 }
 
@@ -77,19 +94,50 @@ type clusterClaimReconciler struct {
 
 func (r *clusterClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.log.V(4).Info("Sync cluster claims")
-	err := r.syncClaims(ctx)
+	// Sync claims that created by control-plane
+	err := r.syncControlPlaneCreatedClaims(ctx)
 	if err != nil {
 		return ctrl.Result{}, err
 	}
+
+	// Sync claims that created by user via managedclusterinfo labels
 	if r.enableSyncLabelsToClaim {
 		return ctrl.Result{}, r.syncLabelsToClaims(ctx)
 	}
 	return ctrl.Result{}, err
 }
 
-func (r *clusterClaimReconciler) syncClaims(ctx context.Context) error {
+func (r *clusterClaimReconciler) syncControlPlaneCreatedClaims(ctx context.Context) error {
+	return syncClaims(ctx, r.clusterClient,
+		r.generateExpectClusterClaims,
+		updateChecks,
+		func() ([]*clusterv1alpha1.ClusterClaim, error) {
+			return r.clusterClaimLister.List(r.hubManagedSelector)
+		})
+}
+
+func (r *clusterClaimReconciler) syncLabelsToClaims(ctx context.Context) error {
+	return syncClaims(ctx, r.clusterClient,
+		func() ([]*clusterv1alpha1.ClusterClaim, error) {
+			return genLabelsToClaims(r.hubClient, r.clusterName)
+		},
+		nil, // no need to check update for user created claims
+		func() ([]*clusterv1alpha1.ClusterClaim, error) {
+			return r.clusterClaimLister.List(r.customizedOnlyselector)
+		})
+}
+
+// syncClaims contains 3 main steps:
+// 1. Get expected claims
+// 2. Create/Update claims - in this step, we use updatechecks to filter out claims that we don't want to update
+// 3. Get existing claims, compare with expected claims, and clean unexpected ones.
+func syncClaims(ctx context.Context,
+	clusterClient clusterclientset.Interface,
+	getExpectedClaims func() ([]*clusterv1alpha1.ClusterClaim, error),
+	updatechecks []updateCheck,
+	getExistingClaims func() ([]*clusterv1alpha1.ClusterClaim, error)) error {
 	// Get expected claims
-	expectClaims, err := r.generateExpectClusterClaims()
+	expectClaims, err := getExpectedClaims()
 	if err != nil {
 		return err
 	}
@@ -97,7 +145,7 @@ func (r *clusterClaimReconciler) syncClaims(ctx context.Context) error {
 	// Create/Update claims.
 	errs := []error{}
 	for _, c := range expectClaims {
-		if err := createOrUpdateClusterClaim(ctx, r.clusterClient, c, updateChecks); err != nil {
+		if err := createOrUpdateClusterClaim(ctx, clusterClient, c, updatechecks); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -106,43 +154,13 @@ func (r *clusterClaimReconciler) syncClaims(ctx context.Context) error {
 	}
 
 	// List existing claims then fileter out stable claims
-	existClusterClaims, err := r.clusterClaimLister.List(r.hubManagedSelector)
+	existClusterClaims, err := getExistingClaims()
 	if err != nil {
 		return err
 	}
-	existClusterClaims = filterOutStableClaims(existClusterClaims)
 
 	//  Clean unexpected ones.
-	return cleanClusterClaims(ctx, r.clusterClient, existClusterClaims, expectClaims)
-}
-
-func (r *clusterClaimReconciler) syncLabelsToClaims(ctx context.Context) error {
-	var err error
-	// Get Claims from managed cluster info
-	expectClaims, err := genLabelsToClaims(r.hubClient, r.clusterName)
-	if err != nil {
-		return err
-	}
-
-	// Create/Update claims.
-	errs := []error{}
-	for _, claim := range expectClaims {
-		if err := createOrUpdateClusterClaim(ctx, r.clusterClient, claim, nil); err != nil {
-			errs = append(errs, err)
-		}
-	}
-	if len(errs) != 0 {
-		return utils.NewMultiLineAggregate(errs)
-	}
-
-	// List existing claims.
-	existClusterClaims, err := r.clusterClaimLister.List(r.customizedOnlyselector)
-	if err != nil {
-		return err
-	}
-
-	// Clean unexpected ones.
-	return cleanClusterClaims(ctx, r.clusterClient, existClusterClaims, expectClaims)
+	return cleanClusterClaims(ctx, clusterClient, existClusterClaims, expectClaims)
 }
 
 func genLabelsToClaims(hubClient client.Client, clusterName string) ([]*clusterv1alpha1.ClusterClaim, error) {
@@ -295,4 +313,25 @@ func cleanClusterClaims(ctx context.Context, clusterClient clusterclientset.Inte
 		}
 	}
 	return utils.NewMultiLineAggregate(errs)
+}
+
+func getClusterSchedulable(nodeLister corev1lister.NodeLister) (bool, error) {
+	// list all nodes:
+	// * if any of nodes is "schedulable", update the clusterclaim value to 'true'.
+	// * otherwise, update the clusterclaim value to 'false'.
+	nodes, err := nodeLister.List(labels.Everything())
+	if err != nil {
+		return false, err
+	}
+
+	// Check if any node is schedulable
+	isSchedulable := false
+	for _, node := range nodes {
+		if IsNodeSchedulable(node) {
+			isSchedulable = true
+			break
+		}
+	}
+
+	return isSchedulable, nil
 }
