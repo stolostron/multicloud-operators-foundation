@@ -74,7 +74,7 @@ func (o *AgentOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.BoolVar(&o.EnableLeaderElection, "enable-leader-election", o.EnableLeaderElection,
 		"This flag is deprecated, you should not use this flag any more")
 	fs.BoolVar(&o.EnableImpersonation, "enable-impersonation", o.EnableImpersonation, "Enable impersonation.")
-	fs.BoolVar(&o.EnableSyncLabelsToClusterClaims, "enable-sync-labels-to-clusterclaims", o.EnableSyncLabelsToClusterClaims, "Enable to create clusterclaims on the managed cluster")
+	fs.BoolVar(&o.EnableSyncLabelsToClusterClaims, "enable-sync-labels-to-clusterclaims", o.EnableSyncLabelsToClusterClaims, "Enable to create clusterclaims on the managed cluster, by default is true. In hosted mode, this should be set to false.")
 	fs.BoolVar(&o.EnableNodeCapacity, "enable-node-capacity", o.EnableNodeCapacity, "Enable node capacity.")
 	fs.IntVar(&o.AgentPort, "agent-port", o.AgentPort, ""+
 		"Port that is agent service port for hub cluster to access")
