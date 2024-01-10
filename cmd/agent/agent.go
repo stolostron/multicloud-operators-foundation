@@ -262,6 +262,7 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			managedClusterClusterClient,
 			mgr.GetClient(),
 			clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
+			kubeInformerFactory.Core().V1().Nodes().Lister(),
 			clusterClaimer.GenerateExpectClusterClaims,
 			o.EnableSyncLabelsToClusterClaims,
 		)
@@ -286,7 +287,8 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		}
 
 		if err = clusterClaimReconciler.SetupWithManager(mgr,
-			clusterInformerFactory.Cluster().V1alpha1().ClusterClaims()); err != nil {
+			clusterInformerFactory.Cluster().V1alpha1().ClusterClaims(),
+			kubeInformerFactory.Core().V1().Nodes()); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterClaim")
 			os.Exit(1)
 		}

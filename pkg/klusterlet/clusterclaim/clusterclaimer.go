@@ -41,6 +41,9 @@ const (
 	ClaimOCMKubeVersion = "kubeversion.open-cluster-management.io"
 	ClaimOCMPlatform    = "platform.open-cluster-management.io"
 	ClaimOCMProduct     = "product.open-cluster-management.io"
+
+	// ClaimClusterSchedulable is true if any of nodes is "schedulable", otherwise false.
+	ClaimClusterSchedulable = "schedulable.open-cluster-management.io"
 )
 
 const (
@@ -113,7 +116,7 @@ func init() {
 		clusterv1beta1.OCPVersion,
 		clusterv1beta1.MicroShiftVersion)
 
-	stableClaims.Insert(ClaimK8sID, ClaimOCMKubeVersion, ClaimOCMPlatform, ClaimOCMProduct, ClaimOpenshiftVersion, ClaimOpenshiftID)
+	stableClaims.Insert(ClaimK8sID, ClaimOCMKubeVersion, ClaimOCMPlatform, ClaimOCMProduct, ClaimOpenshiftVersion, ClaimOpenshiftID, ClaimClusterSchedulable)
 }
 
 type ClusterClaimer struct {

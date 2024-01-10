@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -198,7 +199,7 @@ func TestCreateOrUpdate(t *testing.T) {
 
 var testClusterName = "test-cluster"
 
-func TestSyncClaims(t *testing.T) {
+func TestSyncControlPlaneCreatedClaims(t *testing.T) {
 	ctx := context.Background()
 	expected := []*clusterv1alpha1.ClusterClaim{
 		newClusterClaim("x", "1"),
@@ -228,11 +229,13 @@ func TestSyncClaims(t *testing.T) {
 		testClusterName,
 		clusterClient,
 		fake.NewClientBuilder().Build(),
-		newFakeClusterClaimLister(current), func() ([]*clusterv1alpha1.ClusterClaim, error) {
+		newFakeClusterClaimLister(current),
+		mockNodeLister{},
+		func() ([]*clusterv1alpha1.ClusterClaim, error) {
 			return expected, nil
 		}, false)
 
-	if err := reconciler.syncClaims(ctx); err != nil {
+	if err := reconciler.syncControlPlaneCreatedClaims(ctx); err != nil {
 		t.Errorf("Failed to sync cluster claims: %v", err)
 	}
 
@@ -404,6 +407,7 @@ func TestSyncLabelsToClaims(t *testing.T) {
 		clusterClient,
 		hubClient,
 		newFakeClusterClaimLister(current),
+		mockNodeLister{},
 		func() ([]*clusterv1alpha1.ClusterClaim, error) {
 			return current, nil
 		}, true)
@@ -436,4 +440,76 @@ func TestSyncLabelsToClaims(t *testing.T) {
 		"os", metav1.GetOptions{}); err != nil {
 		t.Errorf("get cluster claim os err: %v", err)
 	}
+}
+
+func TestGetClusterSchedulable(t *testing.T) {
+	testCases := []struct {
+		name          string
+		nodes         []*corev1.Node
+		expected      bool
+		expectedError error
+	}{
+		{
+			name:          "No nodes",
+			nodes:         []*corev1.Node{},
+			expected:      false,
+			expectedError: nil,
+		},
+		{
+			name: "All nodes unschedulable",
+			nodes: []*corev1.Node{
+				{Spec: corev1.NodeSpec{Unschedulable: true}},
+				{Spec: corev1.NodeSpec{Unschedulable: true}},
+			},
+			expected:      false,
+			expectedError: nil,
+		},
+		{
+			name: "Some nodes schedulable",
+			nodes: []*corev1.Node{
+				{Spec: corev1.NodeSpec{Unschedulable: true}},
+				{Spec: corev1.NodeSpec{Unschedulable: false},
+					Status: corev1.NodeStatus{
+						Conditions: []corev1.NodeCondition{
+							{
+								Type:   corev1.NodeReady,
+								Status: corev1.ConditionTrue,
+							},
+							{
+								Type:   corev1.NodeNetworkUnavailable,
+								Status: corev1.ConditionFalse,
+							},
+						},
+					}},
+			},
+			expected:      true,
+			expectedError: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			nodeLister := mockNodeLister{nodes: tc.nodes}
+			result, err := getClusterSchedulable(nodeLister)
+			if !reflect.DeepEqual(err, tc.expectedError) {
+				t.Errorf("Expected error %v, but got %v", tc.expectedError, err)
+			}
+			if result != tc.expected {
+				t.Errorf("Expected result %v, but got %v", tc.expected, result)
+			}
+		})
+	}
+}
+
+type mockNodeLister struct {
+	nodes []*corev1.Node
+	err   error
+}
+
+func (m mockNodeLister) List(selector labels.Selector) ([]*corev1.Node, error) {
+	return m.nodes, m.err
+}
+
+func (m mockNodeLister) Get(name string) (*corev1.Node, error) {
+	return nil, nil
 }
