@@ -295,7 +295,9 @@ func (r *resourceCollector) getNodeList() ([]clusterv1beta1.NodeStatus, error) {
 		// * a kubernetes.io/role="<role>" label
 		for k, v := range node.Labels {
 			switch k {
-			case NodeLabelRole, corev1.LabelFailureDomainBetaRegion, corev1.LabelFailureDomainBetaZone, corev1.LabelInstanceType, corev1.LabelInstanceTypeStable:
+			case NodeLabelRole, corev1.LabelTopologyRegion, corev1.LabelTopologyZone,
+				corev1.LabelFailureDomainBetaRegion, corev1.LabelFailureDomainBetaZone,
+				corev1.LabelInstanceType, corev1.LabelInstanceTypeStable:
 				nodeStatus.Labels[k] = v
 			}
 			if strings.HasPrefix(k, LabelNodeRolePrefix) {
