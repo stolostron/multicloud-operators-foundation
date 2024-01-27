@@ -1,6 +1,6 @@
 module github.com/stolostron/multicloud-operators-foundation
 
-go 1.20
+go 1.21
 
 replace github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20231113230002-708ee686470e
 
