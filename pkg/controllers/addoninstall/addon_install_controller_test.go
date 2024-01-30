@@ -20,9 +20,7 @@ import (
 )
 
 var (
-	scheme                 = runtime.NewScheme()
-	logCertSecretNamespace = "open-cluster-management"
-	logCertSecretName      = "ocm-klusterlet-self-signed-secrets"
+	scheme = runtime.NewScheme()
 )
 
 func newTestReconciler(addOnName string, existingObjs ...runtime.Object) *Reconciler {

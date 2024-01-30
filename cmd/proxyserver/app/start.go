@@ -3,7 +3,11 @@
 package app
 
 import (
+	"fmt"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/fields"
 	"strings"
 	"time"
 
@@ -12,7 +16,6 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter"
 	apilabels "k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -35,11 +38,6 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(clusterCfg)
-	if err != nil {
-		return err
-	}
-
-	dynamicClient, err := dynamic.NewForConfig(clusterCfg)
 	if err != nil {
 		return err
 	}
@@ -80,12 +78,21 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 		return err
 	}
 
-	logGetter, err := getter.NewLogConnectionInfoGetter(s.ClientOptions.Config(dynamicClient))
-	if err != nil {
-		return nil
-	}
+	logSecretInformerFactory := informers.NewSharedInformerFactoryWithOptions(kubeClient, 10*time.Minute, informers.WithTweakListOptions(
+		func(listOptions *metav1.ListOptions) {
+			listOptions.FieldSelector = fields.OneTermEqualSelector("metadata.name", helpers.LogManagedServiceAccountName).String()
+		}))
 
-	proxyServer, err := NewProxyServer(clusterClient, informerFactory, clusterInformers, apiServerConfig, proxyGetter, logGetter)
+	componentNs, err := utils.GetComponentNamespace()
+	if err != nil {
+		return err
+	}
+	proxyServiceHost := fmt.Sprintf("%s.%s.svc:%s", s.ClientOptions.ProxyServiceName, componentNs, s.ClientOptions.ProxyServicePort)
+	logProxyGetter := getter.NewLogProxyGetter(logSecretInformerFactory.Core().V1().Secrets().Lister(),
+		proxyServiceHost, s.ClientOptions.ProxyServiceCAFile)
+
+	proxyServer, err := NewProxyServer(clusterClient, informerFactory, clusterInformers, apiServerConfig,
+		proxyGetter, logProxyGetter)
 	if err != nil {
 		return err
 	}
@@ -94,6 +101,6 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 	clusterInformers.Start(stopCh)
 	informerFactory.Start(stopCh)
 	configmapInformerFactory.Start(stopCh)
-
+	logSecretInformerFactory.Start(stopCh)
 	return proxyServer.Run(stopCh)
 }

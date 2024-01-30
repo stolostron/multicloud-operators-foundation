@@ -21,13 +21,13 @@ func NewProxyServer(
 	clusterInformer clusterv1informers.SharedInformerFactory,
 	apiServerConfig *genericapiserver.Config,
 	proxyGetter *getter.ProxyServiceInfoGetter,
-	logGetter getter.ConnectionInfoGetter) (*ProxyServer, error) {
+	logProxyGetter *getter.LogProxyGetter) (*ProxyServer, error) {
 	apiServer, err := apiServerConfig.Complete(informerFactory).New("proxy-server", genericapiserver.NewEmptyDelegate())
 	if err != nil {
 		return nil, err
 	}
 
-	if err := api.Install(proxyGetter, logGetter, apiServer, client, informerFactory, clusterInformer); err != nil {
+	if err := api.Install(proxyGetter, logProxyGetter, apiServer, client, informerFactory, clusterInformer); err != nil {
 		return nil, err
 	}
 

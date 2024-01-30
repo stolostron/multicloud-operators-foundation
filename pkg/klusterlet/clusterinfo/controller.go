@@ -9,7 +9,6 @@ import (
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/agent"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -41,8 +40,6 @@ type ClusterInfoReconciler struct {
 	ClusterName             string
 	AgentName               string
 	AgentNamespace          string
-	AgentPort               int32
-	Agent                   *agent.Agent
 	// logging info syncer is used for search-ui only to get pod logs
 	DisableLoggingInfoSyncer bool
 }
@@ -74,19 +71,15 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			managedClusterClient: r.ManagedClusterClient,
 			claimLister:          r.ClaimLister,
 		},
-	}
-	if !r.DisableLoggingInfoSyncer {
-		syncers = append(syncers, &loggingInfoSyncer{
+		&loggingInfoSyncer{
 			clusterName:             r.ClusterName,
 			agentName:               r.AgentName,
 			agentNamespace:          r.AgentNamespace,
-			agentPort:               r.AgentPort,
-			agent:                   r.Agent,
 			managementClusterClient: r.ManagementClusterClient,
 			routeV1Client:           r.RouteV1Client,
-			configV1Client:          r.ConfigV1Client,
-		})
+		},
 	}
+
 	var errs []error
 	for _, s := range syncers {
 		if err := s.sync(ctx, newClusterInfo); err != nil {

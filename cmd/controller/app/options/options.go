@@ -11,8 +11,6 @@ import (
 // ControllerRunOptions for the hcm controller.
 type ControllerRunOptions struct {
 	KubeConfig            string
-	CAFile                string
-	LogCertSecret         string
 	EnableInventory       bool
 	EnableLeaderElection  bool
 	EnableRBAC            bool
@@ -30,8 +28,6 @@ type ControllerRunOptions struct {
 func NewControllerRunOptions() *ControllerRunOptions {
 	return &ControllerRunOptions{
 		KubeConfig:            "",
-		CAFile:                "/var/run/agent/ca.crt",
-		LogCertSecret:         "ocm-klusterlet-self-signed-secrets",
 		EnableInventory:       true,
 		EnableLeaderElection:  true,
 		EnableAddonDeploy:     false,
@@ -47,10 +43,6 @@ func NewControllerRunOptions() *ControllerRunOptions {
 func (o *ControllerRunOptions) AddFlags(fs *pflag.FlagSet) {
 	fs.StringVar(&o.KubeConfig, "kubeconfig", "",
 		"The kubeconfig to connect to cluster to watch/apply resources.")
-	fs.StringVar(&o.CAFile, "agent-cafile", o.CAFile, ""+
-		"Agent CA file.")
-	fs.StringVar(&o.LogCertSecret, "log-cert-secret", o.LogCertSecret,
-		"log cert secret name.")
 	fs.BoolVar(&o.EnableInventory, "enable-inventory", o.EnableInventory,
 		"enable multi-cluster inventory")
 	fs.BoolVar(&o.EnableRBAC, "enable-rbac", o.EnableRBAC,

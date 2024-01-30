@@ -4,6 +4,10 @@ package app
 
 import (
 	"context"
+	"k8s.io/apimachinery/pkg/fields"
+	"k8s.io/client-go/rest"
+	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"time"
 
 	routev1 "github.com/openshift/api/route/v1"
@@ -12,14 +16,28 @@ import (
 	actionv1beta1 "github.com/stolostron/cluster-lifecycle-api/action/v1beta1"
 	clusterinfov1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"github.com/stolostron/cluster-lifecycle-api/imageregistry/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/fields"
+	"github.com/stolostron/multicloud-operators-foundation/cmd/controller/app/options"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/addon"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/addoninstall"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterca"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterinfo"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterrole"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clusterclaim"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clusterdeployment"
+	clustersetmapper "github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
+	globalclusterset "github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/globalclusterset"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncclusterrolebinding"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncrolebinding"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/gc"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/imageregistry"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/managedserviceaccount"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/runtime"
 	kubeinformers "k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	k8scache "k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/klog"
 	"open-cluster-management.io/addon-framework/pkg/addonfactory"
@@ -33,29 +51,9 @@ import (
 	clusterv1alaph1 "open-cluster-management.io/api/cluster/v1alpha1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
+	msav1beta1 "open-cluster-management.io/managed-serviceaccount/apis/authentication/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-
-	"github.com/stolostron/multicloud-operators-foundation/cmd/controller/app/options"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/addon"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/addoninstall"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/certrotation"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterca"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterinfo"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterrole"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clusterclaim"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clusterdeployment"
-	clustersetmapper "github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
-	globalclusterset "github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/globalclusterset"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncclusterrolebinding"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncrolebinding"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/gc"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/imageregistry"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 )
 
 var (
@@ -75,6 +73,7 @@ func init() {
 	_ = v1alpha1.AddToScheme(scheme)
 	_ = routev1.Install(scheme)
 	_ = addonapiv1alpha1.Install(scheme)
+	_ = msav1beta1.AddToScheme(scheme)
 }
 
 func Run(o *options.ControllerRunOptions, ctx context.Context) error {
@@ -118,20 +117,6 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	clusterRolesInformer := kubeInfomers.Rbac().V1().ClusterRoles()
 	roleBindingsInformer := kubeInfomers.Rbac().V1().RoleBindings()
 
-	// Get the LogCertSecret namespace
-	logCertSecretNamespace, _, err := k8scache.SplitMetaNamespaceKey(
-		o.LogCertSecret,
-	)
-	if err != nil {
-		return err
-	}
-	if logCertSecretNamespace == "" {
-		logCertSecretNamespace, err = utils.GetComponentNamespace()
-		if err != nil {
-			return err
-		}
-	}
-
 	mgr, err := ctrl.NewManager(kubeConfig, ctrl.Options{
 		Scheme:                 scheme,
 		LeaderElectionID:       "foundation-controller",
@@ -142,8 +127,8 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		HealthProbeBindAddress: ":8000",
 		NewCache: func(config *rest.Config, opts ctrlcache.Options) (ctrlcache.Cache, error) {
 			opts.ByObject = map[client.Object]ctrlcache.ByObject{
-				&corev1.Secret{}: {
-					Field: fields.SelectorFromSet(fields.Set{"metadata.namespace": logCertSecretNamespace}),
+				&msav1beta1.ManagedServiceAccount{}: {
+					Field: fields.SelectorFromSet(fields.Set{"metadata.name": managedserviceaccount.LogManagedServiceAccountName}),
 				},
 			}
 			return ctrlcache.New(config, opts)
@@ -197,7 +182,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		}
 	}
 
-	if err = clusterinfo.SetupWithManager(mgr, o.LogCertSecret); err != nil {
+	if err = clusterinfo.SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to setup clusterInfo reconciler: %v", err)
 		return err
 	}
@@ -239,14 +224,15 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 
-	if err = certrotation.SetupWithManager(mgr, o.LogCertSecret); err != nil {
-		klog.Errorf("unable to setup cert rotation reconciler: %v", err)
-		return err
-	}
 	cleanGarbageFinalizer := gc.NewCleanGarbageFinalizer(kubeClient)
 
 	if err = addoninstall.SetupWithManager(mgr); err != nil {
 		klog.Errorf("unable to setup addoninstall reconciler: %v", err)
+		return err
+	}
+
+	if err = managedserviceaccount.SetupWithManager(mgr); err != nil {
+		klog.Errorf("unable to setup log managedserviceaccount reconciler: %v", err)
 		return err
 	}
 

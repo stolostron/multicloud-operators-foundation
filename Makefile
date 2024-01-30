@@ -20,6 +20,11 @@ KUSTOMIZE_ARCHIVE_NAME?=kustomize_$(KUSTOMIZE_VERSION)_$(GOHOSTOS)_$(GOHOSTARCH)
 kustomize_dir:=$(dir $(KUSTOMIZE))
 
 
+HELM?=$(PERMANENT_TMP_GOPATH)/bin/helm
+HELM_VERSION?=v3.14.0
+HELM_ARCHIVE_NAME?=helm-$(HELM_VERSION)-$(GOHOSTOS)-$(GOHOSTARCH).tar.gz
+helm_dir:=$(dir $(HELM))
+
 # Image URL to use all building/pushing image targets;
 IMAGE ?= multicloud-manager
 IMAGE_REGISTRY ?= quay.io/stolostron
@@ -69,6 +74,9 @@ deploy-hub:
 deploy-klusterlet:
 	deploy/managedcluster/klusterlet/install.sh
 
+deploy-addons: ensure-helm
+	deploy/managedcluster/addons/install.sh
+
 deploy-ocm-controller: ensure-kustomize
 	cp deploy/foundation/hub/overlays/ocm-controller/kustomization.yaml deploy/foundation/hub/overlays/ocm-controller/kustomization.yaml.tmp
 	cd deploy/foundation/hub/overlays/ocm-controller && ../../../../../$(KUSTOMIZE) edit set image 'quay.io/stolostron/multicloud-manager'=$(FOUNDATION_IMAGE_NAME)
@@ -102,7 +110,7 @@ clean-foundation: clean-foundation-hub clean-foundation-agent
 build-e2e:
 	go test -c ./test/e2e
 
-test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-foundation
+test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-addons deploy-foundation
 	deploy/foundation/scripts/install-check.sh
 	./e2e.test -test.v -ginkgo.v
 
@@ -175,6 +183,19 @@ ifeq "" "$(wildcard $(KUSTOMIZE))"
 	chmod +x '$(KUSTOMIZE)';
 else
 	$(info Using existing kustomize from "$(KUSTOMIZE)")
+endif
+
+ensure-helm:
+ifeq "" "$(wildcard $(HELM))"
+	$(info Installing helm into '$(HELM)')
+	mkdir -p '$(helm_dir)'
+	curl -s -f -L https://get.helm.sh/$(HELM_ARCHIVE_NAME) -o '$(helm_dir)$(HELM_ARCHIVE_NAME)'
+	tar -C '$(helm_dir)' -zvxf '$(helm_dir)$(HELM_ARCHIVE_NAME)'
+	mv $(helm_dir)/$(GOHOSTOS)-$(GOHOSTARCH)/helm $(HELM)
+	rm -rf $(helm_dir)$(GOHOSTOS)-$(GOHOSTARCH)
+	chmod +x '$(HELM)';
+else
+	$(info Using existing kustomize from "$(HELM)")
 endif
 
 include ./test/integration-test.mk

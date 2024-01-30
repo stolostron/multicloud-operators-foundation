@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	v1 "k8s.io/api/apps/v1"
 
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -16,7 +17,6 @@ import (
 	configfake "github.com/openshift/client-go/config/clientset/versioned/fake"
 	routefake "github.com/openshift/client-go/route/clientset/versioned/fake"
 	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/agent"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	"github.com/stretchr/testify/assert"
 
@@ -67,7 +67,6 @@ var existingKubeObjs = []runtime.Object{
 
 var existingOcpObjs = []runtime.Object{
 	newClusterVersion(),
-	newConfigIngress(),
 	&apiconfigv1.Infrastructure{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "cluster",
@@ -105,9 +104,6 @@ func NewClusterInfoReconciler() *ClusterInfoReconciler {
 		ClaimLister:             clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
 		RouteV1Client:           fakeRouteV1Client,
 		ConfigV1Client:          configfake.NewSimpleClientset(existingOcpObjs...),
-		AgentName:               "klusterlet-addon-workmgr",
-		AgentPort:               443,
-		AgentNamespace:          "myns",
 	}
 }
 
@@ -155,7 +151,6 @@ func TestClusterInfoReconcile(t *testing.T) {
 	fr := NewClusterInfoReconciler()
 
 	fr.Client = c
-	fr.Agent = agent.NewAgent("c1", fr.ManagementClusterClient)
 
 	_, err := fr.Reconcile(ctx, clusterc1Request)
 	if err != nil {
@@ -205,7 +200,6 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 	fr := NewFailedClusterInfoReconciler()
 
 	fr.Client = c
-	fr.Agent = agent.NewAgent("c1", fr.ManagementClusterClient)
 
 	_, err := fr.Reconcile(ctx, clusterc1Request)
 	if err != nil {
@@ -218,7 +212,17 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 		t.Errorf("failed get updated clusterinfo ")
 	}
 
-	if meta.IsStatusConditionTrue(updatedClusterInfo.Status.Conditions, clusterv1beta1.ManagedClusterInfoSynced) {
+	if !meta.IsStatusConditionTrue(updatedClusterInfo.Status.Conditions, clusterv1beta1.ManagedClusterInfoSynced) {
 		t.Errorf("failed to update synced condtion")
+	}
+}
+
+func newDeployment(name, namespace string) *v1.Deployment {
+	return &v1.Deployment{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
 	}
 }

@@ -92,19 +92,5 @@ var _ = ginkgo.Describe("Testing Pod log", func() {
 			return err
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-		// case2: get logs successfully after cert rotation
-		gomega.Eventually(func() error {
-			return kubeClient.CoreV1().Secrets(foundationNS).Delete(context.TODO(), "ocm-klusterlet-self-signed-secrets", metav1.DeleteOptions{})
-		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-
-		gomega.Eventually(func() error {
-			req := restClient.Get().Namespace(defaultManagedCluster).
-				Name(defaultManagedCluster).
-				Resource("clusterstatuses").
-				SubResource("log").Suffix(podNamespace, podName, containerName)
-
-			_, err := req.DoRaw(context.TODO())
-			return err
-		}, eventuallyTimeout*2, eventuallyInterval*5).ShouldNot(gomega.HaveOccurred())
 	})
 })

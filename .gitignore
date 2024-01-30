@@ -21,5 +21,8 @@ e2e.test
 
 multicloud-operators-foundation/
 
+managed-serviceaccount
+cluster-proxy-addon
+
 # editor and IDE paraphernalia
 .vscode

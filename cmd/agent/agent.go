@@ -190,13 +190,6 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 	}
 
 	run := func(ctx context.Context) {
-		// run agent server
-		agent, err := app.AgentServerRun(o, managedClusterKubeClient)
-		if err != nil {
-			setupLog.Error(err, "unable to run agent server")
-			os.Exit(1)
-		}
-
 		kubeInformerFactory := informers.NewSharedInformerFactory(managedClusterKubeClient, 10*time.Minute)
 		clusterInformerFactory := clusterinformers.NewSharedInformerFactory(managedClusterClusterClient, 10*time.Minute)
 
@@ -232,22 +225,19 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		}
 
 		clusterInfoReconciler := clusterinfoctl.ClusterInfoReconciler{
-			Client:                   mgr.GetClient(),
-			Log:                      ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
-			Scheme:                   mgr.GetScheme(),
-			NodeInformer:             kubeInformerFactory.Core().V1().Nodes(),
-			ClaimInformer:            clusterInformerFactory.Cluster().V1alpha1().ClusterClaims(),
-			ClaimLister:              clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
-			ManagedClusterClient:     managedClusterKubeClient,
-			ManagementClusterClient:  managementClusterKubeClient,
-			DisableLoggingInfoSyncer: o.DisableLoggingInfoSyncer,
-			ClusterName:              o.ClusterName,
-			AgentName:                o.AgentName,
-			AgentNamespace:           componentNamespace,
-			AgentPort:                int32(o.AgentPort),
-			RouteV1Client:            routeV1Client,
-			ConfigV1Client:           openshiftClient,
-			Agent:                    agent,
+			Client:                  mgr.GetClient(),
+			Log:                     ctrl.Log.WithName("controllers").WithName("ManagedClusterInfo"),
+			Scheme:                  mgr.GetScheme(),
+			NodeInformer:            kubeInformerFactory.Core().V1().Nodes(),
+			ClaimInformer:           clusterInformerFactory.Cluster().V1alpha1().ClusterClaims(),
+			ClaimLister:             clusterInformerFactory.Cluster().V1alpha1().ClusterClaims().Lister(),
+			ManagedClusterClient:    managedClusterKubeClient,
+			ManagementClusterClient: managementClusterKubeClient,
+			ClusterName:             o.ClusterName,
+			AgentName:               o.AgentName,
+			AgentNamespace:          componentNamespace,
+			RouteV1Client:           routeV1Client,
+			ConfigV1Client:          openshiftClient,
 		}
 		clusterClaimer := clusterclaimctl.ClusterClaimer{
 			KubeClient:     managedClusterKubeClient,
