@@ -13,6 +13,12 @@ const (
 	// The value of the annotation should be the ManagedCluster name of the hosting cluster.
 	AnnotationKlusterletHostingClusterName string = "import.open-cluster-management.io/hosting-cluster-name"
 
+	// DisableAutoImportAnnotation is an annotation of ManagedCluster.
+	// If present, the crds.yaml and import.yaml will not be applied on the managed cluster by the hub
+	// controller automatically. And the bootstrap-hub-kubeconfig secret will not be updated as well
+	// in the backup-restore case.
+	DisableAutoImportAnnotation string = "import.open-cluster-management.io/disable-auto-import"
+
 	// AnnotationKlusterletConfig is an annotation of ManagedCluster, which references to the name of the
 	// KlusterletConfig adopted by this managed cluster. If it is missing on a ManagedCluster, no KlusterletConfig
 	// will be used for this managed cluster.
