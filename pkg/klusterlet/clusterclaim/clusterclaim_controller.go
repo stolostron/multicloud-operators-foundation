@@ -67,7 +67,20 @@ func NewClusterClaimReconciler(
 			if err != nil {
 				return nil, err
 			}
-			expectedClaims = append(expectedClaims, newClusterClaim(ClaimClusterSchedulable, strconv.FormatBool(isSchedulable)))
+
+			// The reason why not using the standard "newClusterClaim" to creat the claim is that
+			// in the case of SD multi-hub, we have 2 agents in different versions working on a same managed cluster.
+			// The schedulabe claim will be created by on agent and removed by another agent.
+			// TODO: The hub-managed label should be removed, the `cleanClusterClaims` for all controller created claims should be removed.
+			expectedClaims = append(expectedClaims, &clusterv1alpha1.ClusterClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:   ClaimClusterSchedulable,
+					Labels: map[string]string{labelExcludeBackup: "true"},
+				},
+				Spec: clusterv1alpha1.ClusterClaimSpec{
+					Value: strconv.FormatBool(isSchedulable),
+				},
+			})
 
 			return expectedClaims, nil
 		},
