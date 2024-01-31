@@ -5,6 +5,7 @@ import (
 
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	v1 "k8s.io/api/core/v1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -82,6 +83,10 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			}),
 		),
 	)
+	if err != nil {
+		return err
+	}
+
 	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta2.ManagedClusterSetBinding{}),
 		handler.EnqueueRequestsFromMapFunc(
 			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
@@ -107,11 +112,37 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 			}),
 		),
 	)
-
 	if err != nil {
 		return err
 	}
 
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta1.Placement{}),
+		handler.EnqueueRequestsFromMapFunc(
+			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
+				placement, ok := a.(*clusterv1beta1.Placement)
+				if !ok {
+					klog.Error("placement handler received non-placement object")
+					return []reconcile.Request{}
+				}
+				if placement.Namespace != clustersetutils.GlobalSetNameSpace {
+					return []reconcile.Request{}
+				}
+				if placement.Name != clustersetutils.GlobalPlacementName {
+					return []reconcile.Request{}
+				}
+				return []reconcile.Request{
+					{
+						NamespacedName: types.NamespacedName{
+							Name: clustersetutils.GlobalSetName,
+						},
+					},
+				}
+			}),
+		),
+	)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -132,7 +163,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	err = r.applyGlobalNsAndSetBinding()
+	err = r.applyGlobalResources()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -146,16 +177,19 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{}, r.client.Update(ctx, clusterset, &client.UpdateOptions{})
 }
 
-// The applyGlobalNsAndSetBinding func apply the clustersetutils.GlobalSetNameSpace and
-// apply the ManagedClusterSetBinding which bind the global clusterset in the namespace
-func (r *Reconciler) applyGlobalNsAndSetBinding() error {
+// applyGlobalResources func will
+//  1. apply the clustersetutils.GlobalSetNameSpace
+//  2. apply the ManagedClusterSetBinding which bind the global clusterset in the namespace
+//  3. apply a placement which select all clusters
+func (r *Reconciler) applyGlobalResources() error {
 	globalSetNs := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clustersetutils.GlobalSetNameSpace,
 		},
 	}
-	//Apply GlobalSet Namespace
-	_, err := r.kubeClient.CoreV1().Namespaces().Get(context.TODO(), clustersetutils.GlobalSetNameSpace, metav1.GetOptions{})
+	// Apply GlobalSet Namespace
+	_, err := r.kubeClient.CoreV1().Namespaces().Get(
+		context.TODO(), clustersetutils.GlobalSetNameSpace, metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err
@@ -166,10 +200,14 @@ func (r *Reconciler) applyGlobalNsAndSetBinding() error {
 		}
 	}
 
-	//Apply clusterset Binding
+	// Apply clusterset Binding
 	globalSetBinding := &clusterv1beta2.ManagedClusterSetBinding{}
 
-	err = r.client.Get(context.TODO(), types.NamespacedName{Name: clustersetutils.GlobalSetName, Namespace: clustersetutils.GlobalSetNameSpace}, globalSetBinding)
+	err = r.client.Get(context.TODO(),
+		types.NamespacedName{
+			Name:      clustersetutils.GlobalSetName,
+			Namespace: clustersetutils.GlobalSetNameSpace},
+		globalSetBinding)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err
@@ -188,5 +226,33 @@ func (r *Reconciler) applyGlobalNsAndSetBinding() error {
 			return err
 		}
 	}
+
+	// Apply global placement
+	globalPlacement := &clusterv1beta1.Placement{}
+
+	err = r.client.Get(context.TODO(),
+		types.NamespacedName{
+			Name:      clustersetutils.GlobalPlacementName,
+			Namespace: clustersetutils.GlobalSetNameSpace},
+		globalPlacement)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+		globalPlacement = &clusterv1beta1.Placement{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clustersetutils.GlobalPlacementName,
+				Namespace: clustersetutils.GlobalSetNameSpace,
+			},
+			Spec: clusterv1beta1.PlacementSpec{
+				ClusterSets: []string{clustersetutils.GlobalSetName},
+			},
+		}
+		err := r.client.Create(context.TODO(), globalPlacement, &client.CreateOptions{})
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

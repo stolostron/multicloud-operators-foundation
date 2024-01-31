@@ -21,6 +21,7 @@ const (
 	DefaultSetName              string = "default"
 	GlobalSetName               string = "global"
 	GlobalSetNameSpace          string = "open-cluster-management-global-set"
+	GlobalPlacementName         string = "global"
 )
 
 // subjects that should not be put into the rolebinding
