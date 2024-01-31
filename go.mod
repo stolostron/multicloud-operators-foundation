@@ -2,7 +2,7 @@ module github.com/stolostron/multicloud-operators-foundation
 
 go 1.21
 
-replace github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20231113230002-708ee686470e
+replace github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20240123053920-35373d831d5b
 
 // from installer
 replace (
@@ -36,20 +36,20 @@ require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/go-logr/logr v1.3.0
 	github.com/gogo/protobuf v1.3.2
-	github.com/mattbaird/jsonpatch v0.0.0-20230413205102-771768614e91
+	github.com/mattbaird/jsonpatch v0.0.0-20240118010651-0ba75a80ca38
 	github.com/onsi/ginkgo/v2 v2.9.5
 	github.com/onsi/gomega v1.27.7
 	github.com/openshift/api v0.0.0-20230720094506-afcbe27aec7c
 	github.com/openshift/build-machinery-go v0.0.0-20230306181456-d321ffa04533
 	github.com/openshift/client-go v0.0.0-20230503144108-75015d2347cb
-	github.com/openshift/hive v1.1.17-0.20231116161336-9dd47f8bfa1f
+	github.com/openshift/hive v1.1.17-0.20240123053920-35373d831d5b
 	github.com/openshift/hive/apis v0.0.0
 	github.com/openshift/library-go v0.0.0-20230508110756-9b7abe2c9cbf
 	github.com/prometheus/client_golang v1.16.0
 	github.com/prometheus/common v0.44.0
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace
-	github.com/stolostron/cluster-lifecycle-api v0.0.0-20230829070855-cd9b187cca82
+	github.com/stolostron/cluster-lifecycle-api v0.0.0-20240123023750-d71a6437fb00
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/net v0.17.0
 	k8s.io/api v0.28.3
@@ -173,7 +173,7 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230822172742-b8732ec3820d // indirect
 	google.golang.org/grpc v1.59.0 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.32.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
