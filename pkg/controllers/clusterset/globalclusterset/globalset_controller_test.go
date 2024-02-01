@@ -9,25 +9,26 @@ import (
 	"time"
 
 	"github.com/onsi/gomega"
-	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
-
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
-	"k8s.io/client-go/rest"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
-
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
+	"k8s.io/client-go/rest"
 	"k8s.io/klog"
-	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
+	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
+
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 )
 
 var (
@@ -48,15 +49,10 @@ func TestMain(m *testing.M) {
 	// AddToSchemes may be used to add all resources defined in the project to a Scheme
 	var AddToSchemes runtime.SchemeBuilder
 	// Register the types with the Scheme so the components can map objects to GroupVersionKinds and back
-	AddToSchemes = append(AddToSchemes, clusterv1beta2.Install, clusterv1.Install)
+	AddToSchemes = append(AddToSchemes, clusterv1beta1.Install, clusterv1beta2.Install, clusterv1.Install)
 
 	if err := AddToSchemes.AddToScheme(scheme); err != nil {
 		klog.Errorf("Failed adding apis to scheme, %v", err)
-		os.Exit(1)
-	}
-
-	if err := clusterv1beta2.Install(scheme); err != nil {
-		klog.Errorf("Failed adding cluster to scheme, %v", err)
 		os.Exit(1)
 	}
 
@@ -119,14 +115,15 @@ func TestControllerReconcile(t *testing.T) {
 	time.Sleep(time.Second * 1)
 }
 
-func TestApplyGlobalNsAndSetBinding(t *testing.T) {
+func TestApplyGlobalResources(t *testing.T) {
+	g := gomega.NewGomegaWithT(t)
 	tests := []struct {
-		name                 string
-		existingObjs         []runtime.Object
-		setBindingAndNsExist bool
+		name           string
+		existingObjs   []runtime.Object
+		resourcesExist bool
 	}{
 		{
-			name: "Has Global set",
+			name: "global set exists",
 			existingObjs: []runtime.Object{
 				&clusterv1beta2.ManagedClusterSet{
 					ObjectMeta: metav1.ObjectMeta{
@@ -140,7 +137,7 @@ func TestApplyGlobalNsAndSetBinding(t *testing.T) {
 					},
 				},
 			},
-			setBindingAndNsExist: true,
+			resourcesExist: true,
 		},
 		{
 			name: "deleting Global set",
@@ -163,7 +160,7 @@ func TestApplyGlobalNsAndSetBinding(t *testing.T) {
 					},
 				},
 			},
-			setBindingAndNsExist: false,
+			resourcesExist: false,
 		},
 		{
 			name: "global set has annotation",
@@ -183,22 +180,42 @@ func TestApplyGlobalNsAndSetBinding(t *testing.T) {
 					},
 				},
 			},
-			setBindingAndNsExist: false,
+			resourcesExist: false,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			r := newTestReconciler(test.existingObjs, nil)
-			r.Reconcile(context.Background(), reconcile.Request{
+			_, err := r.Reconcile(context.Background(), reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name: clustersetutils.GlobalSetName,
 				},
 			})
-			globalSetBinding := &clusterv1beta2.ManagedClusterSetBinding{}
-			setBindingExist := true
+			g.Expect(err).NotTo(gomega.HaveOccurred())
+
 			globalNsExist := true
-			err := r.client.Get(context.TODO(), types.NamespacedName{Name: clustersetutils.GlobalSetName, Namespace: clustersetutils.GlobalSetNameSpace}, globalSetBinding)
+			setBindingExist := true
+			globalPlacementExist := true
+
+			_, err = r.kubeClient.CoreV1().Namespaces().Get(
+				context.TODO(), clustersetutils.GlobalSetNameSpace, metav1.GetOptions{})
+			if err != nil {
+				if !errors.IsNotFound(err) {
+					t.Errorf("Failed to get global namespace, err: %v", err)
+				}
+				globalNsExist = false
+			}
+			if globalNsExist != test.resourcesExist {
+				t.Errorf("Expect global namespace exist: %v, but get: %v", test.resourcesExist, globalNsExist)
+			}
+
+			globalSetBinding := &clusterv1beta2.ManagedClusterSetBinding{}
+			err = r.client.Get(context.TODO(),
+				types.NamespacedName{
+					Name:      clustersetutils.GlobalSetName,
+					Namespace: clustersetutils.GlobalSetNameSpace},
+				globalSetBinding)
 			if err != nil {
 				if !errors.IsNotFound(err) {
 					t.Errorf("Failed to get clustersetbinding, err:%v", err)
@@ -206,19 +223,24 @@ func TestApplyGlobalNsAndSetBinding(t *testing.T) {
 				}
 				setBindingExist = false
 			}
-			if setBindingExist != test.setBindingAndNsExist {
-				t.Errorf("Expect setbinding exist:%v, but get:%v", test.setBindingAndNsExist, setBindingExist)
+			if setBindingExist != test.resourcesExist {
+				t.Errorf("Expect setbinding exist: %v, but get: %v", test.resourcesExist, setBindingExist)
 			}
 
-			_, err = r.kubeClient.CoreV1().Namespaces().Get(context.TODO(), clustersetutils.GlobalSetNameSpace, metav1.GetOptions{})
+			globalPlacement := &clusterv1beta1.Placement{}
+			err = r.client.Get(context.TODO(),
+				types.NamespacedName{
+					Name:      clustersetutils.GlobalPlacementName,
+					Namespace: clustersetutils.GlobalSetNameSpace},
+				globalPlacement)
 			if err != nil {
 				if !errors.IsNotFound(err) {
-					t.Errorf("Failed to get clustersetbinding, err:%v", err)
+					t.Errorf("Failed to get global placement, err: %v", err)
 				}
-				globalNsExist = false
+				globalPlacementExist = false
 			}
-			if globalNsExist != test.setBindingAndNsExist {
-				t.Errorf("Expect setbinding exist:%v, but get:%v", test.setBindingAndNsExist, globalNsExist)
+			if globalPlacementExist != test.resourcesExist {
+				t.Errorf("Expect global placement exist: %v, but get: %v", test.resourcesExist, globalPlacementExist)
 			}
 		})
 	}
