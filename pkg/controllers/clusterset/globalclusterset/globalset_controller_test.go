@@ -238,6 +238,19 @@ func TestApplyGlobalResources(t *testing.T) {
 					t.Errorf("Failed to get global placement, err: %v", err)
 				}
 				globalPlacementExist = false
+			} else {
+				if len(globalPlacement.Spec.Tolerations) != 2 {
+					t.Errorf("Expect global placement has 2 tolerations, but get: %v",
+						len(globalPlacement.Spec.Tolerations))
+				}
+				if globalPlacement.Spec.Tolerations[0].Key != clusterv1.ManagedClusterTaintUnreachable {
+					t.Errorf("Expect global placement has taint %s, but get: %s",
+						clusterv1.ManagedClusterTaintUnreachable, globalPlacement.Spec.Tolerations[0].Key)
+				}
+				if globalPlacement.Spec.Tolerations[1].Key != clusterv1.ManagedClusterTaintUnavailable {
+					t.Errorf("Expect global placement has taint %s, but get: %s",
+						clusterv1.ManagedClusterTaintUnavailable, globalPlacement.Spec.Tolerations[1].Key)
+				}
 			}
 			if globalPlacementExist != test.resourcesExist {
 				t.Errorf("Expect global placement exist: %v, but get: %v", test.resourcesExist, globalPlacementExist)
