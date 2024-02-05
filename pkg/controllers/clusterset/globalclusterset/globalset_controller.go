@@ -5,6 +5,7 @@ import (
 
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	v1 "k8s.io/api/core/v1"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 
@@ -246,6 +247,14 @@ func (r *Reconciler) applyGlobalResources() error {
 			},
 			Spec: clusterv1beta1.PlacementSpec{
 				ClusterSets: []string{clustersetutils.GlobalSetName},
+				Tolerations: []clusterv1beta1.Toleration{
+					{
+						Key: clusterv1.ManagedClusterTaintUnreachable,
+					},
+					{
+						Key: clusterv1.ManagedClusterTaintUnavailable,
+					},
+				},
 			},
 		}
 		err := r.client.Create(context.TODO(), globalPlacement, &client.CreateOptions{})
