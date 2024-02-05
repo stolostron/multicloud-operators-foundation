@@ -207,7 +207,8 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 
-	if err = globalclusterset.SetupWithManager(mgr, kubeClient); err != nil {
+	if err = globalclusterset.SetupWithManager(mgr, kubeClient,
+		clusterClient.ClusterV1beta2().ManagedClusterSets()); err != nil {
 		klog.Errorf("unable to setup globalclusterset reconciler: %v", err)
 		return err
 	}

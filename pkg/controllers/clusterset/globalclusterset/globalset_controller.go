@@ -5,6 +5,7 @@ import (
 
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	v1 "k8s.io/api/core/v1"
+	clusterclientsetv1beta2 "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1beta2"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
@@ -14,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -35,12 +37,37 @@ type Reconciler struct {
 	kubeClient kubernetes.Interface
 }
 
-func SetupWithManager(mgr manager.Manager, kubeClient kubernetes.Interface) error {
+func SetupWithManager(mgr manager.Manager, kubeClient kubernetes.Interface,
+	clustersetClient clusterclientsetv1beta2.ManagedClusterSetInterface) error {
+	if err := ensureGlobalNamespaceAnnotationNotExists(clustersetClient); err != nil {
+		klog.Errorf("Failed to ensure global namespace annotation not exists, %v", err)
+		return err
+	}
+
 	if err := add(mgr, newReconciler(mgr, kubeClient)); err != nil {
 		klog.Errorf("Failed to create global clusterset controller, %v", err)
 		return err
 	}
 	return nil
+}
+
+// ensureGlobalNamespaceAnnotationNotExists will remove the global namespace annotation from the global clusterset
+func ensureGlobalNamespaceAnnotationNotExists(client clusterclientsetv1beta2.ManagedClusterSetInterface) error {
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		clusterset, err := client.Get(context.TODO(), clustersetutils.GlobalSetName, metav1.GetOptions{})
+		if err != nil {
+			if errors.IsNotFound(err) {
+				return nil
+			}
+			return err
+		}
+		if _, ok := clusterset.Annotations[globalNamespaceAnnotation]; ok {
+			delete(clusterset.Annotations, globalNamespaceAnnotation)
+			_, err = client.Update(context.TODO(), clusterset, metav1.UpdateOptions{})
+			return err
+		}
+		return nil
+	})
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -168,13 +195,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	if err != nil {
 		return ctrl.Result{}, err
 	}
-	if len(clusterset.Annotations) == 0 {
-		clusterset.Annotations = map[string]string{
-			globalNamespaceAnnotation: "true",
-		}
-	} else {
-		clusterset.Annotations[globalNamespaceAnnotation] = "true"
+	if clusterset.Annotations == nil {
+		clusterset.Annotations = map[string]string{}
 	}
+	clusterset.Annotations[globalNamespaceAnnotation] = "true"
+
 	return ctrl.Result{}, r.client.Update(ctx, clusterset, &client.UpdateOptions{})
 }
 

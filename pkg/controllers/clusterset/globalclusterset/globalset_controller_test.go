@@ -24,6 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
@@ -103,7 +104,9 @@ func TestControllerReconcile(t *testing.T) {
 	c = mgr.GetClient()
 
 	kubeClient := k8sfake.NewSimpleClientset()
-	SetupWithManager(mgr, kubeClient)
+	clusterClient := clusterfake.NewSimpleClientset()
+
+	SetupWithManager(mgr, kubeClient, clusterClient.ClusterV1beta2().ManagedClusterSets())
 
 	cancel, mgrStopped := StartTestManager(mgr, g)
 
