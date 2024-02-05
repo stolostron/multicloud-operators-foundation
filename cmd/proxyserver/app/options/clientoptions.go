@@ -17,21 +17,27 @@ import (
 
 // ClientOptions is the options for agent client
 type ClientOptions struct {
-	CertFile      string
-	KeyFile       string
-	CAFile        string
-	CertDirectory string
-	PairName      string
+	CertFile           string
+	KeyFile            string
+	CAFile             string
+	CertDirectory      string
+	PairName           string
+	ProxyServiceCAFile string
+	ProxyServiceName   string
+	ProxyServicePort   string
 }
 
 // NewClientOptions creates a new agent ClientOptions object with default values.
 func NewClientOptions() *ClientOptions {
 	s := &ClientOptions{
-		CertFile:      "",
-		KeyFile:       "",
-		CAFile:        "",
-		CertDirectory: "apiserver.local.config/certificates",
-		PairName:      "agent",
+		CertFile:           "",
+		KeyFile:            "",
+		CAFile:             "",
+		CertDirectory:      "apiserver.local.config/certificates",
+		PairName:           "agent",
+		ProxyServiceCAFile: "/var/run/clusterproxy/service-ca.crt",
+		ProxyServiceName:   "cluster-proxy-addon-user",
+		ProxyServicePort:   "9092",
 	}
 
 	return s
@@ -47,6 +53,12 @@ func (s *ClientOptions) AddFlags(fs *pflag.FlagSet) {
 		"Agent ca file")
 	fs.StringVar(&s.CertDirectory, "agent-cert-dir", s.CertDirectory, ""+
 		"Agent cert directory")
+	fs.StringVar(&s.ProxyServiceName, "proxy-service-name", s.ProxyServiceName, ""+
+		"Proxy service name")
+	fs.StringVar(&s.ProxyServicePort, "proxy-service-port", s.ProxyServicePort, ""+
+		"Proxy service port")
+	fs.StringVar(&s.ProxyServiceCAFile, "proxy-service-cafile", s.ProxyServiceCAFile, ""+
+		"Proxy service CA file name")
 }
 
 // MaybeDefaultWithSelfSignedCerts generate self signed cert if they are not set

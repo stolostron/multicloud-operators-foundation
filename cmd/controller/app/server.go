@@ -4,6 +4,9 @@ package app
 
 import (
 	"context"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/managedserviceaccount"
+	msav1beta1client "open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versioned/typed/authentication/v1beta1"
+
 	"time"
 
 	routev1 "github.com/openshift/api/route/v1"
@@ -112,11 +115,16 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 
+	msaClient, err := msav1beta1client.NewForConfig(kubeConfig)
+	if err != nil {
+		return err
+	}
+
 	clusterInformers := clusterv1informers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
-	kubeInfomers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
-	clusterRoleBindingsInformer := kubeInfomers.Rbac().V1().ClusterRoleBindings()
-	clusterRolesInformer := kubeInfomers.Rbac().V1().ClusterRoles()
-	roleBindingsInformer := kubeInfomers.Rbac().V1().RoleBindings()
+	kubeInformers := kubeinformers.NewSharedInformerFactory(kubeClient, 10*time.Minute)
+	clusterRoleBindingsInformer := kubeInformers.Rbac().V1().ClusterRoleBindings()
+	clusterRolesInformer := kubeInformers.Rbac().V1().ClusterRoles()
+	roleBindingsInformer := kubeInformers.Rbac().V1().RoleBindings()
 
 	// Get the LogCertSecret namespace
 	logCertSecretNamespace, _, err := k8scache.SplitMetaNamespaceKey(
@@ -250,6 +258,11 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		return err
 	}
 
+	if err = managedserviceaccount.SetupWithManager(mgr, msaClient); err != nil {
+		klog.Errorf("unable to setup log managedserviceaccount reconciler: %v", err)
+		return err
+	}
+
 	go func() {
 		<-mgr.Elected()
 
@@ -294,7 +307,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 			go rolebindingSync.Run(ctx, 5*time.Second)
 		}
 
-		kubeInfomers.Start(ctx.Done())
+		kubeInformers.Start(ctx.Done())
 		clusterInformers.Start(ctx.Done())
 
 		go cleanGarbageFinalizer.Run(ctx.Done())

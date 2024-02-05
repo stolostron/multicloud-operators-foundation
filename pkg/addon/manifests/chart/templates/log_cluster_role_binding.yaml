@@ -1,0 +1,17 @@
+{{- if ne .Values.installMode "Hosted" }}
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ .Values.org }}:{{ template "work-manager.fullname" . }}-log
+  labels:
+    component: "work-manager"
+    addon.open-cluster-management.io/hosted-manifest-location: none
+subjects:
+- kind: ServiceAccount
+  name: {{ template "work-manager.fullname" . }}-log
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ .Values.org }}:{{ template "work-manager.fullname" . }}-log
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

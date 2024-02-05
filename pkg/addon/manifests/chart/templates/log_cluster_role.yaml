@@ -1,0 +1,17 @@
+{{- if ne .Values.installMode "Hosted" }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.org }}:{{ template "work-manager.fullname" . }}-log
+  labels:
+    component: "work-manager"
+    addon.open-cluster-management.io/hosted-manifest-location: none
+rules:
+- apiGroups:
+  - ''
+  resources:
+  - 'pods'
+  - 'pods/log'
+  verbs:
+  - 'get'
+{{- end }}
