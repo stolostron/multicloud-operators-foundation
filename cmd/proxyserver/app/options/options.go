@@ -56,9 +56,6 @@ func (o *Options) SetDefaults() error {
 		return fmt.Errorf("error creating self-signed certificates: %v", err)
 	}
 
-	if err := o.ClientOptions.MaybeDefaultWithSelfSignedCerts(o.ServerRun.AdvertiseAddress.String()); err != nil {
-		return fmt.Errorf("error creating self-signed certificates: %v", err)
-	}
 	return nil
 }
 

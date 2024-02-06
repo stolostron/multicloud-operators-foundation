@@ -3,27 +3,21 @@ package log
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter"
 	"k8s.io/apimachinery/pkg/runtime"
-	netutil "k8s.io/apimachinery/pkg/util/net"
-	"k8s.io/apimachinery/pkg/util/proxy"
 	"k8s.io/apiserver/pkg/registry/rest"
-	"k8s.io/klog"
 )
 
 type LogRest struct {
-	KlusterletConn getter.ConnectionInfoGetter
 	LogProxyGetter *getter.LogProxyGetter
 }
 
-func NewLogRest(connectionInfoGetter getter.ConnectionInfoGetter, logProxyGetter *getter.LogProxyGetter) *LogRest {
-	return &LogRest{KlusterletConn: connectionInfoGetter, LogProxyGetter: logProxyGetter}
+func NewLogRest(logProxyGetter *getter.LogProxyGetter) *LogRest {
+	return &LogRest{LogProxyGetter: logProxyGetter}
 }
 
 // Implement Connecter
@@ -63,57 +57,13 @@ func (r *LogRest) Connect(ctx context.Context, id string, opts runtime.Object, r
 	if err != nil {
 		return nil, err
 	}
-	if useClusterProxy {
-		handler, err := r.LogProxyGetter.NewHandler(ctx, id, pathArray[1], pathArray[2], pathArray[3])
-		if err != nil {
-			return nil, err
-		}
-		return handler, nil
+	if !useClusterProxy {
+		return nil, fmt.Errorf("please enable managed-serviceaccount and cluster proxy addons")
 	}
-
-	location, transport, err := resourceLocation(ctx, r.KlusterletConn, id, "/containerLogs/")
-	if err != nil {
-		return nil, err
-	}
-	location.Path = netutil.JoinPreservingTrailingSlash(location.Path, proxyOpts.Path)
-	klog.V(2).Infof("Proxy to %s", location.Path)
-	// Return a proxy handler that uses the desired transport, wrapped with additional proxy handling (to get URL rewriting, X-Forwarded-* headers, etc)
-	return proxy.NewUpgradeAwareHandler(location, transport, true, false, proxy.NewErrorResponder(responder)), nil
+	return r.LogProxyGetter.NewHandler(ctx, id, pathArray[1], pathArray[2], pathArray[3])
 }
 
 // NewGetOptions creates a new options object
 func (r *LogRest) NewGetOptions() (runtime.Object, bool, string) {
 	return &v1beta1.ClusterStatusProxyOptions{}, false, ""
-}
-
-// resourceLocation returns the resource URL for a cluster.
-func resourceLocation(
-	ctx context.Context,
-	connInfo getter.ConnectionInfoGetter,
-	name string,
-	path string,
-) (*url.URL, http.RoundTripper, error) {
-	clusterInfo, err := connInfo.GetConnectionInfo(ctx, name)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	host := clusterInfo.Hostname
-	if host == "" {
-		host = clusterInfo.IP
-	}
-
-	loc := &url.URL{
-		Scheme: clusterInfo.Scheme,
-		Host:   net.JoinHostPort(host, clusterInfo.Port),
-		Path:   path,
-	}
-
-	// Backward compatible
-	// TODO remove in next release
-	if clusterInfo.UserRoot {
-		loc.Path = "/"
-	}
-
-	return loc, clusterInfo.Transport, nil
 }

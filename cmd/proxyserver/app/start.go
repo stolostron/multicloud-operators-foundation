@@ -14,7 +14,6 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter"
 	apilabels "k8s.io/apimachinery/pkg/labels"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -38,11 +37,6 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 	}
 
 	kubeClient, err := kubernetes.NewForConfig(clusterCfg)
-	if err != nil {
-		return err
-	}
-
-	dynamicClient, err := dynamic.NewForConfig(clusterCfg)
 	if err != nil {
 		return err
 	}
@@ -88,11 +82,6 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 		return err
 	}
 
-	logGetter, err := getter.NewLogConnectionInfoGetter(s.ClientOptions.Config(dynamicClient))
-	if err != nil {
-		return nil
-	}
-
 	componentNs, err := utils.GetComponentNamespace()
 	if err != nil {
 		return err
@@ -102,7 +91,7 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 	logProxyGetter := getter.NewLogProxyGetter(addonClient, kubeClient, proxyServiceHost, s.ClientOptions.ProxyServiceCAFile)
 
 	proxyServer, err := NewProxyServer(clusterClient, informerFactory, clusterInformers, apiServerConfig,
-		proxyGetter, logGetter, logProxyGetter)
+		proxyGetter, logProxyGetter)
 	if err != nil {
 		return err
 	}

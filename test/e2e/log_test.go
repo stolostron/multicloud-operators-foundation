@@ -3,6 +3,8 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/meta"
+	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -48,6 +50,27 @@ var _ = ginkgo.Describe("Testing Pod log", func() {
 				apiService.Status.Conditions[0].Status == apiregistrationv1.ConditionTrue
 		}, 60*time.Second, 1*time.Second).Should(gomega.BeTrue())
 
+		// make sure the managed-serviceAccount and cluster-proxy addons are created and available.
+		gomega.Eventually(func() error {
+			clusterProxyAddon, err := addonClient.AddonV1alpha1().ManagedClusterAddOns(defaultManagedCluster).Get(context.TODO(), "cluster-proxy", metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			if !meta.IsStatusConditionPresentAndEqual(clusterProxyAddon.Status.Conditions, addonv1alpha1.ManagedClusterAddOnConditionAvailable,
+				metav1.ConditionTrue) {
+				return fmt.Errorf("cluster proxy addon is not available")
+			}
+			msaAddon, err := addonClient.AddonV1alpha1().ManagedClusterAddOns(defaultManagedCluster).Get(context.TODO(), "managed-serviceaccount", metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			if !meta.IsStatusConditionPresentAndEqual(msaAddon.Status.Conditions, addonv1alpha1.ManagedClusterAddOnConditionAvailable,
+				metav1.ConditionTrue) {
+				return fmt.Errorf("msa addon is not available")
+			}
+			return nil
+		}, 120*time.Second, 2*time.Second).ShouldNot(gomega.HaveOccurred())
+
 		// find the first pod in open-cluster-management-agent ns
 		gomega.Eventually(func() bool {
 			pods, err := kubeClient.CoreV1().Pods(podNamespace).List(context.TODO(), metav1.ListOptions{})
@@ -91,20 +114,5 @@ var _ = ginkgo.Describe("Testing Pod log", func() {
 			_, err := req.DoRaw(context.TODO())
 			return err
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-
-		// case2: get logs successfully after cert rotation
-		gomega.Eventually(func() error {
-			return kubeClient.CoreV1().Secrets(foundationNS).Delete(context.TODO(), "ocm-klusterlet-self-signed-secrets", metav1.DeleteOptions{})
-		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-
-		gomega.Eventually(func() error {
-			req := restClient.Get().Namespace(defaultManagedCluster).
-				Name(defaultManagedCluster).
-				Resource("clusterstatuses").
-				SubResource("log").Suffix(podNamespace, podName, containerName)
-
-			_, err := req.DoRaw(context.TODO())
-			return err
-		}, eventuallyTimeout*2, eventuallyInterval*5).ShouldNot(gomega.HaveOccurred())
 	})
 })
