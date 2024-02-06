@@ -329,7 +329,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				return err
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 		})
-		ginkgo.It("globalClusterSet ns, setbinding and placement should not be created automatically after deletion", func() {
+		ginkgo.It("globalClusterSet namespace should not be created automatically after deletion", func() {
 			ginkgo.By("globalClusterSet ns and setbinding should not be created after deleted")
 
 			globalNs := &corev1.Namespace{
@@ -352,7 +352,7 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				Spec: clusterv1beta1.PlacementSpec{},
 			}
 			var err error
-			// global clusterset binding should not be reconciled.
+			// global clusterset binding should be reconciled.
 			gomega.Eventually(func() error {
 				_, err = clusterClient.ClusterV1beta2().ManagedClusterSetBindings(clustersetutils.GlobalSetNameSpace).
 					Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
@@ -363,20 +363,14 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				Delete(context.Background(), clustersetutils.GlobalSetName, metav1.DeleteOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			// the managedclusterset was deleted successfully
-			gomega.Eventually(func() bool {
+			// the managedclustersetbinding was recreated
+			gomega.Eventually(func() error {
 				_, err := clusterClient.ClusterV1beta2().ManagedClusterSetBindings(clustersetutils.GlobalSetNameSpace).
 					Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
-				return errors.IsNotFound(err)
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-			// after 3 second the managedclustersetbinding should not be reconciled
-			time.Sleep(3 * time.Second)
-			_, err = clusterClient.ClusterV1beta2().ManagedClusterSetBindings(clustersetutils.GlobalSetNameSpace).
-				Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
-			gomega.Expect(errors.IsNotFound(err)).Should(gomega.BeTrue())
-
-			// global placement should not be reconciled.
+			// global placement should be reconciled.
 			gomega.Eventually(func() error {
 				_, err = clusterClient.ClusterV1beta1().Placements(clustersetutils.GlobalSetNameSpace).
 					Get(context.Background(), clustersetutils.GlobalPlacementName, metav1.GetOptions{})
@@ -387,18 +381,12 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 				Delete(context.Background(), clustersetutils.GlobalPlacementName, metav1.DeleteOptions{})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			// the placement was deleted successfully
-			gomega.Eventually(func() bool {
+			// the placement was recreated
+			gomega.Eventually(func() error {
 				_, err := clusterClient.ClusterV1beta1().Placements(clustersetutils.GlobalSetNameSpace).
 					Get(context.Background(), clustersetutils.GlobalPlacementName, metav1.GetOptions{})
-				return errors.IsNotFound(err)
-			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
-
-			// after 3 second the placement should not be reconciled
-			time.Sleep(3 * time.Second)
-			_, err = clusterClient.ClusterV1beta1().Placements(clustersetutils.GlobalSetNameSpace).
-				Get(context.Background(), clustersetutils.GlobalPlacementName, metav1.GetOptions{})
-			gomega.Expect(errors.IsNotFound(err)).Should(gomega.BeTrue())
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 			// global ns should not be reconciled
 			gomega.Eventually(func() error {
@@ -429,10 +417,14 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 			_, err = clusterClient.ClusterV1beta2().ManagedClusterSetBindings(clustersetutils.GlobalSetNameSpace).
 				Create(context.Background(), globalSetBinding, metav1.CreateOptions{})
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			if !errors.IsAlreadyExists(err) {
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			}
 			_, err = clusterClient.ClusterV1beta1().Placements(clustersetutils.GlobalSetNameSpace).Create(
 				context.Background(), globalPlacement, metav1.CreateOptions{})
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			if !errors.IsAlreadyExists(err) {
+				gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			}
 		})
 
 		ginkgo.It("globalClusterSet ns should be created automatically after deletion if globalset ns create annotation is absent", func() {

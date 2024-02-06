@@ -5,7 +5,6 @@ import (
 
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	v1 "k8s.io/api/core/v1"
-	clusterclientsetv1beta2 "open-cluster-management.io/api/client/cluster/clientset/versioned/typed/cluster/v1beta2"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
@@ -15,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/util/retry"
 	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -37,37 +35,12 @@ type Reconciler struct {
 	kubeClient kubernetes.Interface
 }
 
-func SetupWithManager(mgr manager.Manager, kubeClient kubernetes.Interface,
-	clustersetClient clusterclientsetv1beta2.ManagedClusterSetInterface) error {
-	if err := ensureGlobalNamespaceAnnotationNotExists(clustersetClient); err != nil {
-		klog.Errorf("Failed to ensure global namespace annotation not exists, %v", err)
-		return err
-	}
-
+func SetupWithManager(mgr manager.Manager, kubeClient kubernetes.Interface) error {
 	if err := add(mgr, newReconciler(mgr, kubeClient)); err != nil {
 		klog.Errorf("Failed to create global clusterset controller, %v", err)
 		return err
 	}
 	return nil
-}
-
-// ensureGlobalNamespaceAnnotationNotExists will remove the global namespace annotation from the global clusterset
-func ensureGlobalNamespaceAnnotationNotExists(client clusterclientsetv1beta2.ManagedClusterSetInterface) error {
-	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		clusterset, err := client.Get(context.TODO(), clustersetutils.GlobalSetName, metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				return nil
-			}
-			return err
-		}
-		if _, ok := clusterset.Annotations[globalNamespaceAnnotation]; ok {
-			delete(clusterset.Annotations, globalNamespaceAnnotation)
-			_, err = client.Update(context.TODO(), clusterset, metav1.UpdateOptions{})
-			return err
-		}
-		return nil
-	})
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -187,27 +160,30 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	if _, ok := clusterset.Annotations[globalNamespaceAnnotation]; ok {
-		return ctrl.Result{}, nil
+	_, ok := clusterset.Annotations[globalNamespaceAnnotation]
+	if !ok {
+		// this is to prevent the namespace can not be deleted when uninstall the mce
+		// issue: https://github.com/stolostron/backlog/issues/24532
+		err = r.applyNamespace()
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if clusterset.Annotations == nil {
+			clusterset.Annotations = map[string]string{}
+		}
+		clusterset.Annotations[globalNamespaceAnnotation] = "true"
+		err = r.client.Update(ctx, clusterset, &client.UpdateOptions{})
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
-	err = r.applyGlobalResources()
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	if clusterset.Annotations == nil {
-		clusterset.Annotations = map[string]string{}
-	}
-	clusterset.Annotations[globalNamespaceAnnotation] = "true"
-
-	return ctrl.Result{}, r.client.Update(ctx, clusterset, &client.UpdateOptions{})
+	return ctrl.Result{}, r.applyBindingAndPlacement()
 }
 
-// applyGlobalResources func will
-//  1. apply the clustersetutils.GlobalSetNameSpace
-//  2. apply the ManagedClusterSetBinding which bind the global clusterset in the namespace
-//  3. apply a placement which select all clusters
-func (r *Reconciler) applyGlobalResources() error {
+// applyNamespace creates the clustersetutils.GlobalSetNameSpace if it does not exist
+func (r *Reconciler) applyNamespace() error {
 	globalSetNs := &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: clustersetutils.GlobalSetNameSpace,
@@ -224,6 +200,26 @@ func (r *Reconciler) applyGlobalResources() error {
 		if err != nil {
 			return err
 		}
+	}
+
+	return nil
+}
+
+// applyBindingAndPlacement func will apply the following resources if the namespace exists:
+//  1. apply the ManagedClusterSetBinding which bind the global clusterset in the namespace
+//  2. apply a placement which select all clusters
+func (r *Reconciler) applyBindingAndPlacement() error {
+	// Apply GlobalSet Namespace
+	_, err := r.kubeClient.CoreV1().Namespaces().Get(
+		context.TODO(), clustersetutils.GlobalSetNameSpace, metav1.GetOptions{})
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			return err
+		}
+
+		klog.Infof("GlobalSet Namespace %s does not exist, skip applying binding and placement",
+			clustersetutils.GlobalSetNameSpace)
+		return nil
 	}
 
 	// Apply clusterset Binding
