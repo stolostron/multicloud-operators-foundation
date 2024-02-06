@@ -10,6 +10,7 @@ import (
 
 	"github.com/onsi/gomega"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -70,11 +71,11 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-func newTestReconciler(existingObjs, existingRoleOjb []runtime.Object) *Reconciler {
+func newTestReconciler(existingObjs, existingKubeOjb []runtime.Object) *Reconciler {
 	return &Reconciler{
 		client:     fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(existingObjs...).Build(),
 		scheme:     scheme,
-		kubeClient: k8sfake.NewSimpleClientset(existingRoleOjb...),
+		kubeClient: k8sfake.NewSimpleClientset(existingKubeOjb...),
 	}
 }
 
@@ -118,9 +119,10 @@ func TestControllerReconcile(t *testing.T) {
 func TestApplyGlobalResources(t *testing.T) {
 	g := gomega.NewGomegaWithT(t)
 	tests := []struct {
-		name           string
-		existingObjs   []runtime.Object
-		resourcesExist bool
+		name             string
+		existingObjs     []runtime.Object
+		existingKubeObjs []runtime.Object
+		resourcesExist   bool
 	}{
 		{
 			name: "global set exists",
@@ -134,6 +136,33 @@ func TestApplyGlobalResources(t *testing.T) {
 							SelectorType:  clusterv1beta2.LabelSelector,
 							LabelSelector: &metav1.LabelSelector{},
 						},
+					},
+				},
+			},
+			resourcesExist: true,
+		},
+		{
+			name: "namespace exists",
+			existingObjs: []runtime.Object{
+				&clusterv1beta2.ManagedClusterSet{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: clustersetutils.GlobalSetName,
+						Annotations: map[string]string{
+							globalNamespaceAnnotation: "true",
+						},
+					},
+					Spec: clusterv1beta2.ManagedClusterSetSpec{
+						ClusterSelector: clusterv1beta2.ManagedClusterSelector{
+							SelectorType:  clusterv1beta2.LabelSelector,
+							LabelSelector: &metav1.LabelSelector{},
+						},
+					},
+				},
+			},
+			existingKubeObjs: []runtime.Object{
+				&corev1.Namespace{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: clustersetutils.GlobalSetNameSpace,
 					},
 				},
 			},
@@ -186,7 +215,7 @@ func TestApplyGlobalResources(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			r := newTestReconciler(test.existingObjs, nil)
+			r := newTestReconciler(test.existingObjs, test.existingKubeObjs)
 			_, err := r.Reconcile(context.Background(), reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Name: clustersetutils.GlobalSetName,
