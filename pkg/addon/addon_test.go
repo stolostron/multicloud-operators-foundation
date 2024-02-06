@@ -154,7 +154,7 @@ func TestManifest(t *testing.T) {
 			addon:             newAddon("work-manager", "cluster1", "", `{"global":{"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
 			expectedNamespace: "open-cluster-management-agent-addon",
 			expectedImage:     "quay.io/test/multicloud_manager:test",
-			expectedCount:     6,
+			expectedCount:     8,
 		},
 		{
 			name:                 "is OCP but hub cluster",
@@ -163,7 +163,7 @@ func TestManifest(t *testing.T) {
 			expectedNamespace:    "open-cluster-management-agent-addon",
 			expectedImage:        "quay.io/test/multicloud_manager:test",
 			expectedNodeSelector: true,
-			expectedCount:        6,
+			expectedCount:        8,
 		},
 
 		{
@@ -173,7 +173,7 @@ func TestManifest(t *testing.T) {
 			expectedNamespace: "test",
 			expectedImage:     "quay.io/stolostron/multicloud-manager:2.5.0",
 			expectServiceType: v1.ServiceTypeLoadBalancer,
-			expectedCount:     6,
+			expectedCount:     8,
 		},
 		{
 			name: "imageOverride",
@@ -186,7 +186,7 @@ func TestManifest(t *testing.T) {
 			addon:             newAddon("work-manager", "cluster1", "", ""),
 			expectedNamespace: "open-cluster-management-agent-addon",
 			expectedImage:     "quay.io/test/multicloud-manager:2.5.0",
-			expectedCount:     6,
+			expectedCount:     8,
 		},
 		{
 			name: "local cluster imageOverride",
@@ -200,7 +200,7 @@ func TestManifest(t *testing.T) {
 			expectedNamespace:    "open-cluster-management-agent-addon",
 			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
 			expectedNodeSelector: true,
-			expectedCount:        6,
+			expectedCount:        8,
 		},
 		{
 			name: "hosted mode",

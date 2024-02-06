@@ -19,10 +19,11 @@ import (
 
 type LogRest struct {
 	KlusterletConn getter.ConnectionInfoGetter
+	LogProxyGetter *getter.LogProxyGetter
 }
 
-func NewLogRest(connectionInfoGetter getter.ConnectionInfoGetter) *LogRest {
-	return &LogRest{connectionInfoGetter}
+func NewLogRest(connectionInfoGetter getter.ConnectionInfoGetter, logProxyGetter *getter.LogProxyGetter) *LogRest {
+	return &LogRest{KlusterletConn: connectionInfoGetter, LogProxyGetter: logProxyGetter}
 }
 
 // Implement Connecter
@@ -51,17 +52,29 @@ func (r *LogRest) Connect(ctx context.Context, id string, opts runtime.Object, r
 	if !ok {
 		return nil, fmt.Errorf("invalid options object: %#v", opts)
 	}
-	location, transport, err := resourceLocation(ctx, r.KlusterletConn, id, "/containerLogs/")
-	if err != nil {
-		return nil, err
-	}
 
-	// Validate log path
+	// Validate log path.  format: /ns/pod/container
 	pathArray := strings.Split(proxyOpts.Path, "/")
 	if len(pathArray) != 4 {
 		return nil, fmt.Errorf("invalid log path, %v", proxyOpts.Path)
 	}
 
+	useClusterProxy, err := r.LogProxyGetter.ProxyServiceAvailable(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	if useClusterProxy {
+		handler, err := r.LogProxyGetter.NewHandler(ctx, id, pathArray[1], pathArray[2], pathArray[3])
+		if err != nil {
+			return nil, err
+		}
+		return handler, nil
+	}
+
+	location, transport, err := resourceLocation(ctx, r.KlusterletConn, id, "/containerLogs/")
+	if err != nil {
+		return nil, err
+	}
 	location.Path = netutil.JoinPreservingTrailingSlash(location.Path, proxyOpts.Path)
 	klog.V(2).Infof("Proxy to %s", location.Path)
 	// Return a proxy handler that uses the desired transport, wrapped with additional proxy handling (to get URL rewriting, X-Forwarded-* headers, etc)

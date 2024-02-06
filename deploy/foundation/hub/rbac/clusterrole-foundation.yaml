@@ -108,3 +108,6 @@ rules:
   - apiGroups: ["addon.open-cluster-management.io"]
     resources: ["addondeploymentconfigs"]
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["authentication.open-cluster-management.io"]
+    resources: ["managedserviceaccounts"]
+    verbs: ["get", "create", "update"]
