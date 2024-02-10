@@ -47,13 +47,12 @@ func init() {
 }
 
 func Install(proxyServiceInfoGetter *getter.ProxyServiceInfoGetter,
-	logConnectionInfoGetter getter.ConnectionInfoGetter,
 	logProxyGetter *getter.LogProxyGetter,
 	server *genericapiserver.GenericAPIServer,
 	client clusterclient.Interface,
 	informerFactory informers.SharedInformerFactory,
 	clusterInformer clusterinformers.SharedInformerFactory) error {
-	if err := installProxyGroup(proxyServiceInfoGetter, logConnectionInfoGetter, logProxyGetter, server); err != nil {
+	if err := installProxyGroup(proxyServiceInfoGetter, logProxyGetter, server); err != nil {
 		return err
 	}
 	if err := installClusterViewGroup(server, client, informerFactory, clusterInformer); err != nil {
@@ -108,14 +107,13 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 }
 
 func installProxyGroup(proxyServiceInfoGetter *getter.ProxyServiceInfoGetter,
-	logConnectionInfoGetter getter.ConnectionInfoGetter,
 	logProxyGetter *getter.LogProxyGetter,
 	server *genericapiserver.GenericAPIServer) error {
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(proxyv1beta1.GroupName, Scheme, ParameterCodec, Codecs)
 	apiGroupInfo.VersionedResourcesStorageMap[proxyv1beta1.SchemeGroupVersion.Version] = map[string]rest.Storage{
 		"clusterstatuses":            &clusterStatusStorage{},
 		"clusterstatuses/aggregator": proxy.NewProxyRest(proxyServiceInfoGetter),
-		"clusterstatuses/log":        log.NewLogRest(logConnectionInfoGetter, logProxyGetter),
+		"clusterstatuses/log":        log.NewLogRest(logProxyGetter),
 	}
 	return server.InstallAPIGroup(&apiGroupInfo)
 }
