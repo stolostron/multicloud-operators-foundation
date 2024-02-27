@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -141,6 +142,7 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 			managedClusterInfo: &v1beta1.ManagedClusterInfo{
 				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
 				Status: v1beta1.ClusterInfoStatus{
+					KubeVendor: v1beta1.KubeVendorOpenShift,
 					DistributionInfo: v1beta1.DistributionInfo{
 						Type: "OCP",
 						OCP:  v1beta1.OCPDistributionInfo{},
@@ -155,6 +157,7 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 			managedClusterInfo: &v1beta1.ManagedClusterInfo{
 				ObjectMeta: metav1.ObjectMeta{Name: "local-cluster", Namespace: "local-cluster"},
 				Status: v1beta1.ClusterInfoStatus{
+					KubeVendor: v1beta1.KubeVendorOpenShift,
 					DistributionInfo: v1beta1.DistributionInfo{
 						Type: "OCP",
 						OCP:  v1beta1.OCPDistributionInfo{},
@@ -168,7 +171,9 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 			agentNamespace: "myns",
 			managedClusterInfo: &v1beta1.ManagedClusterInfo{
 				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
-				Status:     v1beta1.ClusterInfoStatus{},
+				Status: v1beta1.ClusterInfoStatus{
+					KubeVendor: v1beta1.KubeVendorAKS,
+				},
 			},
 			agentService: newAgentLBService(
 				"klusterlet-addon-workmgr",
@@ -183,12 +188,25 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 				}),
 		},
 		{
+			name:           "mciroshift",
+			agentName:      "klusterlet-addon-workmgr",
+			agentNamespace: "myns",
+			managedClusterInfo: &v1beta1.ManagedClusterInfo{
+				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
+				Status: v1beta1.ClusterInfoStatus{
+					KubeVendor: v1beta1.KubeVendorMicroShift,
+				},
+			},
+		},
+		{
 			name:           "non-ocp update service",
 			agentName:      "klusterlet-addon-workmgr",
 			agentNamespace: "myns",
 			managedClusterInfo: &v1beta1.ManagedClusterInfo{
 				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
-				Status:     v1beta1.ClusterInfoStatus{},
+				Status: v1beta1.ClusterInfoStatus{
+					KubeVendor: v1beta1.KubeVendorAKS,
+				},
 			},
 			agentService: newAgentLBService(
 				"klusterlet-addon-workmgr",
@@ -202,6 +220,7 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 			managedClusterInfo: &v1beta1.ManagedClusterInfo{
 				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
 				Status: v1beta1.ClusterInfoStatus{
+					KubeVendor: v1beta1.KubeVendorOpenShift,
 					DistributionInfo: v1beta1.DistributionInfo{
 						Type: "OCP",
 						OCP:  v1beta1.OCPDistributionInfo{},
@@ -229,6 +248,7 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 			managedClusterInfo: &v1beta1.ManagedClusterInfo{
 				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
 				Status: v1beta1.ClusterInfoStatus{
+					KubeVendor: v1beta1.KubeVendorOpenShift,
 					DistributionInfo: v1beta1.DistributionInfo{
 						Type: "OCP",
 						OCP:  v1beta1.OCPDistributionInfo{},
@@ -285,6 +305,12 @@ func Test_LoggingInfo_syncer(t *testing.T) {
 			assert.Equal(t, expectLoggingPort, test.managedClusterInfo.Status.LoggingPort)
 
 			svr, err := syncer.managementClusterClient.CoreV1().Services(test.agentNamespace).Get(context.TODO(), test.agentName, metav1.GetOptions{})
+
+			if test.managedClusterInfo.Status.KubeVendor == "" || test.managedClusterInfo.Status.KubeVendor == v1beta1.KubeVendorMicroShift {
+				assert.Equal(t, true, errors.IsNotFound(err))
+				return
+			}
+
 			if err != nil {
 				t.Errorf("failed to get service")
 			}

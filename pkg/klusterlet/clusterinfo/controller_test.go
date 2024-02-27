@@ -137,6 +137,7 @@ func TestClusterInfoReconcile(t *testing.T) {
 			CreationTimestamp: now,
 		},
 		Status: clusterv1beta1.ClusterInfoStatus{
+			KubeVendor: clusterv1beta1.KubeVendorOpenShift,
 			Conditions: []metav1.Condition{
 				{
 					Type:   clusterv1.ManagedClusterConditionAvailable,
@@ -187,6 +188,7 @@ func TestFailedClusterInfoReconcile(t *testing.T) {
 			CreationTimestamp: now,
 		},
 		Status: clusterv1beta1.ClusterInfoStatus{
+			KubeVendor: clusterv1beta1.KubeVendorAKS,
 			Conditions: []metav1.Condition{
 				{
 					Type:   clusterv1.ManagedClusterConditionAvailable,

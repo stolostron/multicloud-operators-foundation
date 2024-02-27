@@ -62,6 +62,15 @@ func (s *loggingInfoSyncer) refreshAgentServer(clusterInfo *clusterv1beta1.Manag
 
 func (s *loggingInfoSyncer) setLoggingEndAddr(ctx context.Context, clusterInfo *clusterv1beta1.ManagedClusterInfo) error {
 	var serviceType = corev1.ServiceTypeClusterIP
+
+	// cannot create lb service on microShift because cannot use 443 port on microShift in lb service.
+	// for microShift, require to use cluster-proxy and msa addons to get logs.
+	// do not create service/route before the kube vendor is detected.
+	if clusterInfo.Status.KubeVendor == "" || clusterInfo.Status.KubeVendor == clusterv1beta1.KubeVendorMicroShift {
+		return nil
+	}
+
+	// create route not only for KubeVendor is OCP but also is OSD cluster. so use DistributionInfo.Type here.
 	if clusterInfo.Status.DistributionInfo.Type != clusterv1beta1.DistributionTypeOCP {
 		serviceType = corev1.ServiceTypeLoadBalancer
 	}
