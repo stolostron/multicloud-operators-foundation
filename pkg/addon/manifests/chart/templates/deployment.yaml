@@ -96,6 +96,10 @@ spec:
           secret:
             secretName: {{ .Values.managedKubeConfigSecret }}
         {{- end }}
+      {{- if .Values.global.imagePullSecret }}
+      imagePullSecrets:
+      - name: "{{ .Values.global.imagePullSecret }}"
+      {{- end }}
       {{- with .Values.global.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
