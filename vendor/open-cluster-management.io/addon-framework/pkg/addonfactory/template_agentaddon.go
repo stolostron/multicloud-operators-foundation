@@ -9,7 +9,6 @@ import (
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 
-	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	"open-cluster-management.io/addon-framework/pkg/agent"
 	"open-cluster-management.io/addon-framework/pkg/assets"
 )
@@ -37,19 +36,21 @@ type templateFile struct {
 }
 
 type TemplateAgentAddon struct {
-	decoder            runtime.Decoder
-	templateFiles      []templateFile
-	getValuesFuncs     []GetValuesFunc
-	agentAddonOptions  agent.AgentAddonOptions
-	trimCRDDescription bool
+	decoder               runtime.Decoder
+	templateFiles         []templateFile
+	getValuesFuncs        []GetValuesFunc
+	agentAddonOptions     agent.AgentAddonOptions
+	trimCRDDescription    bool
+	agentInstallNamespace func(addon *addonapiv1alpha1.ManagedClusterAddOn) string
 }
 
 func newTemplateAgentAddon(factory *AgentAddonFactory) *TemplateAgentAddon {
 	return &TemplateAgentAddon{
-		decoder:            serializer.NewCodecFactory(factory.scheme).UniversalDeserializer(),
-		getValuesFuncs:     factory.getValuesFuncs,
-		agentAddonOptions:  factory.agentAddonOptions,
-		trimCRDDescription: factory.trimCRDDescription,
+		decoder:               serializer.NewCodecFactory(factory.scheme).UniversalDeserializer(),
+		getValuesFuncs:        factory.getValuesFuncs,
+		agentAddonOptions:     factory.agentAddonOptions,
+		trimCRDDescription:    factory.trimCRDDescription,
+		agentInstallNamespace: factory.agentInstallNamespace,
 	}
 }
 
@@ -123,9 +124,15 @@ func (a *TemplateAgentAddon) getBuiltinValues(
 	if len(installNamespace) == 0 {
 		installNamespace = AddonDefaultInstallNamespace
 	}
+	if a.agentInstallNamespace != nil {
+		ns := a.agentInstallNamespace(addon)
+		if len(ns) > 0 {
+			installNamespace = ns
+		}
+	}
 	builtinValues.AddonInstallNamespace = installNamespace
 
-	builtinValues.InstallMode, _ = constants.GetHostedModeInfo(addon.GetAnnotations())
+	builtinValues.InstallMode, _ = a.agentAddonOptions.HostedModeInfoFunc(addon, cluster)
 
 	return StructToValues(builtinValues)
 }
