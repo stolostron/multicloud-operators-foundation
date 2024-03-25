@@ -3,10 +3,12 @@ package addon
 import (
 	"encoding/json"
 	"fmt"
-	kubeinformers "k8s.io/client-go/informers"
 	"os"
 	"testing"
 	"time"
+
+	apiconstants "github.com/stolostron/cluster-lifecycle-api/constants"
+	kubeinformers "k8s.io/client-go/informers"
 
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/stolostron/cluster-lifecycle-api/imageregistry/v1alpha1"
@@ -106,7 +108,7 @@ func newAgentAddon(t *testing.T) agent.AgentAddon {
 		WithScheme(scheme).
 		WithGetValuesFuncs(getValuesFunc, addonfactory.GetValuesFromAddonAnnotation).
 		WithAgentRegistrationOption(registrationOption).
-		WithInstallStrategy(agent.InstallAllStrategy("open-cluster-management-agent-addon")).
+		WithAgentHostedInfoFn(HostedClusterInfo).
 		BuildHelmAgentAddon()
 	if err != nil {
 		t.Fatalf("failed to build agent %v", err)
@@ -209,10 +211,12 @@ func TestManifest(t *testing.T) {
 				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}",
 					v1alpha1.ClusterImageRegistriesAnnotation: newAnnotationRegistries([]v1alpha1.Registries{
 						{Source: "quay.io/stolostron", Mirror: "quay.io/test"},
-					}, "")}),
-			addon: newAddonWithCustomizedAnnotation("work-manager", "local-cluster", "", map[string]string{
-				addonapiv1alpha1.HostingClusterNameAnnotationKey: "cluster2",
-			}),
+					}, ""),
+					apiconstants.AnnotationKlusterletHostingClusterName: "cluster2",
+					apiconstants.AnnotationKlusterletDeployMode:         "Hosted",
+				}),
+			addon: newAddonWithCustomizedAnnotation(
+				"work-manager", "local-cluster", "", map[string]string{}),
 			expectedNamespace:    "open-cluster-management-agent-addon",
 			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
 			expectedNodeSelector: true,
@@ -225,10 +229,12 @@ func TestManifest(t *testing.T) {
 				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}",
 					v1alpha1.ClusterImageRegistriesAnnotation: newAnnotationRegistries([]v1alpha1.Registries{
 						{Source: "quay.io/stolostron", Mirror: "quay.io/test"},
-					}, "")}),
-			addon: newAddonWithCustomizedAnnotation("work-manager", "cluster1", "klusterlet-cluster1", map[string]string{
-				addonapiv1alpha1.HostingClusterNameAnnotationKey: "cluster2",
-			}),
+					}, ""),
+					apiconstants.AnnotationKlusterletHostingClusterName: "cluster2",
+					apiconstants.AnnotationKlusterletDeployMode:         "Hosted",
+				}),
+			addon: newAddonWithCustomizedAnnotation(
+				"work-manager", "cluster1", "klusterlet-cluster1", map[string]string{}),
 			expectedNamespace:         "klusterlet-cluster1",
 			expectedNamespaceOrphaned: true,
 			expectedImage:             "quay.io/test/multicloud-manager:2.5.0",

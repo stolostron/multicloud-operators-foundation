@@ -3,6 +3,7 @@ package clustersetmapper
 import (
 	"context"
 
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
@@ -10,7 +11,6 @@ import (
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 	clusterv1beta2sdk "open-cluster-management.io/sdk-go/pkg/apis/cluster/v1beta2"
 
-	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"

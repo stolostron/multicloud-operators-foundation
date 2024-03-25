@@ -4,6 +4,7 @@ package app
 
 import (
 	"context"
+
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/managedserviceaccount"
 	msav1beta1client "open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versioned/typed/authentication/v1beta1"
 
@@ -40,14 +41,13 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/cmd/controller/app/options"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/addon"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/addoninstall"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterca"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterinfo"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterrole"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clusterclaim"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clusterdeployment"
-	clustersetmapper "github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
-	globalclusterset "github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/globalclusterset"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/globalclusterset"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncclusterrolebinding"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncrolebinding"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/gc"
@@ -162,14 +162,17 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 			WithGetValuesFuncs(
 				addon.NewGetValuesFunc(o.AddonImage),
 				addonfactory.GetValuesFromAddonAnnotation,
-				addonfactory.GetAddOnDeloymentConfigValues(
-					addonfactory.NewAddOnDeloymentConfigGetter(addonClient),
+				addonfactory.GetAddOnDeploymentConfigValues(
+					afutils.NewAddOnDeploymentConfigGetter(addonClient),
 					addonfactory.ToAddOnNodePlacementValues,
 					addonfactory.ToAddOnCustomizedVariableValues,
 				),
 			).
+			WithAgentInstallNamespace(addon.AddonInstallNamespaceFunc(
+				afutils.NewAddOnDeploymentConfigGetter(addonClient), mgr.GetClient())).
 			WithAgentRegistrationOption(registrationOption).
 			WithAgentHostedModeEnabledOption().
+			WithAgentHostedInfoFn(addon.HostedClusterInfo).
 			BuildHelmAgentAddon()
 		if err != nil {
 			klog.Errorf("failed to build agent %v", err)
@@ -224,11 +227,6 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 	}
 
 	cleanGarbageFinalizer := gc.NewCleanGarbageFinalizer(kubeClient)
-
-	if err = addoninstall.SetupWithManager(mgr); err != nil {
-		klog.Errorf("unable to setup addoninstall reconciler: %v", err)
-		return err
-	}
 
 	if err = managedserviceaccount.SetupWithManager(mgr, msaClient); err != nil {
 		klog.Errorf("unable to setup log managedserviceaccount reconciler: %v", err)

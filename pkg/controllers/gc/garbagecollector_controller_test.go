@@ -11,6 +11,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
+	metricserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/onsi/gomega"
 	actionv1beta1 "github.com/stolostron/cluster-lifecycle-api/action/v1beta1"
@@ -25,7 +26,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	metricserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
