@@ -38,11 +38,6 @@ const (
 	// AnnotationEnableHostedModeAddons is the key of annotation which indicates if the add-ons will be enabled
 	// in hosted mode automatically for a managed cluster
 	AnnotationEnableHostedModeAddons = "addon.open-cluster-management.io/enable-hosted-mode-addons"
-
-	// AnnotationAddOnHostingClusterName is the annotation key of hosting cluster name for add-ons
-	AnnotationAddOnHostingClusterName = "addon.open-cluster-management.io/hosting-cluster-name"
-
-	DefaultAddOnInstallNamespace = "open-cluster-management-agent-addon"
 )
 
 //go:embed manifests
@@ -155,19 +150,21 @@ func createOrUpdateRoleBinding(kubeClient kubernetes.Interface, rolebindingInfor
 	return nil
 }
 
-// AddonInstallNamespaceFunc reads addonDeploymentConfig to set install namespace for addons in default mode, and set install
-// namespace to klusterlet-{cluster name} for addons in hosted mode.
-func AddonInstallNamespaceFunc(addonGetter utils.AddOnDeploymentConfigGetter, clusterClient client.Client) func(addon *addonapiv1alpha1.ManagedClusterAddOn) string {
-	return func(addon *addonapiv1alpha1.ManagedClusterAddOn) string {
+// AddonInstallNamespaceFunc reads addonDeploymentConfig to set install namespace for addons in default mode,
+// and set install namespace to klusterlet-{cluster name} for addons in hosted mode.
+func AddonInstallNamespaceFunc(
+	addonGetter utils.AddOnDeploymentConfigGetter,
+	clusterClient client.Client) func(addon *addonapiv1alpha1.ManagedClusterAddOn) (string, error) {
+	return func(addon *addonapiv1alpha1.ManagedClusterAddOn) (string, error) {
 		cluster := &clusterv1.ManagedCluster{}
 		err := clusterClient.Get(context.TODO(), types.NamespacedName{Name: addon.Namespace}, cluster)
 		if err != nil {
-			return utils.AgentInstallNamespaceFromDeploymentConfigFunc(addonGetter)(addon)
+			return "", err
 		}
 
 		mode, _ := HostedClusterInfo(addon, cluster)
 		if mode == "Hosted" {
-			return fmt.Sprintf("klusterlet-%s", addon.Namespace)
+			return fmt.Sprintf("klusterlet-%s", addon.Namespace), nil
 		}
 
 		return utils.AgentInstallNamespaceFromDeploymentConfigFunc(addonGetter)(addon)
@@ -176,6 +173,9 @@ func AddonInstallNamespaceFunc(addonGetter utils.AddOnDeploymentConfigGetter, cl
 
 func HostedClusterInfo(_ *addonapiv1alpha1.ManagedClusterAddOn, cluster *clusterv1.ManagedCluster) (string, string) {
 	if len(cluster.Annotations) == 0 {
+		return "Default", ""
+	}
+	if cluster.Annotations[AnnotationEnableHostedModeAddons] != "true" {
 		return "Default", ""
 	}
 	if cluster.Annotations[apiconstants.AnnotationKlusterletDeployMode] != "Hosted" {

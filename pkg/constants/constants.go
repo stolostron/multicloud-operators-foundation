@@ -10,4 +10,8 @@ const (
 	// LabelFeatureHypershiftAddon is the feature for managed cluster to indicate whether the hypershift
 	// addon is available on this managed cluster
 	LabelFeatureHypershiftAddon = "feature.open-cluster-management.io/addon-hypershift-addon"
+
+	// GlobalNamespaceAnnotation is the annotation on the global managed cluster set. If the cluster set has
+	// this annotation, the related ns/binding/placement will not be created.
+	GlobalNamespaceAnnotation = "open-cluster-management.io/ns-create"
 )

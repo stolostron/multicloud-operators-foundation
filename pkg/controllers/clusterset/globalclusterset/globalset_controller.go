@@ -3,6 +3,7 @@ package globalclusterset
 import (
 	"context"
 
+	"github.com/stolostron/multicloud-operators-foundation/pkg/constants"
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	v1 "k8s.io/api/core/v1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
@@ -22,10 +23,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-)
-
-const (
-	globalNamespaceAnnotation = "open-cluster-management.io/ns-create"
 )
 
 // This controller apply a namespace and clustersetbinding for global set
@@ -160,7 +157,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, nil
 	}
 
-	_, ok := clusterset.Annotations[globalNamespaceAnnotation]
+	_, ok := clusterset.Annotations[constants.GlobalNamespaceAnnotation]
 	if !ok {
 		// this is to prevent the namespace can not be deleted when uninstall the mce
 		// issue: https://github.com/stolostron/backlog/issues/24532
@@ -172,7 +169,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		if clusterset.Annotations == nil {
 			clusterset.Annotations = map[string]string{}
 		}
-		clusterset.Annotations[globalNamespaceAnnotation] = "true"
+		clusterset.Annotations[constants.GlobalNamespaceAnnotation] = "true"
 		err = r.client.Update(ctx, clusterset, &client.UpdateOptions{})
 		if err != nil {
 			return ctrl.Result{}, err

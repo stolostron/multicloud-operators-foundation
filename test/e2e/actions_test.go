@@ -3,7 +3,6 @@ package e2e
 import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-
 	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"

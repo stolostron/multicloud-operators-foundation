@@ -5,7 +5,6 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-
 	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -75,6 +74,11 @@ var _ = ginkgo.Describe("Testing ManagedClusterView if agent is lost", func() {
 	ginkgo.BeforeEach(func() {
 		err = util.ImportManagedCluster(clusterClient, lostManagedCluster)
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+
+		gomega.Eventually(func() error {
+			_, err = addonClient.AddonV1alpha1().ManagedClusterAddOns(lostManagedCluster).Get(context.Background(), "work-manager", metav1.GetOptions{})
+			return err
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 	})
 
 	ginkgo.AfterEach(func() {
