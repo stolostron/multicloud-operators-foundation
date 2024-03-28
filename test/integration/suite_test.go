@@ -183,13 +183,16 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	gomega.Expect(k8sClient).ToNot(gomega.BeNil())
 
-	ginkgo.By("running webhook server")
-	go runWebhookServer(testCtx, cfg, scheme, &testEnv.WebhookInstallOptions, clusterInformer.Lister())
-
 	go clusterInformerFactory.Start(testCtx.Done())
 	if ok := cache.WaitForCacheSync(testCtx.Done(), clusterInformer.Informer().HasSynced); !ok {
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	}
+
+	ginkgo.By("running webhook server")
+	go func() {
+		err = runWebhookServer(testCtx, cfg, scheme, &testEnv.WebhookInstallOptions, clusterInformer.Lister())
+		gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	}()
 
 	d := &net.Dialer{Timeout: time.Second}
 	gomega.Eventually(func() error {
@@ -204,7 +207,7 @@ var _ = ginkgo.BeforeSuite(func() {
 		}
 		conn.Close()
 		return nil
-	}).Should(gomega.Succeed())
+	}, "120s", "1s").Should(gomega.Succeed())
 
 	ginkgo.By("Start to run tests")
 })
@@ -220,24 +223,17 @@ func runWebhookServer(ctx context.Context, cfg *rest.Config, scheme *runtime.Sch
 	opts *envtest.WebhookInstallOptions, clusterLister clusterlisterv1.ManagedClusterLister) error {
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
-	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: "localhost:8999",
-		LeaderElection:     false,
-		Host:               opts.LocalServingHost,
-		Port:               opts.LocalServingPort,
-		CertDir:            opts.LocalServingCertDir,
+	ginkgo.By(fmt.Sprintf("start server on %d", opts.LocalServingPort))
+	wh := webhook.NewServer(webhook.Options{
+		Host:    opts.LocalServingHost,
+		Port:    opts.LocalServingPort,
+		CertDir: opts.LocalServingCertDir,
 	})
-	if err != nil {
-		return err
-	}
 
 	// +kubebuilder:scaffold:builder
-
-	wh := mgr.GetWebhookServer()
 	wh.Register(validatingWebhookPath, ValidatingHandler(clusterLister))
 
-	if err := mgr.Start(ctx); err != nil {
+	if err := wh.Start(ctx); err != nil {
 		return err
 	}
 	return nil

@@ -2,6 +2,8 @@ package e2e
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"os"
 	"testing"
 
@@ -125,6 +127,8 @@ var _ = ginkgo.BeforeSuite(func() {
 		}
 		// check the distributionInfo
 		isOcp, err = util.IsOCP(managedClusterInfo)
+		jsonStr, _ := json.Marshal(managedClusterInfo)
+		fmt.Printf("clusterinfo is %v", string(jsonStr))
 		if err != nil {
 			return err
 		}

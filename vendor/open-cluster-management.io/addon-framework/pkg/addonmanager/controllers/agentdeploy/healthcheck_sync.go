@@ -105,6 +105,17 @@ func (s *healthCheckSyncer) probeDeploymentAvailabilityAddonStatus(
 func (s *healthCheckSyncer) probeAddonStatusByWorks(
 	cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) error {
 
+	if cluster != nil {
+		clusterAvailableCondition := meta.FindStatusCondition(cluster.Status.Conditions,
+			clusterv1.ManagedClusterConditionAvailable)
+		if clusterAvailableCondition != nil && clusterAvailableCondition.Status == metav1.ConditionUnknown {
+			// if the managed cluster availability is unknown, skip the health check
+			// and the registration agent will set all addon status to unknown
+			// nolint see: https://github.com/open-cluster-management-io/ocm/blob/9dc8f104cf51439b6bb1f738894e75aabdf5f8dc/pkg/registration/hub/addon/healthcheck_controller.go#L68-L78
+			return nil
+		}
+	}
+
 	addonWorks, err := s.getWorkByAddon(addon.Name, addon.Namespace)
 	if err != nil || len(addonWorks) == 0 {
 		meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
@@ -181,7 +192,7 @@ func (s *healthCheckSyncer) probeAddonStatusByWorks(
 		Type:    addonapiv1alpha1.ManagedClusterAddOnConditionAvailable,
 		Status:  metav1.ConditionTrue,
 		Reason:  addonapiv1alpha1.AddonAvailableReasonProbeAvailable,
-		Message: "Addon is available",
+		Message: fmt.Sprintf("%s add-on is available.", addon.Name),
 	})
 	return nil
 }
@@ -221,6 +232,10 @@ func (s *healthCheckSyncer) analyzeDeploymentWorkProber(
 	deployments := utils.FilterDeployments(manifests)
 	for _, deployment := range deployments {
 		manifestConfig := utils.DeploymentWellKnowManifestConfig(deployment.Namespace, deployment.Name)
+		// only probe the deployment with non-zero replicas
+		if deployment.Spec.Replicas != nil && *deployment.Spec.Replicas == 0 {
+			continue
+		}
 		probeFields = append(probeFields, agent.ProbeField{
 			ResourceIdentifier: manifestConfig.ResourceIdentifier,
 			ProbeRules:         manifestConfig.FeedbackRules,

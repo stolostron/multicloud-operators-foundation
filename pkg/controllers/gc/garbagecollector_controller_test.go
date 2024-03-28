@@ -11,6 +11,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	rbacv1 "k8s.io/api/rbac/v1"
 	k8sfake "k8s.io/client-go/kubernetes/fake"
+	metricserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	"github.com/onsi/gomega"
 	actionv1beta1 "github.com/stolostron/cluster-lifecycle-api/action/v1beta1"
@@ -90,7 +91,11 @@ func TestControllerReconcile(t *testing.T) {
 
 	// Setup the Manager and Controller.  Wrap the Controller Reconcile function so it writes each request to a
 	// channel when it is finished.
-	mgr, err := manager.New(cfg, manager.Options{MetricsBindAddress: "0"})
+	mgr, err := manager.New(cfg, manager.Options{
+		Metrics: metricserver.Options{
+			BindAddress: "0",
+		},
+	})
 	g.Expect(err).NotTo(gomega.HaveOccurred())
 
 	c = mgr.GetClient()

@@ -8,7 +8,8 @@ import (
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
-// AddOnDeploymentConfig represents a deployment configuration for an add-on.
+// AddOnDeploymentConfig represents a configuration to customize the deployments of an add-on.
+// For example, you can specify the NodePlacement to control the scheduling of the add-on agents.
 type AddOnDeploymentConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -110,6 +111,11 @@ type ProxyConfig struct {
 	// HTTPSProxy is the URL of the proxy for HTTPS requests
 	// +optional
 	HTTPSProxy string `json:"httpsProxy,omitempty"`
+
+	// CABundle is a CA certificate bundle to verify the proxy server.
+	// And it's only useful when HTTPSProxy is set and a HTTPS proxy server is specified.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
 
 	// NoProxy is a comma-separated list of hostnames and/or CIDRs and/or IPs for which the proxy
 	// should not be used.
