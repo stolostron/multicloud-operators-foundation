@@ -8,6 +8,7 @@ import (
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
+	clusterv1beta2sdk "open-cluster-management.io/sdk-go/pkg/apis/cluster/v1beta2"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"k8s.io/apimachinery/pkg/labels"
@@ -297,7 +298,7 @@ func (r *Reconciler) cleanClusterSetResource(clusterset *clusterv1beta2.ManagedC
 // r.clusterSetNamespaceMapper (map[string]sets.String) stores the map of <ClusterSet Name> to <namespaces>, the namespaces are the namespace of clusterpools/clusterclaims/clusterdeployments which are in this clusterset.
 // These three Mappers are used to propagate the clusterset admin/bind/view permission to managedclusters/managedclusters namespaces/clusterpools namespace/clusterclaims namespace/clusterdeployments namespaces which are in the clusterset.
 func (r *Reconciler) syncClustersetMapper(clusterset *clusterv1beta2.ManagedClusterSet) error {
-	selector, err := clusterv1beta2.BuildClusterSelector(clusterset)
+	selector, err := clusterv1beta2sdk.BuildClusterSelector(clusterset)
 	if err != nil {
 		return err
 	}

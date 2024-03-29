@@ -117,7 +117,7 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 
 	err = r.Client.Status().Update(ctx, newClusterInfo)
 	if err != nil {
-		klog.Error("Failed to update clusterInfo status. error %v", err)
+		klog.Error("Failed to update clusterInfo status. error %w", err)
 		return ctrl.Result{}, err
 	}
 
