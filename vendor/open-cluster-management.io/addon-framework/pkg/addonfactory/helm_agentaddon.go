@@ -42,22 +42,24 @@ type helmDefaultValues struct {
 }
 
 type HelmAgentAddon struct {
-	decoder            runtime.Decoder
-	chart              *chart.Chart
-	getValuesFuncs     []GetValuesFunc
-	agentAddonOptions  agent.AgentAddonOptions
-	trimCRDDescription bool
-	hostingCluster     *clusterv1.ManagedCluster
+	decoder               runtime.Decoder
+	chart                 *chart.Chart
+	getValuesFuncs        []GetValuesFunc
+	agentAddonOptions     agent.AgentAddonOptions
+	trimCRDDescription    bool
+	hostingCluster        *clusterv1.ManagedCluster
+	agentInstallNamespace func(addon *addonapiv1alpha1.ManagedClusterAddOn) string
 }
 
 func newHelmAgentAddon(factory *AgentAddonFactory, chart *chart.Chart) *HelmAgentAddon {
 	return &HelmAgentAddon{
-		decoder:            serializer.NewCodecFactory(factory.scheme).UniversalDeserializer(),
-		chart:              chart,
-		getValuesFuncs:     factory.getValuesFuncs,
-		agentAddonOptions:  factory.agentAddonOptions,
-		trimCRDDescription: factory.trimCRDDescription,
-		hostingCluster:     factory.hostingCluster,
+		decoder:               serializer.NewCodecFactory(factory.scheme).UniversalDeserializer(),
+		chart:                 chart,
+		getValuesFuncs:        factory.getValuesFuncs,
+		agentAddonOptions:     factory.agentAddonOptions,
+		trimCRDDescription:    factory.trimCRDDescription,
+		hostingCluster:        factory.hostingCluster,
+		agentInstallNamespace: factory.agentInstallNamespace,
 	}
 }
 
@@ -149,7 +151,7 @@ func (a *HelmAgentAddon) getValues(
 
 	defaultValues, err := a.getDefaultValues(cluster, addon)
 	if err != nil {
-		klog.Error("failed to get defaultValue. err:%v", err)
+		klog.Errorf("failed to get defaultValue. err:%v", err)
 		return nil, err
 	}
 	overrideValues = MergeValues(overrideValues, defaultValues)
@@ -169,14 +171,14 @@ func (a *HelmAgentAddon) getValues(
 
 	builtinValues, err := a.getBuiltinValues(cluster, addon)
 	if err != nil {
-		klog.Error("failed to get builtinValue. err:%v", err)
+		klog.Errorf("failed to get builtinValue. err:%v", err)
 		return nil, err
 	}
 
 	overrideValues = MergeValues(overrideValues, builtinValues)
 
 	values, err := chartutil.ToRenderValues(a.chart, overrideValues,
-		a.releaseOptions(cluster, addon), a.capabilities(cluster, addon))
+		a.releaseOptions(addon), a.capabilities(cluster, addon))
 	if err != nil {
 		klog.Errorf("failed to render helm chart with values %v. err:%v", overrideValues, err)
 		return values, err
@@ -185,23 +187,33 @@ func (a *HelmAgentAddon) getValues(
 	return values, nil
 }
 
+func (a *HelmAgentAddon) getValueAgentInstallNamespace(addon *addonapiv1alpha1.ManagedClusterAddOn) string {
+	installNamespace := addon.Spec.InstallNamespace
+	if len(installNamespace) == 0 {
+		installNamespace = AddonDefaultInstallNamespace
+	}
+	if a.agentInstallNamespace != nil {
+		ns := a.agentInstallNamespace(addon)
+		if len(ns) > 0 {
+			installNamespace = ns
+		}
+	}
+	return installNamespace
+}
+
 func (a *HelmAgentAddon) getBuiltinValues(
 	cluster *clusterv1.ManagedCluster,
 	addon *addonapiv1alpha1.ManagedClusterAddOn) (Values, error) {
 	builtinValues := helmBuiltinValues{}
 	builtinValues.ClusterName = cluster.GetName()
 
-	installNamespace := addon.Spec.InstallNamespace
-	if len(installNamespace) == 0 {
-		installNamespace = AddonDefaultInstallNamespace
-	}
-	builtinValues.AddonInstallNamespace = installNamespace
+	builtinValues.AddonInstallNamespace = a.getValueAgentInstallNamespace(addon)
 
 	builtinValues.InstallMode, _ = constants.GetHostedModeInfo(addon.GetAnnotations())
 
 	helmBuiltinValues, err := JsonStructToValues(builtinValues)
 	if err != nil {
-		klog.Error("failed to convert builtinValues to values %v.err:%v", builtinValues, err)
+		klog.Errorf("failed to convert builtinValues to values %v.err:%v", builtinValues, err)
 		return nil, err
 	}
 	return helmBuiltinValues, nil
@@ -225,7 +237,7 @@ func (a *HelmAgentAddon) getDefaultValues(
 
 	helmDefaultValues, err := JsonStructToValues(defaultValues)
 	if err != nil {
-		klog.Error("failed to convert defaultValues to values %v.err:%v", defaultValues, err)
+		klog.Errorf("failed to convert defaultValues to values %v.err:%v", defaultValues, err)
 		return nil, err
 	}
 	return helmDefaultValues, nil
@@ -242,11 +254,9 @@ func (a *HelmAgentAddon) capabilities(
 
 // only support Release.Name, Release.Namespace
 func (a *HelmAgentAddon) releaseOptions(
-	cluster *clusterv1.ManagedCluster,
 	addon *addonapiv1alpha1.ManagedClusterAddOn) chartutil.ReleaseOptions {
-	installNamespace := addon.Spec.InstallNamespace
-	if len(installNamespace) == 0 {
-		installNamespace = AddonDefaultInstallNamespace
+	return chartutil.ReleaseOptions{
+		Name:      a.agentAddonOptions.AddonName,
+		Namespace: a.getValueAgentInstallNamespace(addon),
 	}
-	return chartutil.ReleaseOptions{Name: a.agentAddonOptions.AddonName, Namespace: installNamespace}
 }

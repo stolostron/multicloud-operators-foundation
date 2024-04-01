@@ -47,8 +47,10 @@ import (
 	"k8s.io/component-base/logs"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+	metricserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 )
 
 var (
@@ -180,9 +182,10 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 	go app.ServeHealthProbes(ctx.Done(), ":8000", cc.Check)
 
 	mgr, err := ctrl.NewManager(hubConfig, ctrl.Options{
-		Scheme:             scheme,
-		MetricsBindAddress: o.MetricsAddr,
-		Namespace:          o.ClusterName,
+		Scheme:  scheme,
+		Metrics: metricserver.Options{BindAddress: o.MetricsAddr},
+		Cache: cache.Options{DefaultNamespaces: map[string]cache.Config{
+			o.ClusterName: {}}},
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
