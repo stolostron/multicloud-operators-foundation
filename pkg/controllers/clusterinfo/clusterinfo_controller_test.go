@@ -107,7 +107,7 @@ func TestControllerReconcile(t *testing.T) {
 
 	c = mgr.GetClient()
 
-	SetupWithManager(mgr, "open-cluster-management/ocm-klusterlet-self-signed-secrets")
+	SetupWithManager(mgr)
 
 	cancel, mgrStopped := StartTestManager(mgr, g)
 
@@ -261,67 +261,6 @@ func TestReconcile(t *testing.T) {
 			} else {
 				assert.Equal(t, res.Requeue, false)
 			}
-		})
-	}
-}
-
-func Test_getLogCA(t *testing.T) {
-	tests := []struct {
-		name                   string
-		logCertSecretNamespace string
-		logCertSecretName      string
-		existingObjs           []runtime.Object
-		expectError            bool
-		expectCAData           []byte
-	}{
-		{
-			name:                   "get log ca",
-			logCertSecretNamespace: "open-cluster-management",
-			logCertSecretName:      "open-cluster-management",
-			existingObjs: []runtime.Object{&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: "open-cluster-management", Namespace: "open-cluster-management"},
-				Data: map[string][]byte{
-					"ca.crt": {123},
-				},
-			}},
-			expectCAData: []byte{123},
-		},
-		{
-			name:                   "no cert secret",
-			logCertSecretNamespace: "open-cluster-management",
-			logCertSecretName:      "open-cluster-management",
-			existingObjs:           []runtime.Object{},
-			expectError:            true,
-			expectCAData:           nil,
-		},
-		{
-			name:         "no cert secret is sepecified",
-			existingObjs: []runtime.Object{},
-			expectCAData: nil,
-		},
-		{
-			name:                   "no ca data",
-			logCertSecretNamespace: "open-cluster-management",
-			logCertSecretName:      "open-cluster-management",
-			existingObjs: []runtime.Object{&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: "open-cluster-management", Namespace: "open-cluster-management"},
-				Data:       nil,
-			}},
-			expectCAData: nil,
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			logCertSecretNamespace = test.logCertSecretNamespace
-			logCertSecretName = test.logCertSecretName
-			svrc := newTestClusterInfoReconciler(test.existingObjs)
-			caData, err := svrc.getLogCA()
-			if !test.expectError && err != nil {
-				t.Errorf("unexpected error %v", err)
-			}
-
-			assert.Equal(t, test.expectCAData, caData)
 		})
 	}
 }

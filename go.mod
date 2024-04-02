@@ -22,7 +22,6 @@ replace k8s.io/client-go => k8s.io/client-go v0.29.2
 replace cloud.google.com/go => cloud.google.com/go v0.100.2
 
 require (
-	github.com/emicklei/go-restful v2.16.0+incompatible
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
 	github.com/go-logr/logr v1.4.1
 	github.com/gogo/protobuf v1.3.2
