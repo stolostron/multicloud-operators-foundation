@@ -1,6 +1,7 @@
 package clusterclaim
 
 import (
+	"fmt"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/types"
@@ -580,12 +581,13 @@ func TestClusterClaimerList(t *testing.T) {
 		{
 			name:        "claims of microshift",
 			clusterName: "microshift",
-			kubeClient:  newFakeKubeClient([]runtime.Object{newEndpointKubernetes(), newNode(""), newMicroShiftVersionConfigmap("4.13.6")}),
+			kubeClient:  newFakeKubeClient([]runtime.Object{newEndpointKubernetes(), newNode(""), newMicroShiftVersionConfigmap("4.13.6"), newNamespace("kube-system", "abc123")}),
 			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{}),
 			expectClaims: map[string]string{
 				ClaimK8sID:             "microshift",
 				ClaimOCMPlatform:       PlatformOther,
 				ClaimOCMProduct:        ProductMicroShift,
+				ClaimMicroShiftID:      "abc123",
 				ClaimMicroShiftVersion: "4.13.6",
 				ClaimOCMKubeVersion:    "v0.0.0-master+$Format:%H$",
 			},
@@ -1142,6 +1144,58 @@ func TestUpdatePlatformProduct(t *testing.T) {
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, test.expectPlatform, platform)
 			assert.Equal(t, test.expectProduct, product)
+		})
+	}
+}
+
+func TestGetMicroShiftVersion(t *testing.T) {
+	tests := []struct {
+		name                    string
+		kubeClient              kubernetes.Interface
+		expectMicroShiftVersion string
+		expectMicroShiftID      string
+		expectErr               error
+	}{
+		{
+			name:                    "get version and id of microshift",
+			kubeClient:              newFakeKubeClient([]runtime.Object{newMicroShiftVersionConfigmap("4.13.6"), newNamespace("kube-system", "abc123")}),
+			expectMicroShiftVersion: "4.13.6",
+			expectMicroShiftID:      "abc123",
+			expectErr:               nil,
+		},
+		{
+			name:                    "no version of microshift",
+			kubeClient:              newFakeKubeClient([]runtime.Object{newNamespace("kube-system", "abc123")}),
+			expectMicroShiftVersion: "",
+			expectMicroShiftID:      "",
+			expectErr:               nil,
+		},
+		{
+			name:                    "invalid version of microshift",
+			kubeClient:              newFakeKubeClient([]runtime.Object{newMicroShiftVersionConfigmap(""), newNamespace("kube-system", "abc123")}),
+			expectMicroShiftVersion: "",
+			expectMicroShiftID:      "",
+			expectErr:               fmt.Errorf("get an invalid version in microshift-version configmap"),
+		},
+		{
+			name:                    "no id of microshift",
+			kubeClient:              newFakeKubeClient([]runtime.Object{newMicroShiftVersionConfigmap("4.13.6")}),
+			expectMicroShiftVersion: "4.13.6",
+			expectMicroShiftID:      "",
+			expectErr:               nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			clusterClaimer := ClusterClaimer{
+				KubeClient: test.kubeClient,
+			}
+			microShiftVersion, microShiftID, err := clusterClaimer.getMicroShiftVersion()
+			assert.Equal(t, test.expectErr, err)
+
+			assert.Equal(t, microShiftVersion, test.expectMicroShiftVersion)
+			assert.Equal(t, microShiftID, test.expectMicroShiftID)
 		})
 	}
 }

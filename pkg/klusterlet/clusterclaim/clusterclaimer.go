@@ -28,6 +28,7 @@ import (
 const (
 	ClaimK8sID                      = "id.k8s.io"
 	ClaimOpenshiftID                = "id.openshift.io"
+	ClaimMicroShiftID               = "id.microshift.io"
 	ClaimOpenshiftVersion           = "version.openshift.io"
 	ClaimMicroShiftVersion          = "version.microshift.io"
 	ClaimOpenshiftInfrastructure    = "infrastructure.openshift.io"
@@ -242,10 +243,13 @@ func (c *ClusterClaimer) GenerateExpectClusterClaims() ([]*clusterv1alpha1.Clust
 		claims = append(claims, newClusterClaim(ClaimOCMRegion, region))
 	}
 
-	microShiftVersion, err := c.getMicroShiftVersion()
+	microShiftVersion, microShiftID, err := c.getMicroShiftVersion()
 	if err != nil {
 		klog.Errorf("failed to get microshift version: %v", err)
 		return claims, err
+	}
+	if len(microShiftID) != 0 {
+		claims = append(claims, newClusterClaim(ClaimMicroShiftID, microShiftID))
 	}
 	if len(microShiftVersion) != 0 {
 		claims = append(claims, newClusterClaim(ClaimMicroShiftVersion, microShiftVersion))
@@ -636,7 +640,7 @@ func (c *ClusterClaimer) getPlatformProduct() (string, string, error) {
 		}
 	}
 
-	microShiftVersion, err := c.getMicroShiftVersion()
+	microShiftVersion, _, err := c.getMicroShiftVersion()
 	if err != nil {
 		klog.Errorf("failed to check if cluster is microshift. %v", err)
 		return "", "", err
@@ -685,22 +689,28 @@ func (c *ClusterClaimer) getControlPlaneTopology() configv1.TopologyMode {
 	return infra.Status.ControlPlaneTopology
 }
 
-func (c *ClusterClaimer) getMicroShiftVersion() (string, error) {
+func (c *ClusterClaimer) getMicroShiftVersion() (string, string, error) {
 	configmap, err := c.KubeClient.CoreV1().ConfigMaps("kube-public").Get(context.TODO(), "microshift-version", metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
-		return "", nil
+		return "", "", nil
 	}
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	if configmap.Data == nil {
-		return "", fmt.Errorf("failed to get version in microshift-version configmap")
+		return "", "", fmt.Errorf("failed to get version in microshift-version configmap")
 	}
 
 	version := configmap.Data["version"]
 	if version == "" {
-		return "", fmt.Errorf("get a invalid version in microshift-version configmap")
+		return "", "", fmt.Errorf("get an invalid version in microshift-version configmap")
 	}
 
-	return version, nil
+	ns, err := c.KubeClient.CoreV1().Namespaces().Get(context.TODO(), "kube-system", metav1.GetOptions{})
+	if err != nil {
+		klog.Errorf("Get kube-system namespace failed, %v", err)
+		return version, "", nil
+	}
+
+	return version, string(ns.UID), nil
 }
