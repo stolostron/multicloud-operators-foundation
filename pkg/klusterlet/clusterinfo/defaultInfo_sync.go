@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+
 	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	"golang.org/x/net/context"
@@ -25,8 +26,14 @@ func (s *defaultInfoSyncer) sync(ctx context.Context, clusterInfo *clusterv1beta
 			clusterInfo.Status.ConsoleURL = value
 		case clusterclaim.ClaimOCMKubeVersion:
 			clusterInfo.Status.Version = value
+		// use id.openshift.io as cluster ID for ocp clusters
 		case clusterclaim.ClaimOpenshiftID:
 			clusterInfo.Status.ClusterID = value
+		// use id.k8s.io as cluster ID for non-ocp clusters
+		case clusterclaim.ClaimK8sID:
+			if clusterInfo.Status.ClusterID == "" {
+				clusterInfo.Status.ClusterID = value
+			}
 		case clusterclaim.ClaimOCMProduct:
 			clusterInfo.Status.KubeVendor = getKubeVendor(value)
 		case clusterclaim.ClaimOCMPlatform:
