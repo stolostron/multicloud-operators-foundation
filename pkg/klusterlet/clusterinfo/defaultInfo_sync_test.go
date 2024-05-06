@@ -2,6 +2,9 @@ package controllers
 
 import (
 	"context"
+	"testing"
+	"time"
+
 	"github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -9,8 +12,6 @@ import (
 	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
-	"testing"
-	"time"
 )
 
 func newClaim(name, value string) *clusterv1alpha1.ClusterClaim {
@@ -137,6 +138,27 @@ func Test_defaultInfo_syncer(t *testing.T) {
 					managedClusterInfo.Status.Version != "v1.20.0" ||
 					managedClusterInfo.Status.KubeVendor != v1beta1.KubeVendorIKS ||
 					managedClusterInfo.Status.CloudVendor != v1beta1.CloudVendorOpenStack {
+					t.Errorf("failed to validate defaut info")
+				}
+			},
+		},
+		{
+			name: "Microshift cluster",
+			claims: []runtime.Object{
+				newClaim(clusterclaim.ClaimOCMKubeVersion, "v1.20.0"),
+				newClaim(clusterclaim.ClaimOCMProduct, clusterclaim.ProductMicroShift),
+				newClaim(clusterclaim.ClaimOCMPlatform, clusterclaim.PlatformOther),
+				newClaim(clusterclaim.ClaimK8sID, "aaa-bbb"),
+				newClaim(clusterclaim.ClaimMicroShiftVersion, "4.16.0"),
+			},
+			managedClusterInfo: &v1beta1.ManagedClusterInfo{
+				ObjectMeta: metav1.ObjectMeta{Name: "c1", Namespace: "c1"},
+			},
+			validate: func(managedClusterInfo *v1beta1.ManagedClusterInfo) {
+				if managedClusterInfo.Status.ClusterID != "aaa-bbb" ||
+					managedClusterInfo.Status.Version != "v1.20.0" ||
+					managedClusterInfo.Status.KubeVendor != v1beta1.KubeVendorMicroShift ||
+					managedClusterInfo.Status.CloudVendor != v1beta1.CloudVendorOther {
 					t.Errorf("failed to validate defaut info")
 				}
 			},
