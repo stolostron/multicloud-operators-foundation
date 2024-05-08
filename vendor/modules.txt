@@ -335,17 +335,6 @@ github.com/openshift/client-go/route/clientset/versioned/typed/route/v1/fake
 # github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87
 ## explicit; go 1.12
 github.com/openshift/custom-resource-status/conditions/v1
-# github.com/openshift/hive v1.1.17-0.20240123053920-35373d831d5b
-## explicit; go 1.21
-github.com/openshift/hive/pkg/client/applyconfiguration/hive/v1
-github.com/openshift/hive/pkg/client/applyconfiguration/hiveinternal/v1alpha1
-github.com/openshift/hive/pkg/client/clientset/versioned
-github.com/openshift/hive/pkg/client/clientset/versioned/fake
-github.com/openshift/hive/pkg/client/clientset/versioned/scheme
-github.com/openshift/hive/pkg/client/clientset/versioned/typed/hive/v1
-github.com/openshift/hive/pkg/client/clientset/versioned/typed/hive/v1/fake
-github.com/openshift/hive/pkg/client/clientset/versioned/typed/hiveinternal/v1alpha1
-github.com/openshift/hive/pkg/client/clientset/versioned/typed/hiveinternal/v1alpha1/fake
 # github.com/openshift/hive/apis v0.0.0 => github.com/openshift/hive/apis v0.0.0-20240123053920-35373d831d5b
 ## explicit; go 1.21
 github.com/openshift/hive/apis/hive/v1
@@ -397,6 +386,8 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
+# github.com/sergi/go-diff v1.2.0
+## explicit; go 1.12
 # github.com/shopspring/decimal v1.3.1
 ## explicit; go 1.13
 github.com/shopspring/decimal

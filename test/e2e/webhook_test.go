@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
-	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -196,7 +196,7 @@ var _ = ginkgo.Describe("Testing user create/update clusterdeployment with mange
 	var rbacName = "e2e-" + userName
 	var clusterSet1 = "clusterset1-e2e"
 	var clusterSet2 = "clusterset2-e2e"
-	var userHiveClient hiveclient.Interface
+	var userHiveClient client.Client
 	ginkgo.BeforeEach(func() {
 		var err error
 		// create rbac with managedClusterSet/join clusterset-e2e permission for user
@@ -296,7 +296,7 @@ var _ = ginkgo.Describe("Testing user create/update clusterpool with mangedClust
 	var rbacName = "e2e-" + userName
 	var clusterSet1 = "clusterset1-e2e"
 	var clusterSet2 = "clusterset2-e2e"
-	var userHiveClient hiveclient.Interface
+	var userHiveClient client.Client
 	ginkgo.BeforeEach(func() {
 		var err error
 		// create rbac with managedClusterSet/join clusterset-e2e permission for user
@@ -393,13 +393,28 @@ var _ = ginkgo.Describe("Cluster admin user should fail when updating clusterpoo
 	})
 
 	ginkgo.AfterEach(func() {
-		err = hiveClient.HiveV1().ClusterDeployments(managedClusterName).Delete(context.TODO(), managedClusterName, metav1.DeleteOptions{})
+		err = hiveClient.Delete(context.TODO(), &hivev1.ClusterDeployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      managedClusterName,
+				Namespace: managedClusterName,
+			},
+		})
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		err = hiveClient.HiveV1().ClusterClaims(clusterPoolNamespace).Delete(context.TODO(), clusterClaim, metav1.DeleteOptions{})
+		err = hiveClient.Delete(context.TODO(), &hivev1.ClusterClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterClaim,
+				Namespace: clusterPoolNamespace,
+			},
+		})
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		err = hiveClient.HiveV1().ClusterPools(clusterPoolNamespace).Delete(context.TODO(), clusterPool, metav1.DeleteOptions{})
+		err = hiveClient.Delete(context.TODO(), &hivev1.ClusterPool{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterPool,
+				Namespace: clusterPoolNamespace,
+			},
+		})
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		err = util.DeleteNamespace(clusterPoolNamespace)

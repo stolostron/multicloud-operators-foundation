@@ -123,8 +123,7 @@ var _ = ginkgo.Describe("Testing cluster deployment deletion", func() {
 		}
 		ginkgo.By(fmt.Sprintf("create a clusterDeployment %s", clusterName))
 		gomega.Eventually(func() error {
-			_, err := hiveClient.HiveV1().ClusterDeployments(namespace).Create(
-				context.TODO(), clusterDeployment, metav1.CreateOptions{})
+			err := hiveClient.Create(context.TODO(), clusterDeployment)
 			if err != nil {
 				ginkgo.By(fmt.Sprintf("create cluster deployment err %v", err))
 				return err
@@ -181,8 +180,8 @@ var _ = ginkgo.Describe("Testing cluster deployment deletion", func() {
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 		ginkgo.By(fmt.Sprintf("The cluster deployment %s can not be deleted", clusterName))
-		err := hiveClient.HiveV1().ClusterDeployments(namespace).Delete(
-			context.TODO(), clusterName, metav1.DeleteOptions{})
+		err := hiveClient.Delete(context.TODO(), clusterDeployment)
+
 		gomega.Expect(err).Should(gomega.HaveOccurred())
 
 		ginkgo.By(fmt.Sprintf("The hosting cluster %s can not be deleted", clusterName))
@@ -204,8 +203,7 @@ var _ = ginkgo.Describe("Testing cluster deployment deletion", func() {
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 		ginkgo.By(fmt.Sprintf("The cluster deployment %s can be deleted now", clusterName))
-		err = hiveClient.HiveV1().ClusterDeployments(namespace).Delete(
-			context.TODO(), clusterName, metav1.DeleteOptions{})
+		err = hiveClient.Delete(context.TODO(), clusterDeployment)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 		ginkgo.By(fmt.Sprintf("The cluster %s can be deleted now", clusterName))

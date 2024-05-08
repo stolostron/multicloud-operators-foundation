@@ -31,7 +31,6 @@ require (
 	github.com/openshift/api v0.0.0-20231218131639-7a5aa77cc72d
 	github.com/openshift/build-machinery-go v0.0.0-20231128094528-1e9b1b0595c8
 	github.com/openshift/client-go v0.0.0-20231218140158-47f6d749b9d9
-	github.com/openshift/hive v1.1.17-0.20240123053920-35373d831d5b
 	github.com/openshift/hive/apis v0.0.0
 	github.com/openshift/library-go v0.0.0-20240116081341-964bcb3f545c
 	github.com/prometheus/client_golang v1.18.0
@@ -123,6 +122,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.5.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
+	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/smarty/assertions v1.15.0 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
