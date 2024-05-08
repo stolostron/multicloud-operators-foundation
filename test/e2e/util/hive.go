@@ -200,5 +200,7 @@ func ClaimCluster(hiveClient hiveclient.Interface, cdName, cdNs, claimName strin
 		return err
 	}
 	cd.Spec.ClusterPoolRef.ClaimName = claimName
-	return nil
+
+	_, err = hiveClient.HiveV1().ClusterDeployments(cdNs).Update(context.TODO(), cd, metav1.UpdateOptions{})
+	return err
 }
