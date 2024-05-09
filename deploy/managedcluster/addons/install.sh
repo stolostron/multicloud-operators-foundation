@@ -61,8 +61,8 @@ BASEDDOMAIN=$($KUBECTL get ingress.config.openshift.io cluster -o=jsonpath='{.sp
 	-n open-cluster-management --create-namespace \
 	cluster-proxy-addon chart/cluster-proxy-addon \
 	--set global.pullPolicy=Always \
-	--set global.imageOverrides.cluster_proxy_addon="${CLUSTER_PROXY_ADDON_IMAGE}:latest" \
-	--set global.imageOverrides.cluster_proxy="${IMAGE_CLUSTER_PROXY}:latest" \
+	--set global.imageOverrides.cluster_proxy_addon="${CLUSTER_PROXY_ADDON_IMAGE}:main" \
+	--set global.imageOverrides.cluster_proxy="${IMAGE_CLUSTER_PROXY}:main" \
 	--set cluster_basedomain="${BASEDDOMAIN}"
 if [ $? -eq 1 ]; then
   echo "failed to install cluster-proxy addon"
