@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
-	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
 	apiconstants "github.com/stolostron/cluster-lifecycle-api/constants"
 	v1 "k8s.io/api/admission/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
@@ -20,10 +19,12 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	clusterlisterv1 "open-cluster-management.io/api/client/cluster/listers/cluster/v1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/constants"
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
@@ -31,7 +32,7 @@ import (
 )
 
 type AdmissionHandler struct {
-	HiveClient    hiveclient.Interface
+	HiveClient    client.Client
 	KubeClient    kubernetes.Interface
 	ClusterLister clusterlisterv1.ManagedClusterLister
 }
@@ -187,18 +188,18 @@ func (a *AdmissionHandler) validateManagedCluster(request *v1.AdmissionRequest) 
 		//    update the managedcluster.
 		// 3. The related clusterdeployment is not created from clusterpool, check if user has
 		//    permission to update the managedcluster.
-		clusterDeployment, err := a.HiveClient.HiveV1().ClusterDeployments(managedCluster.Name).Get(
-			context.TODO(), managedCluster.Name, metav1.GetOptions{})
+		clusterDeployment := &hivev1.ClusterDeployment{}
+		err := a.HiveClient.Get(context.TODO(), types.NamespacedName{Name: managedCluster.Name, Namespace: managedCluster.Name}, clusterDeployment)
 		if err != nil {
-			if !errors.IsNotFound(err) {
-				return a.responseNotAllowed(err.Error())
+			if errors.IsNotFound(err) {
+				// Do not find clusterdeployment in managedcluster namespace. allow to update clusterset label.
+				return a.validateAllowUpdateClusterSet(request.UserInfo, oldClusterSet, newClusterSet)
 			}
-			// Do not find clusterdeployment in managedcluster namespace. allow to update clusterset label.
-			return a.validateAllowUpdateClusterSet(request.UserInfo, oldClusterSet, newClusterSet)
+			return a.responseNotAllowed(err.Error())
 		}
 
 		// the cluster is claimed from clusterpool, do not allow to update clustersetlabel.
-		if clusterDeployment != nil && clusterDeployment.Spec.ClusterPoolRef != nil {
+		if clusterDeployment.Spec.ClusterPoolRef != nil {
 			//For upgrade from 2.4 to 2.5, we need to move all clusters from empty set to "default" set.
 			if newClusterSet == clustersetutils.DefaultSetName && len(oldClusterSet) == 0 {
 				return a.validateAllowUpdateClusterSet(request.UserInfo, oldClusterSet, newClusterSet)

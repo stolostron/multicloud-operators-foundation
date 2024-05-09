@@ -2,18 +2,29 @@ package util
 
 import (
 	"context"
+	"fmt"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/openshift/hive/apis/hive/v1/aws"
-	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/util/retry"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func NewHiveClient() (hiveclient.Interface, error) {
+var (
+	hivescheme = runtime.NewScheme()
+)
+
+func init() {
+	_ = hivev1.AddToScheme(hivescheme)
+}
+
+func NewHiveClient() (client.Client, error) {
 	kubeConfigFile, err := getKubeConfigFile()
 	if err != nil {
 		return nil, err
@@ -24,10 +35,10 @@ func NewHiveClient() (hiveclient.Interface, error) {
 		return nil, err
 	}
 
-	return hiveclient.NewForConfig(cfg)
+	return client.New(cfg, client.Options{Scheme: hivescheme})
 }
 
-func NewHiveClientWithImpersonate(user string, groups []string) (hiveclient.Interface, error) {
+func NewHiveClientWithImpersonate(user string, groups []string) (client.Client, error) {
 	cfg, err := NewKubeConfig()
 	if err != nil {
 		return nil, err
@@ -36,18 +47,19 @@ func NewHiveClientWithImpersonate(user string, groups []string) (hiveclient.Inte
 	cfg.Impersonate.UserName = user
 	cfg.Impersonate.Groups = groups
 
-	return hiveclient.NewForConfig(cfg)
+	return client.New(cfg, client.Options{Scheme: hivescheme})
 }
 
-func CreateClusterPool(hiveClient hiveclient.Interface, name, namespace string, labels map[string]string) error {
+func CreateClusterPool(hiveClient client.Client, name, namespace string, labels map[string]string) error {
 	err := CreateNamespace(namespace)
 	if err != nil {
 		return err
 	}
 	clusterPool := &hivev1.ClusterPool{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:   name,
-			Labels: labels,
+			Name:      name,
+			Labels:    labels,
+			Namespace: namespace,
 		},
 		Spec: hivev1.ClusterPoolSpec{
 			BaseDomain: "dev04.red-chesterfield.com",
@@ -65,13 +77,17 @@ func CreateClusterPool(hiveClient hiveclient.Interface, name, namespace string, 
 			Size: 2,
 		},
 	}
-	_, err = hiveClient.HiveV1().ClusterPools(namespace).Create(context.TODO(), clusterPool, metav1.CreateOptions{})
-	return err
+
+	return hiveClient.Create(context.TODO(), clusterPool)
 }
 
-func UpdateClusterPoolLabel(hiveClient hiveclient.Interface, name, namespace string, labels map[string]string) error {
+func UpdateClusterPoolLabel(hiveClient client.Client, name, namespace string, labels map[string]string) error {
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		oldPool, err := hiveClient.HiveV1().ClusterPools(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+		oldPool := &hivev1.ClusterPool{}
+		err := hiveClient.Get(context.TODO(), types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		}, oldPool)
 		if err != nil {
 			return err
 		}
@@ -82,25 +98,24 @@ func UpdateClusterPoolLabel(hiveClient hiveclient.Interface, name, namespace str
 		} else {
 			oldPool.Labels = labels
 		}
-		_, err = hiveClient.HiveV1().ClusterPools(namespace).Update(context.TODO(), oldPool, metav1.UpdateOptions{})
-		return err
+		return hiveClient.Update(context.TODO(), oldPool)
 	})
 }
 
-func CreateClusterClaim(hiveClient hiveclient.Interface, name, namespace, clusterPool string) error {
+func CreateClusterClaim(hiveClient client.Client, name, namespace, clusterPool string) error {
 	clusterClaim := &hivev1.ClusterClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:      name,
+			Namespace: namespace,
 		},
 		Spec: hivev1.ClusterClaimSpec{
 			ClusterPoolName: clusterPool,
 		},
 	}
-	_, err := hiveClient.HiveV1().ClusterClaims(namespace).Create(context.TODO(), clusterClaim, metav1.CreateOptions{})
-	return err
+	return hiveClient.Create(context.TODO(), clusterClaim)
 }
 
-func CreateClusterDeployment(hiveClient hiveclient.Interface, name, namespace, clusterPoolName, clusterPoolNamespace string, labels map[string]string, fromAi bool) error {
+func CreateClusterDeployment(hiveClient client.Client, name, namespace, clusterPoolName, clusterPoolNamespace string, labels map[string]string, fromAi bool) error {
 	err := CreateNamespace(namespace)
 	if err != nil {
 		return err
@@ -149,13 +164,16 @@ func CreateClusterDeployment(hiveClient hiveclient.Interface, name, namespace, c
 			},
 		}
 	}
-	_, err = hiveClient.HiveV1().ClusterDeployments(namespace).Create(context.TODO(), clusterDeployment, metav1.CreateOptions{})
-	return err
+	return hiveClient.Create(context.TODO(), clusterDeployment)
 }
 
-func UpdateClusterDeploymentLabels(hiveClient hiveclient.Interface, name, namespace string, labels map[string]string) error {
+func UpdateClusterDeploymentLabels(hiveClient client.Client, name, namespace string, labels map[string]string) error {
 	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
-		oldClusterDeployment, err := hiveClient.HiveV1().ClusterDeployments(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+		oldClusterDeployment := &hivev1.ClusterDeployment{}
+		err := hiveClient.Get(context.TODO(), types.NamespacedName{
+			Name:      name,
+			Namespace: namespace,
+		}, oldClusterDeployment)
 		if err != nil {
 			return err
 		}
@@ -167,13 +185,18 @@ func UpdateClusterDeploymentLabels(hiveClient hiveclient.Interface, name, namesp
 			oldClusterDeployment.Labels = labels
 		}
 
-		_, err = hiveClient.HiveV1().ClusterDeployments(namespace).Update(context.TODO(), oldClusterDeployment, metav1.UpdateOptions{})
+		err = hiveClient.Update(context.TODO(), oldClusterDeployment)
 		return err
 	})
 }
 
-func CleanClusterDeployment(hiveClient hiveclient.Interface, name, namespace string) error {
-	err := hiveClient.HiveV1().ClusterDeployments(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+func CleanClusterDeployment(hiveClient client.Client, name, namespace string) error {
+	err := hiveClient.Delete(context.TODO(), &hivev1.ClusterDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err
@@ -183,8 +206,13 @@ func CleanClusterDeployment(hiveClient hiveclient.Interface, name, namespace str
 	return DeleteNamespace(namespace)
 }
 
-func CleanClusterPool(hiveClient hiveclient.Interface, name, namespace string) error {
-	err := hiveClient.HiveV1().ClusterPools(namespace).Delete(context.TODO(), name, metav1.DeleteOptions{})
+func CleanClusterPool(hiveClient client.Client, name, namespace string) error {
+	err := hiveClient.Delete(context.TODO(), &hivev1.ClusterDeployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+	})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err
@@ -194,11 +222,21 @@ func CleanClusterPool(hiveClient hiveclient.Interface, name, namespace string) e
 	return DeleteNamespace(namespace)
 }
 
-func ClaimCluster(hiveClient hiveclient.Interface, cdName, cdNs, claimName string) error {
-	cd, err := hiveClient.HiveV1().ClusterDeployments(cdNs).Get(context.TODO(), cdName, metav1.GetOptions{})
+func ClaimCluster(hiveClient client.Client, cdName, cdNs, claimName string) error {
+	cd := &hivev1.ClusterDeployment{}
+	err := hiveClient.Get(context.TODO(), types.NamespacedName{
+		Name:      cdName,
+		Namespace: cdNs,
+	}, cd)
 	if err != nil {
 		return err
 	}
+
+	if cd.Spec.ClusterPoolRef == nil {
+		return fmt.Errorf("ClusterPoolRef is nil")
+	}
+
 	cd.Spec.ClusterPoolRef.ClaimName = claimName
-	return nil
+
+	return hiveClient.Update(context.Background(), cd)
 }

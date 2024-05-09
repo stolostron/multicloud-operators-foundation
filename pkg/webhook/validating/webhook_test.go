@@ -6,7 +6,6 @@ import (
 	"time"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
-	hivefake "github.com/openshift/hive/pkg/client/clientset/versioned/fake"
 	apiconstants "github.com/stolostron/cluster-lifecycle-api/constants"
 	v1 "k8s.io/api/admission/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -17,6 +16,7 @@ import (
 	clusterfake "open-cluster-management.io/api/client/cluster/clientset/versioned/fake"
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/constants"
 )
@@ -38,6 +38,15 @@ const (
 	defaultSet                              = `{"apiVersion":"cluster.open-cluster-management.io/v1beta2","kind":"ManagedClusterSet","metadata":{"name":"default"},"spec":{"clusterSelector":{"selectorType":"ExclusiveClusterSetLabel"}}}`
 	errorDefaultSet                         = `{"apiVersion":"cluster.open-cluster-management.io/v1beta2","kind":"ManagedClusterSet","metadata":{name":"default"},"spec":{"clusterSelector":{"selectorType":"ExclusiveClusterSetLabel"}}}`
 )
+
+var (
+	scheme = runtime.NewScheme()
+)
+
+func TestMain(m *testing.M) {
+	hivev1.AddToScheme(scheme)
+	m.Run()
+}
 
 func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 	cases := []struct {
@@ -229,8 +238,7 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 			existingClusterdeployment: []runtime.Object{
 				&hivev1.ClusterDeployment{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "c0",
-						Namespace: "c0",
+						Name: "c0",
 					},
 					Spec: hivev1.ClusterDeploymentSpec{
 						ClusterPoolRef: &hivev1.ClusterPoolReference{
@@ -354,7 +362,7 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			kubeClient := kubefake.NewSimpleClientset()
-			hiveClient := hivefake.NewSimpleClientset(c.existingClusterdeployment...)
+			hiveClient := fake.NewClientBuilder().WithRuntimeObjects(c.existingClusterdeployment...).WithScheme(scheme).Build()
 			kubeClient.PrependReactor(
 				"create",
 				"subjectaccessreviews",
@@ -609,7 +617,7 @@ func TestDeleteHosteingCluster(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			kubeClient := kubefake.NewSimpleClientset()
-			hiveClient := hivefake.NewSimpleClientset()
+			hiveClient := fake.NewClientBuilder().WithRuntimeObjects().WithScheme(scheme).Build()
 			clusterClient := clusterfake.NewSimpleClientset(c.existingManagedClusters...)
 			clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
 			clusterStore := clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore()
@@ -826,7 +834,7 @@ func TestDeleteClusterDeployment(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			kubeClient := kubefake.NewSimpleClientset()
-			hiveClient := hivefake.NewSimpleClientset(c.existingClusterDeployments...)
+			hiveClient := fake.NewClientBuilder().WithRuntimeObjects(c.existingClusterDeployments...).WithScheme(scheme).Build()
 			clusterClient := clusterfake.NewSimpleClientset(c.existingManagedClusters...)
 			clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
 			clusterStore := clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore()

@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/cache"
@@ -13,11 +14,20 @@ import (
 	"k8s.io/klog"
 	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stolostron/multicloud-operators-foundation/cmd/webhook/app/options"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/mutating"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/validating"
+
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 )
+
+var scheme = runtime.NewScheme()
+
+func init() {
+	utilruntime.Must(hivev1.AddToScheme(scheme))
+}
 
 func Run(opts *options.Options, stopCh <-chan struct{}) error {
 	klog.Info("starting foundation webhook server")
@@ -36,7 +46,7 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 		return err
 	}
 
-	hiveClient, err := hiveclient.NewForConfig(kubeConfig)
+	hiveClient, err := client.New(kubeConfig, client.Options{Scheme: scheme})
 	if err != nil {
 		klog.Errorf("Error building hive client: %s", err.Error())
 		return err

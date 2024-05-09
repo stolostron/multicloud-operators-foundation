@@ -12,7 +12,6 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
-	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
 	admissionv1 "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/webhook/validating"
 )
 
@@ -41,10 +41,11 @@ var (
 	cfg                 *rest.Config
 	k8sClient           client.Client
 	kubeClient          kubernetes.Interface
-	hiveClient          hiveclient.Interface
+	hiveClient          client.Client
 	clusterClient       clusterv1client.Interface
 	testEnv             *envtest.Environment
 	testCtx, testCancel = context.WithCancel(context.Background())
+	scheme              = runtime.NewScheme()
 )
 
 const (
@@ -65,6 +66,8 @@ const (
 
 var _ = ginkgo.BeforeSuite(func() {
 	logf.SetLogger(zap.New(zap.UseDevMode(true), zap.WriteTo(ginkgo.GinkgoWriter)))
+
+	hivev1.AddToScheme(scheme)
 
 	ginkgo.By("bootstrapping test environment")
 	failPolicy := admissionv1.Fail
@@ -164,7 +167,7 @@ var _ = ginkgo.BeforeSuite(func() {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	gomega.Expect(kubeClient).ToNot(gomega.BeNil())
 
-	hiveClient, err = hiveclient.NewForConfig(cfg)
+	hiveClient, err = client.New(cfg, client.Options{Scheme: scheme})
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	gomega.Expect(hiveClient).ToNot(gomega.BeNil())
 

@@ -7,10 +7,12 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
@@ -694,13 +696,28 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		})
 		ginkgo.AfterEach(func() {
-			err = hiveClient.HiveV1().ClusterDeployments(clusterDeployment).Delete(context.TODO(), clusterDeployment, metav1.DeleteOptions{})
+			err = hiveClient.Delete(context.TODO(), &hivev1.ClusterDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      clusterDeployment,
+					Namespace: clusterDeployment,
+				},
+			})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			err = hiveClient.HiveV1().ClusterClaims(clusterPoolNamespace).Delete(context.TODO(), clusterClaim, metav1.DeleteOptions{})
+			err = hiveClient.Delete(context.TODO(), &hivev1.ClusterClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      clusterClaim,
+					Namespace: clusterPoolNamespace,
+				},
+			})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			err = hiveClient.HiveV1().ClusterPools(clusterPoolNamespace).Delete(context.TODO(), clusterPool, metav1.DeleteOptions{})
+			err = hiveClient.Delete(context.TODO(), &hivev1.ClusterPool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      clusterPool,
+					Namespace: clusterPoolNamespace,
+				},
+			})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			err = util.DeleteNamespace(clusterDeployment)
@@ -816,13 +833,28 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		})
 		ginkgo.AfterEach(func() {
-			err = hiveClient.HiveV1().ClusterDeployments(clusterDeployment).Delete(context.TODO(), clusterDeployment, metav1.DeleteOptions{})
+			err = hiveClient.Delete(context.TODO(), &hivev1.ClusterDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      clusterDeployment,
+					Namespace: clusterDeployment,
+				},
+			})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			err = hiveClient.HiveV1().ClusterClaims(clusterPoolNamespace).Delete(context.TODO(), clusterClaim, metav1.DeleteOptions{})
+			err = hiveClient.Delete(context.TODO(), &hivev1.ClusterClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      clusterClaim,
+					Namespace: clusterPoolNamespace,
+				},
+			})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			err = hiveClient.HiveV1().ClusterPools(clusterPoolNamespace).Delete(context.TODO(), clusterPool, metav1.DeleteOptions{})
+			err = hiveClient.Delete(context.TODO(), &hivev1.ClusterPool{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      clusterPool,
+					Namespace: clusterPoolNamespace,
+				},
+			})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
 			err = util.DeleteNamespace(clusterDeployment)
@@ -905,17 +937,27 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		})
 		ginkgo.AfterEach(func() {
-			err = hiveClient.HiveV1().ClusterDeployments(managedCluster).Delete(context.TODO(), managedCluster, metav1.DeleteOptions{})
+			err = hiveClient.Delete(context.TODO(), &hivev1.ClusterDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      managedCluster,
+					Namespace: managedCluster,
+				},
+			})
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 		})
 
 		ginkgo.It("clusterdeployment clusterset should be synced with managedcluster automatically.", func() {
 			ginkgo.By("clusterdeployment is created")
 			gomega.Eventually(func() error {
-				clusterDeployment, err := hiveClient.HiveV1().ClusterDeployments(managedCluster).Get(context.Background(), managedCluster, metav1.GetOptions{})
+				clusterDeployment := &hivev1.ClusterDeployment{}
+				err = hiveClient.Get(context.Background(), types.NamespacedName{
+					Name:      managedCluster,
+					Namespace: managedCluster,
+				}, clusterDeployment)
 				if err != nil {
 					return err
 				}
+
 				clusterDeploymentSet := clusterDeployment.Labels[clusterv1beta2.ClusterSetLabel]
 				if clusterDeploymentSet == managedClusterSet {
 					return nil
@@ -935,10 +977,15 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			gomega.Expect(err).ToNot(gomega.HaveOccurred())
 
 			gomega.Eventually(func() error {
-				clusterDeployment, err := hiveClient.HiveV1().ClusterDeployments(managedCluster).Get(context.Background(), managedCluster, metav1.GetOptions{})
+				clusterDeployment := &hivev1.ClusterDeployment{}
+				err = hiveClient.Get(context.Background(), types.NamespacedName{
+					Name:      managedCluster,
+					Namespace: managedCluster,
+				}, clusterDeployment)
 				if err != nil {
 					return err
 				}
+
 				clusterDeploymentSet := clusterDeployment.Labels[clusterv1beta2.ClusterSetLabel]
 				if clusterDeploymentSet == managedClusterSet1 {
 					return nil

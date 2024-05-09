@@ -8,7 +8,6 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
-	hiveclient "github.com/openshift/hive/pkg/client/clientset/versioned"
 	apixv1client "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset/typed/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/version"
@@ -16,6 +15,7 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	apiregistrationclient "k8s.io/kube-aggregator/pkg/client/clientset_generated/clientset/typed/apiregistration/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry"
 	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
@@ -39,7 +39,7 @@ var (
 	dynamicClient         dynamic.Interface
 	discoveryClient       discovery.DiscoveryInterface
 	kubeClient            kubernetes.Interface
-	hiveClient            hiveclient.Interface
+	hiveClient            client.Client
 	clusterClient         clusterclient.Interface
 	ocpClient             openshiftclientset.Interface
 	addonClient           addonv1alpha1client.Interface
