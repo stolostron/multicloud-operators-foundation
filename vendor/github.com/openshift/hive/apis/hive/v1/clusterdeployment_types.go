@@ -6,7 +6,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/openshift/hive/apis/hive/v1/agent"
-	"github.com/openshift/hive/apis/hive/v1/alibabacloud"
 	"github.com/openshift/hive/apis/hive/v1/aws"
 	"github.com/openshift/hive/apis/hive/v1/azure"
 	"github.com/openshift/hive/apis/hive/v1/baremetal"
@@ -191,12 +190,12 @@ type ClusterDeploymentSpec struct {
 	// +optional
 	InstallAttemptsLimit *int32 `json:"installAttemptsLimit,omitempty"`
 
-	// BoundServiceAccountSignkingKeySecretRef refers to a Secret that contains a
+	// BoundServiceAccountSigningKeySecretRef refers to a Secret that contains a
 	// 'bound-service-account-signing-key.key' data key pointing to the private
 	// key that will be used to sign ServiceAccount objects. Primarily used to
 	// provision AWS clusters to use Amazon's Security Token Service.
 	// +optional
-	BoundServiceAccountSignkingKeySecretRef *corev1.LocalObjectReference `json:"boundServiceAccountSigningKeySecretRef,omitempty"`
+	BoundServiceAccountSigningKeySecretRef *corev1.LocalObjectReference `json:"boundServiceAccountSigningKeySecretRef,omitempty"`
 }
 
 // ClusterInstallLocalReference provides reference to an object that implements
@@ -626,9 +625,6 @@ type ClusterDeploymentList struct {
 // Platform is the configuration for the specific platform upon which to perform
 // the installation. Only one of the platform configuration should be set.
 type Platform struct {
-	// AlibabaCloud is the configuration used when installing on Alibaba Cloud
-	AlibabaCloud *alibabacloud.Platform `json:"alibabacloud,omitempty"`
-
 	// AWS is the configuration used when installing on AWS.
 	AWS *aws.Platform `json:"aws,omitempty"`
 

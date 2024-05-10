@@ -33,11 +33,3 @@ type ErrNoValue struct {
 }
 
 func (e ErrNoValue) Error() string { return fmt.Sprintf("%q is not a value", e.Key) }
-
-type ErrInvalidChartName struct {
-	Name string
-}
-
-func (e ErrInvalidChartName) Error() string {
-	return fmt.Sprintf("%q is not a valid chart name", e.Name)
-}

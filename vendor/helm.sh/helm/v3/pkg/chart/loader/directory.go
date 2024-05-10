@@ -19,15 +19,16 @@ package loader
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
 
+	"helm.sh/helm/v3/internal/ignore"
 	"helm.sh/helm/v3/internal/sympath"
 	"helm.sh/helm/v3/pkg/chart"
-	"helm.sh/helm/v3/pkg/ignore"
 )
 
 var utf8bom = []byte{0xEF, 0xBB, 0xBF}
@@ -101,7 +102,7 @@ func LoadDir(dir string) (*chart.Chart, error) {
 			return fmt.Errorf("cannot load irregular file %s as it has file mode type bits set", name)
 		}
 
-		data, err := os.ReadFile(name)
+		data, err := ioutil.ReadFile(name)
 		if err != nil {
 			return errors.Wrapf(err, "error reading %s", n)
 		}
