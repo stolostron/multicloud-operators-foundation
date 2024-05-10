@@ -19,29 +19,15 @@ import (
 	"log"
 	"strings"
 
-	"github.com/mitchellh/copystructure"
-
 	"helm.sh/helm/v3/pkg/chart"
 )
 
 // ProcessDependencies checks through this chart's dependencies, processing accordingly.
-//
-// TODO: For Helm v4 this can be combined with or turned into ProcessDependenciesWithMerge
 func ProcessDependencies(c *chart.Chart, v Values) error {
 	if err := processDependencyEnabled(c, v, ""); err != nil {
 		return err
 	}
-	return processDependencyImportValues(c, false)
-}
-
-// ProcessDependenciesWithMerge checks through this chart's dependencies, processing accordingly.
-// It is similar to ProcessDependencies but it does not remove nil values during
-// the import/export handling process.
-func ProcessDependenciesWithMerge(c *chart.Chart, v Values) error {
-	if err := processDependencyEnabled(c, v, ""); err != nil {
-		return err
-	}
-	return processDependencyImportValues(c, true)
+	return processDependencyImportValues(c)
 }
 
 // processDependencyConditions disables charts based on condition path value in values
@@ -59,8 +45,9 @@ func processDependencyConditions(reqs []*chart.Dependency, cvals Values, cpath s
 					if bv, ok := vv.(bool); ok {
 						r.Enabled = bv
 						break
+					} else {
+						log.Printf("Warning: Condition path '%s' for chart %s returned non-bool value", c, r.Name)
 					}
-					log.Printf("Warning: Condition path '%s' for chart %s returned non-bool value", c, r.Name)
 				} else if _, ok := err.(ErrNoValue); !ok {
 					// this is a real error
 					log.Printf("Warning: PathValue returned error %v", err)
@@ -150,9 +137,6 @@ Loop:
 	}
 
 	for _, req := range c.Metadata.Dependencies {
-		if req == nil {
-			continue
-		}
 		if chartDependency := getAliasDependency(c.Dependencies(), req); chartDependency != nil {
 			chartDependencies = append(chartDependencies, chartDependency)
 		}
@@ -233,18 +217,12 @@ func set(path []string, data map[string]interface{}) map[string]interface{} {
 }
 
 // processImportValues merges values from child to parent based on the chart's dependencies' ImportValues field.
-func processImportValues(c *chart.Chart, merge bool) error {
+func processImportValues(c *chart.Chart) error {
 	if c.Metadata.Dependencies == nil {
 		return nil
 	}
 	// combine chart values and empty config to get Values
-	var cvals Values
-	var err error
-	if merge {
-		cvals, err = MergeValues(c, nil)
-	} else {
-		cvals, err = CoalesceValues(c, nil)
-	}
+	cvals, err := CoalesceValues(c, nil)
 	if err != nil {
 		return err
 	}
@@ -270,11 +248,7 @@ func processImportValues(c *chart.Chart, merge bool) error {
 					continue
 				}
 				// create value map from child to be merged into parent
-				if merge {
-					b = MergeTables(b, pathToMap(parent, vv.AsMap()))
-				} else {
-					b = CoalesceTables(b, pathToMap(parent, vv.AsMap()))
-				}
+				b = CoalesceTables(cvals, pathToMap(parent, vv.AsMap()))
 			case string:
 				child := "exports." + iv
 				outiv = append(outiv, map[string]string{
@@ -286,71 +260,26 @@ func processImportValues(c *chart.Chart, merge bool) error {
 					log.Printf("Warning: ImportValues missing table: %v", err)
 					continue
 				}
-				if merge {
-					b = MergeTables(b, vm.AsMap())
-				} else {
-					b = CoalesceTables(b, vm.AsMap())
-				}
+				b = CoalesceTables(b, vm.AsMap())
 			}
 		}
+		// set our formatted import values
 		r.ImportValues = outiv
 	}
 
-	// Imported values from a child to a parent chart have a lower priority than
-	// the parents values. This enables parent charts to import a large section
-	// from a child and then override select parts. This is why b is merged into
-	// cvals in the code below and not the other way around.
-	if merge {
-		// deep copying the cvals as there are cases where pointers can end
-		// up in the cvals when they are copied onto b in ways that break things.
-		cvals = deepCopyMap(cvals)
-		c.Values = MergeTables(cvals, b)
-	} else {
-		// Trimming the nil values from cvals is needed for backwards compatibility.
-		// Previously, the b value had been populated with cvals along with some
-		// overrides. This caused the coalescing functionality to remove the
-		// nil/null values. This trimming is for backwards compat.
-		cvals = trimNilValues(cvals)
-		c.Values = CoalesceTables(cvals, b)
-	}
+	// set the new values
+	c.Values = CoalesceTables(cvals, b)
 
 	return nil
 }
 
-func deepCopyMap(vals map[string]interface{}) map[string]interface{} {
-	valsCopy, err := copystructure.Copy(vals)
-	if err != nil {
-		return vals
-	}
-	return valsCopy.(map[string]interface{})
-}
-
-func trimNilValues(vals map[string]interface{}) map[string]interface{} {
-	valsCopy, err := copystructure.Copy(vals)
-	if err != nil {
-		return vals
-	}
-	valsCopyMap := valsCopy.(map[string]interface{})
-	for key, val := range valsCopyMap {
-		if val == nil {
-			// Iterate over the values and remove nil keys
-			delete(valsCopyMap, key)
-		} else if istable(val) {
-			// Recursively call into ourselves to remove keys from inner tables
-			valsCopyMap[key] = trimNilValues(val.(map[string]interface{}))
-		}
-	}
-
-	return valsCopyMap
-}
-
 // processDependencyImportValues imports specified chart values from child to parent.
-func processDependencyImportValues(c *chart.Chart, merge bool) error {
+func processDependencyImportValues(c *chart.Chart) error {
 	for _, d := range c.Dependencies() {
 		// recurse
-		if err := processDependencyImportValues(d, merge); err != nil {
+		if err := processDependencyImportValues(d); err != nil {
 			return err
 		}
 	}
-	return processImportValues(c, merge)
+	return processImportValues(c)
 }
