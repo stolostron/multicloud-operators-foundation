@@ -6,6 +6,7 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -19,6 +20,22 @@ var _ = ginkgo.Describe("Testing work-manager add-on with AddonDeploymentConfigs
 		addOnName := "work-manager"
 		nodeSelector := map[string]string{"kubernetes.io/os": "linux"}
 		tolerations := []corev1.Toleration{{Key: "node-role.kubernetes.io/infra", Operator: corev1.TolerationOpExists, Effect: corev1.TaintEffectNoSchedule}}
+
+		gomega.Eventually(func() error {
+			_, err := kubeClient.CoreV1().Namespaces().Get(context.Background(),
+				clustersetutils.GlobalSetNameSpace, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			_, err = clusterClient.ClusterV1beta2().ManagedClusterSetBindings(clustersetutils.GlobalSetNameSpace).
+				Get(context.Background(), clustersetutils.GlobalSetName, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			_, err = clusterClient.ClusterV1beta1().Placements(clustersetutils.GlobalSetNameSpace).
+				Get(context.Background(), clustersetutils.GlobalPlacementName, metav1.GetOptions{})
+			return err
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 		ginkgo.By("Prepare a AddOnDeploymentConfig for work-manager add-on")
 		gomega.Eventually(func() error {

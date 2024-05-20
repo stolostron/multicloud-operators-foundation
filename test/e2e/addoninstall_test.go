@@ -8,13 +8,12 @@ import (
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
 	apiconstants "github.com/stolostron/cluster-lifecycle-api/constants"
+	addonlib "github.com/stolostron/multicloud-operators-foundation/pkg/addon"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/addoninstall"
 )
 
 var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
@@ -56,15 +55,6 @@ var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
 		gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	})
 
-	haveNoAddonIt := func() {
-		ginkgo.It("should have no add-on installed", ginkgo.Offset(1), func() {
-			gomega.Consistently(func() bool {
-				_, err := addonClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.Background(), addonName, metav1.GetOptions{})
-				return errors.IsNotFound(err)
-			}, 30, 2).Should(gomega.BeTrue())
-		})
-	}
-
 	haveAddonInDefaultModeIt := func() {
 		ginkgo.It("should have add-on installed in default mode", ginkgo.Offset(1), func() {
 			var addon *addonapiv1alpha1.ManagedClusterAddOn
@@ -75,23 +65,11 @@ var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
 			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 			gomega.Expect(addon).ShouldNot(gomega.BeNil())
-			gomega.Expect(addon.Annotations).ShouldNot(gomega.HaveKey(apiconstants.AnnotationKlusterletHostingClusterName))
-			gomega.Expect(addon.Spec.InstallNamespace).To(gomega.Equal(addoninstall.DefaultAddOnInstallNamespace))
+			gomega.Expect(addon.Status.Namespace).To(gomega.Equal("open-cluster-management-agent-addon"))
 		})
 	}
 
 	ginkgo.Context("cluster is imported in default mode", func() {
-		ginkgo.When("add-on installation is disabled", func() {
-			ginkgo.BeforeEach(func() {
-				clusterName = fmt.Sprintf("cluster-default-none-%s", rand.String(5))
-				annotations = map[string]string{
-					addonapiv1alpha1.DisableAddonAutomaticInstallationAnnotationKey: "true",
-				}
-			})
-
-			haveNoAddonIt()
-		})
-
 		ginkgo.When("default add-on installation is enabled", func() {
 			ginkgo.BeforeEach(func() {
 				clusterName = fmt.Sprintf("cluster-default-default-%s", rand.String(5))
@@ -110,15 +88,6 @@ var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
 			}
 		})
 
-		ginkgo.When("add-on installation is disabled", func() {
-			ginkgo.BeforeEach(func() {
-				clusterName = fmt.Sprintf("cluster-hosted-none-%s", rand.String(5))
-				annotations[addonapiv1alpha1.DisableAddonAutomaticInstallationAnnotationKey] = "true"
-			})
-
-			haveNoAddonIt()
-		})
-
 		ginkgo.When("default add-on installation is enabled", func() {
 			ginkgo.BeforeEach(func() {
 				clusterName = fmt.Sprintf("cluster-hosted-default-%s", rand.String(5))
@@ -130,7 +99,11 @@ var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
 		ginkgo.When("hosed add-on installation is enabled", func() {
 			ginkgo.BeforeEach(func() {
 				clusterName = fmt.Sprintf("cluster-hosted-hosted-%s", rand.String(5))
-				annotations[addoninstall.AnnotationEnableHostedModeAddons] = "true"
+				annotations = map[string]string{
+					apiconstants.AnnotationKlusterletDeployMode:         "Hosted",
+					apiconstants.AnnotationKlusterletHostingClusterName: hostingClusterName,
+					addonlib.AnnotationEnableHostedModeAddons:           "true",
+				}
 			})
 
 			ginkgo.It("should have add-on installed in hosted mode", func() {
@@ -142,8 +115,7 @@ var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
 				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 				gomega.Expect(addon).ShouldNot(gomega.BeNil())
-				gomega.Expect(addon.Annotations).To(gomega.HaveKeyWithValue(addoninstall.AnnotationAddOnHostingClusterName, hostingClusterName))
-				gomega.Expect(addon.Spec.InstallNamespace).To(gomega.Equal(fmt.Sprintf("klusterlet-%s", clusterName)))
+				gomega.Expect(addon.Status.Namespace).To(gomega.Equal(fmt.Sprintf("klusterlet-%s", clusterName)))
 			})
 		})
 	})

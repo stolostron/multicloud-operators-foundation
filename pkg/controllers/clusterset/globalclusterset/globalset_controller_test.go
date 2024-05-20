@@ -10,6 +10,7 @@ import (
 
 	"github.com/onsi/gomega"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/constants"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -151,7 +152,7 @@ func TestApplyGlobalResources(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: clustersetutils.GlobalSetName,
 						Annotations: map[string]string{
-							globalNamespaceAnnotation: "true",
+							constants.GlobalNamespaceAnnotation: "true",
 						},
 					},
 					Spec: clusterv1beta2.ManagedClusterSetSpec{
@@ -201,7 +202,7 @@ func TestApplyGlobalResources(t *testing.T) {
 					ObjectMeta: metav1.ObjectMeta{
 						Name: clustersetutils.GlobalSetName,
 						Annotations: map[string]string{
-							globalNamespaceAnnotation: "true",
+							constants.GlobalNamespaceAnnotation: "true",
 						},
 					},
 					Spec: clusterv1beta2.ManagedClusterSetSpec{

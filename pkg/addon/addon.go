@@ -4,8 +4,13 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
-	rbacv1informers "k8s.io/client-go/informers/rbac/v1"
+	"fmt"
 	"reflect"
+
+	apiconstants "github.com/stolostron/cluster-lifecycle-api/constants"
+	"k8s.io/apimachinery/pkg/types"
+	rbacv1informers "k8s.io/client-go/informers/rbac/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
@@ -29,6 +34,10 @@ const (
 
 	// annotationNodeSelector is key name of nodeSelector annotation synced from mch
 	annotationNodeSelector = "open-cluster-management/nodeSelector"
+
+	// AnnotationEnableHostedModeAddons is the key of annotation which indicates if the add-ons will be enabled
+	// in hosted mode automatically for a managed cluster
+	AnnotationEnableHostedModeAddons = "addon.open-cluster-management.io/enable-hosted-mode-addons"
 )
 
 //go:embed manifests
@@ -139,6 +148,45 @@ func createOrUpdateRoleBinding(kubeClient kubernetes.Interface, rolebindingInfor
 	}
 
 	return nil
+}
+
+// AddonInstallNamespaceFunc reads addonDeploymentConfig to set install namespace for addons in default mode,
+// and set install namespace to klusterlet-{cluster name} for addons in hosted mode.
+func AddonInstallNamespaceFunc(
+	addonGetter utils.AddOnDeploymentConfigGetter,
+	clusterClient client.Client) func(addon *addonapiv1alpha1.ManagedClusterAddOn) (string, error) {
+	return func(addon *addonapiv1alpha1.ManagedClusterAddOn) (string, error) {
+		cluster := &clusterv1.ManagedCluster{}
+		err := clusterClient.Get(context.TODO(), types.NamespacedName{Name: addon.Namespace}, cluster)
+		if err != nil {
+			return "", err
+		}
+
+		mode, _ := HostedClusterInfo(addon, cluster)
+		if mode == "Hosted" {
+			return fmt.Sprintf("klusterlet-%s", addon.Namespace), nil
+		}
+
+		return utils.AgentInstallNamespaceFromDeploymentConfigFunc(addonGetter)(addon)
+	}
+}
+
+func HostedClusterInfo(_ *addonapiv1alpha1.ManagedClusterAddOn, cluster *clusterv1.ManagedCluster) (string, string) {
+	if len(cluster.Annotations) == 0 {
+		return "Default", ""
+	}
+	if cluster.Annotations[AnnotationEnableHostedModeAddons] != "true" {
+		return "Default", ""
+	}
+	if cluster.Annotations[apiconstants.AnnotationKlusterletDeployMode] != "Hosted" {
+		return "Default", ""
+	}
+	hostingClusterName, ok := cluster.Annotations[apiconstants.AnnotationKlusterletHostingClusterName]
+	if !ok || len(hostingClusterName) == 0 {
+		return "Default", ""
+	}
+
+	return "Hosted", hostingClusterName
 }
 
 func getNodeSelector(managedCluster *clusterv1.ManagedCluster) (map[string]string, error) {

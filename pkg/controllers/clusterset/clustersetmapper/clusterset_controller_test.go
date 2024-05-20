@@ -11,6 +11,7 @@ import (
 
 	"github.com/onsi/gomega"
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
+	metricserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/stretchr/testify/assert"
@@ -31,7 +32,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
-	metricserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 

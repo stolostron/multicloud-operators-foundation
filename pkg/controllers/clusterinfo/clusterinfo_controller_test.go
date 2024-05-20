@@ -45,7 +45,7 @@ func TestMain(m *testing.M) {
 	}
 
 	clusterinfov1beta1.AddToScheme(cliScheme.Scheme)
-	clusterv1.AddToScheme(cliScheme.Scheme)
+	clusterv1.Install(cliScheme.Scheme)
 	corev1.AddToScheme(cliScheme.Scheme)
 
 	var err error
