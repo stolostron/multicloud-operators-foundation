@@ -14,8 +14,10 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	kubeinformers "k8s.io/client-go/informers"
 	fakekube "k8s.io/client-go/kubernetes/fake"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -103,14 +105,21 @@ func newAddonWithCustomizedAnnotation(name, cluster, installNamespace string, an
 	return addon
 }
 
-func newAgentAddon(t *testing.T) agent.AgentAddon {
+func newAgentAddon(t *testing.T, cluster *clusterv1.ManagedCluster) agent.AgentAddon {
 	registrationOption := NewRegistrationOption(nil, nil, WorkManagerAddonName)
+
+	scheme := runtime.NewScheme()
+	clusterv1.Install(scheme)
+
+	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cluster).Build()
+	getter := newTestConfigGetter(nil)
 	getValuesFunc := NewGetValuesFunc(addonImage)
 	agentAddon, err := addonfactory.NewAgentAddonFactory(WorkManagerAddonName, ChartFS, ChartDir).
 		WithScheme(scheme).
 		WithGetValuesFuncs(getValuesFunc, addonfactory.GetValuesFromAddonAnnotation).
 		WithAgentRegistrationOption(registrationOption).
 		WithAgentHostedInfoFn(HostedClusterInfo).
+		WithAgentInstallNamespace(AddonInstallNamespaceFunc(getter, client)).
 		BuildHelmAgentAddon()
 	if err != nil {
 		t.Fatalf("failed to build agent %v", err)
@@ -163,7 +172,7 @@ func TestManifest(t *testing.T) {
 		{
 			name:                 "is OCP but hub cluster",
 			cluster:              newCluster("local-cluster", "OpenShift", map[string]string{}, map[string]string{}),
-			addon:                newAddon("work-manager", "cluster1", "", `{"global":{"nodeSelector":{"node-role.kubernetes.io/infra":""},"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
+			addon:                newAddon("work-manager", "local-cluster", "", `{"global":{"nodeSelector":{"node-role.kubernetes.io/infra":""},"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
 			expectedNamespace:    "open-cluster-management-agent-addon",
 			expectedImage:        "quay.io/test/multicloud_manager:test",
 			expectedNodeSelector: true,
@@ -177,7 +186,7 @@ func TestManifest(t *testing.T) {
 			expectedNamespace: "test",
 			expectedImage:     "quay.io/stolostron/multicloud-manager:2.5.0",
 			expectServiceType: v1.ServiceTypeLoadBalancer,
-			expectedCount:     8,
+			expectedCount:     9,
 		},
 		{
 			name: "imageOverride",
@@ -220,7 +229,7 @@ func TestManifest(t *testing.T) {
 				}),
 			addon: newAddonWithCustomizedAnnotation(
 				"work-manager", "local-cluster", "", map[string]string{}),
-			expectedNamespace:    "open-cluster-management-agent-addon",
+			expectedNamespace:    "klusterlet-local-cluster",
 			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
 			expectedNodeSelector: true,
 			expectedCount:        7,
@@ -248,7 +257,7 @@ func TestManifest(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			agentAddon := newAgentAddon(t)
+			agentAddon := newAgentAddon(t, test.cluster)
 			objects, err := agentAddon.Manifests(test.cluster, test.addon)
 			if err != nil {
 				t.Errorf("failed to get manifests with error %v", err)
@@ -314,6 +323,12 @@ func newTestConfigGetter(config *addonapiv1alpha1.AddOnDeploymentConfig) *testCo
 }
 
 func (t *testConfigGetter) Get(_ context.Context, _ string, _ string) (*addonapiv1alpha1.AddOnDeploymentConfig, error) {
+	if t.config == nil {
+		return nil, errors.NewNotFound(
+			schema.GroupResource{Group: "addon.open-cluster-management.io", Resource: "addondeploymentconfigs"},
+			"",
+		)
+	}
 	return t.config, nil
 }
 
