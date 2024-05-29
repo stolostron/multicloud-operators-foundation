@@ -111,11 +111,15 @@ var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
 				var err error
 				gomega.Eventually(func() error {
 					addon, err = addonClient.AddonV1alpha1().ManagedClusterAddOns(clusterName).Get(context.Background(), addonName, metav1.GetOptions{})
-					return err
-				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+					if err != nil {
+						return err
+					}
 
-				gomega.Expect(addon).ShouldNot(gomega.BeNil())
-				gomega.Expect(addon.Status.Namespace).To(gomega.Equal(fmt.Sprintf("klusterlet-%s", clusterName)))
+					if addon.Status.Namespace != fmt.Sprintf("klusterlet-%s", clusterName) {
+						return fmt.Errorf("addon namespace is not correct, got %s", addon.Status.Namespace)
+					}
+					return nil
+				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 			})
 		})
 	})

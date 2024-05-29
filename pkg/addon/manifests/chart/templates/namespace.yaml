@@ -1,12 +1,16 @@
-{{- if eq .Values.installMode "Hosted" }}
+# namespace is klusterlet-{clusterName} in hosted mode, and we need to
+# set specific label/annotation.
+{{- if ne .Release.Namespace "open-cluster-management-agent-addon" }}
 apiVersion: v1
 kind: Namespace
 metadata:
   name: {{ .Release.Namespace }}
   labels:
+  {{- if eq .Values.installMode "Hosted" }}
     addon.open-cluster-management.io/hosted-manifest-location: hosting
+  {{- end }}
     addon.open-cluster-management.io/namespace: "true"
-  {{- if eq (.Release.Namespace | trimPrefix "klusterlet-") .Values.clusterName }}
+  {{- if eq .Values.installMode "Hosted" }}
   annotations:
     "addon.open-cluster-management.io/deletion-orphan": ""
   {{- end }}
