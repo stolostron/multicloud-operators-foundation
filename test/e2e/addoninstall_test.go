@@ -115,6 +115,11 @@ var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
 						return err
 					}
 
+					_, ok := addon.Annotations[addonapiv1alpha1.HostingClusterNameAnnotationKey]
+					if !ok {
+						return fmt.Errorf("addon should have hosting annotation")
+					}
+
 					if addon.Status.Namespace != fmt.Sprintf("klusterlet-%s", clusterName) {
 						return fmt.Errorf("addon namespace is not correct, got %s", addon.Status.Namespace)
 					}
