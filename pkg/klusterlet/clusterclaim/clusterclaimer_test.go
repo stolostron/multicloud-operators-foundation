@@ -22,6 +22,70 @@ import (
 	"k8s.io/client-go/restmapper"
 )
 
+func newClusterVersionSingleHistory() *apiconfigv1.ClusterVersion {
+	now := metav1.Now()
+	oneMonth := metav1.NewTime(now.AddDate(0, 1, 0))
+	return &apiconfigv1.ClusterVersion{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "version",
+		},
+		Spec: apiconfigv1.ClusterVersionSpec{
+			ClusterID: "ffd989a0-8391-426d-98ac-86ae6d051433",
+			Upstream:  "https://api.openshift.com/api/upgrades_info/v1/graph",
+			Channel:   "stable-4.5",
+		},
+		Status: apiconfigv1.ClusterVersionStatus{
+			ObservedGeneration: 1,
+			VersionHash:        "4lK_pl-YbSw=",
+			Desired: apiconfigv1.Release{
+				Channels: []string{
+					"candidate-4.6",
+					"candidate-4.7",
+					"eus-4.6",
+					"fast-4.6",
+					"fast-4.7",
+					"stable-4.6",
+					"stable-4.7",
+				},
+				Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+				URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+				Version: "4.6.8",
+			},
+			History: []apiconfigv1.UpdateHistory{
+				{
+					Image:          "quay.io/openshift-release-dev/ocp-release@sha256:4d048ae1274d11c49f9b7e70713a072315431598b2ddbb512aee4027c422fe3e",
+					State:          "Completed",
+					Verified:       false,
+					Version:        "4.7.9",
+					CompletionTime: &oneMonth,
+				},
+			},
+			AvailableUpdates: []apiconfigv1.Release{
+				{
+					Channels: []string{
+						"candidate-4.6",
+						"candidate-4.7",
+						"eus-4.6",
+						"fast-4.6",
+						"fast-4.7",
+						"stable-4.6",
+						"stable-4.7",
+					},
+					Image:   "quay.io/openshift-release-dev/ocp-release@sha256:6ddbf56b7f9776c0498f23a54b65a06b3b846c1012200c5609c4bb716b6bdcdf",
+					URL:     "https://access.redhat.com/errata/RHSA-2020:5259",
+					Version: "4.6.8",
+				},
+			},
+			Conditions: []apiconfigv1.ClusterOperatorStatusCondition{
+				{
+					Type:   "Failing",
+					Status: "False",
+				},
+			},
+		},
+	}
+}
+
 func newClusterVersion() *apiconfigv1.ClusterVersion {
 	now := metav1.Now()
 	oneDay := metav1.NewTime(now.AddDate(0, 0, 1))
@@ -214,9 +278,12 @@ func newROKSInfrastructure() *apiconfigv1.Infrastructure {
 
 func newConfigV1Client(version string, platformType string) openshiftclientset.Interface {
 	clusterVersion := &apiconfigv1.ClusterVersion{}
-	if version == "4.x" {
+	switch version {
+	case "4.x":
 		clusterVersion = newClusterVersion()
-	} else {
+	case "4.x-1":
+		clusterVersion = newClusterVersionSingleHistory()
+	default:
 		return configfake.NewSimpleClientset(clusterVersion)
 	}
 
@@ -771,6 +838,15 @@ func TestGetOCPVersion(t *testing.T) {
 			mapper:          newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
 			configV1Client:  newConfigV1Client("4.x", ""),
 			expectVersion:   "4.6.8",
+			expectClusterID: "ffd989a0-8391-426d-98ac-86ae6d051433",
+			expectErr:       nil,
+		},
+		{
+			name:            "is OCP 4.x-1",
+			kubeClient:      newFakeKubeClient(nil),
+			mapper:          newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client:  newConfigV1Client("4.x-1", ""),
+			expectVersion:   "4.7.9",
 			expectClusterID: "ffd989a0-8391-426d-98ac-86ae6d051433",
 			expectErr:       nil,
 		},
