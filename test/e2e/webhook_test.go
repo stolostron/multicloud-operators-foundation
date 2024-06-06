@@ -388,8 +388,10 @@ var _ = ginkgo.Describe("Cluster admin user should fail when updating clusterpoo
 		err = util.CreateClusterDeployment(hiveClient, managedClusterName, managedClusterName, clusterPool, clusterPoolNamespace, nil, false)
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-		err = util.ClaimCluster(hiveClient, managedClusterName, managedClusterName, clusterClaim)
-		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		gomega.Eventually(func() error {
+			err = util.ClaimCluster(hiveClient, managedClusterName, managedClusterName, clusterClaim)
+			return err
+		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 	})
 
 	ginkgo.AfterEach(func() {

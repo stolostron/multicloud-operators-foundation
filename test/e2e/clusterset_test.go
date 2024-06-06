@@ -636,8 +636,10 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			err = util.CreateClusterDeployment(hiveClient, clusterDeployment, clusterDeployment, clusterPool, clusterPoolNamespace, nil, false)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			err = util.ClaimCluster(hiveClient, clusterDeployment, clusterDeployment, clusterClaim)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Eventually(func() error {
+				err = util.ClaimCluster(hiveClient, clusterDeployment, clusterDeployment, clusterClaim)
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 		})
 		ginkgo.AfterEach(func() {
 			err = hiveClient.Delete(context.TODO(), &hivev1.ClusterDeployment{
@@ -773,8 +775,10 @@ var _ = ginkgo.Describe("Testing ManagedClusterSet", func() {
 			err = util.CreateClusterDeployment(hiveClient, clusterDeployment, clusterDeployment, clusterPool, clusterPoolNamespace, nil, false)
 			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			err = util.ClaimCluster(hiveClient, clusterDeployment, clusterDeployment, clusterClaim)
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+			gomega.Eventually(func() error {
+				err = util.ClaimCluster(hiveClient, clusterDeployment, clusterDeployment, clusterClaim)
+				return err
+			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 		})
 		ginkgo.AfterEach(func() {
 			err = hiveClient.Delete(context.TODO(), &hivev1.ClusterDeployment{
