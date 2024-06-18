@@ -268,6 +268,10 @@ func (r *Reconciler) removeClusterImageRegistry(ctx context.Context, clusterName
 			return client.IgnoreNotFound(err)
 		}
 
+		if !cluster.DeletionTimestamp.IsZero() {
+			return nil
+		}
+
 		modified := false
 		utils.MergeMap(&modified, &cluster.Labels, map[string]string{v1alpha1.ClusterImageRegistryLabel + "-": ""})
 		utils.MergeMap(&modified, &cluster.Annotations,
