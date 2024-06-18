@@ -75,6 +75,12 @@ func newCluster(name, imageRegistry, registries string) *clusterv1.ManagedCluste
 	return cluster
 }
 
+func addDeletionTimestampToCluster(cluster *clusterv1.ManagedCluster) *clusterv1.ManagedCluster {
+	cluster.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+	cluster.Finalizers = []string{"fakeClientNeedThisIfDeleting"}
+	return cluster
+}
+
 func newPlacementDecision(namespace, name, placementName string, clusters []string) *clusterv1beta1.PlacementDecision {
 	placementDecision := &clusterv1beta1.PlacementDecision{
 		ObjectMeta: metav1.ObjectMeta{
@@ -199,7 +205,25 @@ func TestReconcile(t *testing.T) {
 			expectedConditions: []metav1.Condition{conditionSelectedTrue, conditionUpdatedTrue},
 		},
 		{
-			name: "remove registry label and annotations from clusters successfully",
+			name: "do not remove registry label and annotations from clusters successfully if deleting",
+			clusters: []*clusterv1.ManagedCluster{
+				addDeletionTimestampToCluster(newCluster("c1", "ns1.r1",
+					newAnnotationRegistries([]v1alpha1.Registries{}, "quay.io/acm-d/", "ns1.pullSecret"))),
+				newCluster("c2", "ns1.r1",
+					newAnnotationRegistries([]v1alpha1.Registries{}, "quay.io/acm-d/", "ns1.pullSecret"))},
+			placementDecisions: []*clusterv1beta1.PlacementDecision{
+				newPlacementDecision("ns1", "p1-1", "p1", []string{"c1", "c2"})},
+			imageRegistries: []*v1alpha1.ManagedClusterImageRegistry{
+				newImageRegistry("ns1", "r1", "p1",
+					[]v1alpha1.Registries{}, "quay.io/acm-d/", []metav1.Condition{}, true)},
+			req: reconcile.Request{NamespacedName: types.NamespacedName{Namespace: "ns1", Name: "r1"}},
+			expectedClusters: []*clusterv1.ManagedCluster{
+				newCluster("c1", "ns1.r1", newAnnotationRegistries([]v1alpha1.Registries{}, "quay.io/acm-d/", "ns1.pullSecret")),
+				newCluster("c2", "", "")},
+			expectedConditions: []metav1.Condition{},
+		},
+		{
+			name: "do not remove registry label and annotations from clusters successfully if cluster is deleting",
 			clusters: []*clusterv1.ManagedCluster{
 				newCluster("c1", "ns1.r1",
 					newAnnotationRegistries([]v1alpha1.Registries{}, "quay.io/acm-d/", "ns1.pullSecret")),
