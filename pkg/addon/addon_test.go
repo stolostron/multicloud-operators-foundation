@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	kubeinformers "k8s.io/client-go/informers"
 	fakekube "k8s.io/client-go/kubernetes/fake"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -150,16 +151,17 @@ func output(t *testing.T, name string, objects ...runtime.Object) {
 
 func TestManifest(t *testing.T) {
 	tests := []struct {
-		name                      string
-		cluster                   *clusterv1.ManagedCluster
-		addon                     *addonapiv1alpha1.ManagedClusterAddOn
-		imageRegistry             *v1alpha1.ManagedClusterImageRegistry
-		expectedNamespace         string
-		expectedNamespaceOrphaned bool
-		expectedImage             string
-		expectServiceType         v1.ServiceType
-		expectedNodeSelector      bool
-		expectedCount             int
+		name                            string
+		cluster                         *clusterv1.ManagedCluster
+		addon                           *addonapiv1alpha1.ManagedClusterAddOn
+		imageRegistry                   *v1alpha1.ManagedClusterImageRegistry
+		expectedNamespace               string
+		expectedNamespaceOrphaned       bool
+		expectedImage                   string
+		expectServiceType               v1.ServiceType
+		expectedNodeSelector            bool
+		expectedClusterRoleBindingNames sets.Set[string]
+		expectedCount                   int
 	}{
 		{
 			name:              "is OCP",
@@ -167,14 +169,22 @@ func TestManifest(t *testing.T) {
 			addon:             newAddon("work-manager", "cluster1", "", `{"global":{"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
 			expectedNamespace: "open-cluster-management-agent-addon",
 			expectedImage:     "quay.io/test/multicloud_manager:test",
-			expectedCount:     8,
+			expectedClusterRoleBindingNames: sets.New[string](
+				"open-cluster-management:klusterlet-addon-workmgr",
+				"open-cluster-management:klusterlet-addon-workmgr-log",
+			),
+			expectedCount: 8,
 		},
 		{
-			name:                 "is OCP but hub cluster",
-			cluster:              newCluster("local-cluster", "OpenShift", map[string]string{}, map[string]string{}),
-			addon:                newAddon("work-manager", "local-cluster", "", `{"global":{"nodeSelector":{"node-role.kubernetes.io/infra":""},"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
-			expectedNamespace:    "open-cluster-management-agent-addon",
-			expectedImage:        "quay.io/test/multicloud_manager:test",
+			name:              "is OCP but hub cluster",
+			cluster:           newCluster("local-cluster", "OpenShift", map[string]string{}, map[string]string{}),
+			addon:             newAddon("work-manager", "local-cluster", "", `{"global":{"nodeSelector":{"node-role.kubernetes.io/infra":""},"imageOverrides":{"multicloud_manager":"quay.io/test/multicloud_manager:test"}}}`),
+			expectedNamespace: "open-cluster-management-agent-addon",
+			expectedImage:     "quay.io/test/multicloud_manager:test",
+			expectedClusterRoleBindingNames: sets.New[string](
+				"open-cluster-management:klusterlet-addon-workmgr",
+				"open-cluster-management:klusterlet-addon-workmgr-log",
+			),
 			expectedNodeSelector: true,
 			expectedCount:        8,
 		},
@@ -185,6 +195,10 @@ func TestManifest(t *testing.T) {
 			addon:             newAddon("work-manager", "cluster1", "test", ""),
 			expectedNamespace: "test",
 			expectedImage:     "quay.io/stolostron/multicloud-manager:2.5.0",
+			expectedClusterRoleBindingNames: sets.New[string](
+				"open-cluster-management:klusterlet-addon-workmgr:test",
+				"open-cluster-management:klusterlet-addon-workmgr-log:test",
+			),
 			expectServiceType: v1.ServiceTypeLoadBalancer,
 			expectedCount:     9,
 		},
@@ -199,7 +213,11 @@ func TestManifest(t *testing.T) {
 			addon:             newAddon("work-manager", "cluster1", "", ""),
 			expectedNamespace: "open-cluster-management-agent-addon",
 			expectedImage:     "quay.io/test/multicloud-manager:2.5.0",
-			expectedCount:     8,
+			expectedClusterRoleBindingNames: sets.New[string](
+				"open-cluster-management:klusterlet-addon-workmgr",
+				"open-cluster-management:klusterlet-addon-workmgr-log",
+			),
+			expectedCount: 8,
 		},
 		{
 			name: "local cluster imageOverride",
@@ -209,9 +227,13 @@ func TestManifest(t *testing.T) {
 					v1alpha1.ClusterImageRegistriesAnnotation: newAnnotationRegistries([]v1alpha1.Registries{
 						{Source: "quay.io/stolostron", Mirror: "quay.io/test"},
 					}, "")}),
-			addon:                newAddon("work-manager", "local-cluster", "", ""),
-			expectedNamespace:    "open-cluster-management-agent-addon",
-			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
+			addon:             newAddon("work-manager", "local-cluster", "", ""),
+			expectedNamespace: "open-cluster-management-agent-addon",
+			expectedImage:     "quay.io/test/multicloud-manager:2.5.0",
+			expectedClusterRoleBindingNames: sets.New[string](
+				"open-cluster-management:klusterlet-addon-workmgr",
+				"open-cluster-management:klusterlet-addon-workmgr-log",
+			),
 			expectedNodeSelector: true,
 			expectedCount:        8,
 		},
@@ -232,7 +254,10 @@ func TestManifest(t *testing.T) {
 			expectedNamespace:    "klusterlet-local-cluster",
 			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
 			expectedNodeSelector: true,
-			expectedCount:        7,
+			expectedClusterRoleBindingNames: sets.New[string](
+				"open-cluster-management:klusterlet-addon-workmgr:klusterlet-local-cluster",
+			),
+			expectedCount: 7,
 		},
 		{
 			name: "hosted mode in klusterlet agent namespace",
@@ -251,7 +276,10 @@ func TestManifest(t *testing.T) {
 			expectedNamespace:         "klusterlet-cluster1",
 			expectedNamespaceOrphaned: true,
 			expectedImage:             "quay.io/test/multicloud-manager:2.5.0",
-			expectedCount:             7,
+			expectedClusterRoleBindingNames: sets.New[string](
+				"open-cluster-management:klusterlet-addon-workmgr:klusterlet-cluster1",
+			),
+			expectedCount: 7,
 		},
 	}
 
@@ -267,6 +295,7 @@ func TestManifest(t *testing.T) {
 				t.Errorf("expected objects number is %d, got %d, %v", test.expectedCount, len(objects), objects)
 			}
 
+			clusterRoleNames := sets.New[string]()
 			for _, o := range objects {
 				switch object := o.(type) {
 				case *appsv1.Deployment:
@@ -302,10 +331,14 @@ func TestManifest(t *testing.T) {
 					if object.Spec.Type != test.expectServiceType {
 						t.Errorf("expected service type is %s, but got %s ", test.expectServiceType, object.Spec.Type)
 					}
-
+				case *rbacv1.ClusterRoleBinding:
+					clusterRoleNames.Insert(object.Name)
 				}
 			}
 
+			if !test.expectedClusterRoleBindingNames.Equal(clusterRoleNames) {
+				t.Errorf("expected clusterrolebinding name is not right got, %v", clusterRoleNames)
+			}
 			// output is for debug
 			// output(t, test.name, objects...)
 		})
