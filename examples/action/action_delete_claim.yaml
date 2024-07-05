@@ -1,0 +1,12 @@
+# This action is used to delete clusterclaim in cluster cluster1
+apiVersion: action.open-cluster-management.io/v1beta1
+kind: ManagedClusterAction
+metadata:
+  name: claim-action-delete
+  namespace: cluster1
+spec:
+  actionType: Delete
+  kube:
+    # The resource should follow the format of {resource}.{version}.{group} 
+    resource: clusterclaims.v1alpha1.cluster.open-cluster-management.io
+    name: id.k8s.io
