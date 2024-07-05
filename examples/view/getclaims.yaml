@@ -1,0 +1,10 @@
+apiVersion: view.open-cluster-management.io/v1beta1
+kind: ManagedClusterView
+metadata:
+  name: getclusterclaim
+  namespace: cluster1
+spec:
+  scope:
+    # The resource should follow the format of {resource}.{version}.{group} 
+    resource: clusterclaims.v1alpha1.cluster.open-cluster-management.io
+    name: name

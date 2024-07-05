@@ -1,0 +1,15 @@
+# This action is used to create clusterclaim in cluster cluster1
+apiVersion: action.open-cluster-management.io/v1beta1
+kind: ManagedClusterAction
+metadata:
+  name: claim-action-create
+spec:
+  actionType: Create
+  kube:
+    template:
+      apiVersion: cluster.open-cluster-management.io/v1alpha1
+      kind: ClusterClaim
+      metadata:
+        name: testclaim
+      spec:
+        value: test
