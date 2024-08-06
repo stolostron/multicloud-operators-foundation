@@ -1567,6 +1567,13 @@ func (in *ClusterPoolSpec) DeepCopyInto(out *ClusterPoolSpec) {
 		*out = make([]InventoryEntry, len(*in))
 		copy(*out, *in)
 	}
+	if in.InstallerEnv != nil {
+		in, out := &in.InstallerEnv, &out.InstallerEnv
+		*out = make([]corev1.EnvVar, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	return
 }
 
@@ -3040,6 +3047,11 @@ func (in *MachinePoolStatus) DeepCopyInto(out *MachinePoolStatus) {
 		in, out := &in.OwnedTaints, &out.OwnedTaints
 		*out = make([]TaintIdentifier, len(*in))
 		copy(*out, *in)
+	}
+	if in.ControlledByReplica != nil {
+		in, out := &in.ControlledByReplica, &out.ControlledByReplica
+		*out = new(int64)
+		**out = **in
 	}
 	return
 }
