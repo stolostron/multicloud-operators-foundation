@@ -28,6 +28,7 @@ import (
 const (
 	ClaimK8sID                      = "id.k8s.io"
 	ClaimOpenshiftID                = "id.openshift.io"
+	ClaimOpenshiftAPIServerURL      = "apiserverurl.openshift.io"
 	ClaimOpenshiftVersion           = "version.openshift.io"
 	ClaimMicroShiftVersion          = "version.microshift.io"
 	ClaimOpenshiftInfrastructure    = "infrastructure.openshift.io"
@@ -203,13 +204,16 @@ func (c *ClusterClaimer) GenerateExpectClusterClaims() ([]*clusterv1alpha1.Clust
 			claims = append(claims, newClusterClaim(ClaimOpenshiftOauthRedirectURIs, redirectURIs))
 		}
 
-		infraConfig, err := c.getInfraConfig()
+		infraConfig, apiServerURL, err := c.getInfraConfig()
 		if err != nil {
 			klog.Errorf("failed to get infraConfig, error: %v ", err)
 			return claims, err
 		}
 		if infraConfig != "" {
 			claims = append(claims, newClusterClaim(ClaimOpenshiftInfrastructure, infraConfig))
+		}
+		if apiServerURL != "" {
+			claims = append(claims, newClusterClaim(ClaimOpenshiftAPIServerURL, apiServerURL))
 		}
 		controlPlaneTopology := c.getControlPlaneTopology()
 		if controlPlaneTopology != "" {
@@ -371,15 +375,15 @@ type InfraConfig struct {
 	InfraName string `json:"infraName,omitempty"`
 }
 
-func (c *ClusterClaimer) getInfraConfig() (string, error) {
+func (c *ClusterClaimer) getInfraConfig() (string, string, error) {
 	infrastructure, err := c.ConfigV1Client.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
 	if err != nil {
 		if apierrors.IsNotFound(err) {
-			return "", nil
+			return "", "", nil
 		}
 
 		klog.Errorf("failed to get OCP infrastructures.config.openshift.io/cluster: %v", err)
-		return "", err
+		return "", "", err
 	}
 
 	infraConfig := InfraConfig{
@@ -389,9 +393,10 @@ func (c *ClusterClaimer) getInfraConfig() (string, error) {
 	infraConfigRaw, err := json.Marshal(infraConfig)
 	if err != nil {
 		klog.Errorf("failed to marshal infraConfig: %v", err)
-		return "", err
+		return "", "", err
 	}
-	return string(infraConfigRaw), nil
+
+	return string(infraConfigRaw), infrastructure.Status.APIServerURL, nil
 }
 
 func (c *ClusterClaimer) getClusterRegion() (string, error) {

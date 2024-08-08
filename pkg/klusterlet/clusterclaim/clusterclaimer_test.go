@@ -846,6 +846,7 @@ func TestGetInfraConfig(t *testing.T) {
 		configV1Client    openshiftclientset.Interface
 		mapper            meta.RESTMapper
 		expectInfraConfig string
+		expectServerURL   string
 		expectErr         error
 	}{
 		{
@@ -854,6 +855,7 @@ func TestGetInfraConfig(t *testing.T) {
 			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
 			configV1Client:    newConfigV1Client("4.x", PlatformAWS),
 			expectInfraConfig: "{\"infraName\":\"ocp-aws\"}",
+			expectServerURL:   "https://api.osd-test.wu67.s1.devshift.org:6443",
 			expectErr:         nil,
 		},
 		{
@@ -862,6 +864,7 @@ func TestGetInfraConfig(t *testing.T) {
 			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
 			configV1Client:    newConfigV1Client("4.x", PlatformGCP),
 			expectInfraConfig: "{\"infraName\":\"ocp-gcp\"}",
+			expectServerURL:   "https://api.osd-test.wu67.s1.devshift.org:6443",
 			expectErr:         nil,
 		},
 	}
@@ -869,9 +872,10 @@ func TestGetInfraConfig(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, Mapper: test.mapper, ConfigV1Client: test.configV1Client}
-			infraConfig, err := clusterClaimer.getInfraConfig()
+			infraConfig, apiServerURL, err := clusterClaimer.getInfraConfig()
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, test.expectInfraConfig, infraConfig)
+			assert.Equal(t, test.expectServerURL, apiServerURL)
 		})
 	}
 }
