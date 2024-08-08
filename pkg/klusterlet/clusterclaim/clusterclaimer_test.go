@@ -480,6 +480,7 @@ func TestClusterClaimerList(t *testing.T) {
 			}),
 			expectClaims: map[string]string{
 				ClaimK8sID:                      "clusterAWS",
+				ClaimOpenshiftAPIServerURL:      "https://api.osd-test.wu67.s1.devshift.org:6443",
 				ClaimOpenshiftVersion:           "4.6.8",
 				ClaimOpenshiftID:                "ffd989a0-8391-426d-98ac-86ae6d051433",
 				ClaimOpenshiftInfrastructure:    "{\"infraName\":\"ocp-aws\"}",
@@ -506,6 +507,7 @@ func TestClusterClaimerList(t *testing.T) {
 				ClaimK8sID:                      "clusterAWS",
 				ClaimOpenshiftVersion:           "4.6.8",
 				ClaimOpenshiftID:                "ffd989a0-8391-426d-98ac-86ae6d051433",
+				ClaimOpenshiftAPIServerURL:      "https://api.osd-test.wu67.s1.devshift.org:6443",
 				ClaimOpenshiftInfrastructure:    "{\"infraName\":\"ocp-aws\"}",
 				ClaimOCMPlatform:                PlatformAWS,
 				ClaimOCMProduct:                 ProductOpenShift,
@@ -530,6 +532,7 @@ func TestClusterClaimerList(t *testing.T) {
 				ClaimOpenshiftVersion:        "4.6.8",
 				ClaimOpenshiftID:             "ffd989a0-8391-426d-98ac-86ae6d051433",
 				ClaimOpenshiftInfrastructure: "{\"infraName\":\"ocp-gcp\"}",
+				ClaimOpenshiftAPIServerURL:   "https://api.osd-test.wu67.s1.devshift.org:6443",
 				ClaimOCMPlatform:             PlatformGCP,
 				ClaimOCMProduct:              ProductOSD,
 				ClaimOCMConsoleURL:           "https://console-openshift-console.apps.daliu-clu428.dev04.red-chesterfield.com",
@@ -568,6 +571,7 @@ func TestClusterClaimerList(t *testing.T) {
 				ClaimOpenshiftVersion:           "4.6.8",
 				ClaimOpenshiftID:                "ffd989a0-8391-426d-98ac-86ae6d051433",
 				ClaimOpenshiftInfrastructure:    "{\"infraName\":\"kubernetes\"}",
+				ClaimOpenshiftAPIServerURL:      "https://api.osd-test.wu67.s1.devshift.org:6443",
 				ClaimOCMPlatform:                PlatformIBM,
 				ClaimOCMProduct:                 ProductROKS,
 				ClaimOCMConsoleURL:              "https://console-openshift-console.apps.daliu-clu428.dev04.red-chesterfield.com",
@@ -846,6 +850,7 @@ func TestGetInfraConfig(t *testing.T) {
 		configV1Client    openshiftclientset.Interface
 		mapper            meta.RESTMapper
 		expectInfraConfig string
+		expectServerURL   string
 		expectErr         error
 	}{
 		{
@@ -854,6 +859,7 @@ func TestGetInfraConfig(t *testing.T) {
 			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
 			configV1Client:    newConfigV1Client("4.x", PlatformAWS),
 			expectInfraConfig: "{\"infraName\":\"ocp-aws\"}",
+			expectServerURL:   "https://api.osd-test.wu67.s1.devshift.org:6443",
 			expectErr:         nil,
 		},
 		{
@@ -862,6 +868,7 @@ func TestGetInfraConfig(t *testing.T) {
 			mapper:            newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
 			configV1Client:    newConfigV1Client("4.x", PlatformGCP),
 			expectInfraConfig: "{\"infraName\":\"ocp-gcp\"}",
+			expectServerURL:   "https://api.osd-test.wu67.s1.devshift.org:6443",
 			expectErr:         nil,
 		},
 	}
@@ -869,9 +876,10 @@ func TestGetInfraConfig(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, Mapper: test.mapper, ConfigV1Client: test.configV1Client}
-			infraConfig, err := clusterClaimer.getInfraConfig()
+			infraConfig, apiServerURL, err := clusterClaimer.getInfraConfig()
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, test.expectInfraConfig, infraConfig)
+			assert.Equal(t, test.expectServerURL, apiServerURL)
 		})
 	}
 }
