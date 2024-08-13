@@ -64,13 +64,14 @@ func add(name string, mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{}), &handler.EnqueueRequestForObject{})
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{},
+		&handler.TypedEnqueueRequestForObject[*clusterv1.ManagedCluster]{}))
 	if err != nil {
 		return err
 	}
 
-	if err := c.Watch(source.Kind(mgr.GetCache(), &clusterinfov1beta1.ManagedClusterInfo{}),
-		&handler.EnqueueRequestForObject{}); err != nil {
+	if err := c.Watch(source.Kind(mgr.GetCache(), &clusterinfov1beta1.ManagedClusterInfo{},
+		&handler.TypedEnqueueRequestForObject[*clusterinfov1beta1.ManagedClusterInfo]{})); err != nil {
 		return err
 	}
 	return err

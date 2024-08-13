@@ -64,24 +64,20 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 		return err
 	}
 
-	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta2.ManagedClusterSet{}), &handler.EnqueueRequestForObject{})
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta2.ManagedClusterSet{},
+		&handler.TypedEnqueueRequestForObject[*clusterv1beta2.ManagedClusterSet]{}))
 	if err != nil {
 		return err
 	}
 
 	// Watch for changes to ClusterPool
 	err = c.Watch(
-		source.Kind(mgr.GetCache(), &hivev1.ClusterPool{}),
-		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
-				clusterPool, ok := a.(*hivev1.ClusterPool)
-				if !ok {
-					klog.Error("clusterPool handler received non-clusterPool object")
-					return []reconcile.Request{}
-				}
-				requests := getRequiredClusterSet(clusterPool.Labels, clusterSetNamespaceMapper, clusterPool.Namespace)
-				return requests
-			},
+		source.Kind(mgr.GetCache(), &hivev1.ClusterPool{},
+			handler.TypedEnqueueRequestsFromMapFunc[*hivev1.ClusterPool](
+				func(ctx context.Context, clusterPool *hivev1.ClusterPool) []reconcile.Request {
+					requests := getRequiredClusterSet(clusterPool.Labels, clusterSetNamespaceMapper, clusterPool.Namespace)
+					return requests
+				},
 			),
 		),
 	)
@@ -91,17 +87,12 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 
 	// Watch for changes to ClusterClaim
 	err = c.Watch(
-		source.Kind(mgr.GetCache(), &hivev1.ClusterClaim{}),
-		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
-				clusterClaim, ok := a.(*hivev1.ClusterClaim)
-				if !ok {
-					klog.Error("clusterClaim handler received non-clusterClaim object")
-					return []reconcile.Request{}
-				}
-				requests := getRequiredClusterSet(clusterClaim.Labels, clusterSetNamespaceMapper, clusterClaim.Namespace)
-				return requests
-			}),
+		source.Kind(mgr.GetCache(), &hivev1.ClusterClaim{},
+			handler.TypedEnqueueRequestsFromMapFunc(
+				func(ctx context.Context, clusterClaim *hivev1.ClusterClaim) []reconcile.Request {
+					requests := getRequiredClusterSet(clusterClaim.Labels, clusterSetNamespaceMapper, clusterClaim.Namespace)
+					return requests
+				}),
 		))
 	if err != nil {
 		return err
@@ -109,17 +100,12 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 
 	// Watch for changes to ClusterDeployment
 	err = c.Watch(
-		source.Kind(mgr.GetCache(), &hivev1.ClusterDeployment{}),
-		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
-				clusterDeployment, ok := a.(*hivev1.ClusterDeployment)
-				if !ok {
-					klog.Error("clusterDeployment handler received non-clusterDeployment object")
-					return []reconcile.Request{}
-				}
-				requests := getRequiredClusterSet(clusterDeployment.Labels, clusterSetNamespaceMapper, clusterDeployment.Namespace)
-				return requests
-			}),
+		source.Kind(mgr.GetCache(), &hivev1.ClusterDeployment{},
+			handler.TypedEnqueueRequestsFromMapFunc(
+				func(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment) []reconcile.Request {
+					requests := getRequiredClusterSet(clusterDeployment.Labels, clusterSetNamespaceMapper, clusterDeployment.Namespace)
+					return requests
+				}),
 		))
 	if err != nil {
 		return err
@@ -127,23 +113,18 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 
 	// Watch for changes to ManagedCluster
 	err = c.Watch(
-		source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{}),
-		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
-				managedCluster, ok := a.(*clusterv1.ManagedCluster)
-				if !ok {
-					klog.Error("managedCluster handler received non-managedCluster object")
-					return []reconcile.Request{}
-				}
-				requests := getRequiredClusterSet(managedCluster.Labels, clusterSetClusterMapper, managedCluster.Name)
-				//add global clusterset to queue if managedcluster changed
-				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name: clustersetutils.GlobalSetName,
-					},
-				})
-				return requests
-			}),
+		source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{},
+			handler.TypedEnqueueRequestsFromMapFunc(
+				func(ctx context.Context, managedCluster *clusterv1.ManagedCluster) []reconcile.Request {
+					requests := getRequiredClusterSet(managedCluster.Labels, clusterSetClusterMapper, managedCluster.Name)
+					// add global clusterset to queue if managedcluster changed
+					requests = append(requests, reconcile.Request{
+						NamespacedName: types.NamespacedName{
+							Name: clustersetutils.GlobalSetName,
+						},
+					})
+					return requests
+				}),
 		))
 	if err != nil {
 		return err
@@ -275,14 +256,14 @@ func (r *Reconciler) cleanClusterSetResource(clusterset *clusterv1beta2.ManagedC
 		return err
 	}
 
-	//Only LegacyClusterSet has admin clusterrole, so only LegacyClusterSet need to delete it here.
+	// Only LegacyClusterSet has admin clusterrole, so only LegacyClusterSet need to delete it here.
 	if clusterset.Spec.ClusterSelector.SelectorType == clusterv1beta2.ExclusiveClusterSetLabel {
 		err := utils.DeleteClusterRole(r.kubeClient, utils.GenerateClustersetClusterroleName(clusterset.Name, "admin"))
 		if err != nil {
 			klog.Warningf("will reconcile since failed to delete clusterrole. clusterset: %v, err: %v", clusterset.Name, err)
 			return err
 		}
-		//Delete clusterset which in clustersetMapper
+		// Delete clusterset which in clustersetMapper
 		r.clusterSetClusterMapper.DeleteClusterSet(clusterset.Name)
 		r.clusterSetNamespaceMapper.DeleteClusterSet(clusterset.Name)
 		return nil
@@ -345,7 +326,7 @@ func (r *Reconciler) generateClustersetCluster(selector labels.Selector) (sets.S
 func (r *Reconciler) generateClustersetNamespace(selector labels.Selector) (sets.String, error) {
 	namespaces := sets.NewString()
 
-	//Add clusterclaim namespace to newClusterSetNamespaceMapper
+	// Add clusterclaim namespace to newClusterSetNamespaceMapper
 	clusterClaimList := &hivev1.ClusterClaimList{}
 	err := r.client.List(context.TODO(), clusterClaimList, &client.ListOptions{LabelSelector: selector})
 	if err != nil {
@@ -356,7 +337,7 @@ func (r *Reconciler) generateClustersetNamespace(selector labels.Selector) (sets
 		namespaces.Insert(clusterClaim.Namespace)
 	}
 
-	//Add clusterdeployment namespace to newClusterSetNamespaceMapper
+	// Add clusterdeployment namespace to newClusterSetNamespaceMapper
 	clusterDeploymentList := &hivev1.ClusterDeploymentList{}
 	err = r.client.List(context.TODO(), clusterDeploymentList, &client.ListOptions{LabelSelector: selector})
 	if err != nil {
@@ -367,7 +348,7 @@ func (r *Reconciler) generateClustersetNamespace(selector labels.Selector) (sets
 		namespaces.Insert(clusterDeployment.Namespace)
 	}
 
-	//Add clusterpool namespace to newClusterSetNamespaceMapper
+	// Add clusterpool namespace to newClusterSetNamespaceMapper
 	clusterPoolList := &hivev1.ClusterPoolList{}
 	err = r.client.List(context.TODO(), clusterPoolList, &client.ListOptions{LabelSelector: selector})
 	if err != nil {

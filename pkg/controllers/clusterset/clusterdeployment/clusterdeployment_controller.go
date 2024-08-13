@@ -59,86 +59,74 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(source.Kind(mgr.GetCache(), &hivev1.ClusterDeployment{}),
-		&handler.EnqueueRequestForObject{})
+	err = c.Watch(source.Kind(mgr.GetCache(), &hivev1.ClusterDeployment{},
+		&handler.TypedEnqueueRequestForObject[*hivev1.ClusterDeployment]{}))
 	if err != nil {
 		return err
 	}
 
-	//watch all clusterpool related clusterdeployments
+	// watch all clusterpool related clusterdeployments
 	err = c.Watch(
-		source.Kind(mgr.GetCache(), &hivev1.ClusterPool{}),
-		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
-				clusterPool, ok := a.(*hivev1.ClusterPool)
-				if !ok {
-					// not a clusterpool, returning empty
-					klog.Error("Clusterpool handler received non-Clusterpool object")
-					return []reconcile.Request{}
-				}
-				clusterdeployments := &hivev1.ClusterDeploymentList{}
-				err := mgr.GetClient().List(context.TODO(), clusterdeployments, &client.ListOptions{})
-				if err != nil {
-					klog.Errorf("could not list clusterdeployments. Error: %v", err)
-				}
-				var requests []reconcile.Request
-				for _, clusterdeployment := range clusterdeployments.Items {
-					//If clusterdeployment is not created by clusterpool or already cliamed, ignore it
-					if clusterdeployment.Spec.ClusterPoolRef == nil || len(clusterdeployment.Spec.ClusterPoolRef.ClaimName) != 0 {
-						continue
+		source.Kind(mgr.GetCache(), &hivev1.ClusterPool{},
+			handler.TypedEnqueueRequestsFromMapFunc[*hivev1.ClusterPool](
+				func(ctx context.Context, clusterPool *hivev1.ClusterPool) []reconcile.Request {
+					clusterdeployments := &hivev1.ClusterDeploymentList{}
+					err := mgr.GetClient().List(context.TODO(), clusterdeployments, &client.ListOptions{})
+					if err != nil {
+						klog.Errorf("could not list clusterdeployments. Error: %v", err)
 					}
-					//Only filter clusterpool related clusterdeployment
-					if clusterdeployment.Spec.ClusterPoolRef.PoolName != clusterPool.Name || clusterdeployment.Spec.ClusterPoolRef.Namespace != clusterPool.Namespace {
-						continue
+					var requests []reconcile.Request
+					for _, clusterdeployment := range clusterdeployments.Items {
+						// If clusterdeployment is not created by clusterpool or already cliamed, ignore it
+						if clusterdeployment.Spec.ClusterPoolRef == nil || len(clusterdeployment.Spec.ClusterPoolRef.ClaimName) != 0 {
+							continue
+						}
+						// Only filter clusterpool related clusterdeployment
+						if clusterdeployment.Spec.ClusterPoolRef.PoolName != clusterPool.Name || clusterdeployment.Spec.ClusterPoolRef.Namespace != clusterPool.Namespace {
+							continue
+						}
+						requests = append(requests, reconcile.Request{
+							NamespacedName: types.NamespacedName{
+								Name:      clusterdeployment.Name,
+								Namespace: clusterdeployment.Namespace,
+							},
+						})
 					}
+					return requests
+
+				}),
+		))
+	if err != nil {
+		return err
+	}
+
+	// watch managedcluster related clusterdeployment
+	err = c.Watch(
+		source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{},
+			handler.TypedEnqueueRequestsFromMapFunc[*clusterv1.ManagedCluster](
+				func(ctx context.Context, managedCluster *clusterv1.ManagedCluster) []reconcile.Request {
+					clusterdeployment := &hivev1.ClusterDeployment{}
+					err := mgr.GetClient().Get(context.TODO(),
+						types.NamespacedName{
+							Name:      managedCluster.Name,
+							Namespace: managedCluster.Name,
+						},
+						clusterdeployment,
+					)
+
+					if err != nil || clusterdeployment == nil {
+						return []reconcile.Request{}
+					}
+					var requests []reconcile.Request
 					requests = append(requests, reconcile.Request{
 						NamespacedName: types.NamespacedName{
 							Name:      clusterdeployment.Name,
 							Namespace: clusterdeployment.Namespace,
 						},
 					})
-				}
-				return requests
+					return requests
 
-			}),
-		))
-	if err != nil {
-		return err
-	}
-
-	//watch managedcluster related clusterdeployment
-	err = c.Watch(
-		source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{}),
-		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
-				managedCluster, ok := a.(*clusterv1.ManagedCluster)
-				if !ok {
-					// not a managedcluster, returning empty
-					klog.Error("managedCluster handler received non-managedCluster object")
-					return []reconcile.Request{}
-				}
-				clusterdeployment := &hivev1.ClusterDeployment{}
-				err := mgr.GetClient().Get(context.TODO(),
-					types.NamespacedName{
-						Name:      managedCluster.Name,
-						Namespace: managedCluster.Name,
-					},
-					clusterdeployment,
-				)
-
-				if err != nil || clusterdeployment == nil {
-					return []reconcile.Request{}
-				}
-				var requests []reconcile.Request
-				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      clusterdeployment.Name,
-						Namespace: clusterdeployment.Namespace,
-					},
-				})
-				return requests
-
-			}),
+				}),
 		))
 	if err != nil {
 		return err
@@ -158,9 +146,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 	var targetLabels map[string]string
-	//if the clusterdeployment is not created by clusterpool, update label follow managedcluster label
+	// if the clusterdeployment is not created by clusterpool, update label follow managedcluster label
 	if clusterdeployment.Spec.ClusterPoolRef == nil {
-		//get managedclusterlabel
+		// get managedclusterlabel
 		managedcluster := clusterv1.ManagedCluster{}
 		err := r.client.Get(ctx,
 			types.NamespacedName{

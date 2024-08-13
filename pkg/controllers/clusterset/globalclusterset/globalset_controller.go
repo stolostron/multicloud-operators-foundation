@@ -57,14 +57,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta2.ManagedClusterSet{}),
-		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
-				clusterset, ok := a.(*clusterv1beta2.ManagedClusterSet)
-				if !ok {
-					klog.Error("clusterset handler received non-clusterset object")
-					return []reconcile.Request{}
-				}
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta2.ManagedClusterSet{},
+		handler.TypedEnqueueRequestsFromMapFunc[*clusterv1beta2.ManagedClusterSet](
+			func(ctx context.Context, clusterset *clusterv1beta2.ManagedClusterSet) []reconcile.Request {
 				if clusterset.Spec.ClusterSelector.SelectorType != clusterv1beta2.LabelSelector {
 					return []reconcile.Request{}
 				}
@@ -79,20 +74,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					},
 				}
 			}),
-		),
+	),
 	)
 	if err != nil {
 		return err
 	}
 
-	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta2.ManagedClusterSetBinding{}),
-		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
-				clustersetbinding, ok := a.(*clusterv1beta2.ManagedClusterSetBinding)
-				if !ok {
-					klog.Error("clustersetbinding handler received non-clustersetbinding object")
-					return []reconcile.Request{}
-				}
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta2.ManagedClusterSetBinding{},
+		handler.TypedEnqueueRequestsFromMapFunc[*clusterv1beta2.ManagedClusterSetBinding](
+			func(ctx context.Context, clustersetbinding *clusterv1beta2.ManagedClusterSetBinding) []reconcile.Request {
 				if clustersetbinding.Namespace != clustersetutils.GlobalSetNameSpace {
 					return []reconcile.Request{}
 				}
@@ -108,20 +98,15 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					},
 				}
 			}),
-		),
+	),
 	)
 	if err != nil {
 		return err
 	}
 
-	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta1.Placement{}),
-		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
-				placement, ok := a.(*clusterv1beta1.Placement)
-				if !ok {
-					klog.Error("placement handler received non-placement object")
-					return []reconcile.Request{}
-				}
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta1.Placement{},
+		handler.TypedEnqueueRequestsFromMapFunc[*clusterv1beta1.Placement](
+			func(ctx context.Context, placement *clusterv1beta1.Placement) []reconcile.Request {
 				if placement.Namespace != clustersetutils.GlobalSetNameSpace {
 					return []reconcile.Request{}
 				}
@@ -136,7 +121,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 					},
 				}
 			}),
-		),
+	),
 	)
 	if err != nil {
 		return err

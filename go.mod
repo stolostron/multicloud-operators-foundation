@@ -1,6 +1,6 @@
 module github.com/stolostron/multicloud-operators-foundation
 
-go 1.21
+go 1.22.0
 
 require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
@@ -18,26 +18,26 @@ require (
 	github.com/prometheus/common v0.45.0
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/pflag v1.0.5
-	github.com/stolostron/cluster-lifecycle-api v0.0.0-20240506072238-d0d33efc0d4e
+	github.com/stolostron/cluster-lifecycle-api v0.0.0-20240813023109-42b5c115d0a3
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.26.0
-	k8s.io/api v0.29.2
-	k8s.io/apiextensions-apiserver v0.29.2
-	k8s.io/apimachinery v0.29.2
-	k8s.io/apiserver v0.29.2
+	k8s.io/api v0.30.2
+	k8s.io/apiextensions-apiserver v0.30.1
+	k8s.io/apimachinery v0.30.2
+	k8s.io/apiserver v0.30.1
 	k8s.io/cli-runtime v0.29.2
-	k8s.io/client-go v0.29.2
-	k8s.io/code-generator v0.30.0-alpha.3
-	k8s.io/component-base v0.29.2
+	k8s.io/client-go v0.30.2
+	k8s.io/code-generator v0.30.2
+	k8s.io/component-base v0.30.2
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.120.1
 	k8s.io/kube-aggregator v0.29.2
 	k8s.io/kube-openapi v0.0.0-20240430033511-f0e62f92d13f
 	open-cluster-management.io/addon-framework v0.9.1-0.20240416063208-ecb7f349df05
-	open-cluster-management.io/api v0.13.0
+	open-cluster-management.io/api v0.14.1-0.20240627145512-bd6f2229b53c
 	open-cluster-management.io/managed-serviceaccount v0.5.0
 	open-cluster-management.io/sdk-go v0.13.1-0.20240416030555-aa744f426379
-	sigs.k8s.io/controller-runtime v0.17.2
+	sigs.k8s.io/controller-runtime v0.18.4
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -147,9 +147,8 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	helm.sh/helm/v3 v3.14.2 // indirect
-	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
 	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70 // indirect
-	k8s.io/kms v0.29.2 // indirect
+	k8s.io/kms v0.30.1 // indirect
 	k8s.io/utils v0.0.0-20240310230437-4693a0247e57 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.29.0 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect

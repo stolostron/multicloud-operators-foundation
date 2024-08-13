@@ -54,7 +54,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
-	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{}), &handler.EnqueueRequestForObject{})
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{},
+		&handler.TypedEnqueueRequestForObject[*clusterv1.ManagedCluster]{}))
 	if err != nil {
 		return err
 	}
@@ -109,7 +110,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	//add clusterrole
+	// add clusterrole
 	adminRole := buildAdminRole(cluster.Name)
 	err = utils.ApplyClusterRole(r.kubeClient, adminRole)
 	if err != nil {
@@ -124,7 +125,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	//add label to clusternamespace
+	// add label to clusternamespace
 	clusterNamespace, err := r.kubeClient.CoreV1().Namespaces().Get(context.TODO(), cluster.Name, metav1.GetOptions{})
 	if err != nil {
 		klog.Warningf("will reconcile since failed get clusternamespace %v, %v", cluster.Name, err)

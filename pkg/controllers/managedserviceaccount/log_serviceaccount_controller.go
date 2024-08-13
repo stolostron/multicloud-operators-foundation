@@ -58,27 +58,29 @@ func add(mgr manager.Manager, r *Reconciler) error {
 	}
 
 	// watch ManagedCluster as the primary resource
-	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{}), &handler.EnqueueRequestForObject{})
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{},
+		&handler.TypedEnqueueRequestForObject[*clusterv1.ManagedCluster]{}))
 	if err != nil {
 		return err
 	}
 
 	// watch log managedClusterAddon
 	// do not watch ManagedServiceAccount API, because the CRD will not be found if msa is not installed.
-	err = c.Watch(source.Kind(mgr.GetCache(), &addonv1alpha1.ManagedClusterAddOn{}), handler.EnqueueRequestsFromMapFunc(
-		handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
-			if a.GetName() != helpers.MsaAddonName {
-				return []reconcile.Request{}
-			}
+	err = c.Watch(source.Kind(mgr.GetCache(), &addonv1alpha1.ManagedClusterAddOn{},
+		handler.TypedEnqueueRequestsFromMapFunc[*addonv1alpha1.ManagedClusterAddOn](
+			func(ctx context.Context, a *addonv1alpha1.ManagedClusterAddOn) []reconcile.Request {
+				if a.GetName() != helpers.MsaAddonName {
+					return []reconcile.Request{}
+				}
 
-			return []reconcile.Request{
-				{
-					NamespacedName: types.NamespacedName{
-						Name: a.GetNamespace(),
+				return []reconcile.Request{
+					{
+						NamespacedName: types.NamespacedName{
+							Name: a.GetNamespace(),
+						},
 					},
-				},
-			}
-		}),
+				}
+			}),
 	))
 	if err != nil {
 		return err
