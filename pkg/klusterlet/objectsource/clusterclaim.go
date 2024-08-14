@@ -8,7 +8,6 @@ import (
 	"k8s.io/client-go/util/workqueue"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
@@ -20,33 +19,34 @@ import (
 func NewClusterClaimSource(clusterInformers clusterv1alpha1informer.ClusterClaimInformer) source.Source {
 	return &clusterClaimSource{
 		claimInformer: clusterInformers.Informer(),
+		handler:       newClusterClaimEventHandler(),
 	}
 }
 
 // clusterClaimSource is the event source of cluster claims on managed cluster.
 type clusterClaimSource struct {
 	claimInformer cache.SharedIndexInformer
+	handler       handler.EventHandler
 }
 
 var _ source.SyncingSource = &clusterClaimSource{}
 
-func (s *clusterClaimSource) Start(ctx context.Context, handler handler.EventHandler, queue workqueue.RateLimitingInterface,
-	predicates ...predicate.Predicate) error {
+func (s *clusterClaimSource) Start(ctx context.Context, queue workqueue.RateLimitingInterface) error {
 	// all predicates are ignored
 	s.claimInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
-			handler.Create(ctx, event.CreateEvent{
+			s.handler.Create(ctx, event.CreateEvent{
 				Object: obj.(*clusterv1alpha1.ClusterClaim),
 			}, queue)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
-			handler.Update(ctx, event.UpdateEvent{
+			s.handler.Update(ctx, event.UpdateEvent{
 				ObjectOld: oldObj.(*clusterv1alpha1.ClusterClaim),
 				ObjectNew: newObj.(*clusterv1alpha1.ClusterClaim),
 			}, queue)
 		},
 		DeleteFunc: func(obj interface{}) {
-			handler.Delete(ctx, event.DeleteEvent{
+			s.handler.Delete(ctx, event.DeleteEvent{
 				Object: obj.(*clusterv1alpha1.ClusterClaim),
 			}, queue)
 		},
@@ -62,8 +62,8 @@ func (s *clusterClaimSource) WaitForSync(ctx context.Context) error {
 	return nil
 }
 
-// ClusterClaimEventHandler maps any event to an empty request
-func NewClusterClaimEventHandler() *clusterClaimEventHandler {
+// newClusterClaimEventHandler maps any event to an empty request
+func newClusterClaimEventHandler() *clusterClaimEventHandler {
 	return &clusterClaimEventHandler{}
 }
 

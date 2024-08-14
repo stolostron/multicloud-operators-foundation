@@ -57,7 +57,8 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource cluster
-	err = c.Watch(source.Kind(mgr.GetCache(), &actionv1beta1.ManagedClusterAction{}), &handler.EnqueueRequestForObject{})
+	err = c.Watch(source.Kind(mgr.GetCache(), &actionv1beta1.ManagedClusterAction{},
+		&handler.TypedEnqueueRequestForObject[*actionv1beta1.ManagedClusterAction]{}))
 	if err != nil {
 		return err
 	}

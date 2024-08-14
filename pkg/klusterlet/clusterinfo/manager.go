@@ -8,10 +8,10 @@ import (
 
 func (r *ClusterInfoReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	claimSource := objectsource.NewClusterClaimSource(r.ClaimInformer)
-	nodeSource := &objectsource.NodeSource{NodeInformer: r.NodeInformer.Informer()}
+	nodeSource := objectsource.NewNodeSource(r.NodeInformer)
 	return ctrl.NewControllerManagedBy(mgr).
-		WatchesRawSource(claimSource, objectsource.NewClusterClaimEventHandler()).
-		WatchesRawSource(nodeSource, &objectsource.NodeEventHandler{}).
+		WatchesRawSource(claimSource).
+		WatchesRawSource(nodeSource).
 		For(&clusterv1beta1.ManagedClusterInfo{}).
 		Complete(r)
 }

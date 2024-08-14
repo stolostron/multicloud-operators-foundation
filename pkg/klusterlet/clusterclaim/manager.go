@@ -21,7 +21,7 @@ func (r *clusterClaimReconciler) SetupWithManager(mgr ctrl.Manager,
 	}
 
 	claimSource := objectsource.NewClusterClaimSource(clusterInformer)
-	if err := c.Watch(claimSource, objectsource.NewClusterClaimEventHandler()); err != nil {
+	if err := c.Watch(claimSource); err != nil {
 		return err
 	}
 
@@ -29,12 +29,13 @@ func (r *clusterClaimReconciler) SetupWithManager(mgr ctrl.Manager,
 	// 1. when labels of the managedclusterinfo changed, we need to sync labels to clusterclaims
 	// 2. at the beginning of the pod, we need this watch to trigger the reconcile of all clusterclaims
 	// 3. when nodes' schedulable status changed, we need to sync the status to the clusterclaim - schedulable.open-cluster-management.io
-	if err := c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta1.ManagedClusterInfo{}), &handler.EnqueueRequestForObject{}); err != nil {
+	if err := c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta1.ManagedClusterInfo{},
+		&handler.TypedEnqueueRequestForObject[*clusterv1beta1.ManagedClusterInfo]{})); err != nil {
 		return err
 	}
 
-	nodeSource := &objectsource.NodeSource{NodeInformer: nodeInformer.Informer()}
-	if err := c.Watch(nodeSource, &objectsource.NodeEventHandler{}); err != nil {
+	nodeSource := objectsource.NewNodeSource(nodeInformer)
+	if err := c.Watch(nodeSource); err != nil {
 		return err
 	}
 

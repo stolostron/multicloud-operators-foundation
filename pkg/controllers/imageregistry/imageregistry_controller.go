@@ -66,23 +66,17 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// watch for changes of ManagedClusterImageRegistry
-	err = c.Watch(source.Kind(mgr.GetCache(), &v1alpha1.ManagedClusterImageRegistry{}), &handler.EnqueueRequestForObject{})
+	err = c.Watch(source.Kind(mgr.GetCache(), &v1alpha1.ManagedClusterImageRegistry{},
+		&handler.TypedEnqueueRequestForObject[*v1alpha1.ManagedClusterImageRegistry]{}))
 	if err != nil {
 		return err
 	}
 
 	// watch for the changes of PlacementDecision.
 	// queue all ManagedClusterImageRegistries if a Placement is referred to multi ManagedClusterImageRegistry.
-	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta1.PlacementDecision{}),
-		handler.EnqueueRequestsFromMapFunc(
-			handler.MapFunc(func(ctx context.Context, a client.Object) []reconcile.Request {
-				placementDecision, ok := a.(*clusterv1beta1.PlacementDecision)
-				if !ok {
-					// not a placementDecision, returning empty
-					klog.Error("imageRegistry handler received non-placementDecision object")
-					return []reconcile.Request{}
-				}
-
+	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta1.PlacementDecision{},
+		handler.TypedEnqueueRequestsFromMapFunc[*clusterv1beta1.PlacementDecision](
+			func(ctx context.Context, placementDecision *clusterv1beta1.PlacementDecision) []reconcile.Request {
 				labels := placementDecision.GetLabels()
 				if len(labels) == 0 || labels[clusterv1beta1.PlacementLabel] == "" {
 					klog.V(2).Infof("Could not get placement label in placementDecision %v", placementDecision.Name)
@@ -113,7 +107,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 
 				return requests
 			}),
-		))
+	))
 	return nil
 }
 
