@@ -417,6 +417,7 @@ github.com/stolostron/cluster-lifecycle-api/action/v1beta1
 github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1
 github.com/stolostron/cluster-lifecycle-api/constants
 github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry
+github.com/stolostron/cluster-lifecycle-api/helpers/localcluster
 github.com/stolostron/cluster-lifecycle-api/imageregistry/v1alpha1
 github.com/stolostron/cluster-lifecycle-api/view/v1beta1
 # github.com/stretchr/testify v1.9.0

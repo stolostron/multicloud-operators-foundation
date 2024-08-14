@@ -8,6 +8,7 @@ import (
 	"reflect"
 
 	apiconstants "github.com/stolostron/cluster-lifecycle-api/constants"
+	"github.com/stolostron/cluster-lifecycle-api/helpers/localcluster"
 	"k8s.io/apimachinery/pkg/types"
 	rbacv1informers "k8s.io/client-go/informers/rbac/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -192,7 +193,7 @@ func HostedClusterInfo(_ *addonapiv1alpha1.ManagedClusterAddOn, cluster *cluster
 func getNodeSelector(managedCluster *clusterv1.ManagedCluster) (map[string]string, error) {
 	nodeSelector := map[string]string{}
 
-	if managedCluster.GetName() == "local-cluster" {
+	if localcluster.IsClusterSelfManaged(managedCluster) {
 		annotations := managedCluster.GetAnnotations()
 		if nodeSelectorString, ok := annotations[annotationNodeSelector]; ok {
 			if err := json.Unmarshal([]byte(nodeSelectorString), &nodeSelector); err != nil {
