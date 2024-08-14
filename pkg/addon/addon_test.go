@@ -221,13 +221,16 @@ func TestManifest(t *testing.T) {
 		},
 		{
 			name: "local cluster imageOverride",
-			cluster: newCluster("local-cluster", "OpenShift",
-				map[string]string{v1alpha1.ClusterImageRegistryLabel: "ns1.imageRegistry1"},
+			cluster: newCluster("local-cluster-test", "OpenShift",
+				map[string]string{
+					v1alpha1.ClusterImageRegistryLabel:      "ns1.imageRegistry1",
+					apiconstants.SelfManagedClusterLabelKey: "true",
+				},
 				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}",
 					v1alpha1.ClusterImageRegistriesAnnotation: newAnnotationRegistries([]v1alpha1.Registries{
 						{Source: "quay.io/stolostron", Mirror: "quay.io/test"},
 					}, "")}),
-			addon:             newAddon("work-manager", "local-cluster", "", ""),
+			addon:             newAddon("work-manager", "local-cluster-test", "", ""),
 			expectedNamespace: "open-cluster-management-agent-addon",
 			expectedImage:     "quay.io/test/multicloud-manager:2.5.0",
 			expectedClusterRoleBindingNames: sets.New[string](
@@ -239,8 +242,11 @@ func TestManifest(t *testing.T) {
 		},
 		{
 			name: "hosted mode",
-			cluster: newCluster("local-cluster", "OpenShift",
-				map[string]string{v1alpha1.ClusterImageRegistryLabel: "ns1.imageRegistry1"},
+			cluster: newCluster("local-cluster-test", "OpenShift",
+				map[string]string{
+					v1alpha1.ClusterImageRegistryLabel:      "ns1.imageRegistry1",
+					apiconstants.SelfManagedClusterLabelKey: "true",
+				},
 				map[string]string{annotationNodeSelector: "{\"node-role.kubernetes.io/infra\":\"\"}",
 					v1alpha1.ClusterImageRegistriesAnnotation: newAnnotationRegistries([]v1alpha1.Registries{
 						{Source: "quay.io/stolostron", Mirror: "quay.io/test"},
@@ -250,12 +256,12 @@ func TestManifest(t *testing.T) {
 					AnnotationEnableHostedModeAddons:                    "true",
 				}),
 			addon: newAddonWithCustomizedAnnotation(
-				"work-manager", "local-cluster", "", map[string]string{}),
-			expectedNamespace:    "klusterlet-local-cluster",
+				"work-manager", "local-cluster-test", "", map[string]string{}),
+			expectedNamespace:    "klusterlet-local-cluster-test",
 			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
 			expectedNodeSelector: true,
 			expectedClusterRoleBindingNames: sets.New[string](
-				"open-cluster-management:klusterlet-addon-workmgr:klusterlet-local-cluster",
+				"open-cluster-management:klusterlet-addon-workmgr:klusterlet-local-cluster-test",
 			),
 			expectedCount: 7,
 		},
