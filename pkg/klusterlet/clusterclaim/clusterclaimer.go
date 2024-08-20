@@ -212,8 +212,13 @@ func (c *ClusterClaimer) GenerateExpectClusterClaims() ([]*clusterv1alpha1.Clust
 		if infraConfig != "" {
 			claims = append(claims, newClusterClaim(ClaimOpenshiftInfrastructure, infraConfig))
 		}
+		// ClaimOpenshiftAPIServerURL claim is introduced in ACM 2.12.
+		// in HCP case: the ACM version of HCP is old without this claim, when install ACM on HCP cluster with this version,
+		// the claim on local-cluster will be deleted by the work-manager addon of HCP since the claim is not expected.
+		// so need to create a claim without hub-managed label, the addon of HCP will not delete this claim created by local-cluster addon.
+		// TODO: consider the value of hub-managed label, and if deprecate this label or do not clean up the claims created by ACM.
 		if apiServerURL != "" {
-			claims = append(claims, newClusterClaim(ClaimOpenshiftAPIServerURL, apiServerURL))
+			claims = append(claims, newClusterClaimWithoutHubManaged(ClaimOpenshiftAPIServerURL, apiServerURL))
 		}
 		controlPlaneTopology := c.getControlPlaneTopology()
 		if controlPlaneTopology != "" {
@@ -262,6 +267,18 @@ func newClusterClaim(name, value string) *clusterv1alpha1.ClusterClaim {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   name,
 			Labels: map[string]string{labelHubManaged: "", labelExcludeBackup: "true"},
+		},
+		Spec: clusterv1alpha1.ClusterClaimSpec{
+			Value: value,
+		},
+	}
+}
+
+func newClusterClaimWithoutHubManaged(name, value string) *clusterv1alpha1.ClusterClaim {
+	return &clusterv1alpha1.ClusterClaim{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:   name,
+			Labels: map[string]string{labelExcludeBackup: "true"},
 		},
 		Spec: clusterv1alpha1.ClusterClaimSpec{
 			Value: value,
