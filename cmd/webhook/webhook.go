@@ -4,9 +4,7 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
 
 	"github.com/spf13/pflag"
 	"github.com/stolostron/multicloud-operators-foundation/cmd/webhook/app"
@@ -20,8 +18,6 @@ import (
 )
 
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
-
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	opts := options.NewOptions()
