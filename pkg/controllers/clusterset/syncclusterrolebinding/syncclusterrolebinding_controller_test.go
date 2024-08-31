@@ -115,11 +115,14 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 	}
 }
 
-func validateResult(t *testing.T, caseName string, r *Reconciler, clusterrolebindingName string, exist bool) {
-	ctx := context.Background()
-	clusterrolebinding, _ := r.kubeClient.RbacV1().ClusterRoleBindings().Get(ctx, clusterrolebindingName, metav1.GetOptions{})
-	if exist && clusterrolebinding == nil {
-		t.Errorf("Case: %v, Failed to apply clusterrolebinding", caseName)
+func validateResult(t *testing.T, caseName string, r *Reconciler, clusterrolebindingName string, expectedExist bool) {
+	if !expectedExist {
+		return // no need to check
+	}
+
+	_, err := r.kubeClient.RbacV1().ClusterRoleBindings().Get(context.Background(), clusterrolebindingName, metav1.GetOptions{})
+	if err != nil {
+		t.Errorf("Case: %v, Failed to get clusterrolebinding, err: %v", caseName, err)
 	}
 }
 

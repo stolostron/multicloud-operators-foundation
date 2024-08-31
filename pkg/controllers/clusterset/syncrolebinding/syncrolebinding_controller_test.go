@@ -119,10 +119,12 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 	}
 }
 
-func validateResult(t *testing.T, r *Reconciler, managedclusterName string, exist bool) {
-	ctx := context.Background()
-	managedclusterRolebinding, _ := r.kubeClient.RbacV1().RoleBindings(managedclusterName).Get(ctx, utils.GenerateClustersetResourceRoleBindingName("admin"), metav1.GetOptions{})
-	if exist && managedclusterRolebinding == nil {
-		t.Errorf("Failed to apply managedclusterRolebinding")
+func validateResult(t *testing.T, r *Reconciler, managedclusterName string, expectExist bool) {
+	if !expectExist {
+		return // no need to validate
+	}
+	_, err := r.kubeClient.RbacV1().RoleBindings(managedclusterName).Get(context.Background(), utils.GenerateClustersetResourceRoleBindingName("admin"), metav1.GetOptions{})
+	if err != nil {
+		t.Errorf("rolebinding %s should be exist, but got error: %v", utils.GenerateClustersetResourceRoleBindingName("admin"), err)
 	}
 }
