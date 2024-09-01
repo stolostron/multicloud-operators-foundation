@@ -19,11 +19,12 @@ KUSTOMIZE_VERSION?=v3.5.4
 KUSTOMIZE_ARCHIVE_NAME?=kustomize_$(KUSTOMIZE_VERSION)_$(GOHOSTOS)_$(GOHOSTARCH).tar.gz
 kustomize_dir:=$(dir $(KUSTOMIZE))
 
-
 HELM?=$(PERMANENT_TMP_GOPATH)/bin/helm
 HELM_VERSION?=v3.14.0
 HELM_ARCHIVE_NAME?=helm-$(HELM_VERSION)-$(GOHOSTOS)-$(GOHOSTARCH).tar.gz
 helm_dir:=$(dir $(HELM))
+
+CODE_GENENRATOR_VERSION ?= $(shell go list -m k8s.io/code-generator | awk '{print $$2}')
 
 # Image URL to use all building/pushing image targets;
 IMAGE ?= multicloud-manager
@@ -33,8 +34,6 @@ FOUNDATION_IMAGE_NAME ?= $(IMAGE_REGISTRY)/$(IMAGE):$(IMAGE_TAG)
 
 GIT_HOST ?= github.com/stolostron
 BASE_DIR := $(shell basename $(PWD))
-DEST := $(GOPATH)/src/$(GIT_HOST)/$(BASE_DIR)
-BINDIR ?= _output
 
 SED_CMD:=sed
 ifeq ($(GOHOSTOS),darwin)
@@ -118,49 +117,26 @@ test-e2e: build-e2e deploy-hub deploy-klusterlet deploy-foundation deploy-addons
 # This section contains the code generation stuff
 ############################################################
 
-generate_exes: $(BINDIR)/defaulter-gen \
-  $(BINDIR)/deepcopy-gen \
-  $(BINDIR)/conversion-gen \
-  $(BINDIR)/openapi-gen \
-  $(BINDIR)/go-to-protobuf \
-  $(BINDIR)/protoc-gen-gogo \
-  
-$(BINDIR)/defaulter-gen:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/defaulter-gen
-
-$(BINDIR)/deepcopy-gen:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/deepcopy-gen
-
-$(BINDIR)/conversion-gen:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/conversion-gen
-
-$(BINDIR)/openapi-gen:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/openapi-gen
-
-$(BINDIR)/go-to-protobuf:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/go-to-protobuf
-
-$(BINDIR)/protoc-gen-gogo:
-	go build -o $@ $(DEST)/vendor/k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo
-
-
-# Regenerate all files if the gen exes changed or any "types.go" files changed
-generate_files: generate_exes
-  # generate apiserver deps
-	hack/update-apiserver-gen.sh
-  # generate protobuf
-	hack/update-protobuf.sh
-
+update-scripts:
+	hack/update-codegen.sh
 
 update-crds:
 	hack/update-crds.sh
 
-update: update-crds
+update: update-crds update-scripts
 
 verify-crds:
 	hack/verify-crds.sh
 
-verify: verify-crds
+verify-scripts:
+	hack/verify-codegen.sh
+
+verify: verify-crds verify-scripts
+
+update-protobuf:
+	go install k8s.io/code-generator/cmd/go-to-protobuf@$(CODE_GENENRATOR_VERSION)
+	go install k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo@$(CODE_GENENRATOR_VERSION)
+	hack/update-protobuf.sh
 
 # Ensure kubebuilder
 ensure-kubebuilder:

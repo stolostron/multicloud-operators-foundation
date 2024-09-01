@@ -3,8 +3,6 @@ output
 _output
 apiserver.local.config
 .api_violation.report
-generate_exes
-generate_files
 .idea
 .ko.yaml
 agent
