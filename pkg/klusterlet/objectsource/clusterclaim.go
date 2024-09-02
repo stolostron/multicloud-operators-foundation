@@ -31,7 +31,7 @@ type clusterClaimSource struct {
 
 var _ source.SyncingSource = &clusterClaimSource{}
 
-func (s *clusterClaimSource) Start(ctx context.Context, queue workqueue.RateLimitingInterface) error {
+func (s *clusterClaimSource) Start(ctx context.Context, queue workqueue.TypedRateLimitingInterface[reconcile.Request]) error {
 	// all predicates are ignored
 	s.claimInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
@@ -71,18 +71,18 @@ type clusterClaimEventHandler struct{}
 
 var _ handler.EventHandler = &clusterClaimEventHandler{}
 
-func (e *clusterClaimEventHandler) Create(_ context.Context, evt event.CreateEvent, q workqueue.RateLimitingInterface) {
+func (e *clusterClaimEventHandler) Create(_ context.Context, evt event.CreateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	q.Add(reconcile.Request{})
 }
 
-func (e *clusterClaimEventHandler) Update(_ context.Context, evt event.UpdateEvent, q workqueue.RateLimitingInterface) {
+func (e *clusterClaimEventHandler) Update(_ context.Context, evt event.UpdateEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	q.Add(reconcile.Request{})
 }
 
-func (e *clusterClaimEventHandler) Delete(_ context.Context, evt event.DeleteEvent, q workqueue.RateLimitingInterface) {
+func (e *clusterClaimEventHandler) Delete(_ context.Context, evt event.DeleteEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	q.Add(reconcile.Request{})
 }
 
-func (e *clusterClaimEventHandler) Generic(_ context.Context, evt event.GenericEvent, q workqueue.RateLimitingInterface) {
+func (e *clusterClaimEventHandler) Generic(_ context.Context, evt event.GenericEvent, q workqueue.TypedRateLimitingInterface[reconcile.Request]) {
 	q.Add(reconcile.Request{})
 }

@@ -112,7 +112,7 @@ func (c *testContent) checkResult(configMap *corev1.ConfigMap) {
 			return
 		}
 	}
-	c.t.Errorf("failed to get options")
+	c.t.Errorf("failed to get options, subResource: %s", subResource)
 }
 
 func TestAddOptions(t *testing.T) {
