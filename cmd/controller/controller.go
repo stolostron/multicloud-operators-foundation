@@ -4,9 +4,7 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"os"
-	"time"
 
 	"github.com/stolostron/multicloud-operators-foundation/cmd/controller/app"
 	"github.com/stolostron/multicloud-operators-foundation/cmd/controller/app/options"
@@ -23,8 +21,6 @@ import (
 )
 
 func main() {
-	rand.Seed(time.Now().UTC().UnixNano())
-
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	s := options.NewControllerRunOptions()
