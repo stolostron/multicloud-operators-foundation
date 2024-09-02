@@ -11,6 +11,7 @@ import (
 
 	"github.com/onsi/gomega"
 	clustersetutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metricserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -311,11 +312,16 @@ func TestReconcile(t *testing.T) {
 			r := newTestReconciler(test.existingObjs, test.existingRoleObjs, test.globalSetMapper, test.clusterSetClusterMapper, test.clusterSetNamespaceMapper)
 			r.Reconcile(ctx, test.req)
 
-			clusterroleName := utils.GenerateClustersetClusterroleName(ManagedClusterSetName, "admin")
-			clusterrole, _ := r.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), clusterroleName, metav1.GetOptions{})
-
 			var clusterroleExist bool
-			if clusterrole != nil {
+			clusterroleName := utils.GenerateClustersetClusterroleName(ManagedClusterSetName, "admin")
+			_, err := r.kubeClient.RbacV1().ClusterRoles().Get(context.TODO(), clusterroleName, metav1.GetOptions{})
+			if err != nil {
+				if apierrors.IsNotFound(err) {
+					clusterroleExist = false
+				} else {
+					t.Errorf("Failed to get clusterrole %s: %v", clusterroleName, err)
+				}
+			} else {
 				clusterroleExist = true
 			}
 
