@@ -29,7 +29,7 @@ type ProxyServiceInfoController struct {
 	labelSelector     *metav1.LabelSelector
 	lister            v1.ConfigMapLister
 	synced            cache.InformerSynced
-	workqueue         workqueue.RateLimitingInterface
+	workqueue         workqueue.TypedRateLimitingInterface[string]
 	stopCh            <-chan struct{}
 }
 
@@ -45,8 +45,10 @@ func NewProxyServiceInfoController(
 		labelSelector:     &metav1.LabelSelector{MatchLabels: configMapLabels},
 		lister:            configMapInformer.Lister(),
 		synced:            configMapInformer.Informer().HasSynced,
-		workqueue:         workqueue.NewNamedRateLimitingQueue(workqueue.DefaultControllerRateLimiter(), "proxyServiceInfoController"),
-		stopCh:            stopCh,
+		workqueue: workqueue.NewTypedRateLimitingQueueWithConfig(workqueue.DefaultTypedControllerRateLimiter[string](), workqueue.TypedRateLimitingQueueConfig[string]{
+			Name: "proxyServiceInfoController",
+		}),
+		stopCh: stopCh,
 	}
 
 	configMapInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
@@ -120,24 +122,15 @@ func (c *ProxyServiceInfoController) processNextWorkItem() bool {
 		return false
 	}
 	// We wrap this block in a func so we can defer c.workqueue.Done.
-	err := func(obj interface{}) error {
+	err := func(obj string) error {
 		defer c.workqueue.Done(obj)
-		var key string
-		var ok bool
-
-		if key, ok = obj.(string); !ok {
-			c.workqueue.Forget(obj)
-			utilruntime.HandleError(fmt.Errorf("expected string in workqueue but got %#v", obj))
-			return nil
-		}
-
-		if err := c.syncHandler(key); err != nil {
-			c.workqueue.AddRateLimited(key)
-			return fmt.Errorf("error syncing '%s': %s, requeuing", key, err.Error())
+		if err := c.syncHandler(obj); err != nil {
+			c.workqueue.AddRateLimited(obj)
+			return fmt.Errorf("error syncing '%s': %s, requeuing", obj, err.Error())
 		}
 
 		c.workqueue.Forget(obj)
-		klog.Infof("Successfully synced proxy service info configmap '%s'", key)
+		klog.Infof("Successfully synced proxy service info configmap '%s'", obj)
 		return nil
 	}(obj)
 
