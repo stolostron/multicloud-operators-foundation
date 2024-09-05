@@ -1,6 +1,7 @@
 package validating
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -852,6 +853,181 @@ func TestDeleteClusterDeployment(t *testing.T) {
 
 			actualResponse := admissionHandler.ValidateResource(c.request)
 
+			if !reflect.DeepEqual(actualResponse.Allowed, c.expectedResponse.Allowed) {
+				t.Errorf("case: %v,expected %#v but got: %#v", c.name, c.expectedResponse, actualResponse)
+			}
+		})
+	}
+}
+
+const (
+	localClusterFmt   = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"labels":{"local-cluster":"true"},"name":"%s"},"spec":{}}`
+	noLocalClusterFmt = `{"apiVersion":"cluster.open-cluster-management.io/v1","kind":"ManagedCluster","metadata":{"name":"%s"},"spec":{}}`
+)
+
+func TestLocalCluster(t *testing.T) {
+
+	cases := []struct {
+		name                    string
+		request                 *v1.AdmissionRequest
+		existingManagedClusters []runtime.Object
+		expectedResponse        *v1.AdmissionResponse
+	}{
+		{
+			name: "local cluster already exists",
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c0",
+						Labels: map[string]string{
+							"local-cluster": "true",
+						},
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: false,
+			},
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Create,
+				Name:      "c1",
+				Object: runtime.RawExtension{
+					Raw: []byte(fmt.Sprintf(localClusterFmt, "c1")),
+				},
+			},
+		},
+		{
+			name: "local cluster does not exists",
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c0",
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Create,
+				Name:      "c1",
+				Object: runtime.RawExtension{
+					Raw: []byte(fmt.Sprintf(localClusterFmt, "c1")),
+				},
+			},
+		},
+		{
+			name: "local cluster does not exists",
+			existingManagedClusters: []runtime.Object{
+				&clusterv1.ManagedCluster{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "c0",
+						Labels: map[string]string{
+							"local-cluster": "true",
+						},
+					},
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Create,
+				Name:      "c1",
+				Object: runtime.RawExtension{
+					Raw: []byte(fmt.Sprintf(noLocalClusterFmt, "c1")),
+				},
+			},
+		},
+		{
+			name:                    "update local cluster to non local cluster",
+			existingManagedClusters: []runtime.Object{},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: false,
+			},
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Update,
+				Name:      "c0",
+				OldObject: runtime.RawExtension{
+					Raw: []byte(fmt.Sprintf(localClusterFmt, "c0")),
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(fmt.Sprintf(noLocalClusterFmt, "c0")),
+				},
+			},
+		},
+		{
+			name:                    "update non local cluster to local cluster",
+			existingManagedClusters: []runtime.Object{},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: false,
+			},
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Update,
+				Name:      "c0",
+				OldObject: runtime.RawExtension{
+					Raw: []byte(fmt.Sprintf(noLocalClusterFmt, "c0")),
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(fmt.Sprintf(localClusterFmt, "c0")),
+				},
+			},
+		},
+		{
+			name:                    "update local cluster",
+			existingManagedClusters: []runtime.Object{},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+			request: &v1.AdmissionRequest{
+				Resource:  managedClustersGVR,
+				Operation: v1.Update,
+				Name:      "c0",
+				OldObject: runtime.RawExtension{
+					Raw: []byte(fmt.Sprintf(localClusterFmt, "c0")),
+				},
+				Object: runtime.RawExtension{
+					Raw: []byte(fmt.Sprintf(localClusterFmt, "c0")),
+				},
+			},
+		},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			clusterClient := clusterfake.NewSimpleClientset(c.existingManagedClusters...)
+			clusterInformerFactory := clusterinformers.NewSharedInformerFactory(clusterClient, 10*time.Minute)
+			clusterStore := clusterInformerFactory.Cluster().V1().ManagedClusters().Informer().GetStore()
+			for _, cluster := range c.existingManagedClusters {
+				if err := clusterStore.Add(cluster); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			kubeClient := kubefake.NewClientset()
+			kubeClient.PrependReactor(
+				"create",
+				"subjectaccessreviews",
+				func(action clienttesting.Action) (handled bool, ret runtime.Object, err error) {
+					return true, &authorizationv1.SubjectAccessReview{
+						Status: authorizationv1.SubjectAccessReviewStatus{
+							Allowed: true,
+						},
+					}, nil
+				},
+			)
+
+			admissionHandler := &AdmissionHandler{
+				KubeClient:    kubeClient,
+				ClusterLister: clusterInformerFactory.Cluster().V1().ManagedClusters().Lister(),
+			}
+
+			actualResponse := admissionHandler.ValidateResource(c.request)
 			if !reflect.DeepEqual(actualResponse.Allowed, c.expectedResponse.Allowed) {
 				t.Errorf("case: %v,expected %#v but got: %#v", c.name, c.expectedResponse, actualResponse)
 			}
