@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/onsi/ginkgo/v2"
@@ -593,4 +594,34 @@ var _ = ginkgo.Describe("Testing managed cluster deletion", func() {
 		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
 
+})
+
+var _ = ginkgo.Describe("Testing local cluster", func() {
+	var userName = rand.String(6)
+	var clusterName = "e2e-" + userName
+
+	ginkgo.It("Only can delete a cluster when it is not a hosting cluster", func() {
+		cluster := util.NewManagedCluster(clusterName)
+		cluster.Labels = map[string]string{"local-cluster": "true"}
+		ginkgo.By(fmt.Sprintf("create a managedCluster %s as the local cluster", clusterName))
+		err := util.CreateManagedCluster(clusterClient, cluster)
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+
+		ginkgo.By(fmt.Sprintf("cannot create another local cluster"))
+		clusterLocalAnother := cluster.DeepCopy()
+		clusterLocalAnother.Name = clusterName + "-1"
+		err = util.CreateManagedCluster(clusterClient, clusterLocalAnother)
+		gomega.Expect(err).Should(gomega.HaveOccurred())
+
+		ginkgo.By(fmt.Sprintf("cannot patch local cluster"))
+		patch := `{"metadata":{"labels":{"local-cluster":"false"}}}`
+		_, err = clusterClient.ClusterV1().ManagedClusters().Patch(
+			context.Background(), clusterName, types.MergePatchType, []byte(patch), metav1.PatchOptions{})
+		gomega.Expect(err).Should(gomega.HaveOccurred())
+
+		ginkgo.By(fmt.Sprintf("The cluster %s can be deleted now", clusterName))
+		err = clusterClient.ClusterV1().ManagedClusters().Delete(
+			context.TODO(), clusterName, metav1.DeleteOptions{})
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+	})
 })

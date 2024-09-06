@@ -9,6 +9,7 @@ import (
 
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	apiconstants "github.com/stolostron/cluster-lifecycle-api/constants"
+	"github.com/stolostron/cluster-lifecycle-api/helpers/localcluster"
 	v1 "k8s.io/api/admission/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	authorizationv1 "k8s.io/api/authorization/v1"
@@ -163,8 +164,16 @@ func (a *AdmissionHandler) validateClusterPool(request *v1.AdmissionRequest) *v1
 func (a *AdmissionHandler) validateManagedCluster(request *v1.AdmissionRequest) *v1.AdmissionResponse {
 	switch request.Operation {
 	case v1.Create:
+		resp := a.validateLocalClusterCreate(request)
+		if !resp.Allowed {
+			return resp
+		}
 		return a.validateClusterSetJoinPermission(request)
 	case v1.Update:
+		resp := a.validateLocalClusterUpdate(request)
+		if !resp.Allowed {
+			return resp
+		}
 		updateClusterSet, response, oldClusterSet, newClusterSet := a.validateUpdateClusterSet(request)
 		if !response.Allowed || !updateClusterSet {
 			return response
@@ -376,6 +385,64 @@ func (a *AdmissionHandler) responseNotAllowed(msg string) *v1.AdmissionResponse 
 			Message: msg,
 		},
 	}
+}
+
+// validateLocalClusterCreate check if the cluster can be created as the local cluster. Only one cluster in
+// the hub can be created as the local cluster.
+func (a *AdmissionHandler) validateLocalClusterCreate(request *v1.AdmissionRequest) *v1.AdmissionResponse {
+	newCluster := &clusterv1.ManagedCluster{}
+	err := json.Unmarshal(request.Object.Raw, newCluster)
+	if err != nil {
+		return a.responseNotAllowed(err.Error())
+	}
+
+	if localcluster.IsClusterSelfManaged(newCluster) {
+		clusters, err := a.ClusterLister.List(labels.Everything())
+		if err != nil {
+			return a.responseNotAllowed(err.Error())
+		}
+		for _, cluster := range clusters {
+			if localcluster.IsClusterSelfManaged(cluster) {
+				return &v1.AdmissionResponse{
+					Allowed: false,
+					Result: &metav1.Status{
+						Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+						Message: fmt.Sprintf("cluster %s is already local cluster, cannot create another local cluster", cluster.Name),
+					},
+				}
+			}
+		}
+	}
+
+	return a.responseAllowed()
+}
+
+func (a *AdmissionHandler) validateLocalClusterUpdate(request *v1.AdmissionRequest) *v1.AdmissionResponse {
+	oldCluster := &clusterv1.ManagedCluster{}
+	newCluster := &clusterv1.ManagedCluster{}
+
+	err := json.Unmarshal(request.Object.Raw, newCluster)
+	if err != nil {
+		return a.responseNotAllowed(err.Error())
+	}
+
+	err = json.Unmarshal(request.OldObject.Raw, oldCluster)
+	if err != nil {
+		return a.responseNotAllowed(err.Error())
+	}
+
+	if (localcluster.IsClusterSelfManaged(newCluster) && !localcluster.IsClusterSelfManaged(oldCluster)) ||
+		(!localcluster.IsClusterSelfManaged(newCluster) && localcluster.IsClusterSelfManaged(oldCluster)) {
+		return &v1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: fmt.Sprintf("cluster %s is not allowed to update local-cluster label", newCluster.Name),
+			},
+		}
+	}
+
+	return a.responseAllowed()
 }
 
 func hasOwnerRef(ownerRefs []metav1.OwnerReference, wantRef metav1.OwnerReference) bool {
