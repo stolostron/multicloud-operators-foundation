@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/constants"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -75,6 +76,10 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 		if value, ok := addon.GetAnnotations()[addonapiv1alpha1.HostingClusterNameAnnotationKey]; ok && value != "" {
 			enableSyncLabelsToClusterClaims = false
 			enableNodeCapacity = false
+		}
+		// TODO: @xuezhaojun using this new annotation replace the addonapiv1alpha1.HostingClusterNameAnnotationKey.
+		if syncLabelsToClusterClaims, ok := cluster.GetAnnotations()[constants.SyncLabelsToClusterClaimsAnnotation]; ok {
+			enableSyncLabelsToClusterClaims = syncLabelsToClusterClaims == "true"
 		}
 
 		addonValues := Values{

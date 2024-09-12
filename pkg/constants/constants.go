@@ -14,4 +14,7 @@ const (
 	// GlobalNamespaceAnnotation is the annotation on the global managed cluster set. If the cluster set has
 	// this annotation, the related ns/binding/placement will not be created.
 	GlobalNamespaceAnnotation = "open-cluster-management.io/ns-create"
+
+	// SyncLabelsToClusterClaimsAnnotation is the annotation to control whether sync labels to cluster claims.
+	SyncLabelsToClusterClaimsAnnotation = "open-cluster-management.io/sync-labels-to-clusterclaims"
 )
