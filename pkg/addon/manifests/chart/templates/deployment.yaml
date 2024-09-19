@@ -51,10 +51,10 @@ spec:
           - "--disable-logging-syncer=true"
           - "--managed-kubeconfig=/managed/config/kubeconfig"
         {{- end }}
-        {{- if eq .Values.enableSyncLabelsToClusterClaims false }}
+        {{- if eq .Values.enableSyncLabelsToClusterClaims "false" }}
           - "--enable-sync-labels-to-clusterclaims=false"
         {{- end }}
-        {{- if eq .Values.enableNodeCapacity false }}
+        {{- if eq .Values.enableNodeCapacity "false" }}
           - "--enable-node-capacity=false"
         {{- end}}
         env:

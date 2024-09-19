@@ -106,18 +106,44 @@ func newAddonWithCustomizedAnnotation(name, cluster, installNamespace string, an
 	return addon
 }
 
-func newAgentAddon(t *testing.T, cluster *clusterv1.ManagedCluster) agent.AgentAddon {
+func newAddonConfigWithFlags(enableSyncLabelsToClusterClaims,
+	enableNodeCapacity string) *addonapiv1alpha1.AddOnDeploymentConfig {
+	return &addonapiv1alpha1.AddOnDeploymentConfig{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "flag",
+			Namespace: "default",
+		},
+		Spec: addonapiv1alpha1.AddOnDeploymentConfigSpec{
+			CustomizedVariables: []addonapiv1alpha1.CustomizedVariable{
+				{Name: "enableSyncLabelsToClusterClaims",
+					Value: enableSyncLabelsToClusterClaims},
+				{Name: "enableNodeCapacity",
+					Value: enableNodeCapacity},
+			},
+		},
+	}
+}
+
+func newAgentAddon(t *testing.T, cluster *clusterv1.ManagedCluster,
+	addonDeploymentConfig *addonapiv1alpha1.AddOnDeploymentConfig) agent.AgentAddon {
 	registrationOption := NewRegistrationOption(nil, nil, WorkManagerAddonName)
 
 	scheme := runtime.NewScheme()
 	clusterv1.Install(scheme)
 
 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cluster).Build()
-	getter := newTestConfigGetter(nil)
+	getter := newTestConfigGetter(addonDeploymentConfig)
 	getValuesFunc := NewGetValuesFunc(addonImage)
 	agentAddon, err := addonfactory.NewAgentAddonFactory(WorkManagerAddonName, ChartFS, ChartDir).
 		WithScheme(scheme).
-		WithGetValuesFuncs(getValuesFunc, addonfactory.GetValuesFromAddonAnnotation).
+		WithGetValuesFuncs(getValuesFunc, addonfactory.GetValuesFromAddonAnnotation,
+			addonfactory.GetAddOnDeploymentConfigValues(
+				getter,
+				addonfactory.ToAddOnNodePlacementValues,
+				addonfactory.ToAddOnCustomizedVariableValues,
+			),
+		).
 		WithAgentRegistrationOption(registrationOption).
 		WithAgentHostedInfoFn(HostedClusterInfo).
 		WithAgentInstallNamespace(AddonInstallNamespaceFunc(getter, client)).
@@ -155,6 +181,7 @@ func TestManifest(t *testing.T) {
 		cluster                         *clusterv1.ManagedCluster
 		addon                           *addonapiv1alpha1.ManagedClusterAddOn
 		imageRegistry                   *v1alpha1.ManagedClusterImageRegistry
+		addonDeploymentConfig           *addonapiv1alpha1.AddOnDeploymentConfig
 		expectedNamespace               string
 		expectedNamespaceOrphaned       bool
 		expectedImage                   string
@@ -291,7 +318,7 @@ func TestManifest(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			agentAddon := newAgentAddon(t, test.cluster)
+			agentAddon := newAgentAddon(t, test.cluster, test.addonDeploymentConfig)
 			objects, err := agentAddon.Manifests(test.cluster, test.addon)
 			if err != nil {
 				t.Errorf("failed to get manifests with error %v", err)
@@ -384,8 +411,11 @@ func newAddonConfigWithNamespace(namespace string) *addonapiv1alpha1.AddOnDeploy
 }
 
 func newAddonWithConfig(name, cluster, annotationValue string, config *addonapiv1alpha1.AddOnDeploymentConfig) *addonapiv1alpha1.ManagedClusterAddOn {
-	specHash, _ := utils.GetAddOnDeploymentConfigSpecHash(config)
 	addon := newAddon(name, cluster, "", annotationValue)
+	if config == nil {
+		return addon
+	}
+	specHash, _ := utils.GetAddOnDeploymentConfigSpecHash(config)
 	addon.Status = addonapiv1alpha1.ManagedClusterAddOnStatus{
 		ConfigReferences: []addonapiv1alpha1.ConfigReference{
 			{
@@ -393,12 +423,25 @@ func newAddonWithConfig(name, cluster, annotationValue string, config *addonapiv
 					Group:    utils.AddOnDeploymentConfigGVR.Group,
 					Resource: utils.AddOnDeploymentConfigGVR.Resource,
 				},
+				ConfigReferent: addonapiv1alpha1.ConfigReferent{
+					Name:      config.Name,
+					Namespace: config.Namespace,
+				},
 				DesiredConfig: &addonapiv1alpha1.ConfigSpecHash{
 					SpecHash: specHash,
 				},
 			},
 		},
 	}
+	return addon
+}
+
+func AddonAddAnnotations(addon *addonapiv1alpha1.ManagedClusterAddOn,
+	annotations map[string]string) *addonapiv1alpha1.ManagedClusterAddOn {
+	if annotations == nil || addon == nil {
+		return nil
+	}
+	addon.Annotations = annotations
 	return addon
 }
 
@@ -576,6 +619,87 @@ func TestCreateOrUpdateRoleBinding(t *testing.T) {
 			}
 
 			test.validateActions(t, kubeClient.Actions())
+		})
+	}
+}
+
+func TestAddonConfigCustomizedVariableFunc(t *testing.T) {
+	tests := []struct {
+		name          string
+		addon         *addonapiv1alpha1.ManagedClusterAddOn
+		cluster       *clusterv1.ManagedCluster
+		config        *addonapiv1alpha1.AddOnDeploymentConfig
+		expectedFlags []string
+	}{
+
+		{
+			name: "disable enable-node-capacity",
+			addon: newAddonWithConfig("work-manager", "cluster1", "",
+				newAddonConfigWithFlags("true", "false")),
+			cluster:       newCluster("cluster1", "", map[string]string{}, map[string]string{}),
+			config:        newAddonConfigWithFlags("true", "false"),
+			expectedFlags: []string{"--enable-node-capacity=false"},
+		},
+		{
+			name: "disable enable-sync-labels-to-clusterclaims",
+			addon: newAddonWithConfig("work-manager", "cluster1", "",
+				newAddonConfigWithFlags("true", "false")),
+			cluster:       newCluster("cluster1", "", map[string]string{}, map[string]string{}),
+			config:        newAddonConfigWithFlags("false", "true"),
+			expectedFlags: []string{"--enable-sync-labels-to-clusterclaims=false"},
+		},
+		{
+			name: "disable enable-sync-labels-to-clusterclaims and enable-node-capacity",
+			addon: newAddonWithConfig("work-manager", "cluster1", "",
+				newAddonConfigWithFlags("true", "false")),
+			cluster:       newCluster("cluster1", "", map[string]string{}, map[string]string{}),
+			config:        newAddonConfigWithFlags("false", "false"),
+			expectedFlags: []string{"--enable-node-capacity=false", "--enable-sync-labels-to-clusterclaims=false"},
+		},
+		{
+			name: "disable enable-sync-labels-to-clusterclaims and enable-node-capacity in hosted mode",
+			addon: AddonAddAnnotations(newAddonWithConfig("work-manager", "cluster1", "", nil),
+				map[string]string{addonapiv1alpha1.HostingClusterNameAnnotationKey: "cluster2"}),
+			cluster:       newCluster("cluster1", "", map[string]string{}, map[string]string{}),
+			config:        nil,
+			expectedFlags: []string{"--enable-node-capacity=false", "--enable-sync-labels-to-clusterclaims=false"},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	clusterv1.Install(scheme)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			agentAddon := newAgentAddon(t, test.cluster, test.config)
+			objects, err := agentAddon.Manifests(test.cluster, test.addon)
+			if err != nil {
+				t.Errorf("failed to get manifests with error %v", err)
+			}
+
+			findDeployment := false
+			for _, o := range objects {
+				switch object := o.(type) {
+				case *appsv1.Deployment:
+					findDeployment = true
+					for _, flag := range test.expectedFlags {
+						findFlag := false
+						for _, arg := range object.Spec.Template.Spec.Containers[0].Args {
+							if arg == flag {
+								findFlag = true
+								break
+							}
+						}
+						if !findFlag {
+							t.Errorf("expect flag %s not found in args", flag)
+						}
+					}
+				}
+			}
+			if !findDeployment {
+				t.Errorf("failed to find deployment")
+			}
+
 		})
 	}
 }

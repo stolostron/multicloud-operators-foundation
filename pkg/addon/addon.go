@@ -48,6 +48,11 @@ var ChartFS embed.FS
 
 const ChartDir = "manifests/chart"
 
+const (
+	strTrue  string = "true"
+	strFalse string = "false"
+)
+
 type GlobalValues struct {
 	ImagePullPolicy corev1.PullPolicy `json:"imagePullPolicy,"`
 	ImagePullSecret string            `json:"imagePullSecret"`
@@ -57,8 +62,8 @@ type GlobalValues struct {
 
 type Values struct {
 	GlobalValues                    GlobalValues `json:"global,omitempty,omitempty"`
-	EnableSyncLabelsToClusterClaims bool         `json:"enableSyncLabelsToClusterClaims"`
-	EnableNodeCapacity              bool         `json:"enableNodeCapacity"`
+	EnableSyncLabelsToClusterClaims string       `json:"enableSyncLabelsToClusterClaims"`
+	EnableNodeCapacity              string       `json:"enableNodeCapacity"`
 }
 
 func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
@@ -70,11 +75,11 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 		}
 
 		// if addon is hosted mode, the enableSyncLabelsToClusterClaims,enableNodeCollector is false
-		enableSyncLabelsToClusterClaims := true
-		enableNodeCapacity := true
+		enableSyncLabelsToClusterClaims := strTrue
+		enableNodeCapacity := strTrue
 		if value, ok := addon.GetAnnotations()[addonapiv1alpha1.HostingClusterNameAnnotationKey]; ok && value != "" {
-			enableSyncLabelsToClusterClaims = false
-			enableNodeCapacity = false
+			enableSyncLabelsToClusterClaims = strFalse
+			enableNodeCapacity = strFalse
 		}
 
 		addonValues := Values{
