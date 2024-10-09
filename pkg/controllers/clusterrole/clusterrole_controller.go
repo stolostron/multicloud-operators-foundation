@@ -2,6 +2,7 @@ package clusterrole
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -145,5 +146,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			return ctrl.Result{}, err
 		}
 	}
+
+	fmt.Println("clusterNamespace", clusterNamespace)
 	return ctrl.Result{}, nil
 }
