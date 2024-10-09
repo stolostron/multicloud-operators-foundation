@@ -147,6 +147,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		}
 	}
 
-	fmt.Println("clusterNamespace", clusterNamespace)
+	fmt.Println("clusterNamespace:", clusterNamespace)
 	return ctrl.Result{}, nil
 }
