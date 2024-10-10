@@ -147,6 +147,7 @@ func newAgentAddon(t *testing.T, cluster *clusterv1.ManagedCluster,
 		WithAgentRegistrationOption(registrationOption).
 		WithAgentHostedInfoFn(HostedClusterInfo).
 		WithAgentInstallNamespace(AddonInstallNamespaceFunc(getter, client)).
+		WithConfigCheckEnabledOption().
 		BuildHelmAgentAddon()
 	if err != nil {
 		t.Fatalf("failed to build agent %v", err)

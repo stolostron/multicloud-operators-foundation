@@ -174,6 +174,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 			WithAgentRegistrationOption(registrationOption).
 			WithAgentHostedModeEnabledOption().
 			WithAgentHostedInfoFn(addon.HostedClusterInfo).
+			WithConfigCheckEnabledOption().
 			BuildHelmAgentAddon()
 		if err != nil {
 			klog.Errorf("failed to build agent %v", err)
