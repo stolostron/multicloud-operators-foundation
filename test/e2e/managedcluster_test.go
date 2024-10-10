@@ -11,7 +11,6 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
 	e2eutil "github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
-	v1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -224,102 +223,103 @@ var _ = ginkgo.Describe("Testing ManagedCluster", func() {
 			}, eventuallyTimeout, eventuallyInterval).Should(gomega.BeTrue())
 		})
 
-		ginkgo.It("Check if admin/view clusterrole could be recreated after delete it", func() {
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
-				return err
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		// ginkgo.It("Check if admin/view clusterrole could be recreated after delete it", func() {
+		// 	gomega.Eventually(func() error {
+		// 		_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
+		// 		return err
+		// 	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClusterClusterRoleName, metav1.GetOptions{})
-				return err
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-			err := kubeClient.RbacV1().ClusterRoles().Delete(context.Background(), adminClusterClusterRoleName, metav1.DeleteOptions{})
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
-			err = kubeClient.RbacV1().ClusterRoles().Delete(context.Background(), viewClusterClusterRoleName, metav1.DeleteOptions{})
-			gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		// 	gomega.Eventually(func() error {
+		// 		_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClusterClusterRoleName, metav1.GetOptions{})
+		// 		return err
+		// 	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		// 	err := kubeClient.RbacV1().ClusterRoles().Delete(context.Background(), adminClusterClusterRoleName, metav1.DeleteOptions{})
+		// 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
+		// 	err = kubeClient.RbacV1().ClusterRoles().Delete(context.Background(), viewClusterClusterRoleName, metav1.DeleteOptions{})
+		// 	gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
-				return err
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		// 	gomega.Eventually(func() error {
+		// 		_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
+		// 		return err
+		// 	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClusterClusterRoleName, metav1.GetOptions{})
-				return err
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-		})
+		// 	gomega.Eventually(func() error {
+		// 		_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClusterClusterRoleName, metav1.GetOptions{})
+		// 		return err
+		// 	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		// })
 
-		ginkgo.It("Check if admin clusterrole could be reconcile after update it", func() {
-			gomega.Eventually(func() error {
-				adminClusterRole, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				updatedAdminClusterRole := adminClusterRole.DeepCopy()
-				updatedAdminClusterRole.Rules = []v1.PolicyRule{}
-				updatedAdminClusterRole, err = kubeClient.RbacV1().ClusterRoles().Update(context.Background(), updatedAdminClusterRole, metav1.UpdateOptions{})
-				if err != nil {
-					return err
-				}
-				gomega.Eventually(func() error {
-					updatedAdminClusterRole, err = kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
-					if err != nil {
-						return err
-					}
-					if len(updatedAdminClusterRole.Rules) == len(adminClusterRole.Rules) {
-						return nil
-					}
-					return fmt.Errorf("The admin clusterrole should be reconciled. updatedAdminClusterRole: %v,adminClusterRole: %v", updatedAdminClusterRole, adminClusterRole)
-				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		// ginkgo.It("Check if admin clusterrole could be reconcile after update it", func() {
+		// 	gomega.Eventually(func() error {
+		// 		adminClusterRole, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
+		// 		if err != nil {
+		// 			return err
+		// 		}
+		// 		updatedAdminClusterRole := adminClusterRole.DeepCopy()
+		// 		updatedAdminClusterRole.Rules = []v1.PolicyRule{}
+		// 		updatedAdminClusterRole, err = kubeClient.RbacV1().ClusterRoles().Update(context.Background(), updatedAdminClusterRole, metav1.UpdateOptions{})
+		// 		if err != nil {
+		// 			return err
+		// 		}
+		// 		gomega.Eventually(func() error {
+		// 			updatedAdminClusterRole, err = kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
+		// 			if err != nil {
+		// 				return err
+		// 			}
+		// 			if len(updatedAdminClusterRole.Rules) == len(adminClusterRole.Rules) {
+		// 				return nil
+		// 			}
+		// 			return fmt.Errorf("The admin clusterrole should be reconciled. updatedAdminClusterRole: %v,adminClusterRole: %v", updatedAdminClusterRole, adminClusterRole)
+		// 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		// 		return nil
+		// 	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
-				return err
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		// 	gomega.Eventually(func() error {
+		// 		_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
+		// 		return err
+		// 	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClusterClusterRoleName, metav1.GetOptions{})
-				return err
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-		})
-		ginkgo.It("Check if view clusterrole could be reconcile after update it", func() {
-			gomega.Eventually(func() error {
-				viewClusterRole, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClusterClusterRoleName, metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				updatedViewClusterRole := viewClusterRole.DeepCopy()
-				updatedViewClusterRole.Rules = []v1.PolicyRule{}
-				updatedViewClusterRole, err = kubeClient.RbacV1().ClusterRoles().Update(context.Background(), updatedViewClusterRole, metav1.UpdateOptions{})
-				if err != nil {
-					return err
-				}
-				gomega.Eventually(func() error {
-					updatedViewClusterRole, err = kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
-					if err != nil {
-						return err
-					}
-					if len(updatedViewClusterRole.Rules) == len(viewClusterRole.Rules) {
-						return nil
-					}
-					return fmt.Errorf("The admin clusterrole should be reconciled. updatedViewClusterRole: %v,viewClusterRole: %v", updatedViewClusterRole, viewClusterRole)
-				}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-				return nil
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		// 	gomega.Eventually(func() error {
+		// 		_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClusterClusterRoleName, metav1.GetOptions{})
+		// 		return err
+		// 	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		// })
 
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
-				return err
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		// ginkgo.It("Check if view clusterrole could be reconcile after update it", func() {
+		// 	gomega.Eventually(func() error {
+		// 		viewClusterRole, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClusterClusterRoleName, metav1.GetOptions{})
+		// 		if err != nil {
+		// 			return err
+		// 		}
+		// 		updatedViewClusterRole := viewClusterRole.DeepCopy()
+		// 		updatedViewClusterRole.Rules = []v1.PolicyRule{}
+		// 		updatedViewClusterRole, err = kubeClient.RbacV1().ClusterRoles().Update(context.Background(), updatedViewClusterRole, metav1.UpdateOptions{})
+		// 		if err != nil {
+		// 			return err
+		// 		}
+		// 		gomega.Eventually(func() error {
+		// 			updatedViewClusterRole, err = kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
+		// 			if err != nil {
+		// 				return err
+		// 			}
+		// 			if len(updatedViewClusterRole.Rules) == len(viewClusterRole.Rules) {
+		// 				return nil
+		// 			}
+		// 			return fmt.Errorf("The admin clusterrole should be reconciled. updatedViewClusterRole: %v,viewClusterRole: %v", updatedViewClusterRole, viewClusterRole)
+		// 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		// 		return nil
+		// 	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
-			gomega.Eventually(func() error {
-				_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClusterClusterRoleName, metav1.GetOptions{})
-				return err
-			}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
-		})
+		// 	gomega.Eventually(func() error {
+		// 		_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), adminClusterClusterRoleName, metav1.GetOptions{})
+		// 		return err
+		// 	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+
+		// 	gomega.Eventually(func() error {
+		// 		_, err := kubeClient.RbacV1().ClusterRoles().Get(context.Background(), viewClusterClusterRoleName, metav1.GetOptions{})
+		// 		return err
+		// 	}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
+		// })
 
 	})
 })

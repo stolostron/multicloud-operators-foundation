@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
@@ -20,7 +19,6 @@ import (
 
 const (
 	clusterRoleFinalizerName = "open-cluster-management.io/managedclusterrole"
-	managedClusterKey        = "cluster.open-cluster-management.io/managedCluster"
 )
 
 type Reconciler struct {
@@ -125,25 +123,5 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, err
 	}
 
-	// add label to clusternamespace
-	clusterNamespace, err := r.kubeClient.CoreV1().Namespaces().Get(context.TODO(), cluster.Name, metav1.GetOptions{})
-	if err != nil {
-		klog.Warningf("will reconcile since failed get clusternamespace %v, %v", cluster.Name, err)
-		return ctrl.Result{}, err
-	}
-
-	var ClusterNameLabel = map[string]string{
-		managedClusterKey: cluster.GetName(),
-	}
-	var modified = false
-	utils.MergeMap(&modified, &clusterNamespace.Labels, ClusterNameLabel)
-
-	if modified {
-		_, err = r.kubeClient.CoreV1().Namespaces().Update(context.TODO(), clusterNamespace, metav1.UpdateOptions{})
-		if err != nil {
-			klog.Warningf("will reconcile since failed update clusternamespace %v, %v", cluster.Name, err)
-			return ctrl.Result{}, err
-		}
-	}
 	return ctrl.Result{}, nil
 }
