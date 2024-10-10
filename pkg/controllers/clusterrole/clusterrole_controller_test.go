@@ -255,3 +255,78 @@ func TestReconcile(t *testing.T) {
 		})
 	}
 }
+
+func TestIsValidClusterRole(t *testing.T) {
+	tests := []struct {
+		name            string
+		clusterRoleName string
+		expected        bool
+	}{
+		{
+			name:            "valid admin role",
+			clusterRoleName: "open-cluster-management:admin:cluster1",
+			expected:        true,
+		},
+		{
+			name:            "valid view role",
+			clusterRoleName: "open-cluster-management:view:cluster1",
+			expected:        true,
+		},
+		{
+			name:            "invalid format",
+			clusterRoleName: "invalid:format",
+			expected:        false,
+		},
+		{
+			name:            "invalid prefix",
+			clusterRoleName: "wrong-prefix:admin:cluster1",
+			expected:        false,
+		},
+		{
+			name:            "invalid role type",
+			clusterRoleName: "open-cluster-management:wrong:cluster1",
+			expected:        false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isValiedClusterRole(tt.clusterRoleName)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestGetClusterNameFromClusterRoleName(t *testing.T) {
+	tests := []struct {
+		name            string
+		clusterRoleName string
+		expectedName    string
+		expectError     bool
+	}{
+		{
+			name:            "valid admin role",
+			clusterRoleName: "open-cluster-management:admin:cluster1",
+			expectedName:    "cluster1",
+			expectError:     false,
+		},
+		{
+			name:            "invalid format",
+			clusterRoleName: "invalid:format",
+			expectedName:    "",
+			expectError:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := getClusterNameFromClusterRoleName(tt.clusterRoleName)
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedName, result)
+			}
+		})
+	}
+}
