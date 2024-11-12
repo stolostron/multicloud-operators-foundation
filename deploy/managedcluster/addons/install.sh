@@ -79,6 +79,9 @@ if [ $? -eq 1 ]; then
   exit 1
 fi
 
+# The cluster-proxy-proxy-agent deployment in open-cluster-management-agent-addon namespace should be ready
+$KUBECTL wait --for=condition=Ready -n open-cluster-management-agent-addon deployment/cluster-proxy-proxy-agent --timeout=120s
+
 cd ../ || exist
 rm -rf cluster-proxy-addon
 
