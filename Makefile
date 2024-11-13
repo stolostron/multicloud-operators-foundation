@@ -8,16 +8,13 @@ include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 	targets/openshift/imagebuilder.mk \
 	targets/openshift/images.mk \
 	targets/openshift/bindata.mk \
+	targets/openshift/kustomize.mk \
 	lib/tmp.mk \
 )
 
 # Tools for deploy
 KUBECONFIG ?= ./.kubeconfig
 KUBECTL?=kubectl
-KUSTOMIZE?=$(PERMANENT_TMP_GOPATH)/bin/kustomize
-KUSTOMIZE_VERSION?=v3.5.4
-KUSTOMIZE_ARCHIVE_NAME?=kustomize_$(KUSTOMIZE_VERSION)_$(GOHOSTOS)_$(GOHOSTARCH).tar.gz
-kustomize_dir:=$(dir $(KUSTOMIZE))
 
 HELM?=$(PERMANENT_TMP_GOPATH)/bin/helm
 HELM_VERSION?=v3.14.0
@@ -147,18 +144,6 @@ ifeq "" "$(wildcard $(KUBEBUILDER_ASSETS))"
 	tar -C '$(KUBEBUILDER_ASSETS)' --strip-components=2 -zvxf '$(KB_TOOLS_ARCHIVE_PATH)'
 else
 	$(info Using existing kube-apiserver from "$(KUBEBUILDER_ASSETS)")
-endif
-
-# Ensure kustomize
-ensure-kustomize:
-ifeq "" "$(wildcard $(KUSTOMIZE))"
-	$(info Installing kustomize into '$(KUSTOMIZE)')
-	mkdir -p '$(kustomize_dir)'
-	curl -s -f -L https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$(KUSTOMIZE_VERSION)/$(KUSTOMIZE_ARCHIVE_NAME) -o '$(kustomize_dir)$(KUSTOMIZE_ARCHIVE_NAME)'
-	tar -C '$(kustomize_dir)' -zvxf '$(kustomize_dir)$(KUSTOMIZE_ARCHIVE_NAME)'
-	chmod +x '$(KUSTOMIZE)';
-else
-	$(info Using existing kustomize from "$(KUSTOMIZE)")
 endif
 
 ensure-helm:
