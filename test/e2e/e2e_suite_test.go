@@ -22,7 +22,15 @@ import (
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 
 	"github.com/stolostron/multicloud-operators-foundation/test/e2e/util"
+
+	"sigs.k8s.io/controller-runtime/pkg/log"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 )
+
+func init() {
+	// Set logger for controller-runtime
+	log.SetLogger(zap.New(zap.WriteTo(ginkgo.GinkgoWriter), zap.UseDevMode(true)))
+}
 
 func TestE2E(t *testing.T) {
 	gomega.RegisterFailHandler(ginkgo.Fail)
