@@ -16,7 +16,7 @@ fi
 rm -rf ocm
 
 echo "############  Cloning ocm"
-git clone --depth 1 --branch "$OCM_BRANCH" https://github.com/stolostron/ocm.git
+git clone --depth 1 --branch br_klusterlet-config-test-deploy https://github.com/haoqing0110/ocm.git
 
 cd ocm || {
   printf "cd failed, ocm does not exist"
