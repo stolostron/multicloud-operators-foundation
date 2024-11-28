@@ -17,7 +17,7 @@ COPY --from=builder /go/src/github.com/stolostron/multicloud-operators-foundatio
 COPY --from=builder /go/src/github.com/stolostron/multicloud-operators-foundation/agent /
 COPY --from=builder /go/src/github.com/stolostron/multicloud-operators-foundation/e2e.test /
 
-RUN microdnf update && \
+RUN microdnf update -y && \
     microdnf clean all
 
 USER ${USER_UID}
