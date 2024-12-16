@@ -281,6 +281,8 @@ const (
 	CloudVendorOpenStack CloudVendorType = "OpenStack"
 	// CloudVendorRHV RHV
 	CloudVendorRHV CloudVendorType = "RHV"
+	// CloudVendorRHOV RHOV (Red Hat OpenShift Virtualization)
+	CloudVendorRHOV = "RHOV"
 	// CloudVendorAlibabaCloud AlibabaCloud
 	CloudVendorAlibabaCloud = "AlibabaCloud"
 	// CloudVendorBareMetal BareMetal
