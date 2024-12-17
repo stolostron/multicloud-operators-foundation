@@ -74,6 +74,7 @@ const (
 	PlatformRHV          = "RHV"
 	PlatformAlibabaCloud = "AlibabaCloud"
 	PlatformBareMetal    = "BareMetal"
+	PlatformKubeVirt     = "KubeVirt"
 	// PlatformOther other (unable to auto detect)
 	PlatformOther = "Other"
 )
@@ -653,6 +654,8 @@ func (c *ClusterClaimer) getPlatformProduct() (string, string, error) {
 				return PlatformBareMetal, product, nil
 			case configv1.IBMCloudPlatformType:
 				return PlatformIBM, ProductROKS, nil
+			case configv1.KubevirtPlatformType:
+				return PlatformKubeVirt, product, nil
 			}
 		}
 	}
