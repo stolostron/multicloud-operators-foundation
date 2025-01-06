@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -142,9 +143,10 @@ func (r *ViewReconciler) queryResource(managedClusterView *viewv1beta1.ManagedCl
 		meta.SetStatusCondition(&managedClusterView.Status.Conditions, metav1.Condition{
 			Type:    viewv1beta1.ConditionViewProcessing,
 			Status:  metav1.ConditionFalse,
-			Reason:  viewv1beta1.ReasonGetResourceFailed,
-			Message: fmt.Errorf("failed to get resource with err: %v", err).Error(),
+			Reason:  string(errors.ReasonForError(err)),
+			Message: err.Error(),
 		})
+
 		return err
 	}
 
