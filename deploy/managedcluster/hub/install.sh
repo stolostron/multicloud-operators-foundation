@@ -5,7 +5,14 @@ set -o nounset
 set -o pipefail
 
 KUBECTL=${KUBECTL:-kubectl}
-OCM_BRANCH=${OCM_BRANCH:-main}
+OCM_BRANCH=backplane-2.4
+
+export IMAGE_NAME=quay.io/stolostron/registration-operator:backplane-2.4
+export REGISTRATION_IMAGE=quay.io/stolostron/registration:backplane-2.4
+export WORK_IMAGE=quay.io/stolostron/work:backplane-2.4
+export PLACEMENT_IMAGE=quay.io/stolostron/placement:backplane-2.4
+export OPERATOR_IMAGE_NAME=quay.io/stolostron/registration-operator:backplane-2.4
+export ADDON_MANAGER_IMAGE=quay.io/stolostron/addon-manager:backplane-2.4
 
 # On openshift, OLM is installed into openshift-operator-lifecycle-manager
 $KUBECTL get namespace openshift-operator-lifecycle-manager 1>/dev/null 2>&1
