@@ -11,13 +11,21 @@ FROM registry.access.redhat.com/ubi8/ubi-minimal:latest
 ENV USER_UID=10001 \
     USER_NAME=acm-foundation
 
+LABEL \
+    name="multicloud-operators-foundation" \
+    com.redhat.component="multicloud-operators-foundation" \
+    description="Stolostron Foundation supports some foundational components based ManagedCluster for \
+    MultiCluster Engine (MCE) and Advanced Cluster Management (ACM)." \
+    io.k8s.description="Stolostron Foundation supports some foundational components based ManagedCluster \
+    for MultiCluster Engine (MCE) and Advanced Cluster Management (ACM)." \
+    summary="A foundational component based ManagedCluster" \
+    io.k8s.display-name="Red Hat Advanced Cluster Management Multicloud Operators Foundation" \
+    io.openshift.tags="mce acm multicloud-operators-foundation"
+
 COPY --from=builder /go/src/github.com/stolostron/multicloud-operators-foundation/proxyserver /
 COPY --from=builder /go/src/github.com/stolostron/multicloud-operators-foundation/controller /
 COPY --from=builder /go/src/github.com/stolostron/multicloud-operators-foundation/webhook /
 COPY --from=builder /go/src/github.com/stolostron/multicloud-operators-foundation/agent /
 COPY --from=builder /go/src/github.com/stolostron/multicloud-operators-foundation/e2e.test /
-
-RUN microdnf update -y && \
-    microdnf clean all
 
 USER ${USER_UID}
