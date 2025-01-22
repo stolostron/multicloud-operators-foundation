@@ -4,10 +4,6 @@ package app
 
 import (
 	"context"
-
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/managedserviceaccount"
-	msav1beta1client "open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versioned/typed/authentication/v1beta1"
-
 	"time"
 
 	routev1 "github.com/openshift/api/route/v1"
@@ -34,6 +30,7 @@ import (
 	clusterv1alaph1 "open-cluster-management.io/api/cluster/v1alpha1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
+	msav1beta1client "open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versioned/typed/authentication/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	ctrlcache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -51,8 +48,9 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncclusterrolebinding"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncrolebinding"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/gc"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/hosteannotation"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/hostedannotation"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/imageregistry"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/managedserviceaccount"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 )
@@ -184,7 +182,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 			klog.Fatal(err)
 		}
 
-		if err = hosteannotation.SetupWithManager(mgr); err != nil {
+		if err = hostedannotation.SetupWithManager(mgr); err != nil {
 			klog.Errorf("unable to setup addon hosted annotation reconciler: %v", err)
 			return err
 		}
@@ -241,8 +239,9 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 
 	go func() {
 		<-mgr.Elected()
-
+		klog.Infof("The current manager is elected")
 		if o.EnableRBAC {
+			klog.Infof("RBAC is enabled, starting RBAC controllers")
 			clusterSetAdminCache := cache.NewClusterSetCache(
 				clusterInformers.Cluster().V1beta2().ManagedClusterSets(),
 				clusterRolesInformer,
@@ -289,6 +288,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		go cleanGarbageFinalizer.Run(ctx.Done())
 
 		if o.EnableAddonDeploy {
+			klog.Infof("Addon deploy is enabled, starting addon manager")
 			go addonMgr.Start(ctx)
 		}
 	}()

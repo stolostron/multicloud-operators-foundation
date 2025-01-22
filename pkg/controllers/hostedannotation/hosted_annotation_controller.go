@@ -1,4 +1,4 @@
-package hosteannotation
+package hostedannotation
 
 import (
 	"context"
