@@ -3,9 +3,11 @@ package e2e
 import (
 	"context"
 	"fmt"
+
+	"time"
+
 	"k8s.io/apimachinery/pkg/api/meta"
 	addonv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
-	"time"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -19,7 +21,7 @@ import (
 	apiregistrationv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 )
 
-var _ = ginkgo.Describe("Testing Pod log", func() {
+var _ = ginkgo.Describe("Testing Cluster Proxy Addon get pod log", func() {
 	podNamespace := "open-cluster-management-agent"
 	var podName string
 	var containerName string
