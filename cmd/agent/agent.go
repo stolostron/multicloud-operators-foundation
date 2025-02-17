@@ -169,7 +169,11 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		}
 	}
 
-	cc, err := addonutils.NewConfigChecker("work manager", o.HubKubeConfig)
+	watchFiles := []string{o.HubKubeConfig}
+	if len(o.ManagedKubeConfig) > 0 {
+		watchFiles = append(watchFiles, o.ManagedKubeConfig)
+	}
+	cc, err := addonutils.NewConfigChecker("work manager", watchFiles...)
 	if err != nil {
 		setupLog.Error(err, "unable to setup a configChecker")
 		os.Exit(1)
