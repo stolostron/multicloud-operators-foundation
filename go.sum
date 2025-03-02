@@ -306,8 +306,8 @@ github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace/go.mod h1:McXfInJRrz
 github.com/stoewer/go-strcase v1.2.0/go.mod h1:IBiWB2sKIp3wVVQ3Y035++gc+knqhUQag1KpM8ahLw8=
 github.com/stoewer/go-strcase v1.3.0 h1:g0eASXYtp+yvN9fK8sH94oCIk0fau9uV1/ZdJ0AVEzs=
 github.com/stoewer/go-strcase v1.3.0/go.mod h1:fAH5hQ5pehh+j3nZfvwdk2RgEgQjAoM8wodgtPmh1xo=
-github.com/stolostron/cluster-lifecycle-api v0.0.0-20240813023109-42b5c115d0a3 h1:MwhPBArHWlTZ+BDUb+/dRyYgrcfw8dt+MeqjbAPF3XQ=
-github.com/stolostron/cluster-lifecycle-api v0.0.0-20240813023109-42b5c115d0a3/go.mod h1:Sflr4YW8MRsymgNLJDcOAv4oyfeiTRyEDR7PRBkg788=
+github.com/stolostron/cluster-lifecycle-api v0.0.0-20240918064238-a5e71b599118 h1:etBoN2TXjxiTNZ/pmvbHuKSvJWm7ml+QGWrHPTeHQ+g=
+github.com/stolostron/cluster-lifecycle-api v0.0.0-20240918064238-a5e71b599118/go.mod h1:Sflr4YW8MRsymgNLJDcOAv4oyfeiTRyEDR7PRBkg788=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.4.0/go.mod h1:YvHI0jy2hoMjB+UWwv71VJQ9isScKT/TqJzVSSt89Yw=
 github.com/stretchr/objx v0.5.0/go.mod h1:Yh+to48EsGEfYuaHDzXPcE3xhTkx73EhmCGUpEOglKo=
