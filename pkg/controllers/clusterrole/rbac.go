@@ -31,7 +31,7 @@ func buildAdminRole(clusterName string) *rbacv1.ClusterRole {
 				RuleOrDie(),
 			helpers.NewRule("get", "list", "watch").
 				Groups(managedClusterViewGroup).
-				Resources("managedclusters").
+				Resources("managedclusters", "kubevirtprojects").
 				RuleOrDie(),
 		},
 	}
@@ -53,7 +53,7 @@ func buildViewRole(clusterName string) *rbacv1.ClusterRole {
 				Names(clusterName).RuleOrDie(),
 			helpers.NewRule("get", "list", "watch").
 				Groups(managedClusterViewGroup).
-				Resources("managedclusters").
+				Resources("managedclusters", "kubevirtprojects").
 				RuleOrDie(),
 		},
 	}
