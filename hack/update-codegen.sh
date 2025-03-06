@@ -27,4 +27,6 @@ kube::codegen::gen_openapi \
     --extra-pkgs "k8s.io/apimachinery/pkg/api/resource" \
     --extra-pkgs "k8s.io/apimachinery/pkg/runtime" \
     --extra-pkgs "k8s.io/apimachinery/pkg/apis/meta/v1" \
+    --extra-pkgs "k8s.io/api/core/v1" \
+    --extra-pkgs "github.com/openshift/api/project/v1" \
     ${REPO_ROOT}/pkg/proxyserver/apis

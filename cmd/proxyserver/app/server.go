@@ -7,6 +7,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	"k8s.io/client-go/informers"
+	kubecache "k8s.io/client-go/tools/cache"
 	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 )
@@ -21,13 +22,14 @@ func NewProxyServer(
 	clusterInformer clusterv1informers.SharedInformerFactory,
 	apiServerConfig *genericapiserver.Config,
 	proxyGetter *getter.ProxyServiceInfoGetter,
-	logProxyGetter *getter.LogProxyGetter) (*ProxyServer, error) {
+	logProxyGetter *getter.LogProxyGetter,
+	clusterPermissionLister kubecache.GenericLister) (*ProxyServer, error) {
 	apiServer, err := apiServerConfig.Complete(informerFactory).New("proxy-server", genericapiserver.NewEmptyDelegate())
 	if err != nil {
 		return nil, err
 	}
 
-	if err := api.Install(proxyGetter, logProxyGetter, apiServer, client, informerFactory, clusterInformer); err != nil {
+	if err := api.Install(proxyGetter, logProxyGetter, apiServer, client, informerFactory, clusterInformer, clusterPermissionLister); err != nil {
 		return nil, err
 	}
 
