@@ -20,16 +20,16 @@ func NewProxyServer(
 	client clusterv1client.Interface,
 	informerFactory informers.SharedInformerFactory,
 	clusterInformer clusterv1informers.SharedInformerFactory,
+	clusterPermissionInformer kubecache.SharedIndexInformer,
 	apiServerConfig *genericapiserver.Config,
 	proxyGetter *getter.ProxyServiceInfoGetter,
-	logProxyGetter *getter.LogProxyGetter,
-	clusterPermissionLister kubecache.GenericLister) (*ProxyServer, error) {
+	logProxyGetter *getter.LogProxyGetter) (*ProxyServer, error) {
 	apiServer, err := apiServerConfig.Complete(informerFactory).New("proxy-server", genericapiserver.NewEmptyDelegate())
 	if err != nil {
 		return nil, err
 	}
 
-	if err := api.Install(proxyGetter, logProxyGetter, apiServer, client, informerFactory, clusterInformer, clusterPermissionLister); err != nil {
+	if err := api.Install(proxyGetter, logProxyGetter, apiServer, client, informerFactory, clusterInformer, clusterPermissionInformer); err != nil {
 		return nil, err
 	}
 

@@ -106,8 +106,8 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 		Resource: "clusterpermissions",
 	})
 
-	proxyServer, err := NewProxyServer(clusterClient, informerFactory, clusterInformers, apiServerConfig,
-		proxyGetter, logProxyGetter, clusterPermissionInformer.Lister())
+	proxyServer, err := NewProxyServer(clusterClient, informerFactory, clusterInformers, clusterPermissionInformer.Informer(),
+		apiServerConfig, proxyGetter, logProxyGetter)
 	if err != nil {
 		return err
 	}

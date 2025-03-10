@@ -54,11 +54,11 @@ func Install(proxyServiceInfoGetter *getter.ProxyServiceInfoGetter,
 	client clusterclient.Interface,
 	informerFactory informers.SharedInformerFactory,
 	clusterInformer clusterinformers.SharedInformerFactory,
-	clusterPermissionLister kubecache.GenericLister) error {
+	clusterPermissionInformer kubecache.SharedIndexInformer) error {
 	if err := installProxyGroup(proxyServiceInfoGetter, logProxyGetter, server); err != nil {
 		return err
 	}
-	if err := installClusterViewGroup(server, client, informerFactory, clusterInformer, clusterPermissionLister); err != nil {
+	if err := installClusterViewGroup(server, client, informerFactory, clusterInformer, clusterPermissionInformer); err != nil {
 		return err
 	}
 	return nil
@@ -68,7 +68,7 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 	client clusterclient.Interface,
 	informerFactory informers.SharedInformerFactory,
 	clusterInformer clusterinformers.SharedInformerFactory,
-	clusterPermissionLister kubecache.GenericLister,
+	clusterPermissionInformer kubecache.SharedIndexInformer,
 ) error {
 
 	clusterCache := cache.NewClusterCache(
@@ -78,7 +78,15 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 		utils.GetViewResourceFromClusterRole,
 	)
 
-	kubevirtProjectCache := cache.NewKubevirtProjectCache(clusterPermissionLister)
+	clusterPermissionInformer.AddIndexers(
+		kubecache.Indexers{
+			cache.ClusterPermissionSubjectKey: cache.IndexClusterPermissionBySubject,
+		},
+	)
+
+	clusterPermissionInformer.GetIndexer().ListIndexFuncValues("")
+
+	kubevirtProjectCache := cache.NewKubevirtProjectCache(nil)
 
 	v1storage := map[string]rest.Storage{
 		"managedclusters": managedcluster.NewREST(
@@ -111,7 +119,6 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 
 	go clusterCache.Run(1 * time.Second)
 	go clusterSetCache.Run(1 * time.Second)
-	go kubevirtProjectCache.Run(1 * time.Second)
 	return server.InstallAPIGroup(&apiGroupInfo)
 }
 
