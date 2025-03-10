@@ -8,6 +8,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/log"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/managedcluster"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/managedclusterset"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/project"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/proxy"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/client-go/informers"
@@ -28,6 +29,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apiserver/pkg/registry/rest"
 	genericapiserver "k8s.io/apiserver/pkg/server"
+	kubecache "k8s.io/client-go/tools/cache"
 )
 
 var (
@@ -51,11 +53,12 @@ func Install(proxyServiceInfoGetter *getter.ProxyServiceInfoGetter,
 	server *genericapiserver.GenericAPIServer,
 	client clusterclient.Interface,
 	informerFactory informers.SharedInformerFactory,
-	clusterInformer clusterinformers.SharedInformerFactory) error {
+	clusterInformer clusterinformers.SharedInformerFactory,
+	clusterPermissionInformer kubecache.SharedIndexInformer) error {
 	if err := installProxyGroup(proxyServiceInfoGetter, logProxyGetter, server); err != nil {
 		return err
 	}
-	if err := installClusterViewGroup(server, client, informerFactory, clusterInformer); err != nil {
+	if err := installClusterViewGroup(server, client, informerFactory, clusterInformer, clusterPermissionInformer); err != nil {
 		return err
 	}
 	return nil
@@ -64,7 +67,9 @@ func Install(proxyServiceInfoGetter *getter.ProxyServiceInfoGetter,
 func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 	client clusterclient.Interface,
 	informerFactory informers.SharedInformerFactory,
-	clusterInformer clusterinformers.SharedInformerFactory) error {
+	clusterInformer clusterinformers.SharedInformerFactory,
+	clusterPermissionInformer kubecache.SharedIndexInformer,
+) error {
 
 	clusterCache := cache.NewClusterCache(
 		clusterInformer.Cluster().V1().ManagedClusters(),
@@ -73,12 +78,21 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 		utils.GetViewResourceFromClusterRole,
 	)
 
+	clusterPermissionInformer.AddIndexers(
+		kubecache.Indexers{
+			cache.ClusterPermissionSubjectKey: cache.IndexClusterPermissionBySubject,
+		},
+	)
+
+	kubevirtProjectCache := cache.NewKubevirtProjectCache(clusterPermissionInformer)
+
 	v1storage := map[string]rest.Storage{
 		"managedclusters": managedcluster.NewREST(
 			client, clusterCache, clusterCache,
 			clusterInformer.Cluster().V1().ManagedClusters().Lister(),
 			informerFactory.Rbac().V1().ClusterRoles().Lister(),
 		),
+		"projects": project.NewREST(kubevirtProjectCache),
 	}
 
 	clusterSetCache := cache.NewClusterSetCache(

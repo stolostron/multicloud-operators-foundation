@@ -4,16 +4,20 @@ package app
 
 import (
 	"fmt"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"time"
+
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stolostron/multicloud-operators-foundation/cmd/proxyserver/app/options"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/controller"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter"
 	apilabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -90,8 +94,20 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 
 	logProxyGetter := getter.NewLogProxyGetter(addonClient, kubeClient, proxyServiceHost, s.ClientOptions.ProxyServiceCAFile)
 
-	proxyServer, err := NewProxyServer(clusterClient, informerFactory, clusterInformers, apiServerConfig,
-		proxyGetter, logProxyGetter)
+	clusterPermissionClient, err := dynamic.NewForConfig(clusterCfg)
+	if err != nil {
+		return err
+	}
+
+	clusterPermissionFactory := dynamicinformer.NewDynamicSharedInformerFactory(clusterPermissionClient, 10*time.Minute)
+	clusterPermissionInformer := clusterPermissionFactory.ForResource(schema.GroupVersionResource{
+		Group:    "rbac.open-cluster-management.io",
+		Version:  "v1alpha1",
+		Resource: "clusterpermissions",
+	})
+
+	proxyServer, err := NewProxyServer(clusterClient, informerFactory, clusterInformers, clusterPermissionInformer.Informer(),
+		apiServerConfig, proxyGetter, logProxyGetter)
 	if err != nil {
 		return err
 	}
@@ -100,6 +116,7 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 	clusterInformers.Start(stopCh)
 	informerFactory.Start(stopCh)
 	configmapInformerFactory.Start(stopCh)
+	clusterPermissionFactory.Start(stopCh)
 
 	return proxyServer.Run(stopCh)
 }

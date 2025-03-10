@@ -1,18 +1,16 @@
 package v1
 
 import (
-	projectv1 "github.com/openshift/api/project/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	clusterv1 "open-cluster-management.io/api/cluster/v1"
 )
 
-const GroupName = "clusterview.open-cluster-management.io"
-
 var (
+	GroupName     = "project.openshift.io"
 	GroupVersion  = schema.GroupVersion{Group: GroupName, Version: "v1"}
-	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes)
+	schemeBuilder = runtime.NewSchemeBuilder(addKnownTypes, corev1.AddToScheme)
 	// Install is a function which adds this version to a scheme
 	Install = schemeBuilder.AddToScheme
 
@@ -24,13 +22,18 @@ var (
 	AddToScheme = schemeBuilder.AddToScheme
 )
 
+// Resource generated code relies on this being here, but it logically belongs to the group
+// DEPRECATED
+func Resource(resource string) schema.GroupResource {
+	return schema.GroupResource{Group: GroupName, Resource: resource}
+}
+
 // Adds the list of known types to api.Scheme.
 func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
-		&clusterv1.ManagedCluster{},
-		&clusterv1.ManagedClusterList{},
-		&projectv1.Project{},
-		&projectv1.ProjectList{},
+		&Project{},
+		&ProjectList{},
+		&ProjectRequest{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil
