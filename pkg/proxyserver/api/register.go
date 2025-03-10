@@ -84,9 +84,7 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 		},
 	)
 
-	clusterPermissionInformer.GetIndexer().ListIndexFuncValues("")
-
-	kubevirtProjectCache := cache.NewKubevirtProjectCache(nil)
+	kubevirtProjectCache := cache.NewKubevirtProjectCache(clusterPermissionInformer)
 
 	v1storage := map[string]rest.Storage{
 		"managedclusters": managedcluster.NewREST(
