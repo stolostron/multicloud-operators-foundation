@@ -1,7 +1,6 @@
 package addonfactory
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -23,72 +22,18 @@ var AddOnDeploymentConfigGVR = schema.GroupVersionResource{
 	Resource: "addondeploymentconfigs",
 }
 
-// AddOnDeloymentConfigToValuesFunc transform the AddOnDeploymentConfig object into Values object
-// The transformation logic depends on the definition of the addon template
-// Deprecated: use AddOnDeploymentConfigToValuesFunc instead.
-type AddOnDeloymentConfigToValuesFunc func(config addonapiv1alpha1.AddOnDeploymentConfig) (Values, error)
-
-// NewAddOnDeloymentConfigGetter returns a AddOnDeloymentConfigGetter with addon client
-// Deprecated: use NewAddOnDeploymentConfigGetter in pkg/utils package instead.
-func NewAddOnDeloymentConfigGetter(addonClient addonv1alpha1client.Interface) utils.AddOnDeploymentConfigGetter {
-	return utils.NewAddOnDeploymentConfigGetter(addonClient)
+type resourceRequirements struct {
+	Limits   map[string]string `json:"limits,omitempty"`
+	Requests map[string]string `json:"requests,omitempty"`
 }
 
-// GetAddOnDeloymentConfigValues uses AddOnDeloymentConfigGetter to get the AddOnDeploymentConfig object, then
-// uses AddOnDeloymentConfigToValuesFunc to transform the AddOnDeploymentConfig object to Values object
-// If there are multiple AddOnDeploymentConfig objects in the AddOn ConfigReferences, the big index object will
-// override the one from small index
-// Deprecated: use GetAddOnDeploymentConfigValues instead.
-func GetAddOnDeloymentConfigValues(
-	getter utils.AddOnDeploymentConfigGetter, toValuesFuncs ...AddOnDeloymentConfigToValuesFunc) GetValuesFunc {
-	return func(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) (Values, error) {
-		var lastValues = Values{}
-		for _, config := range addon.Status.ConfigReferences {
-			if config.ConfigGroupResource.Group != utils.AddOnDeploymentConfigGVR.Group ||
-				config.ConfigGroupResource.Resource != utils.AddOnDeploymentConfigGVR.Resource {
-				continue
-			}
-
-			addOnDeploymentConfig, err := getter.Get(context.Background(), config.Namespace, config.Name)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, toValuesFunc := range toValuesFuncs {
-				values, err := toValuesFunc(*addOnDeploymentConfig)
-				if err != nil {
-					return nil, err
-				}
-				lastValues = MergeValues(lastValues, values)
-			}
-		}
-
-		return lastValues, nil
-	}
-}
-
-// ToAddOnDeloymentConfigValues transform the AddOnDeploymentConfig object into Values object that is a plain value map
-// for example: the spec of one AddOnDeploymentConfig is:
-//
-//	{
-//		customizedVariables: [{name: "Image", value: "img"}, {name: "ImagePullPolicy", value: "Always"}],
-//		nodePlacement: {nodeSelector: {"host": "ssd"}, tolerations: {"key": "test"}},
-//	}
-//
-// after transformed, the key set of Values object will be: {"Image", "ImagePullPolicy", "NodeSelector", "Tolerations"}
-// Deprecated: use ToAddOnDeploymentConfigValues instead.
-func ToAddOnDeloymentConfigValues(config addonapiv1alpha1.AddOnDeploymentConfig) (Values, error) {
-	values, err := ToAddOnCustomizedVariableValues(config)
-	if err != nil {
-		return nil, err
-	}
-
-	if config.Spec.NodePlacement != nil {
-		values["NodeSelector"] = config.Spec.NodePlacement.NodeSelector
-		values["Tolerations"] = config.Spec.NodePlacement.Tolerations
-	}
-
-	return values, nil
+// regexResourceRequirements defines a resource requirement rule for containers. A container is eligible for the
+// specified resource requirements if its container ID matches the regular expression.
+type regexResourceRequirements struct {
+	// ContainerIDRegex is the regular expression used to match container IDs.
+	ContainerIDRegex string `json:"containerIDRegex"`
+	// Resources defines the resource requirements for matched containers
+	Resources resourceRequirements `json:"resources"`
 }
 
 // ToAddOnNodePlacementValues only transform the AddOnDeploymentConfig NodePlacement part into Values object that has
@@ -178,6 +123,47 @@ func ToAddOnProxyConfigValues(config addonapiv1alpha1.AddOnDeploymentConfig) (Va
 	return values, nil
 }
 
+// ToAddOnResourceRequirementsValues only transform the AddOnDeploymentConfig ResourceRequirements part into Values object that has
+// a specific for helm chart values
+// for example: the spec of one AddOnDeploymentConfig is:
+//
+//	{
+//	  resourceRequirements:[{containerID: "*:*:*", resources: { limits: { memory: "4Gi"}, requests: { memory: "512Mi"}}}],
+//	}
+//
+// after transformed, the Values will be:
+// map[global:map[resourceRequirements:[map[containerIDRegExp:"^.+:.+:.+$" resources:map[limits:map[memory:4Gi]
+// requests:map[memory:512Mi]]]]]]
+func ToAddOnResourceRequirementsValues(config addonapiv1alpha1.AddOnDeploymentConfig) (Values, error) {
+	if config.Spec.ResourceRequirements == nil {
+		return nil, nil
+	}
+
+	resourceRequirements, err := getRegexResourceRequirements(config.Spec.ResourceRequirements)
+	if err != nil {
+		return nil, err
+	}
+
+	type global struct {
+		ResourceRequirements []regexResourceRequirements `json:"resourceRequirements"`
+	}
+
+	jsonStruct := struct {
+		Global global `json:"global"`
+	}{
+		Global: global{
+			ResourceRequirements: resourceRequirements,
+		},
+	}
+
+	values, err := JsonStructToValues(jsonStruct)
+	if err != nil {
+		return nil, err
+	}
+
+	return values, nil
+}
+
 // ToAddOnCustomizedVariableValues only transform the CustomizedVariables in the spec of AddOnDeploymentConfig into Values object.
 // for example: the spec of one AddOnDeploymentConfig is:
 //
@@ -214,28 +200,61 @@ func GetAddOnDeploymentConfigValues(
 	getter utils.AddOnDeploymentConfigGetter, toValuesFuncs ...AddOnDeploymentConfigToValuesFunc) GetValuesFunc {
 	return func(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) (Values, error) {
 		var lastValues = Values{}
-		for _, config := range addon.Status.ConfigReferences {
-			if config.ConfigGroupResource.Group != utils.AddOnDeploymentConfigGVR.Group ||
-				config.ConfigGroupResource.Resource != utils.AddOnDeploymentConfigGVR.Resource {
-				continue
-			}
+		addOnDeploymentConfig, err := utils.GetDesiredAddOnDeploymentConfig(addon, getter)
+		if err != nil {
+			return lastValues, err
+		}
 
-			addOnDeploymentConfig, err := getter.Get(context.Background(), config.Namespace, config.Name)
+		if addOnDeploymentConfig == nil {
+			return lastValues, nil
+		}
+
+		for _, toValuesFunc := range toValuesFuncs {
+			values, err := toValuesFunc(*addOnDeploymentConfig)
 			if err != nil {
 				return nil, err
 			}
-
-			for _, toValuesFunc := range toValuesFuncs {
-				values, err := toValuesFunc(*addOnDeploymentConfig)
-				if err != nil {
-					return nil, err
-				}
-				lastValues = MergeValues(lastValues, values)
-			}
+			lastValues = MergeValues(lastValues, values)
 		}
 
 		return lastValues, nil
 	}
+}
+
+func getRegexResourceRequirements(requirements []addonapiv1alpha1.ContainerResourceRequirements) ([]regexResourceRequirements, error) {
+	newRequirements := []regexResourceRequirements{}
+	for _, item := range requirements {
+		// convert container ID to regex
+		parts := strings.Split(item.ContainerID, ":")
+		if len(parts) != 3 {
+			return nil, fmt.Errorf("invalid ContainerID: %s", item.ContainerID)
+		}
+		for index, part := range parts {
+			if part == "*" {
+				parts[index] = ".+"
+			}
+		}
+		newRequirements = append(newRequirements, regexResourceRequirements{
+			ContainerIDRegex: fmt.Sprintf("^%s:%s:%s$", parts[0], parts[1], parts[2]),
+			Resources: resourceRequirements{
+				Requests: toStringResourceList(item.Resources.Requests),
+				Limits:   toStringResourceList(item.Resources.Limits),
+			},
+		})
+	}
+
+	return newRequirements, nil
+}
+
+func toStringResourceList(resourceList corev1.ResourceList) map[string]string {
+	if len(resourceList) == 0 {
+		return nil
+	}
+	newResourceList := map[string]string{}
+	for key, value := range resourceList {
+		newResourceList[string(key)] = value.String()
+	}
+	return newResourceList
 }
 
 // ToAddOnDeploymentConfigValues transform the AddOnDeploymentConfig object into Values object that is a plain value map
@@ -244,9 +263,11 @@ func GetAddOnDeploymentConfigValues(
 //	{
 //		customizedVariables: [{name: "Image", value: "img"}, {name: "ImagePullPolicy", value: "Always"}],
 //		nodePlacement: {nodeSelector: {"host": "ssd"}, tolerations: {"key": "test"}},
+//		resourceRequirements:[{containerID: "*:*:*", resources: { limits: { memory: "4Gi"}, requests: { memory: "512Mi"}}}],
 //	}
 //
-// after transformed, the key set of Values object will be: {"Image", "ImagePullPolicy", "NodeSelector", "Tolerations"}
+// after transformed, the key set of Values object will be: {"Image", "ImagePullPolicy", "NodeSelector", "Tolerations",
+// "ResourceRequirements"}
 func ToAddOnDeploymentConfigValues(config addonapiv1alpha1.AddOnDeploymentConfig) (Values, error) {
 	values, err := ToAddOnCustomizedVariableValues(config)
 	if err != nil {
@@ -270,6 +291,15 @@ func ToAddOnDeploymentConfigValues(config addonapiv1alpha1.AddOnDeploymentConfig
 	}
 	if len(config.Spec.ProxyConfig.CABundle) > 0 {
 		values["ProxyCABundle"] = string(config.Spec.ProxyConfig.CABundle)
+	}
+
+	// load ResourceRequirements settings
+	resourceRequirements, err := getRegexResourceRequirements(config.Spec.ResourceRequirements)
+	if err != nil {
+		return nil, err
+	}
+	if len(resourceRequirements) > 0 {
+		values["ResourceRequirements"] = resourceRequirements
 	}
 
 	return values, nil
@@ -349,19 +379,12 @@ func getRegistriesFromClusterAnnotation(
 //   - Image registries configured in the addonDeploymentConfig will take precedence over the managed cluster annotation
 func GetAgentImageValues(getter utils.AddOnDeploymentConfigGetter, imageKey, image string) GetValuesFunc {
 	return func(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) (Values, error) {
-
+		addOnDeploymentConfig, err := utils.GetDesiredAddOnDeploymentConfig(addon, getter)
+		if err != nil {
+			return nil, err
+		}
 		// Get image from AddOnDeploymentConfig
-		for _, config := range addon.Status.ConfigReferences {
-			if config.ConfigGroupResource.Group != utils.AddOnDeploymentConfigGVR.Group ||
-				config.ConfigGroupResource.Resource != utils.AddOnDeploymentConfigGVR.Resource {
-				continue
-			}
-
-			addOnDeploymentConfig, err := getter.Get(context.Background(), config.Namespace, config.Name)
-			if err != nil {
-				return nil, err
-			}
-
+		if addOnDeploymentConfig != nil {
 			values, overrode, err := overrideImageWithKeyValue(imageKey, image,
 				getRegistriesFromAddonDeploymentConfig(*addOnDeploymentConfig))
 			if err != nil {
