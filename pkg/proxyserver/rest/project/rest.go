@@ -34,7 +34,6 @@ var (
 	_ = rest.SingularNameProvider(&REST{})
 	_ = rest.Storage(&REST{})
 	_ = rest.Lister(&REST{})
-	// _ = rest.Getter(&REST{})
 )
 
 func (r *REST) NamespaceScoped() bool {

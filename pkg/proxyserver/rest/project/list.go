@@ -1,6 +1,7 @@
 package project
 
 import (
+	"fmt"
 	"slices"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -24,7 +25,30 @@ func listProjects(namespace, name string, obj runtime.Object, userInfo user.Info
 		return projects
 	}
 
-	// TODO ClusterRoleBinding
+	clusterRoleBinding, found, err := unstructured.NestedMap(u, "spec", "clusterRoleBinding")
+	if err != nil {
+		klog.Errorf("invalid roleBindings in %s/%s, %v", namespace, name, err)
+		return projects
+	}
+	if found {
+		subject, err := toSubject(clusterRoleBinding)
+		if err != nil {
+			klog.Errorf("failed to get subject %v", err)
+			return projects
+		}
+		if isBoundUser(subject, userInfo) {
+			roleName, err := getRoleRefName(clusterRoleBinding)
+			if err != nil {
+				klog.Errorf("failed to get roleRef in %s/%s on clusterRoleBing, %v", namespace, name, err)
+				return projects
+			}
+
+			if isKubeVirtRole(roleName) {
+				projects = append(projects, projectView{name: "any", cluster: namespace})
+				return projects
+			}
+		}
+	}
 
 	roleBindings, found, err := unstructured.NestedSlice(u, "spec", "roleBindings")
 	if err != nil {
@@ -53,25 +77,9 @@ func listProjects(namespace, name string, obj runtime.Object, userInfo user.Info
 			continue
 		}
 
-		roleRef, found, err := unstructured.NestedMap(binding, "roleRef")
+		roleName, err := getRoleRefName(binding)
 		if err != nil {
-			klog.Errorf("invalid struct for roleRef %v, %v", obj, err)
-			continue
-		}
-		if !found {
-			// TODO NamespaceSelector??
-			klog.Warningf("roleRef is not found in %s/%s", namespace, name)
-			continue
-		}
-
-		roleName, found, err := unstructured.NestedString(roleRef, "name")
-		if err != nil {
-			klog.Errorf("invalid struct for roleRef %v, %v", obj, err)
-			continue
-		}
-		if !found {
-			// TODO NamespaceSelector??
-			klog.Warningf("name is not found in roleRef %s/%s", namespace, name)
+			klog.Errorf("failed to get roleRef in %s/%s on roleBing, %v", namespace, name, err)
 			continue
 		}
 
@@ -85,7 +93,6 @@ func listProjects(namespace, name string, obj runtime.Object, userInfo user.Info
 			continue
 		}
 		if !found {
-			// TODO NamespaceSelector??
 			klog.Warningf("namespace is not found in %s/%s", namespace, name)
 			continue
 		}
@@ -109,6 +116,25 @@ func isBoundUser(subject *rbacv1.Subject, userInfo user.Info) bool {
 	}
 
 	return false
+}
+
+func getRoleRefName(binding map[string]any) (string, error) {
+	roleRef, found, err := unstructured.NestedMap(binding, "roleRef")
+	if err != nil {
+		return "", fmt.Errorf("invalid struct for roleBinding, %w", err)
+	}
+	if !found {
+		return "", fmt.Errorf("roleRef is not found")
+	}
+
+	roleName, found, err := unstructured.NestedString(roleRef, "name")
+	if err != nil {
+		return "", fmt.Errorf("invalid struct for roleRef, %w", err)
+	}
+	if !found {
+		return "", fmt.Errorf("name is not found in roleRef")
+	}
+	return roleName, nil
 }
 
 func isKubeVirtRole(name string) bool {

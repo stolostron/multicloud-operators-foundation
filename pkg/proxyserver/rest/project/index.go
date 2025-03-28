@@ -26,7 +26,18 @@ func IndexClusterPermissionBySubject(obj any) ([]string, error) {
 
 	keySet := sets.New[string]()
 
-	// TODO cluster role bindings
+	clusterRoleBinding, found, err := unstructured.NestedMap(u, "spec", "clusterRoleBinding")
+	if err != nil {
+		return nil, fmt.Errorf("invalid roleBindings in %s/%s, %v", namespace, name, err)
+	}
+	if found {
+		subject, err := toSubject(clusterRoleBinding)
+		if err != nil {
+			return nil, fmt.Errorf("failed to find subject in %s/%s, %v", namespace, name, err)
+		}
+
+		keySet.Insert(fmt.Sprintf("%s/%s/%s/%s", namespace, name, subject.Kind, subject.Name))
+	}
 
 	roleBindings, found, err := unstructured.NestedSlice(u, "spec", "roleBindings")
 	if err != nil {
@@ -34,7 +45,7 @@ func IndexClusterPermissionBySubject(obj any) ([]string, error) {
 	}
 	if !found {
 		// no bindings, do nothing
-		return nil, fmt.Errorf("no roleBindings in %s/%s, %v", namespace, name, err)
+		return toKeys(keySet), nil
 	}
 
 	for _, rb := range roleBindings {
@@ -51,11 +62,7 @@ func IndexClusterPermissionBySubject(obj any) ([]string, error) {
 		keySet.Insert(fmt.Sprintf("%s/%s/%s/%s", namespace, name, subject.Kind, subject.Name))
 	}
 
-	keys := []string{}
-	for key := range keySet {
-		keys = append(keys, key)
-	}
-	return keys, nil
+	return toKeys(keySet), nil
 }
 
 func toSubject(binding map[string]any) (*rbacv1.Subject, error) {
@@ -100,4 +107,12 @@ func splitKey(key string) (string, string, *rbacv1.Subject, error) {
 	}
 
 	return namespace, name, subject, nil
+}
+
+func toKeys(keySet sets.Set[string]) []string {
+	keys := []string{}
+	for key := range keySet {
+		keys = append(keys, key)
+	}
+	return keys
 }
