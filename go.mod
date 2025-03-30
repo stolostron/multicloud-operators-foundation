@@ -6,8 +6,8 @@ require (
 	github.com/go-logr/logr v1.4.2
 	github.com/gogo/protobuf v1.3.2
 	github.com/mattbaird/jsonpatch v0.0.0-20240118010651-0ba75a80ca38
-	github.com/onsi/ginkgo/v2 v2.21.0
-	github.com/onsi/gomega v1.35.1
+	github.com/onsi/ginkgo/v2 v2.23.3
+	github.com/onsi/gomega v1.36.3
 	github.com/openshift/api v0.0.0-20240919193929-2669d1ebc910
 	github.com/openshift/build-machinery-go v0.0.0-20240419090851-af9c868bcf52
 	github.com/openshift/client-go v0.0.0-20240528061634-b054aa794d87
@@ -19,7 +19,7 @@ require (
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20240813023109-42b5c115d0a3
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/net v0.33.0
+	golang.org/x/net v0.37.0
 	k8s.io/api v0.32.1
 	k8s.io/apiextensions-apiserver v0.32.1
 	k8s.io/apimachinery v0.32.1
@@ -76,9 +76,9 @@ require (
 	github.com/google/btree v1.0.1 // indirect
 	github.com/google/cel-go v0.22.0 // indirect
 	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect
-	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
-	github.com/google/pprof v0.0.0-20241029153458-d1b30febd7db // indirect
+	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
@@ -127,22 +127,22 @@ require (
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
-	golang.org/x/mod v0.21.0 // indirect
+	golang.org/x/mod v0.23.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
-	golang.org/x/term v0.27.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/sync v0.12.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
+	golang.org/x/term v0.30.0 // indirect
+	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
-	golang.org/x/tools v0.26.0 // indirect
+	golang.org/x/tools v0.30.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/genproto v0.0.0-20240722135656-d784300faade // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240826202546-f6391c0de4c7 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240826202546-f6391c0de4c7 // indirect
 	google.golang.org/grpc v1.65.0 // indirect
-	google.golang.org/protobuf v1.35.1 // indirect
+	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
