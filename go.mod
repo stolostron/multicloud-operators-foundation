@@ -12,7 +12,7 @@ require (
 	github.com/openshift/build-machinery-go v0.0.0-20240419090851-af9c868bcf52
 	github.com/openshift/client-go v0.0.0-20240528061634-b054aa794d87
 	github.com/openshift/hive/apis v0.0.0-20250206153200-5a34ea42e678
-	github.com/openshift/library-go v0.0.0-20240509114237-dc3020f4b513
+	github.com/openshift/library-go v0.0.0-20240621150525-4bb4238aef81
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/common v0.55.0
 	github.com/smartystreets/goconvey v1.8.1
@@ -32,10 +32,10 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-aggregator v0.32.1
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f
-	open-cluster-management.io/addon-framework v0.9.1-0.20240416063208-ecb7f349df05
-	open-cluster-management.io/api v0.14.1-0.20240627145512-bd6f2229b53c
+	open-cluster-management.io/addon-framework v0.12.0
+	open-cluster-management.io/api v0.16.0
 	open-cluster-management.io/managed-serviceaccount v0.5.0
-	open-cluster-management.io/sdk-go v0.13.1-0.20240416030555-aa744f426379
+	open-cluster-management.io/sdk-go v0.16.0
 	sigs.k8s.io/controller-runtime v0.19.0
 	sigs.k8s.io/yaml v1.4.0
 )
