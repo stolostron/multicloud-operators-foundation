@@ -581,8 +581,8 @@ golang.org/x/net/idna
 golang.org/x/net/internal/timeseries
 golang.org/x/net/trace
 golang.org/x/net/websocket
-# golang.org/x/oauth2 v0.10.0
-## explicit; go 1.17
+# golang.org/x/oauth2 v0.10.0 => github.com/openshift/golang-oauth2 v0.26.1-0.20250310184649-06a918c6239d
+## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
 # golang.org/x/sync v0.10.0
@@ -640,15 +640,6 @@ golang.org/x/tools/internal/stdlib
 # gomodules.xyz/jsonpatch/v2 v2.3.0
 ## explicit; go 1.20
 gomodules.xyz/jsonpatch/v2
-# google.golang.org/appengine v1.6.7
-## explicit; go 1.11
-google.golang.org/appengine/internal
-google.golang.org/appengine/internal/base
-google.golang.org/appengine/internal/datastore
-google.golang.org/appengine/internal/log
-google.golang.org/appengine/internal/remote_api
-google.golang.org/appengine/internal/urlfetch
-google.golang.org/appengine/urlfetch
 # google.golang.org/genproto v0.0.0-20230711160842-782d3b101e98 => google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013
 ## explicit; go 1.11
 google.golang.org/genproto/googleapis/api/annotations
@@ -1725,6 +1716,7 @@ sigs.k8s.io/structured-merge-diff/v4/value
 ## explicit; go 1.12
 sigs.k8s.io/yaml
 # github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20231019152019-e3f9aed5bf2a
+# golang.org/x/oauth2 => github.com/openshift/golang-oauth2 v0.26.1-0.20250310184649-06a918c6239d
 # github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20230531194024-8dde0991ffdd
 # github.com/metal3-io/baremetal-operator/apis => github.com/openshift/baremetal-operator/apis v0.0.0-20230531194024-8dde0991ffdd
 # github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20230531194024-8dde0991ffdd

@@ -4,6 +4,8 @@ go 1.20
 
 replace github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20231019152019-e3f9aed5bf2a
 
+replace golang.org/x/oauth2 => github.com/openshift/golang-oauth2 v0.26.1-0.20250310184649-06a918c6239d
+
 // from installer
 replace (
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20230531194024-8dde0991ffdd
@@ -184,7 +186,6 @@ require (
 	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	gomodules.xyz/jsonpatch/v2 v2.3.0 // indirect
-	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20230711160842-782d3b101e98 // indirect
 	google.golang.org/grpc v1.58.3 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
