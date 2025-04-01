@@ -354,7 +354,6 @@ func newFakeRestMapper(resources []*restmapper.APIGroupResources) meta.RESTMappe
 
 func newFakeKubeClient(objects []runtime.Object) kubernetes.Interface {
 	fakeKubeClient := kubefake.NewSimpleClientset(objects...)
-	fakeKubeClient.Resources = append(fakeKubeClient.Resources)
 	fakeKubeClient.Discovery().ServerVersion()
 	return fakeKubeClient
 }
