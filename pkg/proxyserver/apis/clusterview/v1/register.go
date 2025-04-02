@@ -28,6 +28,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
 		&clusterv1.ManagedCluster{},
 		&clusterv1.ManagedClusterList{},
+		&metav1.PartialObjectMetadata{},
+		&metav1.PartialObjectMetadataList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil
