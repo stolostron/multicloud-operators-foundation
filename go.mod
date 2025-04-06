@@ -101,7 +101,7 @@ require (
 	github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/prometheus/client_model v0.6.0 // indirect
+	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/smarty/assertions v1.15.0 // indirect
