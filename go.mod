@@ -41,7 +41,7 @@ require (
 	github.com/onsi/gomega v1.27.8
 	github.com/openshift/api v0.0.0-20230720094506-afcbe27aec7c
 	github.com/openshift/build-machinery-go v0.0.0-20230306181456-d321ffa04533
-	github.com/openshift/client-go v0.0.0-20230503144108-75015d2347cb
+	github.com/openshift/client-go b3bad3b645f2
 	github.com/openshift/hive v1.1.17-0.20240123053920-35373d831d5b
 	github.com/openshift/hive/apis v0.0.0
 	github.com/openshift/library-go v0.0.0-20230508110756-9b7abe2c9cbf
