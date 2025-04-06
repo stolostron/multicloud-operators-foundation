@@ -31,8 +31,8 @@ import (
 
 	"open-cluster-management.io/addon-framework/pkg/addonmanager/constants"
 	"open-cluster-management.io/addon-framework/pkg/agent"
-	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
 	"open-cluster-management.io/addon-framework/pkg/index"
+	"open-cluster-management.io/sdk-go/pkg/basecontroller/factory"
 )
 
 const (
@@ -75,6 +75,8 @@ func NewAddonDeployController(
 		workIndexer:                workInformers.Informer().GetIndexer(),
 		agentAddons:                agentAddons,
 	}
+
+	c.setClusterInformerHandler(clusterInformers)
 
 	f := factory.New().WithSyncContext(syncCtx).
 		WithFilteredEventsInformersQueueKeysFunc(
@@ -126,15 +128,13 @@ func NewAddonDeployController(
 			},
 			workInformers.Informer(),
 		).
+		WithBareInformers(clusterInformers.Informer()).
 		WithSync(c.sync)
 
-	if c.watchManagedCluster(clusterInformers) {
-		f.WithBareInformers(clusterInformers.Informer())
-	}
 	return f.ToController(controllerName)
 }
 
-func (c addonDeployController) watchManagedCluster(clusterInformers clusterinformers.ManagedClusterInformer) bool {
+func (c addonDeployController) setClusterInformerHandler(clusterInformers clusterinformers.ManagedClusterInformer) {
 	var filters []func(old, new *clusterv1.ManagedCluster) bool
 	for _, addon := range c.agentAddons {
 		if addon.GetAgentAddonOptions().AgentDeployTriggerClusterFilter != nil {
@@ -142,7 +142,7 @@ func (c addonDeployController) watchManagedCluster(clusterInformers clusterinfor
 		}
 	}
 	if len(filters) == 0 {
-		return false
+		return
 	}
 
 	_, err := clusterInformers.Informer().AddEventHandler(
@@ -169,8 +169,8 @@ func (c addonDeployController) watchManagedCluster(clusterInformers clusterinfor
 	if err != nil {
 		utilruntime.HandleError(err)
 	}
-	return true
 }
+
 func (c *addonDeployController) enqueueAddOnsByCluster() func(obj interface{}) {
 	return func(obj interface{}) {
 		accessor, _ := meta.Accessor(obj)
@@ -381,6 +381,12 @@ func (c *addonDeployController) buildDeployManifestWorksFunc(addonWorkBuilder *a
 			return nil, nil, fmt.Errorf("failed to get agentAddon")
 		}
 
+		if agentAddon.GetAgentAddonOptions().ConfigCheckEnabled &&
+			!meta.IsStatusConditionTrue(addon.Status.Conditions, addonapiv1alpha1.ManagedClusterAddOnConditionConfigured) {
+			klog.InfoS("Addon configured condition is not set in status", "addonName", addon.Name)
+			return nil, nil, nil
+		}
+
 		objects, err := agentAddon.Manifests(cluster, addon)
 		if err != nil {
 			meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
@@ -390,9 +396,6 @@ func (c *addonDeployController) buildDeployManifestWorksFunc(addonWorkBuilder *a
 				Message: fmt.Sprintf("failed to get manifest from agent interface: %v", err),
 			})
 			return nil, nil, err
-		}
-		if len(objects) == 0 {
-			return nil, nil, nil
 		}
 
 		// this is to retrieve the intended mode of the addon.
@@ -419,6 +422,14 @@ func (c *addonDeployController) buildDeployManifestWorksFunc(addonWorkBuilder *a
 			})
 			return nil, nil, err
 		}
+		if len(appliedWorks) == 0 {
+			meta.SetStatusCondition(&addon.Status.Conditions, metav1.Condition{
+				Type:    appliedType,
+				Status:  metav1.ConditionTrue,
+				Reason:  addonapiv1alpha1.AddonManifestAppliedReasonManifestsApplied,
+				Message: "no manifest need to apply",
+			})
+		}
 		return appliedWorks, deleteWorks, nil
 	}
 }
@@ -436,6 +447,12 @@ func (c *addonDeployController) buildHookManifestWorkFunc(addonWorkBuilder *addo
 		agentAddon := c.agentAddons[addon.Name]
 		if agentAddon == nil {
 			return nil, fmt.Errorf("failed to get agentAddon")
+		}
+
+		if agentAddon.GetAgentAddonOptions().ConfigCheckEnabled &&
+			!meta.IsStatusConditionTrue(addon.Status.Conditions, addonapiv1alpha1.ManagedClusterAddOnConditionConfigured) {
+			klog.InfoS("Addon configured condition is not set in status", "addonName", addon.Name)
+			return nil, nil
 		}
 
 		objects, err := agentAddon.Manifests(cluster, addon)
