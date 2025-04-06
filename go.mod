@@ -8,11 +8,11 @@ require (
 	github.com/mattbaird/jsonpatch v0.0.0-20240118010651-0ba75a80ca38
 	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.35.1
-	github.com/openshift/api v0.0.0-20240919193929-2669d1ebc910
-	github.com/openshift/build-machinery-go v0.0.0-20240419090851-af9c868bcf52
-	github.com/openshift/client-go v0.0.0-20240528061634-b054aa794d87
+	github.com/openshift/api v0.0.0-20250320170726-75d64d71980b
+	github.com/openshift/build-machinery-go v0.0.0-20250102153059-e85a1a7ecb5c
+	github.com/openshift/client-go v0.0.0-20250125113824-8e1f0b8fa9a7
 	github.com/openshift/hive/apis v0.0.0-20250206153200-5a34ea42e678
-	github.com/openshift/library-go v0.0.0-20240509114237-dc3020f4b513
+	github.com/openshift/library-go v0.0.0-20250402180609-ce2ba53fb2a4
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/common v0.55.0
 	github.com/smartystreets/goconvey v1.8.1
