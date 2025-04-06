@@ -19,8 +19,8 @@ import (
 	"open-cluster-management.io/sdk-go/pkg/patcher"
 
 	"open-cluster-management.io/addon-framework/pkg/agent"
-	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
 	"open-cluster-management.io/addon-framework/pkg/utils"
+	"open-cluster-management.io/sdk-go/pkg/basecontroller/factory"
 )
 
 // addonRegistrationController reconciles instances of ManagedClusterAddon on the hub.
@@ -169,9 +169,6 @@ func (c *addonRegistrationController) sync(ctx context.Context, syncCtx factory.
 		}
 		if len(ns) > 0 {
 			managedClusterAddonCopy.Status.Namespace = ns
-		} else {
-			klog.InfoS("Namespace for addon returned by agent install namespace func is empty",
-				"addonNamespace", managedClusterAddonCopy.Namespace, "addonName", managedClusterAddonCopy.Name)
 		}
 	}
 
