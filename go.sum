@@ -615,8 +615,8 @@ k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 h1:pUdcCO1Lk/tbT5ztQWOBi5HBgbBP1
 k8s.io/utils v0.0.0-20240711033017-18e509b52bc8/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
 open-cluster-management.io/addon-framework v0.9.1-0.20240416063208-ecb7f349df05 h1:oj4IEyxmQFMxdpnOPE/Y7Xkyfkz4hGVkcYZ4dn8WtKU=
 open-cluster-management.io/addon-framework v0.9.1-0.20240416063208-ecb7f349df05/go.mod h1:K+/TwCUz2PZ7L+svaodw6029S/iPJ7eVX21F7NMw+Kw=
-open-cluster-management.io/api v0.14.1-0.20240627145512-bd6f2229b53c h1:gYfgkX/U6fv2d3Ly8D6N1GM9zokORupLSgCxx791zZw=
-open-cluster-management.io/api v0.14.1-0.20240627145512-bd6f2229b53c/go.mod h1:9erZEWEn4bEqh0nIX2wA7f/s3KCuFycQdBrPrRzi0QM=
+open-cluster-management.io/api v0.16.1 h1:mS+4UGxHLPQd7CRM0gdFQdVaz139Lo2bkLfqSE0CDNU=
+open-cluster-management.io/api v0.16.1/go.mod h1:9erZEWEn4bEqh0nIX2wA7f/s3KCuFycQdBrPrRzi0QM=
 open-cluster-management.io/managed-serviceaccount v0.5.0 h1:yEFTlwPp3tecorzHLwa71mIJzwQtxcwRUnUhRF4OX0U=
 open-cluster-management.io/managed-serviceaccount v0.5.0/go.mod h1:pvSKkwFynokhtV7ksN1z0BNWQ37bG8FudOfmjn55ciA=
 open-cluster-management.io/sdk-go v0.13.1-0.20240416030555-aa744f426379 h1:8jXVHfgy+wgXq1mrWC1mTieoP77WsAAHNpzILMIzWB0=
