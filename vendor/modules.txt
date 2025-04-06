@@ -327,7 +327,7 @@ github.com/openshift/client-go/route/clientset/versioned/fake
 github.com/openshift/client-go/route/clientset/versioned/scheme
 github.com/openshift/client-go/route/clientset/versioned/typed/route/v1
 github.com/openshift/client-go/route/clientset/versioned/typed/route/v1/fake
-# github.com/openshift/hive/apis v0.0.0-20250320150157-d25e0dba0f75
+# github.com/openshift/hive/apis v0.0.0-20250403232136-3f47f7e9f862
 ## explicit; go 1.23.0
 github.com/openshift/hive/apis/hive/v1
 github.com/openshift/hive/apis/hive/v1/agent
