@@ -277,7 +277,9 @@ func (APIServer) SwaggerDoc() map[string]string {
 }
 
 var map_APIServerEncryption = map[string]string{
+	"":     "APIServerEncryption is used to encrypt sensitive resources on the cluster.",
 	"type": "type defines what encryption type should be used to encrypt resources at the datastore layer. When this field is unset (i.e. when it is set to the empty string), identity is implied. The behavior of unset can and will change over time.  Even if encryption is enabled by default, the meaning of unset may change to a different encryption type based on changes in best practices.\n\nWhen encryption is enabled, all sensitive resources shipped with the platform are encrypted. This list of sensitive resources can and will change over time.  The current authoritative list is:\n\n  1. secrets\n  2. configmaps\n  3. routes.route.openshift.io\n  4. oauthaccesstokens.oauth.openshift.io\n  5. oauthauthorizetokens.oauth.openshift.io",
+	"kms":  "kms defines the configuration for the external KMS instance that manages the encryption keys, when KMS encryption is enabled sensitive resources will be encrypted using keys managed by an externally configured KMS instance.\n\nThe Key Management Service (KMS) instance provides symmetric encryption and is responsible for managing the lifecyle of the encryption keys outside of the control plane. This allows integration with an external provider to manage the data encryption keys securely.",
 }
 
 func (APIServerEncryption) SwaggerDoc() map[string]string {
@@ -698,7 +700,7 @@ func (ClusterVersionList) SwaggerDoc() map[string]string {
 var map_ClusterVersionSpec = map[string]string{
 	"":                "ClusterVersionSpec is the desired version state of the cluster. It includes the version the cluster should be at, how the cluster is identified, and where the cluster should look for version updates.",
 	"clusterID":       "clusterID uniquely identifies this cluster. This is expected to be an RFC4122 UUID value (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx in hexadecimal values). This is a required field.",
-	"desiredUpdate":   "desiredUpdate is an optional field that indicates the desired value of the cluster version. Setting this value will trigger an upgrade (if the current version does not match the desired version). The set of recommended update values is listed as part of available updates in status, and setting values outside that range may cause the upgrade to fail.\n\nSome of the fields are inter-related with restrictions and meanings described here. 1. image is specified, version is specified, architecture is specified. API validation error. 2. image is specified, version is specified, architecture is not specified. You should not do this. version is silently ignored and image is used. 3. image is specified, version is not specified, architecture is specified. API validation error. 4. image is specified, version is not specified, architecture is not specified. image is used. 5. image is not specified, version is specified, architecture is specified. version and desired architecture are used to select an image. 6. image is not specified, version is specified, architecture is not specified. version and current architecture are used to select an image. 7. image is not specified, version is not specified, architecture is specified. API validation error. 8. image is not specified, version is not specified, architecture is not specified. API validation error.\n\nIf an upgrade fails the operator will halt and report status about the failing component. Setting the desired update value back to the previous version will cause a rollback to be attempted. Not all rollbacks will succeed.",
+	"desiredUpdate":   "desiredUpdate is an optional field that indicates the desired value of the cluster version. Setting this value will trigger an upgrade (if the current version does not match the desired version). The set of recommended update values is listed as part of available updates in status, and setting values outside that range may cause the upgrade to fail.\n\nSome of the fields are inter-related with restrictions and meanings described here. 1. image is specified, version is specified, architecture is specified. API validation error. 2. image is specified, version is specified, architecture is not specified. The version extracted from the referenced image must match the specified version. 3. image is specified, version is not specified, architecture is specified. API validation error. 4. image is specified, version is not specified, architecture is not specified. image is used. 5. image is not specified, version is specified, architecture is specified. version and desired architecture are used to select an image. 6. image is not specified, version is specified, architecture is not specified. version and current architecture are used to select an image. 7. image is not specified, version is not specified, architecture is specified. API validation error. 8. image is not specified, version is not specified, architecture is not specified. API validation error.\n\nIf an upgrade fails the operator will halt and report status about the failing component. Setting the desired update value back to the previous version will cause a rollback to be attempted. Not all rollbacks will succeed.",
 	"upstream":        "upstream may be used to specify the preferred update server. By default it will use the appropriate update server for the cluster and region.",
 	"channel":         "channel is an identifier for explicitly requesting that a non-default set of updates be applied to this cluster. The default channel will be contain stable updates that are appropriate for production clusters.",
 	"capabilities":    "capabilities configures the installation of optional, core cluster components.  A null value here is identical to an empty object; see the child properties for default semantics.",
@@ -797,8 +799,8 @@ func (SignatureStore) SwaggerDoc() map[string]string {
 var map_Update = map[string]string{
 	"":             "Update represents an administrator update request.",
 	"architecture": "architecture is an optional field that indicates the desired value of the cluster architecture. In this context cluster architecture means either a single architecture or a multi architecture. architecture can only be set to Multi thereby only allowing updates from single to multi architecture. If architecture is set, image cannot be set and version must be set. Valid values are 'Multi' and empty.",
-	"version":      "version is a semantic version identifying the update version. version is ignored if image is specified and required if architecture is specified.",
-	"image":        "image is a container image location that contains the update. image should be used when the desired version does not exist in availableUpdates or history. When image is set, version is ignored. When image is set, version should be empty. When image is set, architecture cannot be specified.",
+	"version":      "version is a semantic version identifying the update version. version is required if architecture is specified. If both version and image are set, the version extracted from the referenced image must match the specified version.",
+	"image":        "image is a container image location that contains the update. image should be used when the desired version does not exist in availableUpdates or history. When image is set, architecture cannot be specified. If both version and image are set, the version extracted from the referenced image must match the specified version.",
 	"force":        "force allows an administrator to update to an image that has failed verification or upgradeable checks. This option should only be used when the authenticity of the provided image has been verified out of band because the provided image will run with full administrative access to the cluster. Do not use this flag with images that comes from unknown or potentially malicious sources.",
 }
 
@@ -1431,7 +1433,8 @@ func (GCPServiceEndpoint) SwaggerDoc() map[string]string {
 }
 
 var map_IBMCloudPlatformSpec = map[string]string{
-	"": "IBMCloudPlatformSpec holds the desired state of the IBMCloud infrastructure provider. This only includes fields that can be modified in the cluster.",
+	"":                 "IBMCloudPlatformSpec holds the desired state of the IBMCloud infrastructure provider. This only includes fields that can be modified in the cluster.",
+	"serviceEndpoints": "serviceEndpoints is a list of custom endpoints which will override the default service endpoints of an IBM service. These endpoints are used by components within the cluster when trying to reach the IBM Cloud Services that have been overriden. The CCCMO reads in the IBMCloudPlatformSpec and validates each endpoint is resolvable. Once validated, the cloud config and IBMCloudPlatformStatus are updated to reflect the same custom endpoints. A maximum of 13 service endpoints overrides are supported.",
 }
 
 func (IBMCloudPlatformSpec) SwaggerDoc() map[string]string {
@@ -1445,7 +1448,7 @@ var map_IBMCloudPlatformStatus = map[string]string{
 	"providerType":      "providerType indicates the type of cluster that was created",
 	"cisInstanceCRN":    "cisInstanceCRN is the CRN of the Cloud Internet Services instance managing the DNS zone for the cluster's base domain",
 	"dnsInstanceCRN":    "dnsInstanceCRN is the CRN of the DNS Services instance managing the DNS zone for the cluster's base domain",
-	"serviceEndpoints":  "serviceEndpoints is a list of custom endpoints which will override the default service endpoints of an IBM Cloud service. These endpoints are consumed by components within the cluster to reach the respective IBM Cloud Services.",
+	"serviceEndpoints":  "serviceEndpoints is a list of custom endpoints which will override the default service endpoints of an IBM service. These endpoints are used by components within the cluster when trying to reach the IBM Cloud Services that have been overriden. The CCCMO reads in the IBMCloudPlatformSpec and validates each endpoint is resolvable. Once validated, the cloud config and IBMCloudPlatformStatus are updated to reflect the same custom endpoints.",
 }
 
 func (IBMCloudPlatformStatus) SwaggerDoc() map[string]string {
@@ -1455,7 +1458,7 @@ func (IBMCloudPlatformStatus) SwaggerDoc() map[string]string {
 var map_IBMCloudServiceEndpoint = map[string]string{
 	"":     "IBMCloudServiceEndpoint stores the configuration of a custom url to override existing defaults of IBM Cloud Services.",
 	"name": "name is the name of the IBM Cloud service. Possible values are: CIS, COS, COSConfig, DNSServices, GlobalCatalog, GlobalSearch, GlobalTagging, HyperProtect, IAM, KeyProtect, ResourceController, ResourceManager, or VPC. For example, the IBM Cloud Private IAM service could be configured with the service `name` of `IAM` and `url` of `https://private.iam.cloud.ibm.com` Whereas the IBM Cloud Private VPC service for US South (Dallas) could be configured with the service `name` of `VPC` and `url` of `https://us.south.private.iaas.cloud.ibm.com`",
-	"url":  "url is fully qualified URI with scheme https, that overrides the default generated endpoint for a client. This must be provided and cannot be empty.",
+	"url":  "url is fully qualified URI with scheme https, that overrides the default generated endpoint for a client. This must be provided and cannot be empty. The path must follow the pattern /v[0,9]+ or /api/v[0,9]+",
 }
 
 func (IBMCloudServiceEndpoint) SwaggerDoc() map[string]string {
@@ -1971,6 +1974,26 @@ var map_LoadBalancer = map[string]string{
 
 func (LoadBalancer) SwaggerDoc() map[string]string {
 	return map_LoadBalancer
+}
+
+var map_AWSKMSConfig = map[string]string{
+	"":       "AWSKMSConfig defines the KMS config specific to AWS KMS provider",
+	"keyARN": "keyARN specifies the Amazon Resource Name (ARN) of the AWS KMS key used for encryption. The value must adhere to the format `arn:aws:kms:<region>:<account_id>:key/<key_id>`, where: - `<region>` is the AWS region consisting of lowercase letters and hyphens followed by a number. - `<account_id>` is a 12-digit numeric identifier for the AWS account. - `<key_id>` is a unique identifier for the KMS key, consisting of lowercase hexadecimal characters and hyphens.",
+	"region": "region specifies the AWS region where the KMS instance exists, and follows the format `<region-prefix>-<region-name>-<number>`, e.g.: `us-east-1`. Only lowercase letters and hyphens followed by numbers are allowed.",
+}
+
+func (AWSKMSConfig) SwaggerDoc() map[string]string {
+	return map_AWSKMSConfig
+}
+
+var map_KMSConfig = map[string]string{
+	"":     "KMSConfig defines the configuration for the KMS instance that will be used with KMSEncryptionProvider encryption",
+	"type": "type defines the kind of platform for the KMS provider. Available provider types are AWS only.",
+	"aws":  "aws defines the key config for using an AWS KMS instance for the encryption. The AWS KMS instance is managed by the user outside the purview of the control plane.",
+}
+
+func (KMSConfig) SwaggerDoc() map[string]string {
+	return map_KMSConfig
 }
 
 var map_ClusterNetworkEntry = map[string]string{
