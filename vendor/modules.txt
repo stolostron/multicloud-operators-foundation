@@ -411,9 +411,10 @@ github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry
 github.com/stolostron/cluster-lifecycle-api/helpers/localcluster
 github.com/stolostron/cluster-lifecycle-api/imageregistry/v1alpha1
 github.com/stolostron/cluster-lifecycle-api/view/v1beta1
-# github.com/stretchr/testify v1.9.0
+# github.com/stretchr/testify v1.10.0
 ## explicit; go 1.17
 github.com/stretchr/testify/assert
+github.com/stretchr/testify/assert/yaml
 # github.com/x448/float16 v0.8.4
 ## explicit; go 1.11
 github.com/x448/float16
