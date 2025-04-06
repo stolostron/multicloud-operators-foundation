@@ -23,4 +23,11 @@ const (
 	// KlusterletConfig adopted by this managed cluster. If it is missing on a ManagedCluster, no KlusterletConfig
 	// will be used for this managed cluster.
 	AnnotationKlusterletConfig string = "agent.open-cluster-management.io/klusterlet-config"
+
+	// SelfManagedClusterLabelKey is the label key on the ManagedCluster resource to tag it as the local cluster managed
+	// by the ACM hub. Only one ManagedCluster and only the ACM hub cluster can have this label.
+	SelfManagedClusterLabelKey string = "local-cluster"
+
+	// HubCABundleLabelKey is the label key on configmaps to store the customized ca bundle.
+	HubCABundleLabelKey string = "import.open-cluster-management.io/ca-bundle"
 )
