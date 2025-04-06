@@ -202,6 +202,7 @@ type GoFlagsConfig struct {
 	A             bool
 	ASMFlags      string
 	BuildMode     string
+	BuildVCS      bool
 	Compiler      string
 	GCCGoFlags    string
 	GCFlags       string
@@ -219,6 +220,7 @@ type GoFlagsConfig struct {
 	ToolExec      string
 	Work          bool
 	X             bool
+	O             string
 }
 
 func NewDefaultGoFlagsConfig() GoFlagsConfig {
@@ -227,6 +229,10 @@ func NewDefaultGoFlagsConfig() GoFlagsConfig {
 
 func (g GoFlagsConfig) BinaryMustBePreserved() bool {
 	return g.BlockProfile != "" || g.CPUProfile != "" || g.MemProfile != "" || g.MutexProfile != ""
+}
+
+func (g GoFlagsConfig) NeedsSymbols() bool {
+	return g.BinaryMustBePreserved()
 }
 
 // Configuration that were deprecated in 2.0
@@ -255,8 +261,12 @@ var FlagSections = GinkgoFlagSections{
 	{Key: "filter", Style: "{{cyan}}", Heading: "Filtering Tests"},
 	{Key: "failure", Style: "{{red}}", Heading: "Failure Handling"},
 	{Key: "output", Style: "{{magenta}}", Heading: "Controlling Output Formatting"},
-	{Key: "code-and-coverage-analysis", Style: "{{orange}}", Heading: "Code and Coverage Analysis"},
-	{Key: "performance-analysis", Style: "{{coral}}", Heading: "Performance Analysis"},
+	{Key: "code-and-coverage-analysis", Style: "{{orange}}", Heading: "Code and Coverage Analysis",
+		Description: "When generating a cover files, please pass a filename {{bold}}not{{/}} a path.  To specify a different directory use {{magenta}}--output-dir{{/}}.",
+	},
+	{Key: "performance-analysis", Style: "{{coral}}", Heading: "Performance Analysis",
+		Description: "When generating profile files, please pass filenames {{bold}}not{{/}} a path.  Ginkgo will generate a profile file with the given name in the package's directory.  To specify a different directory use {{magenta}}--output-dir{{/}}.",
+	},
 	{Key: "debug", Style: "{{blue}}", Heading: "Debugging Tests",
 		Description: "In addition to these flags, Ginkgo supports a few debugging environment variables.  To change the parallel server protocol set {{blue}}GINKGO_PARALLEL_PROTOCOL{{/}} to {{bold}}HTTP{{/}}.  To avoid pruning callstacks set {{blue}}GINKGO_PRUNE_STACK{{/}} to {{bold}}FALSE{{/}}."},
 	{Key: "watch", Style: "{{light-yellow}}", Heading: "Controlling Ginkgo Watch"},
@@ -326,7 +336,7 @@ var ParallelConfigFlags = GinkgoFlags{
 // ReporterConfigFlags provides flags for the Ginkgo test process, and CLI
 var ReporterConfigFlags = GinkgoFlags{
 	{KeyPath: "R.NoColor", Name: "no-color", SectionKey: "output", DeprecatedName: "noColor", DeprecatedDocLink: "changed-command-line-flags",
-		Usage: "If set, suppress color output in default reporter."},
+		Usage: "If set, suppress color output in default reporter.  You can also set the environment variable GINKGO_NO_COLOR=TRUE"},
 	{KeyPath: "R.Verbose", Name: "v", SectionKey: "output",
 		Usage: "If set, emits more output including GinkgoWriter contents."},
 	{KeyPath: "R.VeryVerbose", Name: "vv", SectionKey: "output",
@@ -363,7 +373,7 @@ var ReporterConfigFlags = GinkgoFlags{
 func BuildTestSuiteFlagSet(suiteConfig *SuiteConfig, reporterConfig *ReporterConfig) (GinkgoFlagSet, error) {
 	flags := SuiteConfigFlags.CopyAppend(ParallelConfigFlags...).CopyAppend(ReporterConfigFlags...)
 	flags = flags.WithPrefix("ginkgo")
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"S": suiteConfig,
 		"R": reporterConfig,
 		"D": &deprecatedConfig{},
@@ -511,7 +521,7 @@ var GinkgoCLIWatchFlags = GinkgoFlags{
 // GoBuildFlags provides flags for the Ginkgo CLI build, run, and watch commands that capture go's build-time flags.  These are passed to go test -c by the ginkgo CLI
 var GoBuildFlags = GinkgoFlags{
 	{KeyPath: "Go.Race", Name: "race", SectionKey: "code-and-coverage-analysis",
-		Usage: "enable data race detection. Supported only on linux/amd64, freebsd/amd64, darwin/amd64, windows/amd64, linux/ppc64le and linux/arm64 (only for 48-bit VMA)."},
+		Usage: "enable data race detection. Supported on linux/amd64, linux/ppc64le, linux/arm64, linux/s390x, freebsd/amd64, netbsd/amd64, darwin/amd64, darwin/arm64, and windows/amd64."},
 	{KeyPath: "Go.Vet", Name: "vet", UsageArgument: "list", SectionKey: "code-and-coverage-analysis",
 		Usage: `Configure the invocation of "go vet" during "go test" to use the comma-separated list of vet checks.  If list is empty, "go test" runs "go vet" with a curated list of checks believed to be always worth addressing.  If list is "off", "go test" does not run "go vet" at all.  Available checks can be found by running 'go doc cmd/vet'`},
 	{KeyPath: "Go.Cover", Name: "cover", SectionKey: "code-and-coverage-analysis",
@@ -527,6 +537,8 @@ var GoBuildFlags = GinkgoFlags{
 		Usage: "arguments to pass on each go tool asm invocation."},
 	{KeyPath: "Go.BuildMode", Name: "buildmode", UsageArgument: "mode", SectionKey: "go-build",
 		Usage: "build mode to use. See 'go help buildmode' for more."},
+	{KeyPath: "Go.BuildVCS", Name: "buildvcs", SectionKey: "go-build",
+		Usage: "adds version control information."},
 	{KeyPath: "Go.Compiler", Name: "compiler", UsageArgument: "name", SectionKey: "go-build",
 		Usage: "name of compiler to use, as in runtime.Compiler (gccgo or gc)."},
 	{KeyPath: "Go.GCCGoFlags", Name: "gccgoflags", UsageArgument: "'[pattern=]arg list'", SectionKey: "go-build",
@@ -561,12 +573,14 @@ var GoBuildFlags = GinkgoFlags{
 		Usage: "print the name of the temporary work directory and do not delete it when exiting."},
 	{KeyPath: "Go.X", Name: "x", SectionKey: "go-build",
 		Usage: "print the commands."},
+	{KeyPath: "Go.O", Name: "o", SectionKey: "go-build",
+		Usage: "output binary path (including name)."},
 }
 
 // GoRunFlags provides flags for the Ginkgo CLI  run, and watch commands that capture go's run-time flags.  These are passed to the compiled test binary by the ginkgo CLI
 var GoRunFlags = GinkgoFlags{
 	{KeyPath: "Go.CoverProfile", Name: "coverprofile", UsageArgument: "file", SectionKey: "code-and-coverage-analysis",
-		Usage: `Write a coverage profile to the file after all tests have passed. Sets -cover.`},
+		Usage: `Write a coverage profile to the file after all tests have passed. Sets -cover.  Must be passed a filename, not a path.  Use output-dir to control the location of the output.`},
 	{KeyPath: "Go.BlockProfile", Name: "blockprofile", UsageArgument: "file", SectionKey: "performance-analysis",
 		Usage: `Write a goroutine blocking profile to the specified file when all tests are complete. Preserves test binary.`},
 	{KeyPath: "Go.BlockProfileRate", Name: "blockprofilerate", UsageArgument: "rate", SectionKey: "performance-analysis",
@@ -594,6 +608,22 @@ func VetAndInitializeCLIAndGoConfig(cliConfig CLIConfig, goFlagsConfig GoFlagsCo
 		errors = append(errors, GinkgoErrors.BothRepeatAndUntilItFails())
 	}
 
+	if strings.ContainsRune(goFlagsConfig.CoverProfile, os.PathSeparator) {
+		errors = append(errors, GinkgoErrors.ExpectFilenameNotPath("--coverprofile", goFlagsConfig.CoverProfile))
+	}
+	if strings.ContainsRune(goFlagsConfig.CPUProfile, os.PathSeparator) {
+		errors = append(errors, GinkgoErrors.ExpectFilenameNotPath("--cpuprofile", goFlagsConfig.CPUProfile))
+	}
+	if strings.ContainsRune(goFlagsConfig.MemProfile, os.PathSeparator) {
+		errors = append(errors, GinkgoErrors.ExpectFilenameNotPath("--memprofile", goFlagsConfig.MemProfile))
+	}
+	if strings.ContainsRune(goFlagsConfig.BlockProfile, os.PathSeparator) {
+		errors = append(errors, GinkgoErrors.ExpectFilenameNotPath("--blockprofile", goFlagsConfig.BlockProfile))
+	}
+	if strings.ContainsRune(goFlagsConfig.MutexProfile, os.PathSeparator) {
+		errors = append(errors, GinkgoErrors.ExpectFilenameNotPath("--mutexprofile", goFlagsConfig.MutexProfile))
+	}
+
 	//initialize the output directory
 	if cliConfig.OutputDir != "" {
 		err := os.MkdirAll(cliConfig.OutputDir, 0777)
@@ -614,7 +644,7 @@ func VetAndInitializeCLIAndGoConfig(cliConfig CLIConfig, goFlagsConfig GoFlagsCo
 }
 
 // GenerateGoTestCompileArgs is used by the Ginkgo CLI to generate command line arguments to pass to the go test -c command when compiling the test
-func GenerateGoTestCompileArgs(goFlagsConfig GoFlagsConfig, destination string, packageToBuild string, pathToInvocationPath string) ([]string, error) {
+func GenerateGoTestCompileArgs(goFlagsConfig GoFlagsConfig, packageToBuild string, pathToInvocationPath string, preserveSymbols bool) ([]string, error) {
 	// if the user has set the CoverProfile run-time flag make sure to set the build-time cover flag to make sure
 	// the built test binary can generate a coverprofile
 	if goFlagsConfig.CoverProfile != "" {
@@ -637,10 +667,14 @@ func GenerateGoTestCompileArgs(goFlagsConfig GoFlagsConfig, destination string, 
 		goFlagsConfig.CoverPkg = strings.Join(adjustedCoverPkgs, ",")
 	}
 
-	args := []string{"test", "-c", "-o", destination, packageToBuild}
+	if !goFlagsConfig.NeedsSymbols() && goFlagsConfig.LDFlags == "" && !preserveSymbols {
+		goFlagsConfig.LDFlags = "-w -s"
+	}
+
+	args := []string{"test", "-c", packageToBuild}
 	goArgs, err := GenerateFlagArgs(
 		GoBuildFlags,
-		map[string]interface{}{
+		map[string]any{
 			"Go": &goFlagsConfig,
 		},
 	)
@@ -659,7 +693,7 @@ func GenerateGinkgoTestRunArgs(suiteConfig SuiteConfig, reporterConfig ReporterC
 	flags = flags.CopyAppend(ParallelConfigFlags.WithPrefix("ginkgo")...)
 	flags = flags.CopyAppend(ReporterConfigFlags.WithPrefix("ginkgo")...)
 	flags = flags.CopyAppend(GoRunFlags.WithPrefix("test")...)
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"S":  &suiteConfig,
 		"R":  &reporterConfig,
 		"Go": &goFlagsConfig,
@@ -671,7 +705,7 @@ func GenerateGinkgoTestRunArgs(suiteConfig SuiteConfig, reporterConfig ReporterC
 // GenerateGoTestRunArgs is used by the Ginkgo CLI to generate command line arguments to pass to the compiled non-Ginkgo test binary
 func GenerateGoTestRunArgs(goFlagsConfig GoFlagsConfig) ([]string, error) {
 	flags := GoRunFlags.WithPrefix("test")
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"Go": &goFlagsConfig,
 	}
 
@@ -693,7 +727,7 @@ func BuildRunCommandFlagSet(suiteConfig *SuiteConfig, reporterConfig *ReporterCo
 	flags = flags.CopyAppend(GoBuildFlags...)
 	flags = flags.CopyAppend(GoRunFlags...)
 
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"S":  suiteConfig,
 		"R":  reporterConfig,
 		"C":  cliConfig,
@@ -714,7 +748,7 @@ func BuildWatchCommandFlagSet(suiteConfig *SuiteConfig, reporterConfig *Reporter
 	flags = flags.CopyAppend(GoBuildFlags...)
 	flags = flags.CopyAppend(GoRunFlags...)
 
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"S":  suiteConfig,
 		"R":  reporterConfig,
 		"C":  cliConfig,
@@ -730,7 +764,7 @@ func BuildBuildCommandFlagSet(cliConfig *CLIConfig, goFlagsConfig *GoFlagsConfig
 	flags := GinkgoCLISharedFlags
 	flags = flags.CopyAppend(GoBuildFlags...)
 
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"C":  cliConfig,
 		"Go": goFlagsConfig,
 		"D":  &deprecatedConfig{},
@@ -754,7 +788,7 @@ func BuildBuildCommandFlagSet(cliConfig *CLIConfig, goFlagsConfig *GoFlagsConfig
 func BuildLabelsCommandFlagSet(cliConfig *CLIConfig) (GinkgoFlagSet, error) {
 	flags := GinkgoCLISharedFlags.SubsetWithNames("r", "skip-package")
 
-	bindings := map[string]interface{}{
+	bindings := map[string]any{
 		"C": cliConfig,
 	}
 
