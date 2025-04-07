@@ -106,7 +106,7 @@ type clusterClaimReconciler struct {
 }
 
 func (r *clusterClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.log.V(4).Info("Sync cluster claims")
+	r.log.V(5).Info("Sync cluster claims")
 	// Sync claims that created by control-plane
 	err := r.syncControlPlaneCreatedClaims(ctx)
 	if err != nil {
