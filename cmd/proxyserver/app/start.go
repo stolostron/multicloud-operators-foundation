@@ -3,24 +3,35 @@
 package app
 
 import (
+	"context"
 	"fmt"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"strings"
 	"time"
+
+	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
+	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/stolostron/multicloud-operators-foundation/cmd/proxyserver/app/options"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/controller"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter"
+	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apilabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
+	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/klog/v2"
 	addonv1alpha1 "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 )
+
+const clusterPermissionCRDName = "clusterpermissions.rbac.open-cluster-management.io"
 
 func Run(s *options.Options, stopCh <-chan struct{}) error {
 	if err := s.SetDefaults(); err != nil {
@@ -90,8 +101,25 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 
 	logProxyGetter := getter.NewLogProxyGetter(addonClient, kubeClient, proxyServiceHost, s.ClientOptions.ProxyServiceCAFile)
 
-	proxyServer, err := NewProxyServer(clusterClient, informerFactory, clusterInformers, apiServerConfig,
-		proxyGetter, logProxyGetter)
+	apiextensionsClient, err := apiextensionsclient.NewForConfig(clusterCfg)
+	if err != nil {
+		return err
+	}
+	clusterPermissionClient, err := dynamic.NewForConfig(clusterCfg)
+	if err != nil {
+		return err
+	}
+	clusterPermissionFactory := dynamicinformer.NewDynamicSharedInformerFactory(clusterPermissionClient, 10*time.Minute)
+	clusterPermissionInformers := clusterPermissionFactory.ForResource(schema.GroupVersionResource{
+		Group:    "rbac.open-cluster-management.io",
+		Version:  "v1alpha1",
+		Resource: "clusterpermissions",
+	})
+	clusterPermissionLister := clusterPermissionInformers.Lister()
+
+	proxyServer, err := NewProxyServer(clusterClient, informerFactory, clusterInformers,
+		clusterPermissionInformers.Informer(), clusterPermissionLister,
+		apiServerConfig, proxyGetter, logProxyGetter)
 	if err != nil {
 		return err
 	}
@@ -100,6 +128,26 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 	clusterInformers.Start(stopCh)
 	informerFactory.Start(stopCh)
 	configmapInformerFactory.Start(stopCh)
+
+	// Only start clusterpermission informer when clusterpermission crd installed
+	go func() {
+		if err := wait.PollUntilContextCancel(context.Background(), 60*time.Second, true, func(ctx context.Context) (bool, error) {
+			_, err := apiextensionsClient.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, clusterPermissionCRDName, metav1.GetOptions{})
+			if err != nil {
+				if !errors.IsNotFound(err) {
+					klog.Errorf("failed to get crd %s, %v", clusterPermissionCRDName, err)
+				}
+
+				return false, nil
+			}
+
+			klog.Infof("Starting ClusterPermission Informer")
+			clusterPermissionFactory.Start(stopCh)
+			return true, nil
+		}); err != nil {
+			klog.Errorf("failed to check clusterpermission crd %v", err)
+		}
+	}()
 
 	return proxyServer.Run(stopCh)
 }
