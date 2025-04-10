@@ -4,7 +4,11 @@ go 1.20
 
 replace github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20231019152019-e3f9aed5bf2a
 
+// CVE-2025-22868
 replace golang.org/x/oauth2 => github.com/openshift/golang-oauth2 v0.26.1-0.20250310184649-06a918c6239d
+
+// CVE-2025-22869
+replace golang/x/crypto => github.com/openshift/golang-crypto v0.33.1-0.20250310193910-9003f682e581
 
 // from installer
 replace (
