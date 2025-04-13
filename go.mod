@@ -2,7 +2,7 @@ module github.com/stolostron/multicloud-operators-foundation
 
 go 1.23.0
 
-replace github.com/openshift/hive/apis => github.com/openshift/hive/apis v0.0.0-20240123053920-35373d831d5b
+replace github.com/openshift/hive/apis => github.com/openshift/hive/apis 87bff5947f6f
 
 // from installer
 replace (
