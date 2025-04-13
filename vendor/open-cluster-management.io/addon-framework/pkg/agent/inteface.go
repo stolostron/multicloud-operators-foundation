@@ -91,6 +91,11 @@ type AgentAddonOptions struct {
 	//   json path which is already in the existing rules, compare by the path name.
 	// +optional
 	ManifestConfigs []workapiv1.ManifestConfigOption
+
+	// ConfigCheckEnabled defines whether to check the configured condition before rendering manifests.
+	// If not set, will be defaulted to false.
+	// +optional
+	ConfigCheckEnabled bool
 }
 
 type CSRSignerFunc func(csr *certificatesv1.CertificateSigningRequest) []byte
@@ -203,6 +208,11 @@ const (
 	// with the availability of the corresponding agent deployment resources on the managed cluster.
 	// It's a special case of HealthProberTypeWork.
 	HealthProberTypeDeploymentAvailability HealthProberType = "DeploymentAvailability"
+	// HealthProberTypeWorkloadAvailability indicates the healthiness of the addon is connected
+	// with the availability of all the corresponding agent workload resources(only Deployment and
+	// DaemonSet are supported for now) on the managed cluster.
+	// It's a special case of HealthProberTypeWork.
+	HealthProberTypeWorkloadAvailability HealthProberType = "WorkloadAvailability"
 )
 
 func KubeClientSignerConfigurations(addonName, agentName string) func(cluster *clusterv1.ManagedCluster) []addonapiv1alpha1.RegistrationConfig {
