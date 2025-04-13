@@ -11,7 +11,7 @@ require (
 	github.com/openshift/api v0.0.0-20250224185818-544b3ca4e8f5
 	github.com/openshift/build-machinery-go v0.0.0-20240419090851-af9c868bcf52
 	github.com/openshift/client-go v0.0.0-20240528061634-b054aa794d87
-	github.com/openshift/hive/apis v0.0.0-20250320150157-d25e0dba0f75
+	github.com/openshift/hive/apis v0.0.0-20250412004227-87bff5947f6f
 	github.com/openshift/library-go v0.0.0-20240509114237-dc3020f4b513
 	github.com/prometheus/client_golang v1.19.1
 	github.com/prometheus/common v0.55.0
@@ -19,7 +19,7 @@ require (
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20240813023109-42b5c115d0a3
 	github.com/stretchr/testify v1.9.0
-	golang.org/x/net v0.35.0
+	golang.org/x/net v0.38.0
 	k8s.io/api v0.32.2
 	k8s.io/apiextensions-apiserver v0.32.1
 	k8s.io/apimachinery v0.32.2
