@@ -40,7 +40,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.8
 	github.com/openshift/api v0.0.0-20230720094506-afcbe27aec7c
-	github.com/openshift/build-machinery-go v0.0.0-20230306181456-d321ffa04533
+	github.com/openshift/build-machinery-go v0.0.0-20250211133638-a00a772ae1a2
 	github.com/openshift/client-go v0.0.0-20230503144108-75015d2347cb
 	github.com/openshift/hive v1.1.17-0.20240123053920-35373d831d5b
 	github.com/openshift/hive/apis v0.0.0
