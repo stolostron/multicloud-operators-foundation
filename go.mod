@@ -8,7 +8,7 @@ require (
 	github.com/mattbaird/jsonpatch v0.0.0-20240118010651-0ba75a80ca38
 	github.com/onsi/ginkgo/v2 v2.21.0
 	github.com/onsi/gomega v1.35.1
-	github.com/openshift/api v0.0.0-20250224185818-544b3ca4e8f5
+	github.com/openshift/api f636181788a9
 	github.com/openshift/build-machinery-go v0.0.0-20240419090851-af9c868bcf52
 	github.com/openshift/client-go v0.0.0-20240528061634-b054aa794d87
 	github.com/openshift/hive/apis v0.0.0-20250320150157-d25e0dba0f75
