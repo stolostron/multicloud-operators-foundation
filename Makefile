@@ -160,3 +160,10 @@ else
 endif
 
 include ./test/integration-test.mk
+
+## Builds controller image using buildx for amd64(for test)
+CONTAINER_ENGINE ?= podman
+
+.PHONY: images-amd64
+images-amd64:
+	$(CONTAINER_ENGINE) buildx build --platform linux/amd64 --load -f Dockerfile . -t $(FOUNDATION_IMAGE_NAME)

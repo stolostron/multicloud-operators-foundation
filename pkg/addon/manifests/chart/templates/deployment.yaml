@@ -24,10 +24,19 @@ spec:
       {{- if ne .Values.installMode "Hosted" }}
       securityContext:
         seccompProfile:
-          type: RuntimeDefault 
+          type: RuntimeDefault
       {{- end }}
       containers:
       - name: acm-agent
+        {{- $reverseResourceRequirements := reverse .Values.global.resourceRequirements }}
+        {{- $root := . }}
+        {{- range $item := $reverseResourceRequirements }}
+          {{- if regexMatch $item.containerIDRegex (printf "deployments:%s:acm-agent" (include "work-manager.fullname" $root)) }}
+        resources:
+            {{- toYaml $item.resources | nindent 10 }}
+            {{- break -}}
+          {{- end -}}
+        {{- end }}
         image: "{{ .Values.global.imageOverrides.multicloud_manager }}"
         imagePullPolicy: {{ .Values.global.imagePullPolicy }}
         securityContext:
@@ -38,8 +47,6 @@ spec:
           privileged: false
           readOnlyRootFilesystem: true
           runAsNonRoot: true
-        resources:
-          {{- toYaml .Values.resources | nindent 10 }}
         args:
           - "/agent"
           - "--port=4443"
