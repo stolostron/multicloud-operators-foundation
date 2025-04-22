@@ -165,6 +165,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 					afutils.NewAddOnDeploymentConfigGetter(addonClient),
 					addonfactory.ToAddOnNodePlacementValues,
 					addonfactory.ToAddOnCustomizedVariableValues,
+					addonfactory.ToAddOnResourceRequirementsValues,
 				),
 			).
 			WithAgentInstallNamespace(addon.AddonInstallNamespaceFunc(

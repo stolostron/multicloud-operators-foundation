@@ -24,12 +24,6 @@ tolerations:
   operator: Exists
   effect: NoSchedule
 
-resources:
-  requests:
-    memory: 128Mi
-  limits:
-    memory: 512Mi
-
 logLevel: null
 
 global:
@@ -38,3 +32,10 @@ global:
   imageOverrides:
     multicloud_manager: quay.io/stolostron/multicloud-manager:latest
   nodeSelector: {}
+  resourceRequirements:
+  - containerIDRegex: ^.+:.+:.+$
+    resources:
+      requests:
+        memory: 128Mi
+      limits:
+        memory: 512Mi

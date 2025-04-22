@@ -91,6 +91,11 @@ type AgentAddonOptions struct {
 	//   json path which is already in the existing rules, compare by the path name.
 	// +optional
 	ManifestConfigs []workapiv1.ManifestConfigOption
+
+	// ConfigCheckEnabled defines whether to check the configured condition before rendering manifests.
+	// If not set, will be defaulted to false.
+	// +optional
+	ConfigCheckEnabled bool
 }
 
 type CSRSignerFunc func(csr *certificatesv1.CertificateSigningRequest) []byte
@@ -164,13 +169,19 @@ type HealthProber struct {
 }
 
 type AddonHealthCheckFunc func(workapiv1.ResourceIdentifier, workapiv1.StatusFeedbackResult) error
+type AddonHealthCheckerFunc func([]FieldResult, *clusterv1.ManagedCluster, *addonapiv1alpha1.ManagedClusterAddOn) error
 
 type WorkHealthProber struct {
 	// ProbeFields tells addon framework what field to probe
 	ProbeFields []ProbeField
 
-	// HealthCheck check status of the addon based on probe result.
+	// HealthCheck is deprecated and will be removed in the future. please use HealthChecker instead.
+	// HealthCheck will be ignored if HealthChecker is set.
+	// HealthCheck check status of the addon based on each probeField result.
 	HealthCheck AddonHealthCheckFunc
+
+	// HealthChecker check status of the addon based of all results of probeFields
+	HealthChecker AddonHealthCheckerFunc
 }
 
 // ProbeField defines the field of a resource to be probed
@@ -180,6 +191,15 @@ type ProbeField struct {
 
 	// ProbeRules sets the rules to probe the field
 	ProbeRules []workapiv1.FeedbackRule
+}
+
+// FieldResult defines the result of the filed
+type FieldResult struct {
+	// ResourceIdentifier sets what resource of the FeedbackResult
+	ResourceIdentifier workapiv1.ResourceIdentifier
+
+	// feedbackResult is the StatusFeedbackResult of the resource
+	FeedbackResult workapiv1.StatusFeedbackResult
 }
 
 type HealthProberType string
@@ -203,6 +223,11 @@ const (
 	// with the availability of the corresponding agent deployment resources on the managed cluster.
 	// It's a special case of HealthProberTypeWork.
 	HealthProberTypeDeploymentAvailability HealthProberType = "DeploymentAvailability"
+	// HealthProberTypeWorkloadAvailability indicates the healthiness of the addon is connected
+	// with the availability of all the corresponding agent workload resources(only Deployment and
+	// DaemonSet are supported for now) on the managed cluster.
+	// It's a special case of HealthProberTypeWork.
+	HealthProberTypeWorkloadAvailability HealthProberType = "WorkloadAvailability"
 )
 
 func KubeClientSignerConfigurations(addonName, agentName string) func(cluster *clusterv1.ManagedCluster) []addonapiv1alpha1.RegistrationConfig {

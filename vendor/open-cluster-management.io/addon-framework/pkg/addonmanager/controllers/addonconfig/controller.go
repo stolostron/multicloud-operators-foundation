@@ -13,13 +13,13 @@ import (
 	"k8s.io/client-go/dynamic/dynamiclister"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
-	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
 	"open-cluster-management.io/addon-framework/pkg/index"
 	"open-cluster-management.io/addon-framework/pkg/utils"
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	addonv1alpha1client "open-cluster-management.io/api/client/addon/clientset/versioned"
 	addoninformerv1alpha1 "open-cluster-management.io/api/client/addon/informers/externalversions/addon/v1alpha1"
 	addonlisterv1alpha1 "open-cluster-management.io/api/client/addon/listers/addon/v1alpha1"
+	"open-cluster-management.io/sdk-go/pkg/basecontroller/factory"
 	"open-cluster-management.io/sdk-go/pkg/patcher"
 )
 
@@ -71,6 +71,8 @@ func NewAddonConfigController(
 			return []string{key}
 		}, addonInformers.Informer()).
 		WithBareInformers(configInformers...).
+		// clusterManagementAddonLister is used, so wait for cache sync
+		WithBareInformers(clusterManagementAddonInformers.Informer()).
 		WithSync(c.sync).ToController(controllerName)
 }
 
@@ -170,12 +172,9 @@ func (c *addonConfigController) sync(ctx context.Context, syncCtx factory.SyncCo
 }
 
 func (c *addonConfigController) updateConfigSpecHashAndGenerations(addon *addonapiv1alpha1.ManagedClusterAddOn) error {
-	supportedConfigSet := map[addonapiv1alpha1.ConfigGroupResource]bool{}
-	for _, config := range addon.Status.SupportedConfigs {
-		supportedConfigSet[config] = true
-	}
 	for index, configReference := range addon.Status.ConfigReferences {
 
+		// do not update for unsupported configs
 		if !utils.ContainGR(
 			c.configGVRs,
 			configReference.ConfigGroupResource.Group,
@@ -209,10 +208,6 @@ func (c *addonConfigController) updateConfigSpecHashAndGenerations(addon *addona
 
 		// update desired spec hash only for the configs in spec
 		for _, addonconfig := range addon.Spec.Configs {
-			// do not update spec hash for unsupported configs
-			if _, ok := supportedConfigSet[addonconfig.ConfigGroupResource]; !ok {
-				continue
-			}
 			if configReference.DesiredConfig == nil {
 				continue
 			}

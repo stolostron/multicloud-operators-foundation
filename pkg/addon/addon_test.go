@@ -3,8 +3,6 @@ package addon
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -15,6 +13,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -29,7 +28,6 @@ import (
 	addonapiv1alpha1 "open-cluster-management.io/api/addon/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -125,6 +123,24 @@ func newAddonConfigWithFlags(enableSyncLabelsToClusterClaims,
 	}
 }
 
+func newAddonConfigWithResourceRequirement(containerID string, resources v1.ResourceRequirements) *addonapiv1alpha1.AddOnDeploymentConfig {
+	return &addonapiv1alpha1.AddOnDeploymentConfig{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "resource-requirements",
+			Namespace: "default",
+		},
+		Spec: addonapiv1alpha1.AddOnDeploymentConfigSpec{
+			ResourceRequirements: []addonapiv1alpha1.ContainerResourceRequirements{
+				{
+					ContainerID: containerID,
+					Resources:   resources,
+				},
+			},
+		},
+	}
+}
+
 func newAgentAddon(t *testing.T, cluster *clusterv1.ManagedCluster,
 	addonDeploymentConfig *addonapiv1alpha1.AddOnDeploymentConfig) agent.AgentAddon {
 	registrationOption := NewRegistrationOption(nil, nil, WorkManagerAddonName)
@@ -142,6 +158,9 @@ func newAgentAddon(t *testing.T, cluster *clusterv1.ManagedCluster,
 				getter,
 				addonfactory.ToAddOnNodePlacementValues,
 				addonfactory.ToAddOnCustomizedVariableValues,
+				addonfactory.ToAddOnNodePlacementValues,
+				addonfactory.ToAddOnProxyConfigValues,
+				addonfactory.ToAddOnResourceRequirementsValues,
 			),
 		).
 		WithAgentRegistrationOption(registrationOption).
@@ -153,26 +172,6 @@ func newAgentAddon(t *testing.T, cluster *clusterv1.ManagedCluster,
 
 	}
 	return agentAddon
-}
-
-func output(t *testing.T, name string, objects ...runtime.Object) {
-	tmpDir, err := os.MkdirTemp("./", name)
-	if err != nil {
-		t.Fatalf("failed to create temp %v", err)
-	}
-
-	for i, o := range objects {
-		data, err := yaml.Marshal(o)
-		if err != nil {
-			t.Fatalf("failed yaml marshal %v", err)
-		}
-
-		err = os.WriteFile(fmt.Sprintf("%v/%v-%v.yaml", tmpDir, i, o.GetObjectKind().GroupVersionKind().Kind), data, 0644)
-		if err != nil {
-			t.Fatalf("failed to Marshal object.%v", err)
-		}
-
-	}
 }
 
 func TestManifest(t *testing.T) {
@@ -314,6 +313,30 @@ func TestManifest(t *testing.T) {
 			),
 			expectedCount: 7,
 		},
+		{
+			name:    "addondeploymentconfig with resource requirements",
+			cluster: newCluster("cluster1", "OpenShift", map[string]string{}, map[string]string{}),
+			addon: newAddonWithCustomizedAnnotation(
+				"work-manager", "cluster1", "test", map[string]string{}),
+			addonDeploymentConfig: newAddonConfigWithResourceRequirement("deployments:klusterlet-addon-workmgr:proxy-agent",
+				v1.ResourceRequirements{
+					Limits: v1.ResourceList{
+						v1.ResourceCPU:    resource.MustParse("100m"),
+						v1.ResourceMemory: resource.MustParse("128Mi"),
+					},
+					Requests: v1.ResourceList{
+						v1.ResourceCPU:    resource.MustParse("10m"),
+						v1.ResourceMemory: resource.MustParse("64Mi"),
+					},
+				}),
+			expectedNamespace: "test",
+			expectedImage:     "quay.io/stolostron/multicloud-manager:2.5.0",
+			expectedClusterRoleBindingNames: sets.New[string](
+				"open-cluster-management:klusterlet-addon-workmgr:test",
+				"open-cluster-management:klusterlet-addon-workmgr-log:test",
+			),
+			expectedCount: 9,
+		},
 	}
 
 	for _, test := range tests {
@@ -358,6 +381,42 @@ func TestManifest(t *testing.T) {
 						}
 						if enabelSyncLabelsToClusterclaims {
 							t.Errorf("%s expected --enable-sync-labels-to-clusterclaims=false, but got true.", test.name)
+						}
+					}
+
+					// Check if resource requirements from addonDeploymentConfig are applied correctly
+					if test.addonDeploymentConfig != nil {
+						if test.addonDeploymentConfig.Spec.ResourceRequirements != nil {
+							for _, container := range object.Spec.Template.Spec.Containers {
+								for _, resourceReq := range test.addonDeploymentConfig.Spec.ResourceRequirements {
+									if resourceReq.ContainerID == container.Name {
+										// Compare CPU limits
+										if resourceReq.Resources.Limits != nil && resourceReq.Resources.Limits.Cpu() != nil {
+											if container.Resources.Limits.Cpu().Cmp(*resourceReq.Resources.Limits.Cpu()) != 0 {
+												t.Errorf("expected cpu limit is %s, but got %s", resourceReq.Resources.Limits.Cpu().String(), container.Resources.Limits.Cpu().String())
+											}
+										}
+										// Compare Memory limits
+										if resourceReq.Resources.Limits != nil && resourceReq.Resources.Limits.Memory() != nil {
+											if container.Resources.Limits.Memory().Cmp(*resourceReq.Resources.Limits.Memory()) != 0 {
+												t.Errorf("expected memory limit is %s, but got %s", resourceReq.Resources.Limits.Memory().String(), container.Resources.Limits.Memory().String())
+											}
+										}
+										// Compare CPU requests
+										if resourceReq.Resources.Requests != nil && resourceReq.Resources.Requests.Cpu() != nil {
+											if container.Resources.Requests.Cpu().Cmp(*resourceReq.Resources.Requests.Cpu()) != 0 {
+												t.Errorf("expected cpu request is %s, but got %s", resourceReq.Resources.Requests.Cpu().String(), container.Resources.Requests.Cpu().String())
+											}
+										}
+										// Compare Memory requests
+										if resourceReq.Resources.Requests != nil && resourceReq.Resources.Requests.Memory() != nil {
+											if container.Resources.Requests.Memory().Cmp(*resourceReq.Resources.Requests.Memory()) != 0 {
+												t.Errorf("expected memory request is %s, but got %s", resourceReq.Resources.Requests.Memory().String(), container.Resources.Requests.Memory().String())
+											}
+										}
+									}
+								}
+							}
 						}
 					}
 				case *v1.Service:
