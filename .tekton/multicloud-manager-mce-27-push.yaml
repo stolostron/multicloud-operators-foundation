@@ -451,7 +451,8 @@ spec:
       optional: true
     - name: netrc
       optional: true
-  taskRunTemplate: {}
+  taskRunTemplate:
+    serviceAccountName: build-pipeline-multicloud-manager-mce-27
   workspaces:
   - name: workspace
     volumeClaimTemplate:
