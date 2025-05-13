@@ -289,7 +289,7 @@ The `kubevirtprojects.clusterview.open-cluster-management.io` API is only used t
     cluster2   kubevirt-workspace-2
     ```
 
-**Note**: If using ClusterRoleBinding in ClusterPermission to bind a kubevirt ClusterRole, this API will return `any` in project field, for example:
+**Note**: If using ClusterRoleBinding in ClusterPermission to bind a kubevirt ClusterRole, this API will return `*` in project field, for example:
 
 ```yaml
 apiVersion: rbac.open-cluster-management.io/v1alpha1
@@ -329,7 +329,7 @@ spec:
 kubectl get kubevirtprojects.clusterview.open-cluster-management.io
 
 CLUSTER    PROJECT
-cluster1   any
-cluster2   any
+cluster1   *
+cluster2   *
 ```
 

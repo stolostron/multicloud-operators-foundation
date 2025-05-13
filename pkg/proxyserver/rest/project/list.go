@@ -44,7 +44,7 @@ func listProjects(namespace, name string, obj runtime.Object, userInfo user.Info
 			}
 
 			if isKubeVirtRole(roleName) {
-				projects = append(projects, projectView{name: "any", cluster: namespace})
+				projects = append(projects, projectView{name: "*", cluster: namespace})
 				return projects
 			}
 		}
