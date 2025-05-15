@@ -184,12 +184,52 @@ The `kubevirtprojects.clusterview.open-cluster-management.io` API is only used t
 3. Bob list his KubeVirt projects
     ```sh
     kubectl get kubevirtprojects.clusterview.open-cluster-management.io
+    ```
 
+    ```
     CLUSTER    PROJECT
     cluster1   kubevirt-workspace-1
     cluster1   kubevirt-workspace-2
     cluster2   kubevirt-workspace-1
     cluster2   kubevirt-workspace-2
+    ```
+
+    ```sh
+    kubectl get kubevirtprojects.clusterview.open-cluster-management.io -oyaml
+    ```
+
+    ```yaml
+    apiVersion: v1
+    kind: List
+    items:
+    - apiVersion: clusterview.open-cluster-management.io/v1
+      kind: Project
+      metadata:
+        labels:
+          cluster: cluster1
+          project: kubevirt-workspace-1
+        name: 4120e9fb-7eef-50ca-a61c-c3e7ee9dee78
+    - apiVersion: clusterview.open-cluster-management.io/v1
+      kind: Project
+      metadata:
+        labels:
+          cluster: cluster1
+          project: kubevirt-workspace-2
+        name: ed37f473-8bca-5a52-87c3-b0cdb1e1c885
+    - apiVersion: clusterview.open-cluster-management.io/v1
+      kind: Project
+      metadata:
+        labels:
+          cluster: cluster2
+          project: kubevirt-workspace-1
+        name: 92c27029-9822-5449-a108-dcd783953fae
+    - apiVersion: clusterview.open-cluster-management.io/v1
+      kind: Project
+      metadata:
+        labels:
+          cluster: cluster2
+          project: kubevirt-workspace-2
+        name: db2b7ae7-f5e7-5fd3-8f7f-a29cce5236ab
     ```
 
 ##### List a group user's KubeVirt projects based on group's clusterpermission
@@ -281,7 +321,9 @@ The `kubevirtprojects.clusterview.open-cluster-management.io` API is only used t
 3. The group user list the KubeVirt projects
     ```sh
     kubectl get kubevirtprojects.clusterview.open-cluster-management.io
+    ```
 
+    ```
     CLUSTER    PROJECT
     cluster1   kubevirt-workspace-1
     cluster1   kubevirt-workspace-2
@@ -289,7 +331,45 @@ The `kubevirtprojects.clusterview.open-cluster-management.io` API is only used t
     cluster2   kubevirt-workspace-2
     ```
 
-**Note**: If using ClusterRoleBinding in ClusterPermission to bind a kubevirt ClusterRole, this API will return `any` in project field, for example:
+    ```sh
+    kubectl get kubevirtprojects.clusterview.open-cluster-management.io -oyaml
+    ```
+
+    ```yaml
+    apiVersion: v1
+    kind: List
+    items:
+    - apiVersion: clusterview.open-cluster-management.io/v1
+      kind: Project
+      metadata:
+        labels:
+          cluster: cluster1
+          project: kubevirt-workspace-1
+        name: 4120e9fb-7eef-50ca-a61c-c3e7ee9dee78
+    - apiVersion: clusterview.open-cluster-management.io/v1
+      kind: Project
+      metadata:
+        labels:
+          cluster: cluster1
+          project: kubevirt-workspace-2
+        name: ed37f473-8bca-5a52-87c3-b0cdb1e1c885
+    - apiVersion: clusterview.open-cluster-management.io/v1
+      kind: Project
+      metadata:
+        labels:
+          cluster: cluster2
+          project: kubevirt-workspace-1
+        name: 92c27029-9822-5449-a108-dcd783953fae
+    - apiVersion: clusterview.open-cluster-management.io/v1
+      kind: Project
+      metadata:
+        labels:
+          cluster: cluster2
+          project: kubevirt-workspace-2
+        name: db2b7ae7-f5e7-5fd3-8f7f-a29cce5236ab
+    ```
+
+**Note**: If using ClusterRoleBinding in ClusterPermission to bind a kubevirt ClusterRole, this API will return `*` in project field and the project label will be `all_projects`, for example:
 
 ```yaml
 apiVersion: rbac.open-cluster-management.io/v1alpha1
@@ -327,9 +407,34 @@ spec:
 
 ```sh
 kubectl get kubevirtprojects.clusterview.open-cluster-management.io
-
-CLUSTER    PROJECT
-cluster1   any
-cluster2   any
 ```
 
+```
+CLUSTER    PROJECT
+cluster1   *
+cluster2   *
+```
+
+```sh
+kubectl get kubevirtprojects.clusterview.open-cluster-management.io -oyaml
+```
+
+```yaml
+apiVersion: v1
+kind: List
+items:
+- apiVersion: clusterview.open-cluster-management.io/v1
+  kind: Project
+  metadata:
+    labels:
+      cluster: cluster1
+      project: all_projects
+    name: 7a42b467-3107-5e88-bd05-ab0e3fc82efa
+- apiVersion: clusterview.open-cluster-management.io/v1
+  kind: Project
+  metadata:
+    labels:
+      cluster: cluster2
+      project: all_projects
+    name: 8ae384ef-db25-5677-8b8e-f43152c1b960
+```
