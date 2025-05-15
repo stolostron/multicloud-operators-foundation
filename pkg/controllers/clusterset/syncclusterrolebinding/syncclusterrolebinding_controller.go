@@ -109,6 +109,9 @@ func (r *Reconciler) syncManagedClusterClusterroleBinding(ctx context.Context, c
 	}
 
 	clusterRoleBindings, err := r.clusterRolebindingLister.List(clusterSetLabelSelector)
+	if err != nil {
+		klog.Errorf("Error to list clusterrolebinding. Error:%v", err)
+	}
 
 	for _, clusterRoleBinding := range clusterRoleBindings {
 		curClusterRoleBinding := clusterRoleBinding
