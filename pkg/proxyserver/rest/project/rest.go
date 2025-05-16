@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/google/uuid"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/internalversion"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,7 +22,11 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/printers/storage"
 )
 
-const KubeVirtProjectClusterLabel = "cluster"
+const (
+	KubeVirtProjectClusterLabel = "cluster"
+	KubeVirtProjectNameLabel    = "project"
+	AllProjects                 = "all_projects"
+)
 
 type REST struct {
 	indexer        cache.Indexer
@@ -122,9 +128,13 @@ func (r *REST) List(ctx context.Context, options *internalversion.ListOptions) (
 				Kind:       "Project",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name: p.name,
+				// using uuid (v5) generate an unique name for this resource based on cluster name and project name
+				// the uuid (v5) will ensure a consistent id if using the same cluster name and project name, so that
+				// if we want to retrieve this resource from the list, we use this name to find the corresponding resource
+				Name: uuid.NewSHA1(uuid.NameSpaceOID, []byte(fmt.Sprintf("%s-%s", p.cluster, p.name))).String(),
 				Labels: map[string]string{
 					KubeVirtProjectClusterLabel: p.cluster,
+					KubeVirtProjectNameLabel:    p.name,
 				},
 			},
 		})
@@ -147,7 +157,15 @@ func printProject(obj *metav1.PartialObjectMetadata, options printers.GenerateOp
 		return nil, fmt.Errorf("failed to get cluster for project %s", obj.Name)
 	}
 
-	row.Cells = append(row.Cells, cluster, obj.Name)
+	project, ok := obj.Labels[KubeVirtProjectNameLabel]
+	if !ok {
+		return nil, fmt.Errorf("failed to get project name for project %s", obj.Name)
+	}
+	if project == AllProjects {
+		project = "*"
+	}
+
+	row.Cells = append(row.Cells, cluster, project)
 	return []metav1.TableRow{row}, nil
 }
 
