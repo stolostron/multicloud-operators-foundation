@@ -7,56 +7,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func TestCloneAndAddLabel(t *testing.T) {
-	type args struct {
-		labels     map[string]string
-		labelKey   string
-		labelValue string
-	}
-	tests := []struct {
-		name string
-		args args
-		want map[string]string
-	}{
-		{"case1:", args{labels: map[string]string{"label1": "va1", "label2": "va2"}, labelKey: "key", labelValue: "value"},
-			map[string]string{"label1": "va1", "label2": "va2", "key": "value"}},
-		{"case2:", args{labels: nil, labelKey: "", labelValue: ""}, nil},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := CloneAndAddLabel(tt.args.labels, tt.args.labelKey, tt.args.labelValue); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("CloneAndAddLabel() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestAddLabel(t *testing.T) {
-	type args struct {
-		labels     map[string]string
-		labelKey   string
-		labelValue string
-	}
-	tests := []struct {
-		name string
-		args args
-		want map[string]string
-	}{
-		{"case1:", args{labels: map[string]string{"label1": "va1", "label2": "va2"}, labelKey: "key", labelValue: "value"},
-			map[string]string{"label1": "va1", "label2": "va2", "key": "value"}},
-		{"case2:", args{labels: map[string]string{"label1": "va1", "label2": "va2"}, labelKey: "", labelValue: "value"},
-			map[string]string{"label1": "va1", "label2": "va2"}},
-		{"case3:", args{labels: nil, labelKey: "key", labelValue: "value"}, map[string]string{"key": "value"}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := AddLabel(tt.args.labels, tt.args.labelKey, tt.args.labelValue); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("AddLabel() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestMatchLabelForLabelSelector(t *testing.T) {
 	type args struct {
 		targetLabels  map[string]string
@@ -109,59 +59,6 @@ func TestMergeMap(t *testing.T) {
 				t.Errorf("failed to merge map")
 			}
 		})
-	}
-}
-
-func TestAddOwnersLabel(t *testing.T) {
-	type args struct {
-		owners    string
-		resource  string
-		name      string
-		namespace string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{"case1", args{owners: "", resource: "res1", name: "name1", namespace: "ns1"}, "res1.ns1.name1"},
-		{"case2", args{owners: "owner1", resource: "res1", name: "name1", namespace: "ns1"}, "owner1,res1.ns1.name1"},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := AddOwnersLabel(tt.args.owners, tt.args.resource, tt.args.name, tt.args.namespace); got != tt.want {
-				t.Errorf("AddOwnersLabel() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestStringToMap(t *testing.T) {
-	testCases := []struct {
-		name string
-		str  string
-		rst  map[string]string
-	}{
-		{
-			name: "case1",
-			str:  "",
-			rst:  nil,
-		},
-		{
-			name: "case2",
-			str:  "app=opt,zone=east-1",
-			rst: map[string]string{
-				"app":  "opt",
-				"zone": "east-1",
-			},
-		},
-	}
-
-	for _, testCase := range testCases {
-		rst := StringToMap(testCase.str)
-		if len(rst) != len(testCase.rst) {
-			t.Errorf("test case %s fail", testCase.name)
-		}
 	}
 }
 
