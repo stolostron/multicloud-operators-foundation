@@ -229,15 +229,6 @@ func genLabelsToClaims(hubClient client.Client, clusterName string) ([]*clusterv
 	return claims, nil
 }
 
-func filterOutStableClaims(claims []*clusterv1alpha1.ClusterClaim) (filtered []*clusterv1alpha1.ClusterClaim) {
-	for _, c := range claims {
-		if !stableClaims.Has(c.Name) {
-			filtered = append(filtered, c)
-		}
-	}
-	return filtered
-}
-
 type updateCheck func(oldClaim, newClaim *clusterv1alpha1.ClusterClaim) bool
 
 // There are 3 cases that we don't want to update ClusterClaim:
