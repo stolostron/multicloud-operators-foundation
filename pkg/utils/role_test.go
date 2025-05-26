@@ -40,15 +40,6 @@ func TestMergesubjects(t *testing.T) {
 	}
 }
 
-func createPolicyRule(groups, verbs, res, resnames []string) *rbacv1.PolicyRule {
-	return &rbacv1.PolicyRule{
-		APIGroups:     groups,
-		Verbs:         verbs,
-		Resources:     res,
-		ResourceNames: resnames,
-	}
-}
-
 func TestEqualSubjects(t *testing.T) {
 	type args struct {
 		subjects1 []rbacv1.Subject
