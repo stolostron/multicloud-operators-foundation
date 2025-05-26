@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/validation"
 	corev1lister "k8s.io/client-go/listers/core/v1"
@@ -163,7 +164,7 @@ func syncClaims(ctx context.Context,
 		}
 	}
 	if len(errs) != 0 {
-		return utils.NewMultiLineAggregate(errs)
+		return utilerrors.NewAggregate(errs)
 	}
 
 	// List existing claims then fileter out stable claims
@@ -316,7 +317,7 @@ func cleanClusterClaims(ctx context.Context, clusterClient clusterclientset.Inte
 			errs = append(errs, err)
 		}
 	}
-	return utils.NewMultiLineAggregate(errs)
+	return utilerrors.NewAggregate(errs)
 }
 
 func getClusterSchedulable(nodeLister corev1lister.NodeLister) (bool, error) {

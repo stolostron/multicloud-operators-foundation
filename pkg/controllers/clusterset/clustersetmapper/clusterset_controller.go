@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog"
@@ -237,7 +238,7 @@ func (r *Reconciler) applyClusterSetClusterRoles(clusterset *clusterv1beta2.Mana
 		klog.Warningf("will reconcile since failed to create/update view clusterrole %v, %v", clusterset.Name, err)
 		errs = append(errs, err)
 	}
-	return utils.NewMultiLineAggregate(errs)
+	return utilerrors.NewAggregate(errs)
 }
 
 // cleanClusterSetResource clean the clusterrole
