@@ -24,10 +24,16 @@ const (
 	GlobalPlacementName         string = "global"
 )
 
-// subjects that should not be put into the rolebinding
+// These subjects are excluded for the following reasons:
+//  1. System admin groups (system:cluster-admins, system:masters) already have cluster-level full permissions
+//  2. System reader group (system:cluster-readers) already has cluster-level read permissions
+//  3. System users (system:admin, system:kube-controller-manager) are Kubernetes system components
+//     that should not receive permissions through business logic to avoid interfering with system operations
+//  4. Avoiding redundant permissions and potential security risks
+//  5. Reducing unnecessary RoleBinding creation for better performance
 var (
-	ignoreGroup = sets.New[string]("system:cluster-admins", "system:masters", "system:cluster-readers")
-	ignoreUser  = sets.New[string]("system:admin", "system:kube-controller-manager")
+	ignoreGroup = sets.New("system:cluster-admins", "system:masters", "system:cluster-readers")
+	ignoreUser  = sets.New("system:admin", "system:kube-controller-manager")
 )
 
 var GlobalSet = &clusterv1beta2.ManagedClusterSet{
