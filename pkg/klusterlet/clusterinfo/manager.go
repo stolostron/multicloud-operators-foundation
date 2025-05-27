@@ -1,4 +1,4 @@
-package controllers
+package clusterinfo
 
 import (
 	clusterv1beta1 "github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1"

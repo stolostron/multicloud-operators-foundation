@@ -27,7 +27,7 @@ import (
 	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
-	clusterv1alaph1 "open-cluster-management.io/api/cluster/v1alpha1"
+	clusterv1alpha1 "open-cluster-management.io/api/cluster/v1alpha1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 	msav1beta1client "open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versioned/typed/authentication/v1beta1"
@@ -66,7 +66,7 @@ func init() {
 	_ = clusterinfov1beta1.AddToScheme(scheme)
 	_ = clusterv1.Install(scheme)
 	_ = actionv1beta1.AddToScheme(scheme)
-	_ = clusterv1alaph1.Install(scheme)
+	_ = clusterv1alpha1.Install(scheme)
 	_ = clusterv1beta1.Install(scheme)
 	_ = clusterv1beta2.Install(scheme)
 	_ = v1alpha1.AddToScheme(scheme)
