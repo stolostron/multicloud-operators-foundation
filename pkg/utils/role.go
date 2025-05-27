@@ -3,6 +3,7 @@ package utils
 import (
 	"context"
 	"reflect"
+	"slices"
 	"strings"
 
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -207,69 +208,57 @@ func ResourceMatches(rule *rbacv1.PolicyRule, combinedRequestedResource, request
 	return false
 }
 
+// VerbMatches checks if the requested verb is present in the rule's verbs
 func VerbMatches(rule *rbacv1.PolicyRule, requestedVerb string) bool {
-	for _, verb := range rule.Verbs {
-		if verb == requestedVerb {
-			return true
-		}
-	}
+	return slices.Contains(rule.Verbs, requestedVerb)
+}
 
-	return false
+// VerbMatcherFunc defines a function type for checking if a rule matches required verbs
+type VerbMatcherFunc func(rule *rbacv1.PolicyRule) bool
+
+// getResourceFromClusterRole is a generic function to extract resources from cluster role
+// based on the provided verb matcher function
+func getResourceFromClusterRole(clusterRole *rbacv1.ClusterRole, group, resource string, verbMatcher VerbMatcherFunc) (sets.String, bool) {
+	names := sets.NewString()
+	all := false
+	for i := range clusterRole.Rules {
+		rule := clusterRole.Rules[i]
+		if !APIGroupMatches(&rule, group) {
+			continue
+		}
+
+		if !verbMatcher(&rule) {
+			continue
+		}
+
+		if !ResourceMatches(&rule, resource, "") {
+			continue
+		}
+
+		if len(rule.ResourceNames) == 0 {
+			all = true
+			return names, all
+		}
+
+		names.Insert(rule.ResourceNames...)
+	}
+	return names, all
 }
 
 // GetViewResourceFromClusterRole match the "get" permission of resource,
 // which means this role has view permission to this resource
 func GetViewResourceFromClusterRole(clusterRole *rbacv1.ClusterRole, group, resource string) (sets.String, bool) {
-	names := sets.NewString()
-	all := false
-	for i := range clusterRole.Rules {
-		rule := clusterRole.Rules[i]
-		if !APIGroupMatches(&rule, group) {
-			continue
-		}
-
-		if !VerbMatches(&rule, "get") && !VerbMatches(&rule, "list") && !VerbMatches(&rule, "*") {
-			continue
-		}
-
-		if !ResourceMatches(&rule, resource, "") {
-			continue
-		}
-
-		if len(rule.ResourceNames) == 0 {
-			all = true
-			return names, all
-		}
-
-		names.Insert(rule.ResourceNames...)
+	viewVerbMatcher := func(rule *rbacv1.PolicyRule) bool {
+		return VerbMatches(rule, "get") || VerbMatches(rule, "list") || VerbMatches(rule, "*")
 	}
-	return names, all
+	return getResourceFromClusterRole(clusterRole, group, resource, viewVerbMatcher)
 }
 
 // GetAdminResourceFromClusterRole match the "update" permission of resource,
 // which means this role has admin permission to this resource
 func GetAdminResourceFromClusterRole(clusterRole *rbacv1.ClusterRole, group, resource string) (sets.String, bool) {
-	names := sets.NewString()
-	all := false
-	for i := range clusterRole.Rules {
-		rule := clusterRole.Rules[i]
-		if !APIGroupMatches(&rule, group) {
-			continue
-		}
-
-		if !(VerbMatches(&rule, "update") && (VerbMatches(&rule, "get") || VerbMatches(&rule, "list"))) && !VerbMatches(&rule, "*") {
-			continue
-		}
-
-		if !ResourceMatches(&rule, resource, "") {
-			continue
-		}
-		if len(rule.ResourceNames) == 0 {
-			all = true
-			return names, all
-		}
-
-		names.Insert(rule.ResourceNames...)
+	adminVerbMatcher := func(rule *rbacv1.PolicyRule) bool {
+		return (VerbMatches(rule, "update") && (VerbMatches(rule, "get") || VerbMatches(rule, "list"))) || VerbMatches(rule, "*")
 	}
-	return names, all
+	return getResourceFromClusterRole(clusterRole, group, resource, adminVerbMatcher)
 }
