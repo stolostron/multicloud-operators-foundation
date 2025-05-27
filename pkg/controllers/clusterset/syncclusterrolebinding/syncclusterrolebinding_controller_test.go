@@ -21,10 +21,12 @@ var (
 	scheme = runtime.NewScheme()
 )
 
-func generateClustersetToClusters(ms map[string]sets.String) *helpers.ClusterSetMapper {
+func generateClustersetToClusters(ms map[string]sets.Set[string]) *helpers.ClusterSetMapper {
 	clustersetToClusters := helpers.NewClusterSetMapper()
 	for s, c := range ms {
-		clustersetToClusters.UpdateClusterSetByObjects(s, c)
+		// Convert new generic set to legacy sets.String for compatibility
+		legacySet := sets.NewString(c.UnsortedList()...)
+		clustersetToClusters.UpdateClusterSetByObjects(s, legacySet)
 	}
 	return clustersetToClusters
 }
@@ -40,9 +42,9 @@ func TestSyncManagedClusterClusterroleBinding(t *testing.T) {
 
 	ctc1 := generateClustersetToClusters(nil)
 
-	ms2 := map[string]sets.String{"cs1": sets.NewString("c1", "c2")}
+	ms2 := map[string]sets.Set[string]{"cs1": sets.New("c1", "c2")}
 	ctc2 := generateClustersetToClusters(ms2)
-	gs := map[string]sets.String{"global": sets.NewString("c1", "c2")}
+	gs := map[string]sets.Set[string]{"global": sets.New("c1", "c2")}
 	gsm := generateClustersetToClusters(gs)
 	tests := []struct {
 		name                   string
