@@ -1,4 +1,4 @@
-package controllers
+package clusterinfo
 
 import (
 	"fmt"
