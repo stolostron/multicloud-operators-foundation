@@ -68,7 +68,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// watch all clusterpool related clusterdeployments
 	err = c.Watch(
 		source.Kind(mgr.GetCache(), &hivev1.ClusterPool{},
-			handler.TypedEnqueueRequestsFromMapFunc[*hivev1.ClusterPool](
+			handler.TypedEnqueueRequestsFromMapFunc(
 				func(ctx context.Context, clusterPool *hivev1.ClusterPool) []reconcile.Request {
 					clusterdeployments := &hivev1.ClusterDeploymentList{}
 					err := mgr.GetClient().List(context.TODO(), clusterdeployments, &client.ListOptions{})
@@ -103,7 +103,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// watch managedcluster related clusterdeployment
 	err = c.Watch(
 		source.Kind(mgr.GetCache(), &clusterv1.ManagedCluster{},
-			handler.TypedEnqueueRequestsFromMapFunc[*clusterv1.ManagedCluster](
+			handler.TypedEnqueueRequestsFromMapFunc(
 				func(ctx context.Context, managedCluster *clusterv1.ManagedCluster) []reconcile.Request {
 					clusterdeployment := &hivev1.ClusterDeployment{}
 					err := mgr.GetClient().Get(context.TODO(),

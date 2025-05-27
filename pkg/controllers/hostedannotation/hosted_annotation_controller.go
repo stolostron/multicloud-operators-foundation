@@ -62,7 +62,7 @@ func add(mgr manager.Manager, r *Reconciler) error {
 
 	// watch ManagedClusterAddOn as additional resource
 	err = c.Watch(source.Kind(mgr.GetCache(), &addonapiv1alpha1.ManagedClusterAddOn{},
-		handler.TypedEnqueueRequestsFromMapFunc[*addonapiv1alpha1.ManagedClusterAddOn](
+		handler.TypedEnqueueRequestsFromMapFunc(
 			func(ctx context.Context, addOn *addonapiv1alpha1.ManagedClusterAddOn) []reconcile.Request {
 				if !r.filterAddOn(addOn) {
 					return []reconcile.Request{}
