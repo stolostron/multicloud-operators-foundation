@@ -21,18 +21,6 @@ var (
 	scheme = runtime.NewScheme()
 )
 
-func newTestReconciler(clustersetToNamespace *helpers.ClusterSetMapper, clusterSetCache *cache.AuthCache) *Reconciler {
-	cb := generateRequiredRoleBinding("c0", nil, "cs0", "admin")
-	objs := []runtime.Object{cb}
-	r := &Reconciler{
-		kubeClient:            k8sfake.NewSimpleClientset(objs...),
-		clustersetToNamespace: clustersetToNamespace,
-		clusterSetAdminCache:  clusterSetCache,
-		clusterSetViewCache:   clusterSetCache,
-	}
-	return r
-}
-
 func generateclustersetToNamespace(ms map[string]sets.String) *helpers.ClusterSetMapper {
 	clustersetToNamespace := helpers.NewClusterSetMapper()
 	for s, c := range ms {
