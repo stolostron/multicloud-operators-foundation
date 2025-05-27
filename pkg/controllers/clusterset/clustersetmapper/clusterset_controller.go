@@ -74,7 +74,7 @@ func add(mgr manager.Manager, clusterSetClusterMapper *helpers.ClusterSetMapper,
 	// Watch for changes to ClusterPool
 	err = c.Watch(
 		source.Kind(mgr.GetCache(), &hivev1.ClusterPool{},
-			handler.TypedEnqueueRequestsFromMapFunc[*hivev1.ClusterPool](
+			handler.TypedEnqueueRequestsFromMapFunc(
 				func(ctx context.Context, clusterPool *hivev1.ClusterPool) []reconcile.Request {
 					requests := getRequiredClusterSet(clusterPool.Labels, clusterSetNamespaceMapper, clusterPool.Namespace)
 					return requests

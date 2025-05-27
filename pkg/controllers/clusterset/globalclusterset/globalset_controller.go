@@ -58,7 +58,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta2.ManagedClusterSet{},
-		handler.TypedEnqueueRequestsFromMapFunc[*clusterv1beta2.ManagedClusterSet](
+		handler.TypedEnqueueRequestsFromMapFunc(
 			func(ctx context.Context, clusterset *clusterv1beta2.ManagedClusterSet) []reconcile.Request {
 				if clusterset.Spec.ClusterSelector.SelectorType != clusterv1beta2.LabelSelector {
 					return []reconcile.Request{}
@@ -81,7 +81,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta2.ManagedClusterSetBinding{},
-		handler.TypedEnqueueRequestsFromMapFunc[*clusterv1beta2.ManagedClusterSetBinding](
+		handler.TypedEnqueueRequestsFromMapFunc(
 			func(ctx context.Context, clustersetbinding *clusterv1beta2.ManagedClusterSetBinding) []reconcile.Request {
 				if clustersetbinding.Namespace != clustersetutils.GlobalSetNameSpace {
 					return []reconcile.Request{}
@@ -105,7 +105,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta1.Placement{},
-		handler.TypedEnqueueRequestsFromMapFunc[*clusterv1beta1.Placement](
+		handler.TypedEnqueueRequestsFromMapFunc(
 			func(ctx context.Context, placement *clusterv1beta1.Placement) []reconcile.Request {
 				if placement.Namespace != clustersetutils.GlobalSetNameSpace {
 					return []reconcile.Request{}

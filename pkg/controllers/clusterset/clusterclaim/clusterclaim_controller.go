@@ -63,7 +63,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// watch clusterdeployment's claim
 	err = c.Watch(
 		source.Kind(mgr.GetCache(), &hivev1.ClusterDeployment{},
-			handler.TypedEnqueueRequestsFromMapFunc[*hivev1.ClusterDeployment](
+			handler.TypedEnqueueRequestsFromMapFunc(
 				func(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment) []reconcile.Request {
 					// this clusterdeployment is not related to any pool
 					if clusterDeployment.Spec.ClusterPoolRef == nil {

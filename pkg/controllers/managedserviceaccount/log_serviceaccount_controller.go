@@ -67,7 +67,7 @@ func add(mgr manager.Manager, r *Reconciler) error {
 	// watch log managedClusterAddon
 	// do not watch ManagedServiceAccount API, because the CRD will not be found if msa is not installed.
 	err = c.Watch(source.Kind(mgr.GetCache(), &addonv1alpha1.ManagedClusterAddOn{},
-		handler.TypedEnqueueRequestsFromMapFunc[*addonv1alpha1.ManagedClusterAddOn](
+		handler.TypedEnqueueRequestsFromMapFunc(
 			func(ctx context.Context, a *addonv1alpha1.ManagedClusterAddOn) []reconcile.Request {
 				if a.GetName() != helpers.MsaAddonName {
 					return []reconcile.Request{}

@@ -76,7 +76,7 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	// watch for the changes of PlacementDecision.
 	// queue all ManagedClusterImageRegistries if a Placement is referred to multi ManagedClusterImageRegistry.
 	err = c.Watch(source.Kind(mgr.GetCache(), &clusterv1beta1.PlacementDecision{},
-		handler.TypedEnqueueRequestsFromMapFunc[*clusterv1beta1.PlacementDecision](
+		handler.TypedEnqueueRequestsFromMapFunc(
 			func(ctx context.Context, placementDecision *clusterv1beta1.PlacementDecision) []reconcile.Request {
 				labels := placementDecision.GetLabels()
 				if len(labels) == 0 || labels[clusterv1beta1.PlacementLabel] == "" {
