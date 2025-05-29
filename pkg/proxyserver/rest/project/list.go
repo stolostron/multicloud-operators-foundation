@@ -31,22 +31,29 @@ func listProjects(namespace, name string, obj runtime.Object, userInfo user.Info
 		return projects
 	}
 	if found {
-		subject, err := toSubject(clusterRoleBinding)
+		subjects, err := toSubjects(clusterRoleBinding)
 		if err != nil {
 			klog.Errorf("failed to get subject %v", err)
 			return projects
 		}
-		if isBoundUser(subject, userInfo) {
-			roleName, err := getRoleRefName(clusterRoleBinding)
-			if err != nil {
-				klog.Errorf("failed to get roleRef in %s/%s on clusterRoleBing, %v", namespace, name, err)
-				return projects
-			}
 
-			if isKubeVirtRole(roleName) {
-				projects = append(projects, projectView{name: AllProjects, cluster: namespace})
-				return projects
+		for _, subject := range subjects {
+			if isBoundUser(subject, userInfo) {
+				roleName, err := getRoleRefName(clusterRoleBinding)
+				if err != nil {
+					klog.Errorf("failed to get roleRef in %s/%s on clusterRoleBinding, %v", namespace, name, err)
+					return projects
+				}
+
+				if isKubeVirtRole(roleName) {
+					projects = append(projects, projectView{name: AllProjects, cluster: namespace})
+				}
 			}
+		}
+
+		if len(projects) != 0 {
+			// current user has clusterRoleBinding, return all projects
+			return projects
 		}
 	}
 
@@ -64,16 +71,6 @@ func listProjects(namespace, name string, obj runtime.Object, userInfo user.Info
 		binding, ok := rb.(map[string]any)
 		if !ok {
 			klog.Errorf("invalid roleBinding in %s/%s, %v", namespace, name, err)
-			continue
-		}
-
-		subject, err := toSubject(binding)
-		if err != nil {
-			klog.Errorf("failed to get subject %v", err)
-			continue
-		}
-
-		if !isBoundUser(subject, userInfo) {
 			continue
 		}
 
@@ -97,9 +94,19 @@ func listProjects(namespace, name string, obj runtime.Object, userInfo user.Info
 			continue
 		}
 
-		klog.Infof("project %s was found from %s/%s for user(groups=%v,name=%s)",
-			ns, namespace, name, userInfo.GetGroups(), userInfo.GetName())
-		projects = append(projects, projectView{name: ns, cluster: namespace})
+		subjects, err := toSubjects(binding)
+		if err != nil {
+			klog.Errorf("failed to get subject %v", err)
+			continue
+		}
+
+		for _, subject := range subjects {
+			if isBoundUser(subject, userInfo) {
+				klog.V(4).Infof("project %s was found from %s/%s for user(groups=%v,name=%s)",
+					ns, namespace, name, userInfo.GetGroups(), userInfo.GetName())
+				projects = append(projects, projectView{name: ns, cluster: namespace})
+			}
+		}
 	}
 
 	return projects

@@ -93,9 +93,9 @@ func (r *REST) List(ctx context.Context, options *internalversion.ListOptions) (
 		return nil, errors.NewForbidden(schema.GroupResource{Resource: "projects"}, "", fmt.Errorf("unable to list projects without a user on the context"))
 	}
 
-	klog.Infof("list projects for user(groups=%v,name=%s)", user.GetGroups(), user.GetName())
-
 	keys := r.indexer.ListIndexFuncValues(ClusterPermissionSubjectIndexKey)
+
+	klog.V(4).Infof("list projects for user(groups=%v,name=%s) from %v", user.GetGroups(), user.GetName(), keys)
 
 	projectSet := sets.New[projectView]()
 	for _, key := range keys {

@@ -28,15 +28,17 @@ func IndexClusterPermissionBySubject(obj any) ([]string, error) {
 
 	clusterRoleBinding, found, err := unstructured.NestedMap(u, "spec", "clusterRoleBinding")
 	if err != nil {
-		return nil, fmt.Errorf("invalid roleBindings in %s/%s, %v", namespace, name, err)
+		return nil, fmt.Errorf("invalid clusterRoleBinding in %s/%s, %v", namespace, name, err)
 	}
 	if found {
-		subject, err := toSubject(clusterRoleBinding)
+		subjects, err := toSubjects(clusterRoleBinding)
 		if err != nil {
-			return nil, fmt.Errorf("failed to find subject in %s/%s, %v", namespace, name, err)
+			return nil, fmt.Errorf("failed to find subject from clusterRoleBinding in %s/%s, %v", namespace, name, err)
 		}
 
-		keySet.Insert(fmt.Sprintf("%s/%s/%s/%s", namespace, name, subject.Kind, subject.Name))
+		for _, subject := range subjects {
+			keySet.Insert(fmt.Sprintf("%s/%s/%s/%s", namespace, name, subject.Kind, subject.Name))
+		}
 	}
 
 	roleBindings, found, err := unstructured.NestedSlice(u, "spec", "roleBindings")
@@ -54,26 +56,62 @@ func IndexClusterPermissionBySubject(obj any) ([]string, error) {
 			return nil, fmt.Errorf("invalid roleBinding in %s/%s, %v", namespace, name, err)
 		}
 
-		subject, err := toSubject(binding)
+		subjects, err := toSubjects(binding)
 		if err != nil {
-			return nil, fmt.Errorf("failed to find subject in %s/%s, %v", namespace, name, err)
+			return nil, fmt.Errorf("failed to find subject from roleBindings in %s/%s, %v", namespace, name, err)
 		}
 
-		keySet.Insert(fmt.Sprintf("%s/%s/%s/%s", namespace, name, subject.Kind, subject.Name))
+		for _, subject := range subjects {
+			keySet.Insert(fmt.Sprintf("%s/%s/%s/%s", namespace, name, subject.Kind, subject.Name))
+		}
 	}
 
 	return toKeys(keySet), nil
 }
 
-func toSubject(binding map[string]any) (*rbacv1.Subject, error) {
-	u, found, err := unstructured.NestedMap(binding, "subject")
+func toSubjects(binding map[string]any) ([]*rbacv1.Subject, error) {
+	subjects := []*rbacv1.Subject{}
+	u, hasSubject, err := unstructured.NestedMap(binding, "subject")
 	if err != nil {
 		return nil, err
 	}
-	if !found {
-		return nil, fmt.Errorf("no subject")
+
+	ss, hasSubjects, err := unstructured.NestedSlice(binding, "subjects")
+	if err != nil {
+		return nil, err
 	}
 
+	if !hasSubject && !hasSubjects {
+		return nil, fmt.Errorf("no subject or subjects field")
+	}
+
+	// If both subject and subjects exist then only subjects will be used.
+	if hasSubjects {
+		for _, s := range ss {
+			su, ok := s.(map[string]any)
+			if !ok {
+				return nil, fmt.Errorf("invalid subject in subjects")
+			}
+			sObj, err := toSubject(su)
+			if err != nil {
+				return nil, err
+			}
+			subjects = append(subjects, sObj)
+			if len(subjects) == 0 {
+				return nil, fmt.Errorf("no subject in subjects field")
+			}
+		}
+		return subjects, nil
+	}
+
+	sObj, err := toSubject(u)
+	if err != nil {
+		return nil, err
+	}
+	return append(subjects, sObj), nil
+}
+
+func toSubject(u map[string]any) (*rbacv1.Subject, error) {
 	kind, found, err := unstructured.NestedString(u, "kind")
 	if err != nil {
 		return nil, err
@@ -89,7 +127,6 @@ func toSubject(binding map[string]any) (*rbacv1.Subject, error) {
 	if !found {
 		return nil, fmt.Errorf("no name in subject")
 	}
-
 	return &rbacv1.Subject{Kind: kind, Name: name}, nil
 }
 
