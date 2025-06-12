@@ -241,7 +241,7 @@ The `kubevirtprojects.clusterview.open-cluster-management.io` API is only used t
     metadata:
       name: clusterRoleForGroup
     rules:
-    - apiGroups: ["cluster.open-cluster-management.io"]
+    - apiGroups: ["clusterview.open-cluster-management.io"]
       resources: ["kubevirtprojects"]
       verbs: ["list"]
     ---
