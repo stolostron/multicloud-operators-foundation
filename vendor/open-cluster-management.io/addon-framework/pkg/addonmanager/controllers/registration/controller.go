@@ -19,8 +19,8 @@ import (
 	"open-cluster-management.io/sdk-go/pkg/patcher"
 
 	"open-cluster-management.io/addon-framework/pkg/agent"
-	"open-cluster-management.io/addon-framework/pkg/basecontroller/factory"
 	"open-cluster-management.io/addon-framework/pkg/utils"
+	"open-cluster-management.io/sdk-go/pkg/basecontroller/factory"
 )
 
 // addonRegistrationController reconciles instances of ManagedClusterAddon on the hub.
@@ -58,6 +58,8 @@ func NewAddonRegistrationController(
 			return true
 		},
 		addonInformers.Informer()).
+		// clusterLister is used, so wait for cache sync
+		WithBareInformers(clusterInformers.Informer()).
 		WithSync(c.sync).ToController("addon-registration-controller")
 }
 
@@ -100,6 +102,12 @@ func (c *addonRegistrationController) sync(ctx context.Context, syncCtx factory.
 		return nil
 	}
 
+	addonPatcher := patcher.NewPatcher[
+		*addonapiv1alpha1.ManagedClusterAddOn,
+		addonapiv1alpha1.ManagedClusterAddOnSpec,
+		addonapiv1alpha1.ManagedClusterAddOnStatus](c.addonClient.AddonV1alpha1().ManagedClusterAddOns(clusterName))
+
+	// patch supported configs
 	var supportedConfigs []addonapiv1alpha1.ConfigGroupResource
 	for _, config := range agentAddon.GetAgentAddonOptions().SupportedConfigGVRs {
 		supportedConfigs = append(supportedConfigs, addonapiv1alpha1.ConfigGroupResource{
@@ -109,11 +117,12 @@ func (c *addonRegistrationController) sync(ctx context.Context, syncCtx factory.
 	}
 	managedClusterAddonCopy.Status.SupportedConfigs = supportedConfigs
 
-	addonPatcher := patcher.NewPatcher[
-		*addonapiv1alpha1.ManagedClusterAddOn,
-		addonapiv1alpha1.ManagedClusterAddOnSpec,
-		addonapiv1alpha1.ManagedClusterAddOnStatus](c.addonClient.AddonV1alpha1().ManagedClusterAddOns(clusterName))
+	statusChanged, err := addonPatcher.PatchStatus(ctx, managedClusterAddonCopy, managedClusterAddonCopy.Status, managedClusterAddon.Status)
+	if statusChanged {
+		return err
+	}
 
+	// if supported configs not change, continue to patch condition RegistrationApplied, status.Registrations and status.Namespace
 	registrationOption := agentAddon.GetAgentAddonOptions().Registration
 	if registrationOption == nil {
 		meta.SetStatusCondition(&managedClusterAddonCopy.Status.Conditions, metav1.Condition{
@@ -153,26 +162,25 @@ func (c *addonRegistrationController) sync(ctx context.Context, syncCtx factory.
 		_, err = addonPatcher.PatchStatus(ctx, managedClusterAddonCopy, managedClusterAddonCopy.Status, managedClusterAddon.Status)
 		return err
 	}
-	configs := registrationOption.CSRConfigurations(managedCluster)
 
+	configs := registrationOption.CSRConfigurations(managedCluster)
 	managedClusterAddonCopy.Status.Registrations = configs
 
-	managedClusterAddonCopy.Status.Namespace = registrationOption.Namespace
-	if len(managedClusterAddonCopy.Spec.InstallNamespace) > 0 {
-		managedClusterAddonCopy.Status.Namespace = managedClusterAddonCopy.Spec.InstallNamespace
-	}
-
+	var agentInstallNamespace string
 	if registrationOption.AgentInstallNamespace != nil {
-		ns, err := registrationOption.AgentInstallNamespace(managedClusterAddonCopy)
+		agentInstallNamespace, err = registrationOption.AgentInstallNamespace(managedClusterAddonCopy)
 		if err != nil {
 			return err
 		}
-		if len(ns) > 0 {
-			managedClusterAddonCopy.Status.Namespace = ns
-		} else {
-			klog.InfoS("Namespace for addon returned by agent install namespace func is empty",
-				"addonNamespace", managedClusterAddonCopy.Namespace, "addonName", managedClusterAddonCopy.Name)
-		}
+	}
+
+	// Set the default namespace to registrationOption.Namespace
+	managedClusterAddonCopy.Status.Namespace = registrationOption.Namespace
+	// Override if agentInstallNamespace or InstallNamespace is specified
+	if len(agentInstallNamespace) > 0 {
+		managedClusterAddonCopy.Status.Namespace = agentInstallNamespace
+	} else if len(managedClusterAddonCopy.Spec.InstallNamespace) > 0 {
+		managedClusterAddonCopy.Status.Namespace = managedClusterAddonCopy.Spec.InstallNamespace
 	}
 
 	meta.SetStatusCondition(&managedClusterAddonCopy.Status.Conditions, metav1.Condition{
