@@ -33,6 +33,24 @@ spec:
       value: Dockerfile.rhtap
     - name: path-context
       value: .
+    - name: send-slack-notification
+      value: "true"
+    - name: konflux-application-name
+      # Use "release-mce-210" for MCE 2.10 and "release-acm-215" for ACM 2.15
+      value: "release-mce-210"
+    - name: slack-webhook-url-secret-name
+      # This is just an example. If you are not a member of the server foundation team, please do not use this secret;
+      # otherwise, you will not be able to receive the Slack notifications. Please contact the admins to create your
+      # secret that can receive Slack messages.
+      # See details: https://konflux.pages.redhat.com/docs/users/patterns/slack-notifications.html
+      value: "slack-acm-server-foundation-notify-secret"
+    - name: slack-webhook-url-secret-key
+      # Should be changed according to how the secret slack-webhook-url-secret-name is created.
+      value: "slack-webhook-url"
+    - name: slack-member-id
+      # Will mention the user in the slack message when the pipeline run failed; this is not required.
+      # Please make sure replace the value with component owner's slack member id.
+      value: "UUQMPREQM" # @Le Yang
   pipelineSpec:
     description: |
       This pipeline is ideal for building multi-arch container images from a Containerfile while maintaining trust after pipeline customization.
@@ -53,6 +71,36 @@ spec:
             - name: kind
               value: task
           resolver: bundles
+      - name: slack-webhook-notification
+        params:
+          - name: message
+            value: |
+              :bangbang: <@$(params.slack-member-id)> PipelineRun name: $(context.pipelineRun.name) id: $(context.pipelineRun.uid) failed:
+              - git source: $(params.git-url)/commit/$(params.revision)
+              - output image: $(params.output-image)
+              - see details: https://konflux-ui.apps.stone-prd-rh01.pg1f.p1.openshiftapps.com/ns/$(context.pipelineRun.namespace)/applications/$(params.konflux-application-name)/pipelineruns/$(context.pipelineRun.name)
+          - name: secret-name
+            value: $(params.slack-webhook-url-secret-name)
+          - name: key-name
+            value: $(params.slack-webhook-url-secret-key)
+        taskRef:
+          params:
+          - name: bundle
+            value: quay.io/konflux-ci/tekton-catalog/task-slack-webhook-notification:0.1
+          - name: name
+            value: slack-webhook-notification
+          - name: kind
+            value: Task
+          resolver: bundles
+        when:
+          - input: $(tasks.status)
+            operator: in
+            values:
+            - "Failed"
+          - input: $(params.send-slack-notification)
+            operator: in
+            values:
+            - "true"
     params:
       - description: Source Repository URL
         name: git-url
@@ -115,6 +163,34 @@ spec:
         description: List of platforms to build the container images on. The available set of values is determined by the configuration of the multi-platform-controller.
         name: build-platforms
         type: array
+      - default: "false"
+        description: Whether to send slack notification when the pipeline run failed
+        name: send-slack-notification
+        type: string
+      - default: "release-mce-210" # Need to change for each release
+        name: konflux-application-name
+        description: The name of the application in Konflux, this is required when send-slack-notification is true
+        type: string
+      - default: ""
+        name: slack-webhook-url-secret-name
+        description: |
+          The name of the secret in the konflux tenant namespace which contains the slack webhook url, this is required when send-slack-notification is true.
+          If it does not exist, please prepare the slack webhook url for your team and contact the konflux tenant admins to create it.
+          See details: https://konflux.pages.redhat.com/docs/users/patterns/slack-notifications.html
+        type: string
+      - default: "slack-webhook-url"
+        name: slack-webhook-url-secret-key
+        description: |
+          The key of the slack webhook url in the secret, this is required when send-slack-notification is true.
+          Should be changed according to how the secret slack-webhook-url-secret-name is created.
+          See details: https://konflux.pages.redhat.com/docs/users/patterns/slack-notifications.html
+        type: string
+      - default: ""
+        name: slack-member-id
+        description: |
+          The member id of the slack user, if this is set will mention the user in the slack message; this id can be found in the slack user profile
+          by clicking the user profile, in the profile pop-up, click the "More" icon(three dots), and then click "Copy member ID" button. e.g. U0600000000
+        type: string
     results:
       - description: ""
         name: IMAGE_URL
