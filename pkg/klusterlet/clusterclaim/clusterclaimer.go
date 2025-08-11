@@ -75,6 +75,7 @@ const (
 	PlatformAlibabaCloud = "AlibabaCloud"
 	PlatformBareMetal    = "BareMetal"
 	PlatformKubeVirt     = "KubeVirt"
+	PlatformNutanix      = "Nutanix"
 	// PlatformOther other (unable to auto detect)
 	PlatformOther = "Other"
 )
@@ -568,6 +569,95 @@ func (c *ClusterClaimer) getNodeInfo() (architecture, providerID string, err err
 	return
 }
 
+func (c *ClusterClaimer) getProductFromGitVersion(gitVersion string) (platform, product string, found bool) {
+	switch {
+	case strings.Contains(gitVersion, ProductIKS):
+		return PlatformIBM, ProductIKS, true
+	case strings.Contains(gitVersion, ProductICP):
+		return PlatformIBM, ProductICP, true
+	case strings.Contains(gitVersion, ProductEKS):
+		return PlatformAWS, ProductEKS, true
+	case strings.Contains(gitVersion, ProductGKE):
+		return PlatformGCP, ProductGKE, true
+	}
+	return "", "", false
+}
+
+func (c *ClusterClaimer) getPlatformByInfrastructure(product string) (string, string, bool, error) {
+	infrastructure, err := c.ConfigV1Client.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return "", "", false, nil
+		}
+		klog.Errorf("failed to get OCP infrastructures.config.openshift.io/cluster: %v", err)
+		return "", "", false, err
+	}
+
+	if infrastructure.Status.PlatformStatus == nil {
+		return "", "", false, nil
+	}
+
+	platformType := infrastructure.Status.PlatformStatus.Type
+	switch platformType {
+	case configv1.AWSPlatformType:
+		return PlatformAWS, product, true, nil
+	case configv1.AzurePlatformType:
+		return PlatformAzure, product, true, nil
+	case configv1.AlibabaCloudPlatformType:
+		return PlatformAlibabaCloud, product, true, nil
+	case configv1.OvirtPlatformType:
+		return PlatformRHV, product, true, nil
+	case configv1.GCPPlatformType:
+		return PlatformGCP, product, true, nil
+	case configv1.VSpherePlatformType:
+		return PlatformVSphere, product, true, nil
+	case configv1.OpenStackPlatformType:
+		return PlatformOpenStack, product, true, nil
+	case configv1.BareMetalPlatformType:
+		return PlatformBareMetal, product, true, nil
+	case configv1.IBMCloudPlatformType:
+		return PlatformIBM, ProductROKS, true, nil
+	case configv1.KubevirtPlatformType:
+		return PlatformKubeVirt, product, true, nil
+	case configv1.NutanixPlatformType:
+		return PlatformNutanix, product, true, nil
+	}
+
+	return "", "", false, nil
+}
+
+func (c *ClusterClaimer) getPlatformByNode(product string) (string, string, bool, error) {
+	architecture, providerID, err := c.getNodeInfo()
+	if err != nil {
+		klog.Errorf("failed to get node info: %v", err)
+		return "", "", false, err
+	}
+
+	switch {
+	case architecture == "s390x":
+		return PlatformIBMZ, product, true, nil
+	case architecture == "ppc64le":
+		return PlatformIBMP, product, true, nil
+	case strings.HasPrefix(providerID, "ibm"):
+		return PlatformIBM, product, true, nil
+	case strings.HasPrefix(providerID, "azure"):
+		if product == ProductOther {
+			return PlatformAzure, ProductAKS, true, nil
+		}
+		return PlatformAzure, product, true, nil
+	case strings.HasPrefix(providerID, "aws"):
+		return PlatformAWS, product, true, nil
+	case strings.HasPrefix(providerID, "gce"):
+		return PlatformGCP, product, true, nil
+	case strings.HasPrefix(providerID, "vsphere"):
+		return PlatformVSphere, product, true, nil
+	case strings.HasPrefix(providerID, "openstack"):
+		return PlatformOpenStack, product, true, nil
+	}
+
+	return "", "", false, nil
+}
+
 func (c *ClusterClaimer) getPlatformProduct() (string, string, error) {
 	kubeVersion, err := c.getKubeVersion()
 	if err != nil {
@@ -576,16 +666,8 @@ func (c *ClusterClaimer) getPlatformProduct() (string, string, error) {
 	}
 	gitVersion := strings.ToUpper(kubeVersion)
 
-	// deal with product and platform
-	switch {
-	case strings.Contains(gitVersion, ProductIKS):
-		return PlatformIBM, ProductIKS, nil
-	case strings.Contains(gitVersion, ProductICP):
-		return PlatformIBM, ProductICP, nil
-	case strings.Contains(gitVersion, ProductEKS):
-		return PlatformAWS, ProductEKS, nil
-	case strings.Contains(gitVersion, ProductGKE):
-		return PlatformGCP, ProductGKE, nil
+	if platform, product, found := c.getProductFromGitVersion(gitVersion); found {
+		return platform, product, nil
 	}
 
 	isROSA, err := c.isROSA()
@@ -607,8 +689,6 @@ func (c *ClusterClaimer) getPlatformProduct() (string, string, error) {
 	}
 
 	product := ProductOther
-	platform := PlatformOther
-	// OSD is also openshift, should check openshift firstly.
 	isOpenShift, err := c.isOpenShift()
 	if err != nil {
 		klog.Errorf("failed to check if cluster is openshift. %v", err)
@@ -628,35 +708,10 @@ func (c *ClusterClaimer) getPlatformProduct() (string, string, error) {
 	}
 
 	if isOpenShift {
-		infrastructure, err := c.ConfigV1Client.ConfigV1().Infrastructures().Get(context.TODO(), "cluster", metav1.GetOptions{})
-		if err != nil && !apierrors.IsNotFound(err) {
-			klog.Errorf("failed to get OCP infrastructures.config.openshift.io/cluster: %v", err)
+		if platform, product, found, err := c.getPlatformByInfrastructure(product); err != nil {
 			return "", "", err
-		}
-		if err == nil {
-			platformType := infrastructure.Status.PlatformStatus.Type
-			switch platformType {
-			case configv1.AWSPlatformType:
-				return PlatformAWS, product, nil
-			case configv1.AzurePlatformType:
-				return PlatformAzure, product, nil
-			case configv1.AlibabaCloudPlatformType:
-				return PlatformAlibabaCloud, product, nil
-			case configv1.OvirtPlatformType:
-				return PlatformRHV, product, nil
-			case configv1.GCPPlatformType:
-				return PlatformGCP, product, nil
-			case configv1.VSpherePlatformType:
-				return PlatformVSphere, product, nil
-			case configv1.OpenStackPlatformType:
-				return PlatformOpenStack, product, nil
-			case configv1.BareMetalPlatformType:
-				return PlatformBareMetal, product, nil
-			case configv1.IBMCloudPlatformType:
-				return PlatformIBM, ProductROKS, nil
-			case configv1.KubevirtPlatformType:
-				return PlatformKubeVirt, product, nil
-			}
+		} else if found {
+			return platform, product, nil
 		}
 	}
 
@@ -669,35 +724,13 @@ func (c *ClusterClaimer) getPlatformProduct() (string, string, error) {
 		product = ProductMicroShift
 	}
 
-	var architecture, providerID string
-	if architecture, providerID, err = c.getNodeInfo(); err != nil {
-		klog.Errorf("failed to get node info: %v", err)
+	if platform, product, found, err := c.getPlatformByNode(product); err != nil {
 		return "", "", err
+	} else if found {
+		return platform, product, nil
 	}
 
-	switch {
-	case architecture == "s390x":
-		platform = PlatformIBMZ
-	case architecture == "ppc64le":
-		platform = PlatformIBMP
-	case strings.HasPrefix(providerID, "ibm"):
-		platform = PlatformIBM
-	case strings.HasPrefix(providerID, "azure"):
-		platform = PlatformAzure
-		if product == ProductOther {
-			return PlatformAzure, ProductAKS, nil
-		}
-	case strings.HasPrefix(providerID, "aws"):
-		platform = PlatformAWS
-	case strings.HasPrefix(providerID, "gce"):
-		platform = PlatformGCP
-	case strings.HasPrefix(providerID, "vsphere"):
-		platform = PlatformVSphere
-	case strings.HasPrefix(providerID, "openstack"):
-		platform = PlatformOpenStack
-	}
-
-	return platform, product, nil
+	return PlatformOther, product, nil
 }
 
 func (c *ClusterClaimer) getControlPlaneTopology() configv1.TopologyMode {
