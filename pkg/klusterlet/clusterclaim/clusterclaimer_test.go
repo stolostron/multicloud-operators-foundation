@@ -212,6 +212,35 @@ func newROKSInfrastructure() *apiconfigv1.Infrastructure {
 	}
 }
 
+func newNutanixInfrastructure() *apiconfigv1.Infrastructure {
+	return &apiconfigv1.Infrastructure{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "cluster",
+		},
+		Spec: apiconfigv1.InfrastructureSpec{
+			CloudConfig: apiconfigv1.ConfigMapFileReference{},
+			PlatformSpec: apiconfigv1.PlatformSpec{
+				Type: "Nutanix",
+			},
+		},
+		Status: apiconfigv1.InfrastructureStatus{
+			InfrastructureName: "nutanix-cluster",
+			Platform:           "Nutanix",
+			PlatformStatus: &apiconfigv1.PlatformStatus{
+				Type: "Nutanix",
+				Nutanix: &apiconfigv1.NutanixPlatformStatus{
+					APIServerInternalIPs: []string{"10.0.0.1"},
+					IngressIPs:           []string{"10.0.0.2"},
+				},
+			},
+			EtcdDiscoveryDomain:  "osd-test.wu67.s1.devshift.org",
+			APIServerURL:         "https://api.osd-test.wu67.s1.devshift.org:6443",
+			APIServerInternalURL: "https://api-int.osd-test.wu67.s1.devshift.org:6443",
+			ControlPlaneTopology: apiconfigv1.HighlyAvailableTopologyMode,
+		},
+	}
+}
+
 func newConfigV1Client(version string, platformType string) openshiftclientset.Interface {
 	clusterVersion := &apiconfigv1.ClusterVersion{}
 	if version == "4.x" {
@@ -228,6 +257,8 @@ func newConfigV1Client(version string, platformType string) openshiftclientset.I
 		infrastructure = newGCPInfrastructure()
 	case PlatformIBM:
 		infrastructure = newROKSInfrastructure()
+	case PlatformNutanix:
+		infrastructure = newNutanixInfrastructure()
 	default:
 		infrastructure = newOtherInfrastructure()
 	}
@@ -591,6 +622,30 @@ func TestClusterClaimerList(t *testing.T) {
 				ClaimOCMProduct:        ProductMicroShift,
 				ClaimMicroShiftVersion: "4.13.6",
 				ClaimOCMKubeVersion:    "v0.0.0-master+$Format:%H$",
+			},
+			expectErr: nil,
+		},
+		{
+			name:           "claims of OCP on Nutanix",
+			clusterName:    "clusterNutanix",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformNutanix), newConfigmapConsoleConfig()}),
+			mapper:         newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			configV1Client: newConfigV1Client("4.x", PlatformNutanix),
+			oauthV1Client: newOauthV1Client([]string{
+				"https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
+			}),
+			expectClaims: map[string]string{
+				ClaimK8sID:                      "clusterNutanix",
+				ClaimOpenshiftAPIServerURL:      "https://api.osd-test.wu67.s1.devshift.org:6443",
+				ClaimOpenshiftVersion:           "4.6.8",
+				ClaimOpenshiftID:                "ffd989a0-8391-426d-98ac-86ae6d051433",
+				ClaimOpenshiftInfrastructure:    "{\"infraName\":\"nutanix-cluster\"}",
+				ClaimOCMPlatform:                PlatformNutanix,
+				ClaimOCMProduct:                 ProductOpenShift,
+				ClaimOCMConsoleURL:              "https://console-openshift-console.apps.daliu-clu428.dev04.red-chesterfield.com",
+				ClaimOCMKubeVersion:             "v0.0.0-master+$Format:%H$",
+				ClaimControlPlaneTopology:       "HighlyAvailable",
+				ClaimOpenshiftOauthRedirectURIs: "https://oauth-openshift.apps.a.b.c.com/oauth/token/implicit",
 			},
 			expectErr: nil,
 		},
@@ -1149,6 +1204,245 @@ func TestUpdatePlatformProduct(t *testing.T) {
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, test.expectPlatform, platform)
 			assert.Equal(t, test.expectProduct, product)
+		})
+	}
+}
+
+func TestGetProductFromGitVersion(t *testing.T) {
+	tests := []struct {
+		name           string
+		gitVersion     string
+		expectPlatform string
+		expectProduct  string
+		expectFound    bool
+	}{
+		{
+			name:           "is IKS",
+			gitVersion:     "v1.2.3-IKS",
+			expectPlatform: PlatformIBM,
+			expectProduct:  ProductIKS,
+			expectFound:    true,
+		},
+		{
+			name:           "is ICP",
+			gitVersion:     "v1.2.3-ICP",
+			expectPlatform: PlatformIBM,
+			expectProduct:  ProductICP,
+			expectFound:    true,
+		},
+		{
+			name:           "is EKS",
+			gitVersion:     "v1.2.3-EKS",
+			expectPlatform: PlatformAWS,
+			expectProduct:  ProductEKS,
+			expectFound:    true,
+		},
+		{
+			name:           "is GKE",
+			gitVersion:     "v1.2.3-GKE",
+			expectPlatform: PlatformGCP,
+			expectProduct:  ProductGKE,
+			expectFound:    true,
+		},
+		{
+			name:           "is not known",
+			gitVersion:     "v1.2.3",
+			expectPlatform: "",
+			expectProduct:  "",
+			expectFound:    false,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			clusterClaimer := ClusterClaimer{}
+			platform, product, found := clusterClaimer.getProductFromGitVersion(test.gitVersion)
+			assert.Equal(t, test.expectPlatform, platform)
+			assert.Equal(t, test.expectProduct, product)
+			assert.Equal(t, test.expectFound, found)
+		})
+	}
+}
+
+func TestGetPlatformByInfrastructure(t *testing.T) {
+	tests := []struct {
+		name           string
+		configV1Client openshiftclientset.Interface
+		product        string
+		expectPlatform string
+		expectProduct  string
+		expectFound    bool
+		expectErr      error
+	}{
+		{
+			name:           "is AWS",
+			configV1Client: newConfigV1Client("4.x", PlatformAWS),
+			product:        ProductOpenShift,
+			expectPlatform: PlatformAWS,
+			expectProduct:  ProductOpenShift,
+			expectFound:    true,
+			expectErr:      nil,
+		},
+		{
+			name:           "is GCP",
+			configV1Client: newConfigV1Client("4.x", PlatformGCP),
+			product:        ProductOpenShift,
+			expectPlatform: PlatformGCP,
+			expectProduct:  ProductOpenShift,
+			expectFound:    true,
+			expectErr:      nil,
+		},
+		{
+			name:           "is ROKS",
+			configV1Client: newConfigV1Client("4.x", PlatformIBM),
+			product:        ProductOpenShift,
+			expectPlatform: PlatformIBM,
+			expectProduct:  ProductROKS,
+			expectFound:    true,
+			expectErr:      nil,
+		},
+		{
+			name:           "is Nutanix",
+			configV1Client: newConfigV1Client("4.x", PlatformNutanix),
+			product:        ProductOpenShift,
+			expectPlatform: PlatformNutanix,
+			expectProduct:  ProductOpenShift,
+			expectFound:    true,
+			expectErr:      nil,
+		},
+		{
+			name:           "is not found",
+			configV1Client: newConfigV1Client("4.x", "other"),
+			product:        ProductOpenShift,
+			expectPlatform: "",
+			expectProduct:  "",
+			expectFound:    false,
+			expectErr:      nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			clusterClaimer := ClusterClaimer{ConfigV1Client: test.configV1Client}
+			platform, product, found, err := clusterClaimer.getPlatformByInfrastructure(test.product)
+			assert.Equal(t, test.expectPlatform, platform)
+			assert.Equal(t, test.expectProduct, product)
+			assert.Equal(t, test.expectFound, found)
+			assert.Equal(t, test.expectErr, err)
+		})
+	}
+}
+
+func TestGetPlatformByNode(t *testing.T) {
+	tests := []struct {
+		name           string
+		kubeClient     kubernetes.Interface
+		product        string
+		expectPlatform string
+		expectProduct  string
+		expectFound    bool
+		expectErr      error
+	}{
+		{
+			name:           "is IBMZ",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformIBMZ)}),
+			product:        ProductOpenShift,
+			expectPlatform: PlatformIBMZ,
+			expectProduct:  ProductOpenShift,
+			expectFound:    true,
+			expectErr:      nil,
+		},
+		{
+			name:           "is IBMP",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformIBMP)}),
+			product:        ProductOpenShift,
+			expectPlatform: PlatformIBMP,
+			expectProduct:  ProductOpenShift,
+			expectFound:    true,
+			expectErr:      nil,
+		},
+		{
+			name:           "is IBM",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformIBM)}),
+			product:        ProductOpenShift,
+			expectPlatform: PlatformIBM,
+			expectProduct:  ProductOpenShift,
+			expectFound:    true,
+			expectErr:      nil,
+		},
+		{
+			name:           "is Azure AKS",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAzure)}),
+			product:        ProductOther,
+			expectPlatform: PlatformAzure,
+			expectProduct:  ProductAKS,
+			expectFound:    true,
+			expectErr:      nil,
+		},
+		{
+			name:           "is Azure OCP",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAzure)}),
+			product:        ProductOpenShift,
+			expectPlatform: PlatformAzure,
+			expectProduct:  ProductOpenShift,
+			expectFound:    true,
+			expectErr:      nil,
+		},
+		{
+			name:           "is AWS",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformAWS)}),
+			product:        ProductOther,
+			expectPlatform: PlatformAWS,
+			expectProduct:  ProductOther,
+			expectFound:    true,
+			expectErr:      nil,
+		},
+		{
+			name:           "is GCP",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformGCP)}),
+			product:        ProductOther,
+			expectPlatform: PlatformGCP,
+			expectProduct:  ProductOther,
+			expectFound:    true,
+			expectErr:      nil,
+		},
+		{
+			name:           "is VSphere",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformVSphere)}),
+			product:        ProductOther,
+			expectPlatform: PlatformVSphere,
+			expectProduct:  ProductOther,
+			expectFound:    true,
+			expectErr:      nil,
+		},
+		{
+			name:           "is OpenStack",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode(PlatformOpenStack)}),
+			product:        ProductOther,
+			expectPlatform: PlatformOpenStack,
+			expectProduct:  ProductOther,
+			expectFound:    true,
+			expectErr:      nil,
+		},
+		{
+			name:           "is not found",
+			kubeClient:     newFakeKubeClient([]runtime.Object{newNode("other")}),
+			product:        ProductOther,
+			expectPlatform: "",
+			expectProduct:  "",
+			expectFound:    false,
+			expectErr:      nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient}
+			platform, product, found, err := clusterClaimer.getPlatformByNode(test.product)
+			assert.Equal(t, test.expectPlatform, platform)
+			assert.Equal(t, test.expectProduct, product)
+			assert.Equal(t, test.expectFound, found)
+			assert.Equal(t, test.expectErr, err)
 		})
 	}
 }
