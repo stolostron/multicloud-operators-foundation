@@ -164,6 +164,28 @@ func Test_defaultInfo_syncer(t *testing.T) {
 			},
 		},
 		{
+			name: "OpenShift cluster on Nutanix",
+			claims: []runtime.Object{
+				newClaim(clusterclaim.ClaimOCMConsoleURL, "https://nutanix-cluster.com"),
+				newClaim(clusterclaim.ClaimOCMKubeVersion, "v1.26.0"),
+				newClaim(clusterclaim.ClaimOCMProduct, clusterclaim.ProductOpenShift),
+				newClaim(clusterclaim.ClaimOCMPlatform, clusterclaim.PlatformNutanix),
+				newClaim(clusterclaim.ClaimOpenshiftID, "nutanix-cluster-id"),
+			},
+			managedClusterInfo: &v1beta1.ManagedClusterInfo{
+				ObjectMeta: metav1.ObjectMeta{Name: "nutanix-cluster", Namespace: "nutanix-cluster"},
+			},
+			validate: func(managedClusterInfo *v1beta1.ManagedClusterInfo) {
+				if managedClusterInfo.Status.ConsoleURL != "https://nutanix-cluster.com" ||
+					managedClusterInfo.Status.ClusterID != "nutanix-cluster-id" ||
+					managedClusterInfo.Status.Version != "v1.26.0" ||
+					managedClusterInfo.Status.KubeVendor != v1beta1.KubeVendorOpenShift ||
+					managedClusterInfo.Status.CloudVendor != v1beta1.CloudVendorNutanix {
+					t.Errorf("failed to validate nutanix openshift cluster info")
+				}
+			},
+		},
+		{
 			name: "Other cluster",
 			claims: []runtime.Object{
 				newClaim(clusterclaim.ClaimOCMConsoleURL, "https://abc.com"),

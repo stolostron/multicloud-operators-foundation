@@ -22,14 +22,19 @@ spec:
           that acm hub needs to know
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -50,56 +55,48 @@ spec:
             description: Status represents the desired status of the Cluster
             properties:
               cloudVendor:
-                description: CloudVendor describes the cloud provider for the managed
-                  cluster. Deprecated in release 2.3 and will be removed in the future.
-                  Use clusterClaim product.open-cluster-management.io instead.
+                description: |-
+                  CloudVendor describes the cloud provider for the managed cluster.
+                  Deprecated in release 2.3 and will be removed in the future. Use clusterClaim product.open-cluster-management.io instead.
                 type: string
               clusterID:
-                description: ClusterID is the identifier of managed cluster. Deprecated
-                  in release 2.3 and will be removed in the future. Use clusterClaim
-                  id.openshift.io instead.
+                description: |-
+                  ClusterID is the identifier of managed cluster.
+                  Deprecated in release 2.3 and will be removed in the future. Use clusterClaim id.openshift.io instead.
                 type: string
               conditions:
                 description: Conditions contains condition information for a managed
                   cluster
                 items:
-                  description: "Condition contains details for one aspect of the current
-                    state of this API Resource. --- This struct is intended for direct
-                    use as an array at the field path .status.conditions.  For example,
-                    \n type FooStatus struct{ // Represents the observations of a
-                    foo's current state. // Known .status.conditions.type are: \"Available\",
-                    \"Progressing\", and \"Degraded\" // +patchMergeKey=type // +patchStrategy=merge
-                    // +listType=map // +listMapKey=type Conditions []metav1.Condition
-                    `json:\"conditions,omitempty\" patchStrategy:\"merge\" patchMergeKey:\"type\"
-                    protobuf:\"bytes,1,rep,name=conditions\"` \n // other fields }"
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
                   properties:
                     lastTransitionTime:
-                      description: lastTransitionTime is the last time the condition
-                        transitioned from one status to another. This should be when
-                        the underlying condition changed.  If that is not known, then
-                        using the time when the API field changed is acceptable.
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
                       format: date-time
                       type: string
                     message:
-                      description: message is a human readable message indicating
-                        details about the transition. This may be an empty string.
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
                       maxLength: 32768
                       type: string
                     observedGeneration:
-                      description: observedGeneration represents the .metadata.generation
-                        that the condition was set based upon. For instance, if .metadata.generation
-                        is currently 12, but the .status.conditions[x].observedGeneration
-                        is 9, the condition is out of date with respect to the current
-                        state of the instance.
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
                       format: int64
                       minimum: 0
                       type: integer
                     reason:
-                      description: reason contains a programmatic identifier indicating
-                        the reason for the condition's last transition. Producers
-                        of specific condition types may define expected values and
-                        meanings for this field, and whether the values are considered
-                        a guaranteed API. The value should be a CamelCase string.
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
                         This field may not be empty.
                       maxLength: 1024
                       minLength: 1
@@ -114,10 +111,6 @@ spec:
                       type: string
                     type:
                       description: type of condition in CamelCase or in foo.example.com/CamelCase.
-                        --- Many .condition.type values are consistent across resources
-                        like Available, but because arbitrary conditions can be useful
-                        (see .node.status.conditions), the ability to deconflict is
-                        important. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
                       maxLength: 316
                       pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
                       type: string
@@ -130,9 +123,9 @@ spec:
                   type: object
                 type: array
               consoleURL:
-                description: ConsoleURL shows the url of console in managed cluster.
-                  Deprecated in release 2.3 and will be removed in the future. Use
-                  clusterClaim consoleurl.cluster.open-cluster-management.io instead.
+                description: |-
+                  ConsoleURL shows the url of console in managed cluster.
+                  Deprecated in release 2.3 and will be removed in the future. Use clusterClaim consoleurl.cluster.open-cluster-management.io instead.
                 type: string
               distributionInfo:
                 description: DistributionInfo is the information about distribution
@@ -143,161 +136,165 @@ spec:
                       cluster, is matched when the Type is OCP.
                     properties:
                       availableUpdates:
-                        description: AvailableUpdates contains the list of update
-                          versions that are appropriate for the manage cluster. Deprecated
-                          in release 2.3 and will be removed in the future. Use VersionAvailableUpdates
-                          instead.
+                        description: |-
+                          AvailableUpdates contains the list of update versions that are appropriate for the manage cluster.
+                          Deprecated in release 2.3 and will be removed in the future. Use VersionAvailableUpdates instead.
                         items:
                           type: string
                         type: array
                       channel:
-                        description: Channel is an identifier for explicitly requesting
-                          that a non-default set of updates be applied to this cluster.
-                          The default channel will be contain stable updates that
-                          are appropriate for production clusters.
+                        description: |-
+                          Channel is an identifier for explicitly requesting that a non-default
+                          set of updates be applied to this cluster. The default channel will be
+                          contain stable updates that are appropriate for production clusters.
                         type: string
                       desired:
-                        description: desired is the version that the cluster is reconciling
-                          towards. If the cluster is not yet fully initialized desired
-                          will be set with the information available, which may be
-                          an image or a tag.
+                        description: |-
+                          desired is the version that the cluster is reconciling towards.
+                          If the cluster is not yet fully initialized desired will be set
+                          with the information available, which may be an image or a tag.
                         properties:
                           channels:
-                            description: channels is the set of Cincinnati channels
-                              to which the release currently belongs.
+                            description: |-
+                              channels is the set of Cincinnati channels to which the release
+                              currently belongs.
                             items:
                               type: string
                             type: array
                           image:
-                            description: image is a container image location that
-                              contains the update. When this field is part of spec,
-                              image is optional if version is specified and the availableUpdates
-                              field contains a matching version.
+                            description: |-
+                              image is a container image location that contains the update. When this
+                              field is part of spec, image is optional if version is specified and the
+                              availableUpdates field contains a matching version.
                             type: string
                           url:
-                            description: url contains information about this release.
-                              This URL is set by the 'url' metadata property on a
-                              release or the metadata returned by the update API and
-                              should be displayed as a link in user interfaces. The
-                              URL field may not be set for test or nightly releases.
+                            description: |-
+                              url contains information about this release. This URL is set by
+                              the 'url' metadata property on a release or the metadata returned by
+                              the update API and should be displayed as a link in user
+                              interfaces. The URL field may not be set for test or nightly
+                              releases.
                             type: string
                           version:
-                            description: version is a semantic versioning identifying
-                              the update version. When this field is part of spec,
-                              version is optional if image is specified.
+                            description: |-
+                              version is a semantic versioning identifying the update version. When this
+                              field is part of spec, version is optional if image is specified.
                             type: string
                         type: object
                       desiredVersion:
-                        description: DesiredVersion is the version that the cluster
-                          is reconciling towards. Deprecated in release 2.3 and will
-                          be removed in the future. User Desired instead.
+                        description: |-
+                          DesiredVersion is the version that the cluster is reconciling towards.
+                          Deprecated in release 2.3 and will be removed in the future. User Desired instead.
                         type: string
                       lastAppliedAPIServerURL:
-                        description: LastAppliedAPIServerURL is a valid URI with scheme
-                          'https', address and optionally a port (defaulting to 443).
-                          it can be used by components like the web console to tell
-                          users where to find the Kubernetes API. This is the api
-                          server url that has been applied to the managedcluster resource
-                          successfully
+                        description: |-
+                          LastAppliedAPIServerURL is a valid URI with scheme 'https', address and optionally
+                          a port (defaulting to 443). it can be used by components like the web console to
+                          tell users where to find the Kubernetes API.
+                          This is the api server url that has been applied to the managedcluster resource successfully
                         type: string
                       managedClusterClientConfig:
                         description: Controller will sync this field to managedcluster's
                           ManagedClusterClientConfigs
                         properties:
                           caBundle:
-                            description: CABundle is the ca bundle to connect to apiserver
-                              of the managed cluster. System certs are used if it
-                              is not set.
+                            description: |-
+                              CABundle is the ca bundle to connect to apiserver of the managed cluster.
+                              System certs are used if it is not set.
                             format: byte
                             type: string
                           url:
                             description: URL is the URL of apiserver endpoint of the
                               managed cluster.
                             type: string
+                        required:
+                        - url
                         type: object
                       upgradeFailed:
-                        description: UpgradeFailed indicates whether upgrade of the
-                          manage cluster is failed. This is true if the status of
-                          Failing condition is True and the version is different with
-                          desiredVersion in clusterVersion
+                        description: |-
+                          UpgradeFailed indicates whether upgrade of the manage cluster is failed.
+                          This is true if the status of Failing condition is True and the version is different with desiredVersion in clusterVersion
                         type: boolean
                       version:
-                        description: Version is the current version of the OCP cluster.
-                          Deprecated in release 2.3 and will be removed in the future.
-                          Use clusterClaim version.openshift.io instead.
+                        description: |-
+                          Version is the current version of the OCP cluster.
+                          Deprecated in release 2.3 and will be removed in the future. Use clusterClaim version.openshift.io instead.
                         type: string
                       versionAvailableUpdates:
-                        description: VersionAvailableUpdates contains the list of
-                          updates that are appropriate for this cluster. This list
-                          may be empty if no updates are recommended, if the update
-                          service is unavailable, or if an invalid channel has been
-                          specified.
+                        description: |-
+                          VersionAvailableUpdates contains the list of updates that are appropriate
+                          for this cluster. This list may be empty if no updates are recommended,
+                          if the update service is unavailable, or if an invalid channel has
+                          been specified.
                         items:
-                          description: OCPVersionRelease represents an OpenShift release
-                            image and associated metadata. The original definition
-                            is from https://github.com/openshift/api/blob/master/config/v1/types_cluster_version.go
+                          description: |-
+                            OCPVersionRelease represents an OpenShift release image and associated metadata.
+                            The original definition is from https://github.com/openshift/api/blob/master/config/v1/types_cluster_version.go
                           properties:
                             channels:
-                              description: channels is the set of Cincinnati channels
-                                to which the release currently belongs.
+                              description: |-
+                                channels is the set of Cincinnati channels to which the release
+                                currently belongs.
                               items:
                                 type: string
                               type: array
                             image:
-                              description: image is a container image location that
-                                contains the update. When this field is part of spec,
-                                image is optional if version is specified and the
+                              description: |-
+                                image is a container image location that contains the update. When this
+                                field is part of spec, image is optional if version is specified and the
                                 availableUpdates field contains a matching version.
                               type: string
                             url:
-                              description: url contains information about this release.
-                                This URL is set by the 'url' metadata property on
-                                a release or the metadata returned by the update API
-                                and should be displayed as a link in user interfaces.
-                                The URL field may not be set for test or nightly releases.
+                              description: |-
+                                url contains information about this release. This URL is set by
+                                the 'url' metadata property on a release or the metadata returned by
+                                the update API and should be displayed as a link in user
+                                interfaces. The URL field may not be set for test or nightly
+                                releases.
                               type: string
                             version:
-                              description: version is a semantic versioning identifying
-                                the update version. When this field is part of spec,
-                                version is optional if image is specified.
+                              description: |-
+                                version is a semantic versioning identifying the update version. When this
+                                field is part of spec, version is optional if image is specified.
                               type: string
                           type: object
                         type: array
                       versionHistory:
-                        description: VersionHistory contains a list of the most recent
-                          versions applied to the cluster. This value may be empty
-                          during cluster startup, and then will be updated when a
-                          new update is being applied. The newest update is first
-                          in the list and it is ordered by recency. Updates in the
-                          history have state Completed if the rollout completed -
-                          if an update was failing or halfway applied the state will
-                          be Partial. Only a limited amount of update history is preserved.
+                        description: |-
+                          VersionHistory contains a list of the most recent versions applied to the cluster.
+                          This value may be empty during cluster startup, and then will be updated
+                          when a new update is being applied. The newest update is first in the
+                          list and it is ordered by recency. Updates in the history have state
+                          Completed if the rollout completed - if an update was failing or halfway
+                          applied the state will be Partial. Only a limited amount of update history
+                          is preserved.
                         items:
-                          description: OCPVersionUpdateHistory is a single attempted
-                            update to the cluster. the original definition is from
-                            https://github.com/openshift/api/blob/master/config/v1/types_cluster_version.go
+                          description: |-
+                            OCPVersionUpdateHistory is a single attempted update to the cluster.
+                            the original definition is from https://github.com/openshift/api/blob/master/config/v1/types_cluster_version.go
                           properties:
                             image:
-                              description: image is a container image location that
-                                contains the update. This value is always populated.
+                              description: |-
+                                image is a container image location that contains the update. This value
+                                is always populated.
                               type: string
                             state:
-                              description: state reflects whether the update was fully
-                                applied. The Partial state indicates the update is
-                                not fully applied, while the Completed state indicates
-                                the update was successfully rolled out at least once
-                                (all parts of the update successfully applied).
+                              description: |-
+                                state reflects whether the update was fully applied. The Partial state
+                                indicates the update is not fully applied, while the Completed state
+                                indicates the update was successfully rolled out at least once (all
+                                parts of the update successfully applied).
                               type: string
                             verified:
-                              description: verified indicates whether the provided
-                                update was properly verified before it was installed.
-                                If this is false the cluster may not be trusted.
+                              description: |-
+                                verified indicates whether the provided update was properly verified
+                                before it was installed. If this is false the cluster may not be trusted.
                               type: boolean
                             version:
-                              description: version is a semantic versioning identifying
-                                the update version. If the requested image does not
-                                define a version, or if a failure occurs retrieving
-                                the image, this value may be empty.
+                              description: |-
+                                version is a semantic versioning identifying the update version. If the
+                                requested image does not define a version, or if a failure occurs
+                                retrieving the image, this value may be empty.
                               type: string
                           type: object
                         type: array
@@ -308,9 +305,9 @@ spec:
                     type: string
                 type: object
               kubeVendor:
-                description: KubeVendor describes the kubernetes provider of the managed
-                  cluster. Deprecated in release 2.3 and will be removed in the future.
-                  Use clusterClaim platform.open-cluster-management.io instead.
+                description: |-
+                  KubeVendor describes the kubernetes provider of the managed cluster.
+                  Deprecated in release 2.3 and will be removed in the future. Use clusterClaim platform.open-cluster-management.io instead.
                 type: string
               loggingEndpoint:
                 description: LoggingEndpoint shows the endpoint to connect to logging
@@ -320,9 +317,10 @@ spec:
                     description: The Hostname of this endpoint
                     type: string
                   ip:
-                    description: The IP of this endpoint. May not be loopback (127.0.0.0/8
-                      or ::1), link-local (169.254.0.0/16 or fe80::/10), or link-local
-                      multicast (224.0.0.0/24 or ff02::/16).
+                    description: |-
+                      The IP of this endpoint.
+                      May not be loopback (127.0.0.0/8 or ::1), link-local (169.254.0.0/16 or fe80::/10),
+                      or link-local multicast (224.0.0.0/24 or ff02::/16).
                     type: string
                   nodeName:
                     description: 'Optional: Node hosting this endpoint. This can be
@@ -335,33 +333,39 @@ spec:
                         description: API version of the referent.
                         type: string
                       fieldPath:
-                        description: 'If referring to a piece of an object instead
-                          of an entire object, this string should contain a valid
-                          JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                          For example, if the object reference is to a container within
-                          a pod, this would take on a value like: "spec.containers{name}"
-                          (where "name" refers to the name of the container that triggered
-                          the event) or if no container name is specified "spec.containers[2]"
-                          (container with index 2 in this pod). This syntax is chosen
-                          only to have some well-defined way of referencing a part
-                          of an object. TODO: this design is not final and this field
-                          is subject to change in the future.'
+                        description: |-
+                          If referring to a piece of an object instead of an entire object, this string
+                          should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                          For example, if the object reference is to a container within a pod, this would take on a value like:
+                          "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                          the event) or if no container name is specified "spec.containers[2]" (container with
+                          index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                          referencing a part of an object.
                         type: string
                       kind:
-                        description: 'Kind of the referent. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                        description: |-
+                          Kind of the referent.
+                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
                         type: string
                       name:
-                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
+                        description: |-
+                          Name of the referent.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                         type: string
                       namespace:
-                        description: 'Namespace of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/'
+                        description: |-
+                          Namespace of the referent.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
                         type: string
                       resourceVersion:
-                        description: 'Specific resourceVersion to which this reference
-                          is made, if any. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency'
+                        description: |-
+                          Specific resourceVersion to which this reference is made, if any.
+                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
                         type: string
                       uid:
-                        description: 'UID of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids'
+                        description: |-
+                          UID of the referent.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
                         type: string
                     type: object
                     x-kubernetes-map-type: atomic
@@ -374,23 +378,28 @@ spec:
                   of managed cluster
                 properties:
                   appProtocol:
-                    description: "The application protocol for this port. This is
-                      used as a hint for implementations to offer richer behavior
-                      for protocols that they understand. This field follows standard
-                      Kubernetes label syntax. Valid values are either: \n * Un-prefixed
-                      protocol names - reserved for IANA standard service names (as
-                      per RFC-6335 and https://www.iana.org/assignments/service-names).
-                      \n * Kubernetes-defined prefixed names: * 'kubernetes.io/h2c'
-                      - HTTP/2 prior knowledge over cleartext as described in https://www.rfc-editor.org/rfc/rfc9113.html#name-starting-http-2-with-prior-
-                      * 'kubernetes.io/ws'  - WebSocket over cleartext as described
-                      in https://www.rfc-editor.org/rfc/rfc6455 * 'kubernetes.io/wss'
-                      - WebSocket over TLS as described in https://www.rfc-editor.org/rfc/rfc6455
-                      \n * Other protocols should use implementation-defined prefixed
-                      names such as mycompany.com/my-custom-protocol."
+                    description: |-
+                      The application protocol for this port.
+                      This is used as a hint for implementations to offer richer behavior for protocols that they understand.
+                      This field follows standard Kubernetes label syntax.
+                      Valid values are either:
+
+                      * Un-prefixed protocol names - reserved for IANA standard service names (as per
+                      RFC-6335 and https://www.iana.org/assignments/service-names).
+
+                      * Kubernetes-defined prefixed names:
+                        * 'kubernetes.io/h2c' - HTTP/2 prior knowledge over cleartext as described in https://www.rfc-editor.org/rfc/rfc9113.html#name-starting-http-2-with-prior-
+                        * 'kubernetes.io/ws'  - WebSocket over cleartext as described in https://www.rfc-editor.org/rfc/rfc6455
+                        * 'kubernetes.io/wss' - WebSocket over TLS as described in https://www.rfc-editor.org/rfc/rfc6455
+
+                      * Other protocols should use implementation-defined prefixed names such as
+                      mycompany.com/my-custom-protocol.
                     type: string
                   name:
-                    description: The name of this port.  This must match the 'name'
-                      field in the corresponding ServicePort. Must be a DNS_LABEL.
+                    description: |-
+                      The name of this port.  This must match the 'name' field in the
+                      corresponding ServicePort.
+                      Must be a DNS_LABEL.
                       Optional only if one port is defined.
                     type: string
                   port:
@@ -398,9 +407,10 @@ spec:
                     format: int32
                     type: integer
                   protocol:
-                    default: TCP
-                    description: The IP protocol for this port. Must be UDP, TCP,
-                      or SCTP. Default is TCP.
+                    description: |-
+                      The IP protocol for this port.
+                      Must be UDP, TCP, or SCTP.
+                      Default is TCP.
                     type: string
                 required:
                 - port

@@ -285,6 +285,8 @@ const (
 	CloudVendorAlibabaCloud = "AlibabaCloud"
 	// CloudVendorBareMetal BareMetal
 	CloudVendorBareMetal = "BareMetal"
+	// CloudVendorNutanix Nutanix
+	CloudVendorNutanix CloudVendorType = "Nutanix"
 	// CloudVendorOther other (unable to auto detect)
 	CloudVendorOther CloudVendorType = "Other"
 )
