@@ -72,6 +72,8 @@ func getCloudVendor(platform string) (cloudVendor clusterv1beta1.CloudVendorType
 		cloudVendor = clusterv1beta1.CloudVendorAlibabaCloud
 	case clusterclaim.PlatformBareMetal:
 		cloudVendor = clusterv1beta1.CloudVendorBareMetal
+	case clusterclaim.PlatformNutanix:
+		cloudVendor = clusterv1beta1.CloudVendorNutanix
 	default:
 		cloudVendor = clusterv1beta1.CloudVendorOther
 	}

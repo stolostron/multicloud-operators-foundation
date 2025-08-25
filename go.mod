@@ -1,14 +1,14 @@
 module github.com/stolostron/multicloud-operators-foundation
 
-go 1.23.0
+go 1.23.6
 
 require (
 	github.com/go-logr/logr v1.4.2
 	github.com/gogo/protobuf v1.3.2
 	github.com/google/uuid v1.6.0
 	github.com/mattbaird/jsonpatch v0.0.0-20240118010651-0ba75a80ca38
-	github.com/onsi/ginkgo/v2 v2.21.0
-	github.com/onsi/gomega v1.35.1
+	github.com/onsi/ginkgo/v2 v2.22.0
+	github.com/onsi/gomega v1.36.1
 	github.com/openshift/api v0.0.0-20250313134101-8a7efbfb5316
 	github.com/openshift/build-machinery-go v0.0.0-20240419090851-af9c868bcf52
 	github.com/openshift/client-go v0.0.0-20240528061634-b054aa794d87
@@ -18,7 +18,7 @@ require (
 	github.com/prometheus/common v0.55.0
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/pflag v1.0.6
-	github.com/stolostron/cluster-lifecycle-api v0.0.0-20240813023109-42b5c115d0a3
+	github.com/stolostron/cluster-lifecycle-api v0.0.0-20250821030137-6a5f0b6576fd
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/net v0.38.0
 	k8s.io/api v0.32.3
@@ -26,7 +26,7 @@ require (
 	k8s.io/apimachinery v0.32.3
 	k8s.io/apiserver v0.32.1
 	k8s.io/cli-runtime v0.32.1
-	k8s.io/client-go v0.32.1
+	k8s.io/client-go v0.32.2
 	k8s.io/code-generator v0.32.1
 	k8s.io/component-base v0.32.1
 	k8s.io/klog v1.0.0
@@ -34,10 +34,10 @@ require (
 	k8s.io/kube-aggregator v0.32.1
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f
 	open-cluster-management.io/addon-framework v0.12.0
-	open-cluster-management.io/api v0.16.0
+	open-cluster-management.io/api v0.16.2-0.20250422072120-cadf714c3055
 	open-cluster-management.io/managed-serviceaccount v0.5.0
 	open-cluster-management.io/sdk-go v0.16.0
-	sigs.k8s.io/controller-runtime v0.19.0
+	sigs.k8s.io/controller-runtime v0.20.2
 )
 
 require (
@@ -59,7 +59,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.12.0 // indirect
 	github.com/evanphx/json-patch v5.9.0+incompatible // indirect
-	github.com/evanphx/json-patch/v5 v5.9.0 // indirect
+	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
@@ -73,7 +73,7 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/btree v1.0.1 // indirect
+	github.com/google/btree v1.1.3 // indirect
 	github.com/google/cel-go v0.22.0 // indirect
 	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
