@@ -117,21 +117,30 @@ func NewRegistrationOption(kubeClient kubernetes.Interface, rolebindingInformer 
 		CSRConfigurations: agent.KubeClientSignerConfigurations(addonName, addonName),
 		CSRApproveCheck:   utils.DefaultCSRApprover(addonName),
 		PermissionConfig: func(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) error {
-			return createOrUpdateRoleBinding(kubeClient, rolebindingInformer, addonName, cluster.Name)
+			return createOrUpdateRoleBinding(kubeClient, rolebindingInformer, addonName, cluster)
 		},
 	}
 }
 
 // createOrUpdateRoleBinding create or update a role binding for a given cluster
-func createOrUpdateRoleBinding(kubeClient kubernetes.Interface, rolebindingInformer rbacv1informers.RoleBindingInformer, addonName, clusterName string) error {
-	groups := agent.DefaultGroups(clusterName, addonName)
-	acmRoleBinding := helpers.NewRoleBindingForClusterRole(clusterRoleName, clusterName).Groups(groups[0]).BindingOrDie()
+func createOrUpdateRoleBinding(kubeClient kubernetes.Interface, rolebindingInformer rbacv1informers.RoleBindingInformer, addonName string, cluster *clusterv1.ManagedCluster) error {
+	groups := agent.DefaultGroups(cluster.Name, addonName)
+	acmRoleBinding := helpers.NewRoleBindingForClusterRole(clusterRoleName, cluster.Name).Groups(groups[0]).BindingOrDie()
 
 	// role and rolebinding have the same name
-	binding, err := rolebindingInformer.Lister().RoleBindings(clusterName).Get(roleBindingName)
+	binding, err := rolebindingInformer.Lister().RoleBindings(cluster.Name).Get(roleBindingName)
 	if err != nil {
 		if errors.IsNotFound(err) {
-			_, err = kubeClient.RbacV1().RoleBindings(clusterName).Create(context.TODO(), &acmRoleBinding, metav1.CreateOptions{})
+			// Set ManagedCluster as owner reference so RoleBinding gets deleted when ManagedCluster is deleted
+			acmRoleBinding.OwnerReferences = []metav1.OwnerReference{
+				{
+					APIVersion: clusterv1.SchemeGroupVersion.String(),
+					Kind:       "ManagedCluster",
+					Name:       cluster.Name,
+					UID:        cluster.UID,
+				},
+			}
+			_, err = kubeClient.RbacV1().RoleBindings(cluster.Name).Create(context.TODO(), &acmRoleBinding, metav1.CreateOptions{})
 			if errors.IsAlreadyExists(err) {
 				return nil
 			}
@@ -149,7 +158,7 @@ func createOrUpdateRoleBinding(kubeClient kubernetes.Interface, rolebindingInfor
 		binding.Subjects = acmRoleBinding.Subjects
 	}
 	if needUpdate {
-		_, err = kubeClient.RbacV1().RoleBindings(clusterName).Update(context.TODO(), binding, metav1.UpdateOptions{})
+		_, err = kubeClient.RbacV1().RoleBindings(cluster.Name).Update(context.TODO(), binding, metav1.UpdateOptions{})
 		return err
 	}
 
