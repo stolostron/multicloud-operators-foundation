@@ -670,7 +670,7 @@ func TestCreateOrUpdateRoleBinding(t *testing.T) {
 			}
 			opt := NewRegistrationOption(kubeClient, kubeInformers.Rbac().V1().RoleBindings(), "work-manager")
 			err := opt.PermissionConfig(
-				&clusterv1.ManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: test.clusterName}},
+				&clusterv1.ManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: test.clusterName, UID: "test-uid"}},
 				&addonapiv1alpha1.ManagedClusterAddOn{ObjectMeta: metav1.ObjectMeta{Name: "work-manager"}},
 			)
 			if err != nil {
