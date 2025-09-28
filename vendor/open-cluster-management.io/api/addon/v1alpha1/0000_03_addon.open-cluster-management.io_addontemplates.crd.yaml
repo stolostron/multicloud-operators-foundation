@@ -50,16 +50,16 @@ spec:
               addon agent resources yaml description.
             properties:
               addonName:
-                description: AddonName represents the name of the addon which the
+                description: addonName represents the name of the addon which the
                   template belongs to
                 type: string
               agentSpec:
-                description: AgentSpec describes what/how the kubernetes resources
+                description: agentSpec describes what/how the kubernetes resources
                   of the addon agent to be deployed on a managed cluster.
                 properties:
                   deleteOption:
                     description: |-
-                      DeleteOption represents deletion strategy when the manifestwork is deleted.
+                      deleteOption represents deletion strategy when the manifestwork is deleted.
                       Foreground deletion strategy is applied to all the resource in this manifestwork if it is not set.
                     properties:
                       propagationPolicy:
@@ -113,6 +113,16 @@ spec:
                               type: object
                             type: array
                         type: object
+                      ttlSecondsAfterFinished:
+                        description: |-
+                          TTLSecondsAfterFinished limits the lifetime of a ManifestWork that has been marked Complete
+                          by one or more conditionRules set for its manifests. If this field is set, and
+                          the manifestwork has completed, then it is elligible to be automatically deleted.
+                          If this field is unset, the manifestwork won't be automatically deleted even afer completion.
+                          If this field is set to zero, the manfiestwork becomes elligible to be deleted immediately
+                          after completion.
+                        format: int64
+                        type: integer
                     type: object
                   executor:
                     description: |-
@@ -161,12 +171,65 @@ spec:
                         type: object
                     type: object
                   manifestConfigs:
-                    description: ManifestConfigs represents the configurations of
+                    description: manifestConfigs represents the configurations of
                       manifests defined in workload field.
                     items:
                       description: ManifestConfigOption represents the configurations
                         of a manifest defined in workload field.
                       properties:
+                        conditionRules:
+                          description: ConditionRules defines how to set manifestwork
+                            conditions for a specific manifest.
+                          items:
+                            properties:
+                              celExpressions:
+                                description: |-
+                                  CelExpressions defines the CEL expressions to be evaluated for the condition.
+                                  Final result is the logical AND of all expressions.
+                                items:
+                                  type: string
+                                type: array
+                              condition:
+                                description: |-
+                                  Condition is the type of condition that is set based on this rule.
+                                  Any condition is supported, but certain special conditions can be used to
+                                  to control higher level behaviors of the manifestwork.
+                                  If the condition is Complete, the manifest will no longer be updated once completed.
+                                type: string
+                              message:
+                                description: Message is set on the condition created
+                                  for this rule
+                                type: string
+                              messageExpression:
+                                description: |-
+                                  MessageExpression uses a CEL expression to generate a message for the condition
+                                  Will override message if both are set and messageExpression returns a non-empty string.
+                                  Variables:
+                                  - object: The current instance of the manifest
+                                  - result: Boolean result of the CEL expressions
+                                type: string
+                              type:
+                                description: |-
+                                  Type defines how a manifest should be evaluated for a condition.
+                                  It can be CEL, or WellKnownConditions.
+                                  If the type is CEL, user should specify the celExpressions field
+                                  If the type is WellKnownConditions, certain common types in k8s.io/api will be considered
+                                  completed as defined by hardcoded rules.
+                                enum:
+                                - WellKnownConditions
+                                - CEL
+                                type: string
+                            required:
+                            - condition
+                            - type
+                            type: object
+                            x-kubernetes-validations:
+                            - message: Condition is required for CEL rules
+                              rule: self.type != 'CEL' || self.condition != ""
+                          type: array
+                          x-kubernetes-list-map-keys:
+                          - condition
+                          x-kubernetes-list-type: map
                         feedbackRules:
                           description: |-
                             FeedbackRules defines what resource status field should be returned. If it is not set or empty,
@@ -325,11 +388,11 @@ spec:
                       type: object
                     type: array
                   workload:
-                    description: Workload represents the manifest workload to be deployed
+                    description: workload represents the manifest workload to be deployed
                       on a managed cluster.
                     properties:
                       manifests:
-                        description: Manifests represents a list of kuberenetes resources
+                        description: manifests represents a list of kubernetes resources
                           to be deployed on a managed cluster.
                         items:
                           description: Manifest represents a resource to be deployed
@@ -341,7 +404,7 @@ spec:
                     type: object
                 type: object
               registration:
-                description: Registration holds the registration configuration for
+                description: registration holds the registration configuration for
                   the addon
                 items:
                   description: |-

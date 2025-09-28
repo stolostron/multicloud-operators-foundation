@@ -75,12 +75,14 @@ func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenA
 		"k8s.io/apimachinery/pkg/runtime.Unknown":                                                                            schema_k8sio_apimachinery_pkg_runtime_Unknown(ref),
 		"k8s.io/apimachinery/pkg/version.Info":                                                                               schema_k8sio_apimachinery_pkg_version_Info(ref),
 		"open-cluster-management.io/api/cluster/v1.ClientConfig":                                                             schema_open_cluster_managementio_api_cluster_v1_ClientConfig(ref),
+		"open-cluster-management.io/api/cluster/v1.ClusterSetManagedNamespaceConfig":                                         schema_open_cluster_managementio_api_cluster_v1_ClusterSetManagedNamespaceConfig(ref),
 		"open-cluster-management.io/api/cluster/v1.ManagedCluster":                                                           schema_open_cluster_managementio_api_cluster_v1_ManagedCluster(ref),
 		"open-cluster-management.io/api/cluster/v1.ManagedClusterClaim":                                                      schema_open_cluster_managementio_api_cluster_v1_ManagedClusterClaim(ref),
 		"open-cluster-management.io/api/cluster/v1.ManagedClusterList":                                                       schema_open_cluster_managementio_api_cluster_v1_ManagedClusterList(ref),
 		"open-cluster-management.io/api/cluster/v1.ManagedClusterSpec":                                                       schema_open_cluster_managementio_api_cluster_v1_ManagedClusterSpec(ref),
 		"open-cluster-management.io/api/cluster/v1.ManagedClusterStatus":                                                     schema_open_cluster_managementio_api_cluster_v1_ManagedClusterStatus(ref),
 		"open-cluster-management.io/api/cluster/v1.ManagedClusterVersion":                                                    schema_open_cluster_managementio_api_cluster_v1_ManagedClusterVersion(ref),
+		"open-cluster-management.io/api/cluster/v1.ManagedNamespaceConfig":                                                   schema_open_cluster_managementio_api_cluster_v1_ManagedNamespaceConfig(ref),
 		"open-cluster-management.io/api/cluster/v1.Taint":                                                                    schema_open_cluster_managementio_api_cluster_v1_Taint(ref),
 		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSelector":                                              schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSelector(ref),
 		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSet":                                                   schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSet(ref),
@@ -2791,16 +2793,46 @@ func schema_k8sio_apimachinery_pkg_version_Info(ref common.ReferenceCallback) co
 				Properties: map[string]spec.Schema{
 					"major": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "Major is the major version of the binary version",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"minor": {
 						SchemaProps: spec.SchemaProps{
-							Default: "",
-							Type:    []string{"string"},
-							Format:  "",
+							Description: "Minor is the minor version of the binary version",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"emulationMajor": {
+						SchemaProps: spec.SchemaProps{
+							Description: "EmulationMajor is the major version of the emulation version",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"emulationMinor": {
+						SchemaProps: spec.SchemaProps{
+							Description: "EmulationMinor is the minor version of the emulation version",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"minCompatibilityMajor": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MinCompatibilityMajor is the major version of the minimum compatibility version",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"minCompatibilityMinor": {
+						SchemaProps: spec.SchemaProps{
+							Description: "MinCompatibilityMinor is the minor version of the minimum compatibility version",
+							Type:        []string{"string"},
+							Format:      "",
 						},
 					},
 					"gitVersion": {
@@ -2888,6 +2920,51 @@ func schema_open_cluster_managementio_api_cluster_v1_ClientConfig(ref common.Ref
 	}
 }
 
+func schema_open_cluster_managementio_api_cluster_v1_ClusterSetManagedNamespaceConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Type: []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the name of the namespace.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"clusterSet": {
+						SchemaProps: spec.SchemaProps{
+							Description: "clusterSet represents the name of the cluster set.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+					"conditions": {
+						SchemaProps: spec.SchemaProps{
+							Description: "conditions are the status conditions of the managed namespace",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("k8s.io/apimachinery/pkg/apis/meta/v1.Condition"),
+									},
+								},
+							},
+						},
+					},
+				},
+				Required: []string{"name", "clusterSet"},
+			},
+		},
+		Dependencies: []string{
+			"k8s.io/apimachinery/pkg/apis/meta/v1.Condition"},
+	}
+}
+
 func schema_open_cluster_managementio_api_cluster_v1_ManagedCluster(ref common.ReferenceCallback) common.OpenAPIDefinition {
 	return common.OpenAPIDefinition{
 		Schema: spec.Schema{
@@ -2947,14 +3024,14 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterClaim(ref com
 				Properties: map[string]spec.Schema{
 					"name": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Name is the name of a ClusterClaim resource on managed cluster. It's a well known or customized name to identify the claim.",
+							Description: "name is the name of a ClusterClaim resource on managed cluster. It's a well known or customized name to identify the claim.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"value": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Value is a claim-dependent string",
+							Description: "value is a claim-dependent string",
 							Type:        []string{"string"},
 							Format:      "",
 						},
@@ -3047,14 +3124,14 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterSpec(ref comm
 					},
 					"leaseDurationSeconds": {
 						SchemaProps: spec.SchemaProps{
-							Description: "LeaseDurationSeconds is used to coordinate the lease update time of Klusterlet agents on the managed cluster. If its value is zero, the Klusterlet agent will update its lease every 60 seconds by default",
+							Description: "leaseDurationSeconds is used to coordinate the lease update time of Klusterlet agents on the managed cluster. If its value is zero, the Klusterlet agent will update its lease every 60 seconds by default",
 							Type:        []string{"integer"},
 							Format:      "int32",
 						},
 					},
 					"taints": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Taints is a property of managed cluster that allow the cluster to be repelled when scheduling. Taints, including 'ManagedClusterUnavailable' and 'ManagedClusterUnreachable', can not be added/removed by agent running on the managed cluster; while it's fine to add/remove other taints from either hub cluser or managed cluster.",
+							Description: "taints is a property of managed cluster that allow the cluster to be repelled when scheduling. Taints, including 'ManagedClusterUnavailable' and 'ManagedClusterUnreachable', can not be added/removed by agent running on the managed cluster; while it's fine to add/remove other taints from either hub cluser or managed cluster.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -3067,7 +3144,6 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterSpec(ref comm
 						},
 					},
 				},
-				Required: []string{"hubAcceptsClient"},
 			},
 		},
 		Dependencies: []string{
@@ -3084,7 +3160,7 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterStatus(ref co
 				Properties: map[string]spec.Schema{
 					"conditions": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Conditions contains the different condition statuses for this managed cluster.",
+							Description: "conditions contains the different condition statuses for this managed cluster.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -3098,7 +3174,7 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterStatus(ref co
 					},
 					"capacity": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Capacity represents the total resource capacity from all nodeStatuses on the managed cluster.",
+							Description: "capacity represents the total resource capacity from all nodeStatuses on the managed cluster.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -3112,7 +3188,7 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterStatus(ref co
 					},
 					"allocatable": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Allocatable represents the total allocatable resources on the managed cluster.",
+							Description: "allocatable represents the total allocatable resources on the managed cluster.",
 							Type:        []string{"object"},
 							AdditionalProperties: &spec.SchemaOrBool{
 								Allows: true,
@@ -3126,14 +3202,14 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterStatus(ref co
 					},
 					"version": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Version represents the kubernetes version of the managed cluster.",
+							Description: "version represents the kubernetes version of the managed cluster.",
 							Default:     map[string]interface{}{},
 							Ref:         ref("open-cluster-management.io/api/cluster/v1.ManagedClusterVersion"),
 						},
 					},
 					"clusterClaims": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ClusterClaims represents cluster information that a managed cluster claims, for example a unique cluster identifier (id.k8s.io) and kubernetes version (kubeversion.open-cluster-management.io). They are written from the managed cluster. The set of claims is not uniform across a fleet, some claims can be vendor or version specific and may not be included from all managed clusters.",
+							Description: "clusterClaims represents cluster information that a managed cluster claims, for example a unique cluster identifier (id.k8s.io) and kubernetes version (kubeversion.open-cluster-management.io). They are written from the managed cluster. The set of claims is not uniform across a fleet, some claims can be vendor or version specific and may not be included from all managed clusters.",
 							Type:        []string{"array"},
 							Items: &spec.SchemaOrArray{
 								Schema: &spec.Schema{
@@ -3145,12 +3221,35 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterStatus(ref co
 							},
 						},
 					},
+					"managedNamespaces": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"clusterSet",
+									"name",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "managedNamespaces are a list of namespaces managed by the clustersets the cluster belongs to.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("open-cluster-management.io/api/cluster/v1.ClusterSetManagedNamespaceConfig"),
+									},
+								},
+							},
+						},
+					},
 				},
 				Required: []string{"conditions"},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/api/resource.Quantity", "k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "open-cluster-management.io/api/cluster/v1.ManagedClusterClaim", "open-cluster-management.io/api/cluster/v1.ManagedClusterVersion"},
+			"k8s.io/apimachinery/pkg/api/resource.Quantity", "k8s.io/apimachinery/pkg/apis/meta/v1.Condition", "open-cluster-management.io/api/cluster/v1.ClusterSetManagedNamespaceConfig", "open-cluster-management.io/api/cluster/v1.ManagedClusterClaim", "open-cluster-management.io/api/cluster/v1.ManagedClusterVersion"},
 	}
 }
 
@@ -3163,12 +3262,34 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterVersion(ref c
 				Properties: map[string]spec.Schema{
 					"kubernetes": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Kubernetes is the kubernetes version of managed cluster.",
+							Description: "kubernetes is the kubernetes version of managed cluster.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 				},
+			},
+		},
+	}
+}
+
+func schema_open_cluster_managementio_api_cluster_v1_ManagedNamespaceConfig(ref common.ReferenceCallback) common.OpenAPIDefinition {
+	return common.OpenAPIDefinition{
+		Schema: spec.Schema{
+			SchemaProps: spec.SchemaProps{
+				Description: "managedNamespaces defines a namespace on the managedclusters across the clusterset to be managed by this clusterset.",
+				Type:        []string{"object"},
+				Properties: map[string]spec.Schema{
+					"name": {
+						SchemaProps: spec.SchemaProps{
+							Description: "name is the name of the namespace.",
+							Default:     "",
+							Type:        []string{"string"},
+							Format:      "",
+						},
+					},
+				},
+				Required: []string{"name"},
 			},
 		},
 	}
@@ -3183,7 +3304,7 @@ func schema_open_cluster_managementio_api_cluster_v1_Taint(ref common.ReferenceC
 				Properties: map[string]spec.Schema{
 					"key": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Key is the taint key applied to a cluster. e.g. bar or foo.example.com/bar. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)",
+							Description: "key is the taint key applied to a cluster. e.g. bar or foo.example.com/bar. The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -3191,14 +3312,14 @@ func schema_open_cluster_managementio_api_cluster_v1_Taint(ref common.ReferenceC
 					},
 					"value": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Value is the taint value corresponding to the taint key.",
+							Description: "value is the taint value corresponding to the taint key.",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"effect": {
 						SchemaProps: spec.SchemaProps{
-							Description: "Effect indicates the effect of the taint on placements that do not tolerate the taint. Valid effects are NoSelect, PreferNoSelect and NoSelectIfNew.",
+							Description: "effect indicates the effect of the taint on placements that do not tolerate the taint. Valid effects are NoSelect, PreferNoSelect and NoSelectIfNew.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -3206,7 +3327,7 @@ func schema_open_cluster_managementio_api_cluster_v1_Taint(ref common.ReferenceC
 					},
 					"timeAdded": {
 						SchemaProps: spec.SchemaProps{
-							Description: "TimeAdded represents the time at which the taint was added.",
+							Description: "timeAdded represents the time at which the taint was added.",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.Time"),
 						},
 					},
@@ -3228,14 +3349,14 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSelector
 				Properties: map[string]spec.Schema{
 					"selectorType": {
 						SchemaProps: spec.SchemaProps{
-							Description: "SelectorType could only be \"ExclusiveClusterSetLabel\" or \"LabelSelector\" \"ExclusiveClusterSetLabel\" means to use label \"cluster.open-cluster-management.io/clusterset:<ManagedClusterSet Name>\"\" to select target clusters. \"LabelSelector\" means use labelSelector to select target managedClusters",
+							Description: "selectorType could only be \"ExclusiveClusterSetLabel\" or \"LabelSelector\" \"ExclusiveClusterSetLabel\" means to use label \"cluster.open-cluster-management.io/clusterset:<ManagedClusterSet Name>\"\" to select target clusters. \"LabelSelector\" means use labelSelector to select target managedClusters",
 							Type:        []string{"string"},
 							Format:      "",
 						},
 					},
 					"labelSelector": {
 						SchemaProps: spec.SchemaProps{
-							Description: "LabelSelector define the general labelSelector which clusterset will use to select target managedClusters",
+							Description: "labelSelector define the general labelSelector which clusterset will use to select target managedClusters",
 							Ref:         ref("k8s.io/apimachinery/pkg/apis/meta/v1.LabelSelector"),
 						},
 					},
@@ -3408,7 +3529,7 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindi
 				Properties: map[string]spec.Schema{
 					"clusterSet": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ClusterSet is the name of the ManagedClusterSet to bind. It must match the instance name of the ManagedClusterSetBinding and cannot change once created. User is allowed to set this field if they have an RBAC rule to CREATE on the virtual subresource of managedclustersets/bind.",
+							Description: "clusterSet is the name of the ManagedClusterSet to bind. It must match the instance name of the ManagedClusterSetBinding and cannot change once created. User is allowed to set this field if they have an RBAC rule to CREATE on the virtual subresource of managedclustersets/bind.",
 							Default:     "",
 							Type:        []string{"string"},
 							Format:      "",
@@ -3511,16 +3632,38 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetSpec(
 				Properties: map[string]spec.Schema{
 					"clusterSelector": {
 						SchemaProps: spec.SchemaProps{
-							Description: "ClusterSelector represents a selector of ManagedClusters",
+							Description: "clusterSelector represents a selector of ManagedClusters",
 							Default:     map[string]interface{}{},
 							Ref:         ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSelector"),
+						},
+					},
+					"managedNamespaces": {
+						VendorExtensible: spec.VendorExtensible{
+							Extensions: spec.Extensions{
+								"x-kubernetes-list-map-keys": []interface{}{
+									"name",
+								},
+								"x-kubernetes-list-type": "map",
+							},
+						},
+						SchemaProps: spec.SchemaProps{
+							Description: "managedNamespaces defines the list of namespace on the managedclusters across the clusterset to be managed.",
+							Type:        []string{"array"},
+							Items: &spec.SchemaOrArray{
+								Schema: &spec.Schema{
+									SchemaProps: spec.SchemaProps{
+										Default: map[string]interface{}{},
+										Ref:     ref("open-cluster-management.io/api/cluster/v1.ManagedNamespaceConfig"),
+									},
+								},
+							},
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSelector"},
+			"open-cluster-management.io/api/cluster/v1.ManagedNamespaceConfig", "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSelector"},
 	}
 }
 
