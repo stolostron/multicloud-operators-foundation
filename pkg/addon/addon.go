@@ -61,7 +61,7 @@ type GlobalValues struct {
 }
 
 type Values struct {
-	GlobalValues                    GlobalValues `json:"global,omitempty,omitempty"`
+	GlobalValues                    GlobalValues `json:"global,omitempty"`
 	EnableSyncLabelsToClusterClaims string       `json:"enableSyncLabelsToClusterClaims"`
 	EnableNodeCapacity              string       `json:"enableNodeCapacity"`
 }
