@@ -36,6 +36,8 @@ const (
 	createClusterDeploymentFromAgentCluster = `{"apiVersion":"hive.openshift.io/v1","kind":"ClusterDeployment","metadata":{"name":"cd-pool","namespace":"cd-pool","ownerReferences":[{"apiVersion":"capi-provider.agent-install.openshift.io/v1","kind":"AgentCluster"}]},"spec":{"clusterName":"gcp-pool-9m688"}}`
 	labelSelectorSet                        = `{"apiVersion":"cluster.open-cluster-management.io/v1beta2","kind":"ManagedClusterSet","metadata":{"name":"te-label-set"},"spec":{"clusterSelector":{"labelSelector":{"matchLabels":{"vendor":"ocp"}},"selectorType":"LabelSelector"}}}`
 	globalSet                               = `{"apiVersion":"cluster.open-cluster-management.io/v1beta2","kind":"ManagedClusterSet","metadata":{"name":"global"},"spec":{"clusterSelector":{"labelSelector":{},"selectorType":"LabelSelector"}}}`
+	globalSetWithManagedNamespaces          = `{"apiVersion":"cluster.open-cluster-management.io/v1beta2","kind":"ManagedClusterSet","metadata":{"name":"global"},"spec":{"clusterSelector":{"labelSelector":{},"selectorType":"LabelSelector"},"managedNamespaces":[{"name": "ns1"},{"name": "ns2"}]}}`
+	globalSetWithDifferentSelector          = `{"apiVersion":"cluster.open-cluster-management.io/v1beta2","kind":"ManagedClusterSet","metadata":{"name":"global"},"spec":{"clusterSelector":{"labelSelector":{"matchLabels":{"env":"prod"}},"selectorType":"LabelSelector"}}}`
 	defaultSet                              = `{"apiVersion":"cluster.open-cluster-management.io/v1beta2","kind":"ManagedClusterSet","metadata":{"name":"default"},"spec":{"clusterSelector":{"selectorType":"ExclusiveClusterSetLabel"}}}`
 	errorDefaultSet                         = `{"apiVersion":"cluster.open-cluster-management.io/v1beta2","kind":"ManagedClusterSet","metadata":{name":"default"},"spec":{"clusterSelector":{"selectorType":"ExclusiveClusterSetLabel"}}}`
 )
@@ -356,6 +358,54 @@ func TestAdmissionHandler_ServerValidateResource(t *testing.T) {
 			},
 			expectedResponse: &v1.AdmissionResponse{
 				Allowed: false,
+			},
+		},
+		{
+			name: "allow update global clusterset with same ClusterSelector but different ManagedNamespaces",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClusterSetsGVR,
+				Operation: v1.Update,
+				Object: runtime.RawExtension{
+					Raw: []byte(globalSetWithManagedNamespaces),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(globalSet),
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
+			},
+		},
+		{
+			name: "deny update global clusterset with different ClusterSelector",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClusterSetsGVR,
+				Operation: v1.Update,
+				Object: runtime.RawExtension{
+					Raw: []byte(globalSetWithDifferentSelector),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(globalSet),
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: false,
+			},
+		},
+		{
+			name: "allow update global clusterset with same ClusterSelector",
+			request: &v1.AdmissionRequest{
+				Resource:  managedClusterSetsGVR,
+				Operation: v1.Update,
+				Object: runtime.RawExtension{
+					Raw: []byte(globalSet),
+				},
+				OldObject: runtime.RawExtension{
+					Raw: []byte(globalSet),
+				},
+			},
+			expectedResponse: &v1.AdmissionResponse{
+				Allowed: true,
 			},
 		},
 	}

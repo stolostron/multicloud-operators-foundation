@@ -92,7 +92,8 @@ func (a *AdmissionHandler) validateManagedClusterSet(request *v1.AdmissionReques
 		}
 		//allow creating/updating global clusterset
 		if clusterset.Name == clustersetutils.GlobalSetName {
-			if equality.Semantic.DeepEqual(clusterset.Spec, clustersetutils.GlobalSet.Spec) {
+			// allow creating/updating global clusterset when the Spec.ClusterSelector matches the predefined value
+			if equality.Semantic.DeepEqual(clusterset.Spec.ClusterSelector, clustersetutils.GlobalSet.Spec.ClusterSelector) {
 				return a.responseAllowed()
 			}
 			return a.responseNotAllowed("Do not allow to create/update global clusterset")
