@@ -41,6 +41,28 @@ func IndexClusterPermissionBySubject(obj any) ([]string, error) {
 		}
 	}
 
+	clusterRoleBindings, found, err := unstructured.NestedSlice(u, "spec", "clusterRoleBindings")
+	if err != nil {
+		return nil, fmt.Errorf("invalid clusterRoleBindings in %s/%s, %v", namespace, name, err)
+	}
+	if found {
+		for _, crb := range clusterRoleBindings {
+			binding, ok := crb.(map[string]any)
+			if !ok {
+				return nil, fmt.Errorf("invalid clusterRoleBinding in %s/%s", namespace, name)
+			}
+
+			subjects, err := toSubjects(binding)
+			if err != nil {
+				return nil, fmt.Errorf("failed to find subject from clusterRoleBindings in %s/%s, %v", namespace, name, err)
+			}
+
+			for _, subject := range subjects {
+				keySet.Insert(fmt.Sprintf("%s/%s/%s/%s", namespace, name, subject.Kind, subject.Name))
+			}
+		}
+	}
+
 	roleBindings, found, err := unstructured.NestedSlice(u, "spec", "roleBindings")
 	if err != nil {
 		return nil, fmt.Errorf("invalid roleBindings in %s/%s, %v", namespace, name, err)
