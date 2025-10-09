@@ -25,35 +25,35 @@ func listProjects(namespace, name string, obj runtime.Object, userInfo user.Info
 		return projects
 	}
 
+	// Check singular clusterRoleBinding field (legacy)
 	clusterRoleBinding, found, err := unstructured.NestedMap(u, "spec", "clusterRoleBinding")
 	if err != nil {
-		klog.Errorf("invalid roleBindings in %s/%s, %v", namespace, name, err)
+		klog.Errorf("invalid clusterRoleBinding in %s/%s, %v", namespace, name, err)
+		return projects
+	}
+	if found && checkClusterRoleBindingForKubeVirt(namespace, name, clusterRoleBinding, userInfo) {
+		// current user has clusterRoleBinding with kubevirt role, return all projects
+		return []projectView{{name: AllProjects, cluster: namespace}}
+	}
+
+	// Check plural clusterRoleBindings field (new in ACM 2.15)
+	clusterRoleBindings, found, err := unstructured.NestedSlice(u, "spec", "clusterRoleBindings")
+	if err != nil {
+		klog.Errorf("invalid clusterRoleBindings in %s/%s, %v", namespace, name, err)
 		return projects
 	}
 	if found {
-		subjects, err := toSubjects(clusterRoleBinding)
-		if err != nil {
-			klog.Errorf("failed to get subject %v", err)
-			return projects
-		}
-
-		for _, subject := range subjects {
-			if isBoundUser(subject, userInfo) {
-				roleName, err := getRoleRefName(clusterRoleBinding)
-				if err != nil {
-					klog.Errorf("failed to get roleRef in %s/%s on clusterRoleBinding, %v", namespace, name, err)
-					return projects
-				}
-
-				if isKubeVirtRole(roleName) {
-					projects = append(projects, projectView{name: AllProjects, cluster: namespace})
-				}
+		for _, crb := range clusterRoleBindings {
+			binding, ok := crb.(map[string]any)
+			if !ok {
+				klog.Errorf("invalid clusterRoleBinding in %s/%s", namespace, name)
+				continue
 			}
-		}
 
-		if len(projects) != 0 {
-			// current user has clusterRoleBinding, return all projects
-			return projects
+			if checkClusterRoleBindingForKubeVirt(namespace, name, binding, userInfo) {
+				// current user has clusterRoleBinding with kubevirt role, return all projects
+				return []projectView{{name: AllProjects, cluster: namespace}}
+			}
 		}
 	}
 
@@ -146,4 +146,28 @@ func getRoleRefName(binding map[string]any) (string, error) {
 
 func isKubeVirtRole(name string) bool {
 	return (name == "kubevirt.io:admin" || name == "kubevirt.io:edit" || name == "kubevirt.io:view")
+}
+
+func checkClusterRoleBindingForKubeVirt(namespace, name string, binding map[string]any, userInfo user.Info) bool {
+	subjects, err := toSubjects(binding)
+	if err != nil {
+		klog.Errorf("failed to get subject %v", err)
+		return false
+	}
+
+	for _, subject := range subjects {
+		if isBoundUser(subject, userInfo) {
+			roleName, err := getRoleRefName(binding)
+			if err != nil {
+				klog.Errorf("failed to get roleRef in %s/%s on clusterRoleBinding, %v", namespace, name, err)
+				return false
+			}
+
+			if isKubeVirtRole(roleName) {
+				return true
+			}
+		}
+	}
+
+	return false
 }

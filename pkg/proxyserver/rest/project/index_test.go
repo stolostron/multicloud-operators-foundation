@@ -184,6 +184,70 @@ func TestIndexClusterPermissionBySubject(t *testing.T) {
 			expected:    []string{},
 			expectError: false,
 		},
+		{
+			name: "valid object with clusterRoleBindings (plural)",
+			input: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"namespace": "test-ns",
+						"name":      "test-name",
+					},
+					"spec": map[string]interface{}{
+						"clusterRoleBindings": []interface{}{
+							map[string]interface{}{
+								"subject": map[string]interface{}{
+									"kind": "User",
+									"name": "user1",
+								},
+							},
+							map[string]interface{}{
+								"subject": map[string]interface{}{
+									"kind": "Group",
+									"name": "group1",
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []string{
+				"test-ns/test-name/User/user1",
+				"test-ns/test-name/Group/group1",
+			},
+			expectError: false,
+		},
+		{
+			name: "object with both clusterRoleBinding (singular) and clusterRoleBindings (plural)",
+			input: &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"metadata": map[string]interface{}{
+						"namespace": "test-ns",
+						"name":      "test-name",
+					},
+					"spec": map[string]interface{}{
+						"clusterRoleBinding": map[string]interface{}{
+							"subject": map[string]interface{}{
+								"kind": "User",
+								"name": "legacy-user",
+							},
+						},
+						"clusterRoleBindings": []interface{}{
+							map[string]interface{}{
+								"subject": map[string]interface{}{
+									"kind": "User",
+									"name": "new-user",
+								},
+							},
+						},
+					},
+				},
+			},
+			expected: []string{
+				"test-ns/test-name/User/legacy-user",
+				"test-ns/test-name/User/new-user",
+			},
+			expectError: false,
+		},
 	}
 
 	for _, tt := range tests {
