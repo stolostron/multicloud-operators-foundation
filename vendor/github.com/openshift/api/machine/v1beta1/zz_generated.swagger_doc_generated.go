@@ -15,6 +15,7 @@ var map_AWSMachineProviderConfig = map[string]string{
 	"":                        "AWSMachineProviderConfig is the Schema for the awsmachineproviderconfigs API Compatibility level 2: Stable within a major release for a minimum of 9 months or 3 minor releases (whichever is longer).",
 	"ami":                     "ami is the reference to the AMI from which to create the machine instance.",
 	"instanceType":            "instanceType is the type of instance to create. Example: m4.xlarge",
+	"cpuOptions":              "cpuOptions defines CPU-related settings for the instance, including the confidential computing policy. When omitted, this means no opinion and the AWS platform is left to choose a reasonable default. More info: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_CpuOptionsRequest.html, https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/cpu-options-supported-instances-values.html",
 	"tags":                    "tags is the set of tags to add to apply to an instance, in addition to the ones added by default by the actuator. These tags are additive. The actuator will ensure these tags are present, but will not remove any other tags that may exist on the instance.",
 	"iamInstanceProfile":      "iamInstanceProfile is a reference to an IAM role to assign to the instance",
 	"userDataSecret":          "userDataSecret contains a local reference to a secret that contains the UserData to apply to the instance",
@@ -82,9 +83,18 @@ func (BlockDeviceMappingSpec) SwaggerDoc() map[string]string {
 	return map_BlockDeviceMappingSpec
 }
 
+var map_CPUOptions = map[string]string{
+	"":                    "CPUOptions defines CPU-related settings for the instance, including the confidential computing policy. If provided, it must not be empty — at least one field must be set.",
+	"confidentialCompute": "confidentialCompute specifies whether confidential computing should be enabled for the instance, and, if so, which confidential computing technology to use. Valid values are: Disabled, AMDEncryptedVirtualizationNestedPaging and omitted. When set to Disabled, confidential computing will be disabled for the instance. When set to AMDEncryptedVirtualizationNestedPaging, AMD SEV-SNP will be used as the confidential computing technology for the instance. In this case, ensure the following conditions are met: 1) The selected instance type supports AMD SEV-SNP. 2) The selected AWS region supports AMD SEV-SNP. 3) The selected AMI supports AMD SEV-SNP. More details can be checked at https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/sev-snp.html When omitted, this means no opinion and the AWS platform is left to choose a reasonable default, which is subject to change without notice. The current default is Disabled.",
+}
+
+func (CPUOptions) SwaggerDoc() map[string]string {
+	return map_CPUOptions
+}
+
 var map_EBSBlockDeviceSpec = map[string]string{
 	"":                    "EBSBlockDeviceSpec describes a block device for an EBS volume. https://docs.aws.amazon.com/goto/WebAPI/ec2-2016-11-15/EbsBlockDevice",
-	"deleteOnTermination": "Indicates whether the EBS volume is deleted on machine termination.",
+	"deleteOnTermination": "Indicates whether the EBS volume is deleted on machine termination.\n\nDeprecated: setting this field has no effect.",
 	"encrypted":           "Indicates whether the EBS volume is encrypted. Encrypted Amazon EBS volumes may only be attached to machines that support Amazon EBS encryption.",
 	"kmsKey":              "Indicates the KMS key that should be used to encrypt the Amazon EBS volume.",
 	"iops":                "The number of I/O operations per second (IOPS) that the volume supports. For io1, this represents the number of IOPS that are provisioned for the volume. For gp2, this represents the baseline performance of the volume and the rate at which the volume accumulates I/O credits for bursting. For more information about General Purpose SSD baseline performance, I/O credits, and bursting, see Amazon EBS Volume Types (http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html) in the Amazon Elastic Compute Cloud User Guide.\n\nMinimal and maximal IOPS for io1 and gp2 are constrained. Please, check https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html for precise boundaries for individual volumes.\n\nCondition: This parameter is required for requests to create io1 volumes; it is not used in requests to create gp2, st1, sc1, or standard volumes.",
@@ -625,7 +635,7 @@ var map_MachineHealthCheckSpec = map[string]string{
 	"":                    "MachineHealthCheckSpec defines the desired state of MachineHealthCheck",
 	"selector":            "Label selector to match machines whose health will be exercised. Note: An empty selector will match all machines.",
 	"unhealthyConditions": "unhealthyConditions contains a list of the conditions that determine whether a node is considered unhealthy.  The conditions are combined in a logical OR, i.e. if any of the conditions is met, the node is unhealthy.",
-	"maxUnhealthy":        "Any farther remediation is only allowed if at most \"MaxUnhealthy\" machines selected by \"selector\" are not healthy. Expects either a postive integer value or a percentage value. Percentage values must be positive whole numbers and are capped at 100%. Both 0 and 0% are valid and will block all remediation.",
+	"maxUnhealthy":        "Any farther remediation is only allowed if at most \"MaxUnhealthy\" machines selected by \"selector\" are not healthy. Expects either a postive integer value or a percentage value. Percentage values must be positive whole numbers and are capped at 100%. Both 0 and 0% are valid and will block all remediation. Defaults to 100% if not set.",
 	"nodeStartupTimeout":  "Machines older than this duration without a node will be considered to have failed and will be remediated. To prevent Machines without Nodes from being removed, disable startup checks by setting this value explicitly to \"0\". Expects an unsigned duration string of decimal numbers each with optional fraction and a unit suffix, eg \"300ms\", \"1.5h\" or \"2h45m\". Valid time units are \"ns\", \"us\" (or \"µs\"), \"ms\", \"s\", \"m\", \"h\".",
 	"remediationTemplate": "remediationTemplate is a reference to a remediation template provided by an infrastructure provider.\n\nThis field is completely optional, when filled, the MachineHealthCheck controller creates a new object from the template referenced and hands off remediation of the machine to a controller that lives outside of Machine API Operator.",
 }
