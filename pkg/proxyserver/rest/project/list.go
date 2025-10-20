@@ -25,7 +25,7 @@ func listProjects(namespace, name string, obj runtime.Object, userInfo user.Info
 		return projects
 	}
 
-	// Check singular clusterRoleBinding field (legacy)
+	// Check singular clusterRoleBinding field
 	clusterRoleBinding, found, err := unstructured.NestedMap(u, "spec", "clusterRoleBinding")
 	if err != nil {
 		klog.Errorf("invalid clusterRoleBinding in %s/%s, %v", namespace, name, err)

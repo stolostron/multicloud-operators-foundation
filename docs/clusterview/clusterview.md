@@ -369,7 +369,11 @@ The `kubevirtprojects.clusterview.open-cluster-management.io` API is only used t
         name: db2b7ae7-f5e7-5fd3-8f7f-a29cce5236ab
     ```
 
-**Note**: If using ClusterRoleBinding in ClusterPermission to bind a kubevirt ClusterRole, this API will return `*` in project field and the project label will be `all_projects`, for example:
+**Note**: If using ClusterRoleBinding in ClusterPermission to bind a kubevirt ClusterRole, this API will return `*` in project field and the project label will be `all_projects`.
+
+ClusterPermission supports both `clusterRoleBinding` (singular, single binding) and `clusterRoleBindings` (plural, array of bindings) fields. You can use either field based on your needs.
+
+##### Example using `clusterRoleBinding` (singular) field
 
 ```yaml
 apiVersion: rbac.open-cluster-management.io/v1alpha1
@@ -396,6 +400,84 @@ metadata:
 spec:
   clusterRoleBinding:
     roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kubevirt.io:admin
+    subject:
+      kind: Group
+      name: system:cluster-admins
+      apiGroup: rbac.authorization.k8s.io
+```
+
+```sh
+kubectl get kubevirtprojects.clusterview.open-cluster-management.io
+```
+
+```
+CLUSTER    PROJECT
+cluster1   *
+cluster2   *
+```
+
+```sh
+kubectl get kubevirtprojects.clusterview.open-cluster-management.io -oyaml
+```
+
+```yaml
+apiVersion: v1
+kind: List
+items:
+- apiVersion: clusterview.open-cluster-management.io/v1
+  kind: Project
+  metadata:
+    labels:
+      cluster: cluster1
+      project: all_projects
+    name: 7a42b467-3107-5e88-bd05-ab0e3fc82efa
+- apiVersion: clusterview.open-cluster-management.io/v1
+  kind: Project
+  metadata:
+    labels:
+      cluster: cluster2
+      project: all_projects
+    name: 8ae384ef-db25-5677-8b8e-f43152c1b960
+```
+
+##### Example using `clusterRoleBindings` (plural) field
+
+```yaml
+apiVersion: rbac.open-cluster-management.io/v1alpha1
+kind: ClusterPermission
+metadata:
+  name: kubevirt-admin
+  namespace: cluster1
+spec:
+  clusterRoleBindings:
+  - roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kubevirt.io:admin
+    subject:
+      kind: Group
+      name: system:cluster-admins
+      apiGroup: rbac.authorization.k8s.io
+  - roleRef:
+      apiGroup: rbac.authorization.k8s.io
+      kind: ClusterRole
+      name: kubevirt.io:edit
+    subject:
+      kind: User
+      name: Alice
+      apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.open-cluster-management.io/v1alpha1
+kind: ClusterPermission
+metadata:
+  name: kubevirt-admin
+  namespace: cluster2
+spec:
+  clusterRoleBindings:
+  - roleRef:
       apiGroup: rbac.authorization.k8s.io
       kind: ClusterRole
       name: kubevirt.io:admin
