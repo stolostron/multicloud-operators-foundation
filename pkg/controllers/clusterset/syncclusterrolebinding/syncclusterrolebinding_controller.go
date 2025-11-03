@@ -98,8 +98,9 @@ func (r *Reconciler) syncManagedClusterClusterroleBinding(ctx context.Context, c
 		&metav1.LabelSelector{
 			MatchExpressions: []metav1.LabelSelectorRequirement{
 				{
-					Key:      clusterv1beta2.ClusterSetLabel,
-					Operator: metav1.LabelSelectorOpExists,
+					Key:      clustersetutils.ClusterSetRole,
+					Operator: metav1.LabelSelectorOpIn,
+					Values:   []string{role},
 				},
 			},
 		},
