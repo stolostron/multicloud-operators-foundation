@@ -290,6 +290,7 @@ github.com/openshift/api/config/v1alpha2
 github.com/openshift/api/machine/v1
 github.com/openshift/api/machine/v1beta1
 github.com/openshift/api/oauth/v1
+github.com/openshift/api/operator/v1
 github.com/openshift/api/route/v1
 # github.com/openshift/build-machinery-go v0.0.0-20250602125535-1b6d00b8c37c
 ## explicit; go 1.22.0
@@ -333,8 +334,8 @@ github.com/openshift/client-go/route/clientset/versioned/fake
 github.com/openshift/client-go/route/clientset/versioned/scheme
 github.com/openshift/client-go/route/clientset/versioned/typed/route/v1
 github.com/openshift/client-go/route/clientset/versioned/typed/route/v1/fake
-# github.com/openshift/hive/apis v0.0.0-20250820185956-bd9fd44f4921
-## explicit; go 1.23.0
+# github.com/openshift/hive/apis v0.0.0-20251105232530-2e3237f6cc73
+## explicit; go 1.24.0
 github.com/openshift/hive/apis/hive/v1
 github.com/openshift/hive/apis/hive/v1/agent
 github.com/openshift/hive/apis/hive/v1/aws
@@ -346,7 +347,6 @@ github.com/openshift/hive/apis/hive/v1/metricsconfig
 github.com/openshift/hive/apis/hive/v1/none
 github.com/openshift/hive/apis/hive/v1/nutanix
 github.com/openshift/hive/apis/hive/v1/openstack
-github.com/openshift/hive/apis/hive/v1/ovirt
 github.com/openshift/hive/apis/hive/v1/vsphere
 github.com/openshift/hive/apis/hiveinternal/v1alpha1
 github.com/openshift/hive/apis/scheme
