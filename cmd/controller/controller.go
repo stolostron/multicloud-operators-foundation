@@ -21,6 +21,7 @@ import (
 )
 
 func main() {
+	fmt.Println("Test PR: Starting controller with test log")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	s := options.NewControllerRunOptions()
