@@ -2,6 +2,7 @@ package v1
 
 import (
 	configv1 "github.com/openshift/api/config/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -14,7 +15,6 @@ import (
 	"github.com/openshift/hive/apis/hive/v1/none"
 	"github.com/openshift/hive/apis/hive/v1/nutanix"
 	"github.com/openshift/hive/apis/hive/v1/openstack"
-	"github.com/openshift/hive/apis/hive/v1/ovirt"
 	"github.com/openshift/hive/apis/hive/v1/vsphere"
 )
 
@@ -308,7 +308,13 @@ type ClusterMetadata struct {
 	// +optional
 	AdminPasswordSecretRef *corev1.LocalObjectReference `json:"adminPasswordSecretRef,omitempty"`
 
-	// Platform holds platform-specific cluster metadata
+	// MetadataJSONSecretRef references the secret containing the metadata.json emitted by the
+	// installer, potentially scrubbed for sensitive data.
+	MetadataJSONSecretRef *corev1.LocalObjectReference `json:"metadataJSONSecretRef,omitempty"`
+
+	// Platform holds platform-specific cluster metadata.
+	// Deprecated. Use the Secret referenced by MetadataJSONSecretRef instead. We may stop
+	// populating this section in the future.
 	// +optional
 	Platform *ClusterPlatformMetadata `json:"platform,omitempty"`
 }
@@ -381,6 +387,12 @@ type ClusterDeploymentStatus struct {
 	// perform the installation.
 	// +optional
 	Platform *PlatformStatus `json:"platformStatus,omitempty"`
+
+	// ClusterVersionStatus is a wholesale copy of the Status section of the spoke cluster's
+	// `clusterversion version` object. This is not officially supported, and is only populated
+	// on request.
+	// +optional
+	ClusterVersionStatus *configv1.ClusterVersionStatus `json:"clusterVersionStatus,omitempty"`
 }
 
 // ClusterDeploymentCondition contains details for the current condition of a cluster deployment
@@ -661,9 +673,6 @@ type Platform struct {
 	// VSphere is the configuration used when installing on vSphere
 	VSphere *vsphere.Platform `json:"vsphere,omitempty"`
 
-	// Ovirt is the configuration used when installing on oVirt
-	Ovirt *ovirt.Platform `json:"ovirt,omitempty"`
-
 	// AgentBareMetal is the configuration used when performing an Assisted Agent based installation
 	// to bare metal.
 	AgentBareMetal *agent.BareMetalPlatform `json:"agentBareMetal,omitempty"`
@@ -718,6 +727,10 @@ type ClusterIngress struct {
 	// HttpErrorCodePages allows configuring custom HTTP error pages using the IngressController object
 	// +optional
 	HttpErrorCodePages *configv1.ConfigMapNameReference `json:"httpErrorCodePages,omitempty"`
+
+	// TuningOptions allows configuring the tuning options of the ingress controller
+	// +optional
+	TuningOptions *operatorv1.IngressControllerTuningOptions `json:"tuningOptions,omitempty"`
 }
 
 // ControlPlaneConfigSpec contains additional configuration settings for a target
