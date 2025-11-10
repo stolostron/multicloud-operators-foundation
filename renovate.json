@@ -5,6 +5,9 @@
   "gomod": {
     "enabled": false
   },
+  "dockerfile": {
+    "enabled": false
+  },
   "timezone": "Asia/Shanghai",
   "schedule": ["on monday"]
 }
