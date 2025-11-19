@@ -127,7 +127,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 		gomega.Eventually(func() error {
 			err := util.CreateManagedCluster(userClusterClient, cluster)
 			if err != nil {
-				return fmt.Errorf(err.Error())
+				return err
 			}
 			return nil
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
@@ -142,7 +142,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 		gomega.Eventually(func() error {
 			err := util.CreateManagedCluster(userClusterClient, cluster)
 			if err != nil {
-				return fmt.Errorf(err.Error())
+				return err
 			}
 			return nil
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
@@ -171,7 +171,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 		gomega.Eventually(func() error {
 			err := util.UpdateManagedClusterLabels(userClusterClient, clusterName, labels)
 			if err != nil {
-				return fmt.Errorf(err.Error())
+				return err
 			}
 			return nil
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
@@ -183,7 +183,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 		gomega.Eventually(func() error {
 			err := util.UpdateManagedClusterLabels(userClusterClient, clusterName, labels)
 			if err != nil {
-				return fmt.Errorf(err.Error())
+				return err
 			}
 			return nil
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
@@ -264,7 +264,7 @@ var _ = ginkgo.Describe("Testing user create/update clusterdeployment with mange
 		gomega.Eventually(func() error {
 			err := util.UpdateClusterDeploymentLabels(userHiveClient, clusterDeploymentName, clusterDeploymentName, labels)
 			if err != nil {
-				return fmt.Errorf(err.Error())
+				return err
 			}
 			return nil
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
@@ -276,7 +276,7 @@ var _ = ginkgo.Describe("Testing user create/update clusterdeployment with mange
 		gomega.Eventually(func() error {
 			err := util.UpdateClusterDeploymentLabels(userHiveClient, clusterDeploymentName, clusterDeploymentName, labels)
 			if err != nil {
-				return fmt.Errorf(err.Error())
+				return err
 			}
 			return nil
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
@@ -553,7 +553,7 @@ var _ = ginkgo.Describe("Testing managed cluster deletion", func() {
 		gomega.Eventually(func() error {
 			err := util.CreateManagedCluster(clusterClient, cluster)
 			if err != nil {
-				return fmt.Errorf(err.Error())
+				return err
 			}
 			return nil
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
@@ -566,7 +566,7 @@ var _ = ginkgo.Describe("Testing managed cluster deletion", func() {
 		gomega.Eventually(func() error {
 			err := util.CreateManagedCluster(clusterClient, hostedCluster)
 			if err != nil {
-				return fmt.Errorf(err.Error())
+				return err
 			}
 			return nil
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())

@@ -19,6 +19,14 @@ type Platform struct {
 	// of using public load balancers.
 	// +optional
 	PrivateServiceConnect *PrivateServiceConnect `json:"privateServiceConnect,omitempty"`
+
+	// DiscardLocalSsdOnHibernate passes the specified value through to the GCP API to indicate
+	// whether the content of any local SSDs should be preserved or discarded. See
+	// https://cloud.google.com/compute/docs/disks/local-ssd#stop_instance
+	// This field is required when attempting to hibernate clusters with instances possessing
+	// SSDs -- e.g. those with GPUs.
+	// +optional
+	DiscardLocalSsdOnHibernate *bool `json:"discardLocalSsdOnHibernate,omitempty"`
 }
 
 // PrivateServiceConnectAccess configures access to the cluster API using GCP Private Service Connect
@@ -40,9 +48,27 @@ type ServiceAttachment struct {
 
 // ServiceAttachmentSubnet configures the subnetwork used by the service attachment
 type ServiceAttachmentSubnet struct {
-	// Cidr configures the network cidr of the subnetwork that contains the service attachment.
+	// Cidr specifies the cidr to use when creating a service attachment subnet.
 	// +optional
 	Cidr string `json:"cidr,omitempty"`
+
+	// Existing specifies a pre-existing subnet to use instead of creating a new service attachment subnet.
+	// This is required when using BYO VPCs. It must be in the same region as the api-int load balancer, be
+	// configured with a purpose of "Private Service Connect", and have sufficient routing and firewall rules
+	// to access the api-int load balancer.
+	// +optional
+	Existing *ServiceAttachmentSubnetExisting `json:"existing,omitempty"`
+}
+
+// ServiceAttachmentSubnetExisting describes the existing subnet.
+type ServiceAttachmentSubnetExisting struct {
+	// Name specifies the name of the existing subnet.
+	Name string `json:"name"`
+
+	// Project specifies the project the subnet exists in.
+	// This is required for Shared VPC.
+	// +optional
+	Project string `json:"project,omitempty"`
 }
 
 // PlatformStatus contains the observed state on GCP platform.
