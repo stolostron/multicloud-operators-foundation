@@ -24,6 +24,10 @@ type ClusterDeprovisionSpec struct {
 	// BaseDomain is the DNS base domain.
 	BaseDomain string `json:"baseDomain,omitempty"`
 
+	// MetadataJSONSecretRef references the secret containing the metadata.json emitted by the
+	// installer, potentially scrubbed for sensitive data.
+	MetadataJSONSecretRef *corev1.LocalObjectReference `json:"metadataJSONSecretRef,omitempty"`
+
 	// Platform contains platform-specific configuration for a ClusterDeprovision
 	Platform ClusterDeprovisionPlatform `json:"platform,omitempty"`
 }
@@ -51,8 +55,6 @@ type ClusterDeprovisionPlatform struct {
 	OpenStack *OpenStackClusterDeprovision `json:"openstack,omitempty"`
 	// VSphere contains VMWare vSphere-specific deprovision settings
 	VSphere *VSphereClusterDeprovision `json:"vsphere,omitempty"`
-	// Ovirt contains oVirt-specific deprovision settings
-	Ovirt *OvirtClusterDeprovision `json:"ovirt,omitempty"`
 	// IBMCloud contains IBM Cloud specific deprovision settings
 	IBMCloud *IBMClusterDeprovision `json:"ibmcloud,omitempty"`
 	// Nutanix contains Nutanix-specific deprovision settings
@@ -132,18 +134,6 @@ type VSphereClusterDeprovision struct {
 	CertificatesSecretRef corev1.LocalObjectReference `json:"certificatesSecretRef"`
 	// VCenter is the vSphere vCenter hostname.
 	VCenter string `json:"vCenter"`
-}
-
-// OvirtClusterDeprovision contains oVirt-specific configuration for a ClusterDeprovision
-type OvirtClusterDeprovision struct {
-	// The oVirt cluster ID
-	ClusterID string `json:"clusterID"`
-	// CredentialsSecretRef is the oVirt account credentials to use for deprovisioning the cluster
-	// secret fields: ovirt_url, ovirt_username, ovirt_password, ovirt_ca_bundle
-	CredentialsSecretRef corev1.LocalObjectReference `json:"credentialsSecretRef"`
-	// CertificatesSecretRef refers to a secret that contains the oVirt CA certificates
-	// necessary for communicating with the oVirt.
-	CertificatesSecretRef corev1.LocalObjectReference `json:"certificatesSecretRef"`
 }
 
 // IBMClusterDeprovision contains IBM Cloud specific configuration for a ClusterDeprovision
