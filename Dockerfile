@@ -3,8 +3,8 @@ WORKDIR /go/src/github.com/stolostron/multicloud-operators-foundation
 COPY . .
 ENV GO_PACKAGE github.com/stolostron/multicloud-operators-foundation
 
-RUN make build --warn-undefined-variables
-RUN make build-e2e --warn-undefined-variables
+RUN XDG_CACHE_HOME=/tmp/cache make build --warn-undefined-variables
+RUN XDG_CACHE_HOME=/tmp/cache make build-e2e --warn-undefined-variables
 
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
 
