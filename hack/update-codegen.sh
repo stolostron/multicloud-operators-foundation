@@ -7,6 +7,10 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${REPO_ROOT}; ls -d -1 ./vendor/k8s.io/code-gene
 
 verify="${VERIFY:-}"
 
+# Temporarily disable vendor mode for installing code-generator tools
+# This allows go install to download and build the tools even if they're not in vendor/
+export GOFLAGS="${GOFLAGS:-} -mod=mod"
+
 source "${CODEGEN_PKG}/kube_codegen.sh"
 
 # By default, it will generate deepcopy, defaulter and conversion for all types under the pkg/apis directory
