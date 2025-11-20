@@ -10,6 +10,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/managedclusterset"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/project"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/proxy"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/userpermission"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/client-go/informers"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
@@ -108,6 +109,11 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 			client, clusterSetCache, clusterSetCache,
 			clusterInformer.Cluster().V1beta2().ManagedClusterSets().Lister(),
 			informerFactory.Rbac().V1().ClusterRoles().Lister(),
+		),
+		"userpermissions": userpermission.NewREST(
+			informerFactory.Rbac().V1().ClusterRoles().Lister(),
+			clusterPermissionInformer.GetIndexer(),
+			clusterPermissionLister,
 		),
 	}
 
