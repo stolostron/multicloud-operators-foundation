@@ -9,3 +9,7 @@ approvers:
 - qiujian16
 - zhiweiyin318
 - zhujian7
+# Temporary approvers for facilitating prow configuration updates in the release repo during Konflux migration
+# These will be removed after the migration is complete
+- xuezhaojun
+- zhujian7
