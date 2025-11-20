@@ -5,6 +5,10 @@ approvers:
 - haoqing0110
 - elgnay
 - xuezhaojun
+# Temporary approvers for facilitating prow configuration updates in the release repo during Konflux migration
+# These will be removed after the migration is complete
+- xuezhaojun
+- zhujian7
 
 reviewers:
 - qiujian16
