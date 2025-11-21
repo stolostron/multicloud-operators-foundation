@@ -179,12 +179,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	var isModified = false
+	patch := client.MergeFrom(clusterdeployment.DeepCopy())
 	utils.SyncMapField(&isModified, &clusterdeployment.Labels, targetLabels, clusterv1beta2.ClusterSetLabel)
 
 	if isModified {
-		err = r.client.Update(ctx, clusterdeployment, &client.UpdateOptions{})
+		err = r.client.Patch(ctx, clusterdeployment, patch)
 		if err != nil {
-			klog.Errorf("Can not update clusterdeployment label. clusterdeployment: %v, error:%v", clusterdeployment.Name, err)
+			klog.Errorf("Can not patch clusterdeployment label. clusterdeployment: %v, error:%v", clusterdeployment.Name, err)
 			return ctrl.Result{}, err
 		}
 	}

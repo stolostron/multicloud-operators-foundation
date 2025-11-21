@@ -128,12 +128,13 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	klog.V(5).Infof("Clusterclaim's clusterdeployment: %+v", clusterDeployment)
 
 	var isModified = false
+	patch := client.MergeFrom(clusterclaim.DeepCopy())
 	utils.SyncMapField(&isModified, &clusterclaim.Labels, clusterDeployment.Labels, clusterv1beta2.ClusterSetLabel)
 
 	if isModified {
-		err = r.client.Update(ctx, clusterclaim, &client.UpdateOptions{})
+		err = r.client.Patch(ctx, clusterclaim, patch)
 		if err != nil {
-			klog.Errorf("Can not update clusterclaim label: %+v", clusterclaim.Name)
+			klog.Errorf("Can not patch clusterclaim label: %+v", clusterclaim.Name)
 			return ctrl.Result{}, err
 		}
 	}
