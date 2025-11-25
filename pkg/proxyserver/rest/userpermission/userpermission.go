@@ -12,8 +12,8 @@ import (
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
 
-	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
 	clusterviewv1alpha1 "github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
 )
 
 type REST struct {

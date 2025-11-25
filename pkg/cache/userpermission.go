@@ -27,6 +27,24 @@ import (
 	clusterviewv1alpha1 "github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1"
 )
 
+const (
+	// Resource version format constants
+	clusterRoleVersionFormat = "cr:%s:%s"
+	clusterPermissionFormat  = "cp:%s:%s"
+	managedClusterFormat     = "mc:%s:%s"
+	clusterRoleBindingFormat = "crb:%s:%s"
+	roleFormat               = "r:%s:%s"
+	roleBindingFormat        = "rb:%s/%s:%s"
+
+	// API group constants
+	actionAPIGroup = "action.open-cluster-management.io"
+	viewAPIGroup   = "view.open-cluster-management.io"
+
+	// Resource constants
+	managedClusterActionsResource = "managedclusteractions"
+	managedClusterViewsResource   = "managedclusterviews"
+)
+
 type UserPermissionRecord struct {
 	Subject     string
 	Permissions []PermissionInfo
@@ -72,7 +90,7 @@ type UserPermissionCache struct {
 	discoverableRolesNames sets.Set[string]
 
 	// Synchronization
-	lock             sync.RWMutex
+	lock                sync.RWMutex
 	resourceVersionHash string
 }
 
@@ -117,126 +135,222 @@ func (c *UserPermissionCache) calculateResourceVersionHash() (string, error) {
 	var versions []string
 
 	// 1. Discoverable ClusterRoles
-	clusterRoles, err := c.clusterRoleLister.List(labels.Everything())
-	if err != nil {
-		return "", fmt.Errorf("failed to list ClusterRoles: %w", err)
-	}
-	for _, cr := range clusterRoles {
-		if cr.Labels != nil && cr.Labels[clusterviewv1alpha1.DiscoverableClusterRoleLabel] == "true" {
-			versions = append(versions, fmt.Sprintf("cr:%s:%s", cr.Name, cr.ResourceVersion))
-		}
+	if err := c.addDiscoverableClusterRoleVersions(&versions); err != nil {
+		return "", err
 	}
 
 	// 2. ClusterPermissions
-	clusterPermissions, err := c.clusterPermissionLister.List(labels.Everything())
-	if err != nil {
-		return "", fmt.Errorf("failed to list ClusterPermissions: %w", err)
-	}
-	for _, cp := range clusterPermissions {
-		versions = append(versions, fmt.Sprintf("cp:%s:%s", cp.Namespace, cp.ResourceVersion))
+	if err := c.addClusterPermissionVersions(&versions); err != nil {
+		return "", err
 	}
 
 	// 3. ManagedClusters
-	managedClusters, err := c.managedClusterLister.List(labels.Everything())
+	clusterNames, err := c.addManagedClusterVersions(&versions)
 	if err != nil {
-		return "", fmt.Errorf("failed to list ManagedClusters: %w", err)
-	}
-	clusterNames := sets.New[string]()
-	for _, mc := range managedClusters {
-		versions = append(versions, fmt.Sprintf("mc:%s:%s", mc.Name, mc.ResourceVersion))
-		clusterNames.Insert(mc.Name)
+		return "", err
 	}
 
 	// Track ClusterRoles/Roles that grant managedcluster permissions (to avoid duplicates)
 	trackedClusterRoles := sets.New[string]()
-	trackedRoles := sets.New[string]() // key: namespace/name
+	trackedRoles := sets.New[string]()
 
 	// 4. ClusterRoleBindings that grant managedcluster permissions
-	clusterRoleBindings, err := c.clusterRoleBindingLister.List(labels.Everything())
-	if err != nil {
-		return "", fmt.Errorf("failed to list ClusterRoleBindings: %w", err)
-	}
-	for _, crb := range clusterRoleBindings {
-		clusterRole, err := c.clusterRoleLister.Get(crb.RoleRef.Name)
-		if err != nil {
-			continue
-		}
-		grantsAdminPerm := c.clusterRoleGrantsPermission(clusterRole, "managedclusteractions", "action.open-cluster-management.io")
-		grantsViewPerm := c.clusterRoleGrantsPermission(clusterRole, "managedclusterviews", "view.open-cluster-management.io")
-		if grantsAdminPerm || grantsViewPerm {
-			// Track the ClusterRoleBinding
-			versions = append(versions, fmt.Sprintf("crb:%s:%s", crb.Name, crb.ResourceVersion))
-
-			// Track the ClusterRole if not already tracked and not discoverable
-			if !trackedClusterRoles.Has(clusterRole.Name) {
-				if clusterRole.Labels == nil || clusterRole.Labels[clusterviewv1alpha1.DiscoverableClusterRoleLabel] != "true" {
-					versions = append(versions, fmt.Sprintf("cr:%s:%s", clusterRole.Name, clusterRole.ResourceVersion))
-					trackedClusterRoles.Insert(clusterRole.Name)
-				}
-			}
-		}
+	if err := c.addClusterRoleBindingVersions(&versions, trackedClusterRoles); err != nil {
+		return "", err
 	}
 
 	// 5. RoleBindings in managedcluster namespaces that grant managedcluster permissions
-	for clusterName := range clusterNames {
-		roleBindings, err := c.roleBindingLister.RoleBindings(clusterName).List(labels.Everything())
-		if err != nil {
-			continue
-		}
-		for _, rb := range roleBindings {
-			var grantsAdminPerm, grantsViewPerm bool
-
-			if rb.RoleRef.Kind == "ClusterRole" {
-				clusterRole, err := c.clusterRoleLister.Get(rb.RoleRef.Name)
-				if err != nil {
-					continue
-				}
-				grantsAdminPerm = c.clusterRoleGrantsPermission(clusterRole, "managedclusteractions", "action.open-cluster-management.io")
-				grantsViewPerm = c.clusterRoleGrantsPermission(clusterRole, "managedclusterviews", "view.open-cluster-management.io")
-
-				if grantsAdminPerm || grantsViewPerm {
-					// Track the ClusterRole if not already tracked and not discoverable
-					if !trackedClusterRoles.Has(clusterRole.Name) {
-						if clusterRole.Labels == nil || clusterRole.Labels[clusterviewv1alpha1.DiscoverableClusterRoleLabel] != "true" {
-							versions = append(versions, fmt.Sprintf("cr:%s:%s", clusterRole.Name, clusterRole.ResourceVersion))
-							trackedClusterRoles.Insert(clusterRole.Name)
-						}
-					}
-				}
-			} else if rb.RoleRef.Kind == "Role" {
-				role, err := c.roleLister.Roles(clusterName).Get(rb.RoleRef.Name)
-				if err != nil {
-					continue
-				}
-				grantsAdminPerm = c.roleGrantsPermission(role, "managedclusteractions", "action.open-cluster-management.io")
-				grantsViewPerm = c.roleGrantsPermission(role, "managedclusterviews", "view.open-cluster-management.io")
-
-				if grantsAdminPerm || grantsViewPerm {
-					// Track the Role if not already tracked
-					roleKey := fmt.Sprintf("%s/%s", role.Namespace, role.Name)
-					if !trackedRoles.Has(roleKey) {
-						versions = append(versions, fmt.Sprintf("r:%s:%s", roleKey, role.ResourceVersion))
-						trackedRoles.Insert(roleKey)
-					}
-				}
-			}
-
-			if grantsAdminPerm || grantsViewPerm {
-				versions = append(versions, fmt.Sprintf("rb:%s/%s:%s", rb.Namespace, rb.Name, rb.ResourceVersion))
-			}
-		}
-	}
+	c.addRoleBindingVersions(&versions, clusterNames, trackedClusterRoles, trackedRoles)
 
 	// Sort for deterministic hashing
 	sort.Strings(versions)
 
 	// Write all versions to hash
 	for _, v := range versions {
-		h.Write([]byte(v))
-		h.Write([]byte("\n"))
+		_, _ = h.Write([]byte(v))
+		_, _ = h.Write([]byte("\n"))
 	}
 
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
+// addDiscoverableClusterRoleVersions adds discoverable ClusterRole versions to the list
+func (c *UserPermissionCache) addDiscoverableClusterRoleVersions(versions *[]string) error {
+	clusterRoles, err := c.clusterRoleLister.List(labels.Everything())
+	if err != nil {
+		return fmt.Errorf("failed to list ClusterRoles: %w", err)
+	}
+	for _, cr := range clusterRoles {
+		if cr.Labels != nil && cr.Labels[clusterviewv1alpha1.DiscoverableClusterRoleLabel] == "true" {
+			*versions = append(*versions, fmt.Sprintf(clusterRoleVersionFormat, cr.Name, cr.ResourceVersion))
+		}
+	}
+	return nil
+}
+
+// addClusterPermissionVersions adds ClusterPermission versions to the list
+func (c *UserPermissionCache) addClusterPermissionVersions(versions *[]string) error {
+	clusterPermissions, err := c.clusterPermissionLister.List(labels.Everything())
+	if err != nil {
+		return fmt.Errorf("failed to list ClusterPermissions: %w", err)
+	}
+	for _, cp := range clusterPermissions {
+		*versions = append(*versions, fmt.Sprintf(clusterPermissionFormat, cp.Namespace, cp.ResourceVersion))
+	}
+	return nil
+}
+
+// addManagedClusterVersions adds ManagedCluster versions and returns cluster names
+func (c *UserPermissionCache) addManagedClusterVersions(versions *[]string) (sets.Set[string], error) {
+	managedClusters, err := c.managedClusterLister.List(labels.Everything())
+	if err != nil {
+		return nil, fmt.Errorf("failed to list ManagedClusters: %w", err)
+	}
+	clusterNames := sets.New[string]()
+	for _, mc := range managedClusters {
+		*versions = append(*versions, fmt.Sprintf(managedClusterFormat, mc.Name, mc.ResourceVersion))
+		clusterNames.Insert(mc.Name)
+	}
+	return clusterNames, nil
+}
+
+// addClusterRoleBindingVersions adds ClusterRoleBinding versions that grant managedcluster permissions
+func (c *UserPermissionCache) addClusterRoleBindingVersions(
+	versions *[]string,
+	trackedClusterRoles sets.Set[string],
+) error {
+	clusterRoleBindings, err := c.clusterRoleBindingLister.List(labels.Everything())
+	if err != nil {
+		return fmt.Errorf("failed to list ClusterRoleBindings: %w", err)
+	}
+	for _, crb := range clusterRoleBindings {
+		clusterRole, err := c.clusterRoleLister.Get(crb.RoleRef.Name)
+		if err != nil {
+			klog.V(4).Infof("Failed to get ClusterRole %s: %v", crb.RoleRef.Name, err)
+			continue
+		}
+
+		grantsAdminPerm := c.clusterRoleGrantsPermission(
+			clusterRole, managedClusterActionsResource, actionAPIGroup)
+		grantsViewPerm := c.clusterRoleGrantsPermission(
+			clusterRole, managedClusterViewsResource, viewAPIGroup)
+		if !grantsAdminPerm && !grantsViewPerm {
+			continue
+		}
+
+		// Track the ClusterRoleBinding and ClusterRole
+		*versions = append(*versions, fmt.Sprintf(clusterRoleBindingFormat, crb.Name, crb.ResourceVersion))
+		c.trackClusterRoleVersion(versions, clusterRole, trackedClusterRoles)
+	}
+	return nil
+}
+
+// trackClusterRoleVersion tracks a ClusterRole version if needed
+func (c *UserPermissionCache) trackClusterRoleVersion(
+	versions *[]string,
+	clusterRole *rbacv1.ClusterRole,
+	trackedClusterRoles sets.Set[string],
+) {
+	if trackedClusterRoles.Has(clusterRole.Name) {
+		return
+	}
+	if clusterRole.Labels != nil && clusterRole.Labels[clusterviewv1alpha1.DiscoverableClusterRoleLabel] == "true" {
+		return
+	}
+	*versions = append(*versions, fmt.Sprintf(clusterRoleVersionFormat, clusterRole.Name, clusterRole.ResourceVersion))
+	trackedClusterRoles.Insert(clusterRole.Name)
+}
+
+// addRoleBindingVersions adds RoleBinding versions that grant managedcluster permissions
+func (c *UserPermissionCache) addRoleBindingVersions(
+	versions *[]string,
+	clusterNames sets.Set[string],
+	trackedClusterRoles sets.Set[string],
+	trackedRoles sets.Set[string],
+) {
+	for clusterName := range clusterNames {
+		roleBindings, err := c.roleBindingLister.RoleBindings(clusterName).List(labels.Everything())
+		if err != nil {
+			klog.V(4).Infof("Failed to list RoleBindings in namespace %s: %v", clusterName, err)
+			continue
+		}
+		for _, rb := range roleBindings {
+			c.processRoleBindingVersion(versions, rb, clusterName, trackedClusterRoles, trackedRoles)
+		}
+	}
+}
+
+// processRoleBindingVersion processes a single RoleBinding
+func (c *UserPermissionCache) processRoleBindingVersion(
+	versions *[]string,
+	rb *rbacv1.RoleBinding,
+	clusterName string,
+	trackedClusterRoles sets.Set[string],
+	trackedRoles sets.Set[string],
+) {
+	var grantsAdminPerm, grantsViewPerm bool
+
+	switch rb.RoleRef.Kind {
+	case "ClusterRole":
+		grantsAdminPerm, grantsViewPerm = c.checkClusterRoleBindingPermissions(
+			versions, rb.RoleRef.Name, trackedClusterRoles)
+	case "Role":
+		grantsAdminPerm, grantsViewPerm = c.checkRoleBindingPermissions(
+			versions, rb.RoleRef.Name, clusterName, trackedRoles)
+	}
+
+	if grantsAdminPerm || grantsViewPerm {
+		*versions = append(*versions, fmt.Sprintf(roleBindingFormat, rb.Namespace, rb.Name, rb.ResourceVersion))
+	}
+}
+
+// checkClusterRoleBindingPermissions checks if a ClusterRole grants permissions
+func (c *UserPermissionCache) checkClusterRoleBindingPermissions(
+	versions *[]string,
+	roleName string,
+	trackedClusterRoles sets.Set[string],
+) (bool, bool) {
+	clusterRole, err := c.clusterRoleLister.Get(roleName)
+	if err != nil {
+		klog.V(4).Infof("Failed to get ClusterRole %s: %v", roleName, err)
+		return false, false
+	}
+	grantsAdminPerm := c.clusterRoleGrantsPermission(
+		clusterRole, managedClusterActionsResource, actionAPIGroup)
+	grantsViewPerm := c.clusterRoleGrantsPermission(
+		clusterRole, managedClusterViewsResource, viewAPIGroup)
+
+	if grantsAdminPerm || grantsViewPerm {
+		c.trackClusterRoleVersion(versions, clusterRole, trackedClusterRoles)
+	}
+	return grantsAdminPerm, grantsViewPerm
+}
+
+// checkRoleBindingPermissions checks if a Role grants permissions
+func (c *UserPermissionCache) checkRoleBindingPermissions(
+	versions *[]string,
+	roleName string,
+	clusterName string,
+	trackedRoles sets.Set[string],
+) (bool, bool) {
+	role, err := c.roleLister.Roles(clusterName).Get(roleName)
+	if err != nil {
+		klog.V(4).Infof("Failed to get Role %s in namespace %s: %v", roleName, clusterName, err)
+		return false, false
+	}
+	grantsAdminPerm := c.roleGrantsPermission(
+		role, managedClusterActionsResource, actionAPIGroup)
+	grantsViewPerm := c.roleGrantsPermission(
+		role, managedClusterViewsResource, viewAPIGroup)
+
+	if grantsAdminPerm || grantsViewPerm {
+		roleKey := fmt.Sprintf("%s/%s", role.Namespace, role.Name)
+		if !trackedRoles.Has(roleKey) {
+			*versions = append(*versions, fmt.Sprintf(roleFormat, roleKey, role.ResourceVersion))
+			trackedRoles.Insert(roleKey)
+		}
+	}
+	return grantsAdminPerm, grantsViewPerm
 }
 
 // synchronize runs a full synchronization of the cache
@@ -260,7 +374,9 @@ func (c *UserPermissionCache) synchronize() {
 	if c.resourceVersionHash == "" {
 		klog.V(2).Info("Initial synchronization of UserPermissionCache")
 	} else {
-		klog.V(2).Infof("Resource changes detected (hash changed from %s to %s), synchronizing cache", c.resourceVersionHash[:8], newHash[:8])
+		klog.V(2).Infof(
+			"Resource changes detected (hash changed from %s to %s), synchronizing cache",
+			c.resourceVersionHash[:8], newHash[:8])
 	}
 
 	// Build subject -> role -> bindings mapping
@@ -332,9 +448,9 @@ func (c *UserPermissionCache) synchronize() {
 
 		_, exists, _ := c.userPermissionStore.GetByKey(userName)
 		if exists {
-			c.userPermissionStore.Update(record)
+			_ = c.userPermissionStore.Update(record)
 		} else {
-			c.userPermissionStore.Add(record)
+			_ = c.userPermissionStore.Add(record)
 		}
 	}
 
@@ -354,9 +470,9 @@ func (c *UserPermissionCache) synchronize() {
 
 		_, exists, _ := c.groupPermissionStore.GetByKey(groupName)
 		if exists {
-			c.groupPermissionStore.Update(record)
+			_ = c.groupPermissionStore.Update(record)
 		} else {
-			c.groupPermissionStore.Add(record)
+			_ = c.groupPermissionStore.Add(record)
 		}
 	}
 
@@ -422,7 +538,9 @@ func (c *UserPermissionCache) getPermissionRecords(userInfo user.Info) map[strin
 }
 
 // List returns the list of UserPermissions for a user
-func (c *UserPermissionCache) List(userInfo user.Info, selector labels.Selector) (*clusterviewv1alpha1.UserPermissionList, error) {
+func (c *UserPermissionCache) List(
+	userInfo user.Info, selector labels.Selector,
+) (*clusterviewv1alpha1.UserPermissionList, error) {
 	roleBindings := c.getPermissionRecords(userInfo)
 
 	userPermissionList := &clusterviewv1alpha1.UserPermissionList{
@@ -542,7 +660,11 @@ func (c *UserPermissionCache) getSyntheticViewRoleDefinition() clusterviewv1alph
 // Helper functions
 
 // addPermissionForUser adds or merges a permission binding for a user
-func addPermissionForUser(userPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding, userName, roleName string, binding clusterviewv1alpha1.ClusterBinding) {
+func addPermissionForUser(
+	userPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding,
+	userName, roleName string,
+	binding clusterviewv1alpha1.ClusterBinding,
+) {
 	if userPermissions[userName] == nil {
 		userPermissions[userName] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
 	}
@@ -550,7 +672,11 @@ func addPermissionForUser(userPermissions map[string]map[string][]clusterviewv1a
 }
 
 // addPermissionForGroup adds or merges a permission binding for a group
-func addPermissionForGroup(groupPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding, groupName, roleName string, binding clusterviewv1alpha1.ClusterBinding) {
+func addPermissionForGroup(
+	groupPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding,
+	groupName, roleName string,
+	binding clusterviewv1alpha1.ClusterBinding,
+) {
 	if groupPermissions[groupName] == nil {
 		groupPermissions[groupName] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
 	}
@@ -561,7 +687,10 @@ func addPermissionForGroup(groupPermissions map[string]map[string][]clusterviewv
 // - If the same cluster exists with cluster scope, do nothing (already covered)
 // - If the same cluster exists with namespace scope, merge the namespaces
 // - If different cluster, append as new binding
-func mergeOrAppendBinding(existingBindings []clusterviewv1alpha1.ClusterBinding, newBinding clusterviewv1alpha1.ClusterBinding) []clusterviewv1alpha1.ClusterBinding {
+func mergeOrAppendBinding(
+	existingBindings []clusterviewv1alpha1.ClusterBinding,
+	newBinding clusterviewv1alpha1.ClusterBinding,
+) []clusterviewv1alpha1.ClusterBinding {
 	for i, existing := range existingBindings {
 		if existing.Cluster == newBinding.Cluster {
 			// Same cluster found
@@ -575,7 +704,8 @@ func mergeOrAppendBinding(existingBindings []clusterviewv1alpha1.ClusterBinding,
 				return existingBindings
 			}
 			// Both are namespace-scoped, merge namespaces
-			if existing.Scope == clusterviewv1alpha1.BindingScopeNamespace && newBinding.Scope == clusterviewv1alpha1.BindingScopeNamespace {
+			if existing.Scope == clusterviewv1alpha1.BindingScopeNamespace &&
+				newBinding.Scope == clusterviewv1alpha1.BindingScopeNamespace {
 				// Deduplicate namespaces
 				namespaceSet := sets.New(existing.Namespaces...)
 				namespaceSet.Insert(newBinding.Namespaces...)
@@ -680,6 +810,37 @@ func (c *UserPermissionCache) processManagedClusterPermissions(
 	c.processRoleBindingsForManagedCluster(clusterNames, userPermissions, groupPermissions)
 }
 
+// addSyntheticPermissions adds synthetic managedcluster permissions for users and groups
+func addSyntheticPermissions(
+	users, groups []string,
+	grantsAdminPerm, grantsViewPerm bool,
+	binding clusterviewv1alpha1.ClusterBinding,
+	userPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding,
+	groupPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding,
+) {
+	if grantsAdminPerm {
+		for _, userName := range users {
+			addPermissionForUser(
+				userPermissions, userName, clusterviewv1alpha1.ManagedClusterAdminRole, binding)
+		}
+		for _, groupName := range groups {
+			addPermissionForGroup(
+				groupPermissions, groupName, clusterviewv1alpha1.ManagedClusterAdminRole, binding)
+		}
+	}
+
+	if grantsViewPerm {
+		for _, userName := range users {
+			addPermissionForUser(
+				userPermissions, userName, clusterviewv1alpha1.ManagedClusterViewRole, binding)
+		}
+		for _, groupName := range groups {
+			addPermissionForGroup(
+				groupPermissions, groupName, clusterviewv1alpha1.ManagedClusterViewRole, binding)
+		}
+	}
+}
+
 // processClusterRoleBindingsForManagedCluster checks ClusterRoleBindings that grant permissions
 // to create managedclusteractions/managedclusterviews
 func (c *UserPermissionCache) processClusterRoleBindingsForManagedCluster(
@@ -701,8 +862,10 @@ func (c *UserPermissionCache) processClusterRoleBindingsForManagedCluster(
 		}
 
 		// Check if this ClusterRole grants create on managedclusteractions or managedclusterviews
-		grantsAdminPerm := c.clusterRoleGrantsPermission(clusterRole, "managedclusteractions", "action.open-cluster-management.io")
-		grantsViewPerm := c.clusterRoleGrantsPermission(clusterRole, "managedclusterviews", "view.open-cluster-management.io")
+		grantsAdminPerm := c.clusterRoleGrantsPermission(
+			clusterRole, managedClusterActionsResource, actionAPIGroup)
+		grantsViewPerm := c.clusterRoleGrantsPermission(
+			clusterRole, managedClusterViewsResource, viewAPIGroup)
 
 		if !grantsAdminPerm && !grantsViewPerm {
 			continue
@@ -718,24 +881,8 @@ func (c *UserPermissionCache) processClusterRoleBindingsForManagedCluster(
 				Scope:      clusterviewv1alpha1.BindingScopeCluster,
 				Namespaces: []string{"*"},
 			}
-
-			if grantsAdminPerm {
-				for _, userName := range users {
-					addPermissionForUser(userPermissions, userName, clusterviewv1alpha1.ManagedClusterAdminRole, binding)
-				}
-				for _, groupName := range groups {
-					addPermissionForGroup(groupPermissions, groupName, clusterviewv1alpha1.ManagedClusterAdminRole, binding)
-				}
-			}
-
-			if grantsViewPerm {
-				for _, userName := range users {
-					addPermissionForUser(userPermissions, userName, clusterviewv1alpha1.ManagedClusterViewRole, binding)
-				}
-				for _, groupName := range groups {
-					addPermissionForGroup(groupPermissions, groupName, clusterviewv1alpha1.ManagedClusterViewRole, binding)
-				}
-			}
+			addSyntheticPermissions(
+				users, groups, grantsAdminPerm, grantsViewPerm, binding, userPermissions, groupPermissions)
 		}
 	}
 }
@@ -759,21 +906,24 @@ func (c *UserPermissionCache) processRoleBindingsForManagedCluster(
 			// Get the Role or ClusterRole referenced by this binding
 			var grantsAdminPerm, grantsViewPerm bool
 
-			if rb.RoleRef.Kind == "ClusterRole" {
+			switch rb.RoleRef.Kind {
+			case "ClusterRole":
 				clusterRole, err := c.clusterRoleLister.Get(rb.RoleRef.Name)
 				if err != nil {
 					continue
 				}
-				grantsAdminPerm = c.clusterRoleGrantsPermission(clusterRole, "managedclusteractions", "action.open-cluster-management.io")
-				grantsViewPerm = c.clusterRoleGrantsPermission(clusterRole, "managedclusterviews", "view.open-cluster-management.io")
-			} else if rb.RoleRef.Kind == "Role" {
+				grantsAdminPerm = c.clusterRoleGrantsPermission(
+					clusterRole, managedClusterActionsResource, actionAPIGroup)
+				grantsViewPerm = c.clusterRoleGrantsPermission(
+					clusterRole, managedClusterViewsResource, viewAPIGroup)
+			case "Role":
 				role, err := c.roleLister.Roles(clusterName).Get(rb.RoleRef.Name)
 				if err != nil {
 					continue
 				}
 				// For Role, we need to check the rules directly
-				grantsAdminPerm = c.roleGrantsPermission(role, "managedclusteractions", "action.open-cluster-management.io")
-				grantsViewPerm = c.roleGrantsPermission(role, "managedclusterviews", "view.open-cluster-management.io")
+				grantsAdminPerm = c.roleGrantsPermission(role, managedClusterActionsResource, actionAPIGroup)
+				grantsViewPerm = c.roleGrantsPermission(role, managedClusterViewsResource, viewAPIGroup)
 			}
 
 			if !grantsAdminPerm && !grantsViewPerm {
@@ -788,24 +938,8 @@ func (c *UserPermissionCache) processRoleBindingsForManagedCluster(
 				Scope:      clusterviewv1alpha1.BindingScopeCluster,
 				Namespaces: []string{"*"},
 			}
-
-			if grantsAdminPerm {
-				for _, userName := range users {
-					addPermissionForUser(userPermissions, userName, clusterviewv1alpha1.ManagedClusterAdminRole, binding)
-				}
-				for _, groupName := range groups {
-					addPermissionForGroup(groupPermissions, groupName, clusterviewv1alpha1.ManagedClusterAdminRole, binding)
-				}
-			}
-
-			if grantsViewPerm {
-				for _, userName := range users {
-					addPermissionForUser(userPermissions, userName, clusterviewv1alpha1.ManagedClusterViewRole, binding)
-				}
-				for _, groupName := range groups {
-					addPermissionForGroup(groupPermissions, groupName, clusterviewv1alpha1.ManagedClusterViewRole, binding)
-				}
-			}
+			addSyntheticPermissions(
+				users, groups, grantsAdminPerm, grantsViewPerm, binding, userPermissions, groupPermissions)
 		}
 	}
 }
@@ -832,7 +966,9 @@ func (c *UserPermissionCache) rulesGrantPermission(rules []rbacv1.PolicyRule, re
 }
 
 // clusterRoleGrantsPermission checks if a ClusterRole grants create permission on a specific resource
-func (c *UserPermissionCache) clusterRoleGrantsPermission(clusterRole *rbacv1.ClusterRole, resource, apiGroup string) bool {
+func (c *UserPermissionCache) clusterRoleGrantsPermission(
+	clusterRole *rbacv1.ClusterRole, resource, apiGroup string,
+) bool {
 	return c.rulesGrantPermission(clusterRole.Rules, resource, apiGroup)
 }
 
