@@ -17,6 +17,7 @@ import (
 	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/klog"
+	cplisters "open-cluster-management.io/cluster-permission/client/listers/api/v1alpha1"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/printers"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/printers/storage"
@@ -30,7 +31,7 @@ const (
 
 type REST struct {
 	indexer        cache.Indexer
-	lister         cache.GenericLister
+	lister         cplisters.ClusterPermissionLister
 	tableConverter rest.TableConvertor
 }
 
@@ -55,7 +56,7 @@ func (r *REST) GetSingularName() string {
 }
 
 // NewREST returns a RESTStorage for projects based on ClusterPermission
-func NewREST(clusterPermissionIndexer cache.Indexer, clusterPermissionLister cache.GenericLister) *REST {
+func NewREST(clusterPermissionIndexer cache.Indexer, clusterPermissionLister cplisters.ClusterPermissionLister) *REST {
 	return &REST{
 		indexer: clusterPermissionIndexer,
 		lister:  clusterPermissionLister,
@@ -105,7 +106,7 @@ func (r *REST) List(ctx context.Context, options *internalversion.ListOptions) (
 		}
 
 		if isBoundUser(subject, user) {
-			obj, err := r.lister.ByNamespace(namespace).Get(name)
+			obj, err := r.lister.ClusterPermissions(namespace).Get(name)
 			if err != nil {
 				return nil, err
 			}

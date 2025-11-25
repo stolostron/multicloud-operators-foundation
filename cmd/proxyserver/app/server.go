@@ -10,6 +10,7 @@ import (
 	kubecache "k8s.io/client-go/tools/cache"
 	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	cplisters "open-cluster-management.io/cluster-permission/client/listers/api/v1alpha1"
 )
 
 type ProxyServer struct {
@@ -21,7 +22,7 @@ func NewProxyServer(
 	informerFactory informers.SharedInformerFactory,
 	clusterInformer clusterv1informers.SharedInformerFactory,
 	clusterPermissionInformer kubecache.SharedIndexInformer,
-	clusterPermissionLister kubecache.GenericLister,
+	clusterPermissionLister cplisters.ClusterPermissionLister,
 	apiServerConfig *genericapiserver.Config,
 	proxyGetter *getter.ProxyServiceInfoGetter,
 	logProxyGetter *getter.LogProxyGetter) (*ProxyServer, error) {

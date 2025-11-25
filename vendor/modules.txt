@@ -1684,6 +1684,13 @@ open-cluster-management.io/api/work/v1alpha1
 # open-cluster-management.io/cluster-permission v0.16.2
 ## explicit; go 1.23.0
 open-cluster-management.io/cluster-permission/api/v1alpha1
+open-cluster-management.io/cluster-permission/client/clientset/versioned
+open-cluster-management.io/cluster-permission/client/clientset/versioned/scheme
+open-cluster-management.io/cluster-permission/client/clientset/versioned/typed/api/v1alpha1
+open-cluster-management.io/cluster-permission/client/informers/externalversions
+open-cluster-management.io/cluster-permission/client/informers/externalversions/api
+open-cluster-management.io/cluster-permission/client/informers/externalversions/api/v1alpha1
+open-cluster-management.io/cluster-permission/client/informers/externalversions/internalinterfaces
 open-cluster-management.io/cluster-permission/client/listers/api/v1alpha1
 # open-cluster-management.io/managed-serviceaccount v0.7.0
 ## explicit; go 1.22.0
