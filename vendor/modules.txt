@@ -1681,8 +1681,12 @@ open-cluster-management.io/api/cluster/v1beta2
 open-cluster-management.io/api/utils/work/v1/workapplier
 open-cluster-management.io/api/work/v1
 open-cluster-management.io/api/work/v1alpha1
-# open-cluster-management.io/managed-serviceaccount v0.5.0
-## explicit; go 1.20
+# open-cluster-management.io/cluster-permission v0.16.2
+## explicit; go 1.23.0
+open-cluster-management.io/cluster-permission/api/v1alpha1
+open-cluster-management.io/cluster-permission/client/listers/api/v1alpha1
+# open-cluster-management.io/managed-serviceaccount v0.7.0
+## explicit; go 1.22.0
 open-cluster-management.io/managed-serviceaccount/apis/authentication/v1alpha1
 open-cluster-management.io/managed-serviceaccount/apis/authentication/v1beta1
 open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versioned

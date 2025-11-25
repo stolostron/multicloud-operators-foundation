@@ -35,7 +35,8 @@ require (
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b
 	open-cluster-management.io/addon-framework v0.12.0
 	open-cluster-management.io/api v1.0.1-0.20250911094832-3b7c6bea0358
-	open-cluster-management.io/managed-serviceaccount v0.5.0
+	open-cluster-management.io/cluster-permission v0.16.2
+	open-cluster-management.io/managed-serviceaccount v0.7.0
 	open-cluster-management.io/sdk-go v0.16.0
 	sigs.k8s.io/controller-runtime v0.20.2
 )

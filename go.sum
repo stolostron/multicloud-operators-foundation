@@ -394,8 +394,10 @@ open-cluster-management.io/addon-framework v0.12.0 h1:5j7mpyk2ij0SLUZkwWk0KkNTWt
 open-cluster-management.io/addon-framework v0.12.0/go.mod h1:eReMWXrEHqtilwz5wzEpUrWw9Vfz0HJCH9pi3gOTZns=
 open-cluster-management.io/api v1.0.1-0.20250911094832-3b7c6bea0358 h1:IAaFH8HW+7G2I4htQJhVreD6KlQTwB+EkjPhuMthqoY=
 open-cluster-management.io/api v1.0.1-0.20250911094832-3b7c6bea0358/go.mod h1:lEc5Wkc9ON5ym/qAtIqNgrE7NW7IEOCOC611iQMlnKM=
-open-cluster-management.io/managed-serviceaccount v0.5.0 h1:yEFTlwPp3tecorzHLwa71mIJzwQtxcwRUnUhRF4OX0U=
-open-cluster-management.io/managed-serviceaccount v0.5.0/go.mod h1:pvSKkwFynokhtV7ksN1z0BNWQ37bG8FudOfmjn55ciA=
+open-cluster-management.io/cluster-permission v0.16.2 h1:oJCf3gAaDR3M2xJwdQZ4GPYsyAFLx8Wi+GpHCL5oSxg=
+open-cluster-management.io/cluster-permission v0.16.2/go.mod h1:Ejytz7ZDoxDWqiGSDDYYIYKGZQHUgFZuCgFqvTnZSzE=
+open-cluster-management.io/managed-serviceaccount v0.7.0 h1:OShodBB3i+rMXjR9xEF6ySp9yBeiiLlEOAKvPA2v3i4=
+open-cluster-management.io/managed-serviceaccount v0.7.0/go.mod h1:NNKqC+cePQ9HH0r7mb9CYSk/hXGsNYu9+K4YfcZTwAk=
 open-cluster-management.io/sdk-go v0.16.0 h1:Ui1jerkeLaNaJPu47xjOJ3lh+rJQgeJHD25ViQMzAMs=
 open-cluster-management.io/sdk-go v0.16.0/go.mod h1:TyOjZC5YxyM5BRNgwTmLuTbHXX6xXqzYBXllrfoVp9w=
 sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.2 h1:jpcvIRr3GLoUoEKRkHKSmGjxb6lWwrBlJsXc+eUYQHM=
