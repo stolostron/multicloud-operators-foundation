@@ -37,15 +37,6 @@ type PermissionInfo struct {
 	Bindings        []clusterviewv1alpha1.ClusterBinding
 }
 
-const (
-	// DiscoverableLabel is the label used to mark ClusterRoles as discoverable
-	DiscoverableLabel = "clusterview.open-cluster-management.io/discoverable"
-	// SyntheticAdminRoleName is the synthetic role name for managedclusteradmin
-	SyntheticAdminRoleName = "managedcluster:admin"
-	// SyntheticViewRoleName is the synthetic role name for managedclusterview
-	SyntheticViewRoleName = "managedcluster:view"
-)
-
 // userPermissionRecordKeyFn is a key func for UserPermissionRecord objects
 func userPermissionRecordKeyFn(obj interface{}) (string, error) {
 	record, ok := obj.(*UserPermissionRecord)
@@ -131,7 +122,7 @@ func (c *UserPermissionCache) calculateResourceVersionHash() (string, error) {
 		return "", fmt.Errorf("failed to list ClusterRoles: %w", err)
 	}
 	for _, cr := range clusterRoles {
-		if cr.Labels != nil && cr.Labels[DiscoverableLabel] == "true" {
+		if cr.Labels != nil && cr.Labels[clusterviewv1alpha1.DiscoverableClusterRoleLabel] == "true" {
 			versions = append(versions, fmt.Sprintf("cr:%s:%s", cr.Name, cr.ResourceVersion))
 		}
 	}
@@ -178,7 +169,7 @@ func (c *UserPermissionCache) calculateResourceVersionHash() (string, error) {
 
 			// Track the ClusterRole if not already tracked and not discoverable
 			if !trackedClusterRoles.Has(clusterRole.Name) {
-				if clusterRole.Labels == nil || clusterRole.Labels[DiscoverableLabel] != "true" {
+				if clusterRole.Labels == nil || clusterRole.Labels[clusterviewv1alpha1.DiscoverableClusterRoleLabel] != "true" {
 					versions = append(versions, fmt.Sprintf("cr:%s:%s", clusterRole.Name, clusterRole.ResourceVersion))
 					trackedClusterRoles.Insert(clusterRole.Name)
 				}
@@ -206,7 +197,7 @@ func (c *UserPermissionCache) calculateResourceVersionHash() (string, error) {
 				if grantsAdminPerm || grantsViewPerm {
 					// Track the ClusterRole if not already tracked and not discoverable
 					if !trackedClusterRoles.Has(clusterRole.Name) {
-						if clusterRole.Labels == nil || clusterRole.Labels[DiscoverableLabel] != "true" {
+						if clusterRole.Labels == nil || clusterRole.Labels[clusterviewv1alpha1.DiscoverableClusterRoleLabel] != "true" {
 							versions = append(versions, fmt.Sprintf("cr:%s:%s", clusterRole.Name, clusterRole.ResourceVersion))
 							trackedClusterRoles.Insert(clusterRole.Name)
 						}
@@ -376,16 +367,6 @@ func (c *UserPermissionCache) synchronize() {
 		len(userPermissions), len(groupPermissions), len(c.discoverableRoles))
 }
 
-// addNamespaceBinding adds a namespace binding to the role's bindings, grouping by cluster
-func (c *UserPermissionCache) addNamespaceBinding(clusterName, namespace, roleName string, roleMap map[string][]clusterviewv1alpha1.ClusterBinding) {
-	newBinding := clusterviewv1alpha1.ClusterBinding{
-		Cluster:    clusterName,
-		Scope:      clusterviewv1alpha1.BindingScopeNamespace,
-		Namespaces: []string{namespace},
-	}
-	roleMap[roleName] = mergeOrAppendBinding(roleMap[roleName], newBinding)
-}
-
 // getDiscoverableClusterRoles returns all ClusterRoles with the discoverable label
 func (c *UserPermissionCache) getDiscoverableClusterRoles() ([]*rbacv1.ClusterRole, error) {
 	allRoles, err := c.clusterRoleLister.List(labels.Everything())
@@ -395,7 +376,7 @@ func (c *UserPermissionCache) getDiscoverableClusterRoles() ([]*rbacv1.ClusterRo
 
 	var discoverableRoles []*rbacv1.ClusterRole
 	for _, role := range allRoles {
-		if role.Labels != nil && role.Labels[DiscoverableLabel] == "true" {
+		if role.Labels != nil && role.Labels[clusterviewv1alpha1.DiscoverableClusterRoleLabel] == "true" {
 			discoverableRoles = append(discoverableRoles, role)
 		}
 	}
@@ -468,9 +449,9 @@ func (c *UserPermissionCache) List(userInfo user.Info, selector labels.Selector)
 
 		// Add ClusterRole definition
 		switch roleName {
-		case SyntheticAdminRoleName:
+		case clusterviewv1alpha1.ManagedClusterAdminRole:
 			userPerm.Status.ClusterRoleDefinition = c.getSyntheticAdminRoleDefinition()
-		case SyntheticViewRoleName:
+		case clusterviewv1alpha1.ManagedClusterViewRole:
 			userPerm.Status.ClusterRoleDefinition = c.getSyntheticViewRoleDefinition()
 		default:
 			// Look for the role in discoverable roles
@@ -510,9 +491,9 @@ func (c *UserPermissionCache) Get(userInfo user.Info, name string) (*clusterview
 
 	// Add ClusterRole definition
 	switch name {
-	case SyntheticAdminRoleName:
+	case clusterviewv1alpha1.ManagedClusterAdminRole:
 		userPerm.Status.ClusterRoleDefinition = c.getSyntheticAdminRoleDefinition()
-	case SyntheticViewRoleName:
+	case clusterviewv1alpha1.ManagedClusterViewRole:
 		userPerm.Status.ClusterRoleDefinition = c.getSyntheticViewRoleDefinition()
 	default:
 		c.lock.RLock()
@@ -559,6 +540,22 @@ func (c *UserPermissionCache) getSyntheticViewRoleDefinition() clusterviewv1alph
 }
 
 // Helper functions
+
+// addPermissionForUser adds or merges a permission binding for a user
+func addPermissionForUser(userPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding, userName, roleName string, binding clusterviewv1alpha1.ClusterBinding) {
+	if userPermissions[userName] == nil {
+		userPermissions[userName] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
+	}
+	userPermissions[userName][roleName] = mergeOrAppendBinding(userPermissions[userName][roleName], binding)
+}
+
+// addPermissionForGroup adds or merges a permission binding for a group
+func addPermissionForGroup(groupPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding, groupName, roleName string, binding clusterviewv1alpha1.ClusterBinding) {
+	if groupPermissions[groupName] == nil {
+		groupPermissions[groupName] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
+	}
+	groupPermissions[groupName][roleName] = mergeOrAppendBinding(groupPermissions[groupName][roleName], binding)
+}
 
 // mergeOrAppendBinding merges or appends a binding to the existing bindings list
 // - If the same cluster exists with cluster scope, do nothing (already covered)
@@ -616,15 +613,9 @@ func (c *UserPermissionCache) processClusterRoleBinding(
 	for _, subject := range binding.Subjects {
 		switch subject.Kind {
 		case rbacv1.UserKind:
-			if userPermissions[subject.Name] == nil {
-				userPermissions[subject.Name] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
-			}
-			userPermissions[subject.Name][roleRefName] = mergeOrAppendBinding(userPermissions[subject.Name][roleRefName], clusterBinding)
+			addPermissionForUser(userPermissions, subject.Name, roleRefName, clusterBinding)
 		case rbacv1.GroupKind:
-			if groupPermissions[subject.Name] == nil {
-				groupPermissions[subject.Name] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
-			}
-			groupPermissions[subject.Name][roleRefName] = mergeOrAppendBinding(groupPermissions[subject.Name][roleRefName], clusterBinding)
+			addPermissionForGroup(groupPermissions, subject.Name, roleRefName, clusterBinding)
 		}
 	}
 }
@@ -647,18 +638,18 @@ func (c *UserPermissionCache) processRoleBinding(
 
 	namespace := binding.Namespace
 
+	namespaceBinding := clusterviewv1alpha1.ClusterBinding{
+		Cluster:    clusterName,
+		Scope:      clusterviewv1alpha1.BindingScopeNamespace,
+		Namespaces: []string{namespace},
+	}
+
 	for _, subject := range binding.Subjects {
 		switch subject.Kind {
 		case rbacv1.UserKind:
-			if userPermissions[subject.Name] == nil {
-				userPermissions[subject.Name] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
-			}
-			c.addNamespaceBinding(clusterName, namespace, roleRefName, userPermissions[subject.Name])
+			addPermissionForUser(userPermissions, subject.Name, roleRefName, namespaceBinding)
 		case rbacv1.GroupKind:
-			if groupPermissions[subject.Name] == nil {
-				groupPermissions[subject.Name] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
-			}
-			c.addNamespaceBinding(clusterName, namespace, roleRefName, groupPermissions[subject.Name])
+			addPermissionForGroup(groupPermissions, subject.Name, roleRefName, namespaceBinding)
 		}
 	}
 }
@@ -730,31 +721,19 @@ func (c *UserPermissionCache) processClusterRoleBindingsForManagedCluster(
 
 			if grantsAdminPerm {
 				for _, userName := range users {
-					if userPermissions[userName] == nil {
-						userPermissions[userName] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
-					}
-					userPermissions[userName][SyntheticAdminRoleName] = mergeOrAppendBinding(userPermissions[userName][SyntheticAdminRoleName], binding)
+					addPermissionForUser(userPermissions, userName, clusterviewv1alpha1.ManagedClusterAdminRole, binding)
 				}
 				for _, groupName := range groups {
-					if groupPermissions[groupName] == nil {
-						groupPermissions[groupName] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
-					}
-					groupPermissions[groupName][SyntheticAdminRoleName] = mergeOrAppendBinding(groupPermissions[groupName][SyntheticAdminRoleName], binding)
+					addPermissionForGroup(groupPermissions, groupName, clusterviewv1alpha1.ManagedClusterAdminRole, binding)
 				}
 			}
 
 			if grantsViewPerm {
 				for _, userName := range users {
-					if userPermissions[userName] == nil {
-						userPermissions[userName] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
-					}
-					userPermissions[userName][SyntheticViewRoleName] = mergeOrAppendBinding(userPermissions[userName][SyntheticViewRoleName], binding)
+					addPermissionForUser(userPermissions, userName, clusterviewv1alpha1.ManagedClusterViewRole, binding)
 				}
 				for _, groupName := range groups {
-					if groupPermissions[groupName] == nil {
-						groupPermissions[groupName] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
-					}
-					groupPermissions[groupName][SyntheticViewRoleName] = mergeOrAppendBinding(groupPermissions[groupName][SyntheticViewRoleName], binding)
+					addPermissionForGroup(groupPermissions, groupName, clusterviewv1alpha1.ManagedClusterViewRole, binding)
 				}
 			}
 		}
@@ -812,40 +791,28 @@ func (c *UserPermissionCache) processRoleBindingsForManagedCluster(
 
 			if grantsAdminPerm {
 				for _, userName := range users {
-					if userPermissions[userName] == nil {
-						userPermissions[userName] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
-					}
-					userPermissions[userName][SyntheticAdminRoleName] = mergeOrAppendBinding(userPermissions[userName][SyntheticAdminRoleName], binding)
+					addPermissionForUser(userPermissions, userName, clusterviewv1alpha1.ManagedClusterAdminRole, binding)
 				}
 				for _, groupName := range groups {
-					if groupPermissions[groupName] == nil {
-						groupPermissions[groupName] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
-					}
-					groupPermissions[groupName][SyntheticAdminRoleName] = mergeOrAppendBinding(groupPermissions[groupName][SyntheticAdminRoleName], binding)
+					addPermissionForGroup(groupPermissions, groupName, clusterviewv1alpha1.ManagedClusterAdminRole, binding)
 				}
 			}
 
 			if grantsViewPerm {
 				for _, userName := range users {
-					if userPermissions[userName] == nil {
-						userPermissions[userName] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
-					}
-					userPermissions[userName][SyntheticViewRoleName] = mergeOrAppendBinding(userPermissions[userName][SyntheticViewRoleName], binding)
+					addPermissionForUser(userPermissions, userName, clusterviewv1alpha1.ManagedClusterViewRole, binding)
 				}
 				for _, groupName := range groups {
-					if groupPermissions[groupName] == nil {
-						groupPermissions[groupName] = make(map[string][]clusterviewv1alpha1.ClusterBinding)
-					}
-					groupPermissions[groupName][SyntheticViewRoleName] = mergeOrAppendBinding(groupPermissions[groupName][SyntheticViewRoleName], binding)
+					addPermissionForGroup(groupPermissions, groupName, clusterviewv1alpha1.ManagedClusterViewRole, binding)
 				}
 			}
 		}
 	}
 }
 
-// clusterRoleGrantsPermission checks if a ClusterRole grants create permission on a specific resource
-func (c *UserPermissionCache) clusterRoleGrantsPermission(clusterRole *rbacv1.ClusterRole, resource, apiGroup string) bool {
-	for _, rule := range clusterRole.Rules {
+// rulesGrantPermission checks if policy rules grant create permission on a specific resource
+func (c *UserPermissionCache) rulesGrantPermission(rules []rbacv1.PolicyRule, resource, apiGroup string) bool {
+	for _, rule := range rules {
 		// Check if the rule applies to the correct API group
 		if !c.ruleCoversAPIGroup(rule, apiGroup) {
 			continue
@@ -864,25 +831,14 @@ func (c *UserPermissionCache) clusterRoleGrantsPermission(clusterRole *rbacv1.Cl
 	return false
 }
 
+// clusterRoleGrantsPermission checks if a ClusterRole grants create permission on a specific resource
+func (c *UserPermissionCache) clusterRoleGrantsPermission(clusterRole *rbacv1.ClusterRole, resource, apiGroup string) bool {
+	return c.rulesGrantPermission(clusterRole.Rules, resource, apiGroup)
+}
+
 // roleGrantsPermission checks if a Role grants create permission on a specific resource
 func (c *UserPermissionCache) roleGrantsPermission(role *rbacv1.Role, resource, apiGroup string) bool {
-	for _, rule := range role.Rules {
-		// Check if the rule applies to the correct API group
-		if !c.ruleCoversAPIGroup(rule, apiGroup) {
-			continue
-		}
-
-		// Check if the rule covers the resource
-		if !c.ruleCoversResource(rule, resource) {
-			continue
-		}
-
-		// Check if the rule grants create verb
-		if c.ruleCoversVerb(rule, "create") {
-			return true
-		}
-	}
-	return false
+	return c.rulesGrantPermission(role.Rules, resource, apiGroup)
 }
 
 // ruleCoversAPIGroup checks if a policy rule covers the specified API group
