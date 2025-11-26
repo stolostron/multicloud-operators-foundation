@@ -59,8 +59,7 @@ var (
 )
 
 const (
-	AddonName               = "work-manager"
-	leaseUpdateJitterFactor = 0.25
+	AddonName = "work-manager"
 )
 
 func init() {
