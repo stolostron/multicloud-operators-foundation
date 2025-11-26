@@ -386,11 +386,31 @@ func (c *UserPermissionCache) synchronize() {
 	// Process managedcluster admin/view permissions from RoleBindings and ClusterRoleBindings first
 	c.processManagedClusterPermissions(userPermissions, groupPermissions)
 
+	// Process discoverable ClusterRoles and ClusterPermissions
+	if err := c.processDiscoverablePermissions(userPermissions, groupPermissions); err != nil {
+		klog.Errorf("Failed to process discoverable permissions: %v", err)
+		return
+	}
+
+	// Update the permission stores with the collected permissions
+	c.updatePermissionStores(userPermissions, groupPermissions)
+
+	// Update the resource version hash after successful synchronization
+	c.resourceVersionHash = newHash
+
+	klog.V(2).Infof("UserPermissionCache synchronized: %d users, %d groups, %d discoverable roles",
+		len(userPermissions), len(groupPermissions), len(c.discoverableRoles))
+}
+
+// processDiscoverablePermissions gets discoverable ClusterRoles and processes ClusterPermissions
+func (c *UserPermissionCache) processDiscoverablePermissions(
+	userPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding,
+	groupPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding,
+) error {
 	// Get all discoverable ClusterRoles
 	discoverableRoles, err := c.getDiscoverableClusterRoles()
 	if err != nil {
-		klog.Errorf("Failed to get discoverable ClusterRoles: %v", err)
-		return
+		return fmt.Errorf("failed to get discoverable ClusterRoles: %w", err)
 	}
 
 	c.discoverableRoles = discoverableRoles
@@ -399,16 +419,30 @@ func (c *UserPermissionCache) synchronize() {
 		c.discoverableRolesNames.Insert(role.Name)
 	}
 
-	// Get all ClusterPermissions
-	clusterPermissions, err := c.clusterPermissionLister.List(labels.Everything())
-	if err != nil {
-		klog.Errorf("Failed to list ClusterPermissions: %v", err)
-		return
+	// Process all ClusterPermissions
+	if err := c.processAllClusterPermissions(userPermissions, groupPermissions); err != nil {
+		return err
 	}
 
-	// Then process ClusterPermissions
+	return nil
+}
+
+// processAllClusterPermissions gets all ClusterPermissions and processes their bindings
+func (c *UserPermissionCache) processAllClusterPermissions(
+	userPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding,
+	groupPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding,
+) error {
+	clusterPermissions, err := c.clusterPermissionLister.List(labels.Everything())
+	if err != nil {
+		return fmt.Errorf("failed to list ClusterPermissions: %w", err)
+	}
+
+	klog.V(2).Infof("Processing %d ClusterPermissions", len(clusterPermissions))
+
 	for _, cp := range clusterPermissions {
 		clusterName := cp.Namespace
+
+		klog.V(4).Infof("Processing ClusterPermission %s/%s", cp.Namespace, cp.Name)
 
 		// Process ClusterRoleBinding (single)
 		if cp.Spec.ClusterRoleBinding != nil {
@@ -417,6 +451,8 @@ func (c *UserPermissionCache) synchronize() {
 
 		// Process ClusterRoleBindings (multiple)
 		if cp.Spec.ClusterRoleBindings != nil {
+			klog.V(4).Infof("ClusterPermission %s/%s has %d ClusterRoleBindings",
+				cp.Namespace, cp.Name, len(*cp.Spec.ClusterRoleBindings))
 			for _, binding := range *cp.Spec.ClusterRoleBindings {
 				c.processClusterRoleBinding(&binding, clusterName, userPermissions, groupPermissions)
 			}
@@ -424,13 +460,23 @@ func (c *UserPermissionCache) synchronize() {
 
 		// Process RoleBindings
 		if cp.Spec.RoleBindings != nil {
+			klog.V(4).Infof("ClusterPermission %s/%s has %d RoleBindings",
+				cp.Namespace, cp.Name, len(*cp.Spec.RoleBindings))
 			for _, binding := range *cp.Spec.RoleBindings {
 				c.processRoleBinding(&binding, clusterName, userPermissions, groupPermissions)
 			}
 		}
 	}
 
-	// Convert to UserPermissionRecord and update stores
+	return nil
+}
+
+// updatePermissionStores converts permission maps to UserPermissionRecords and updates the stores
+func (c *UserPermissionCache) updatePermissionStores(
+	userPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding,
+	groupPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding,
+) {
+	// Update user permission store
 	for userName, roleBindings := range userPermissions {
 		permissions := make([]PermissionInfo, 0, len(roleBindings))
 		for roleName, bindings := range roleBindings {
@@ -453,6 +499,7 @@ func (c *UserPermissionCache) synchronize() {
 		}
 	}
 
+	// Update group permission store
 	for groupName, roleBindings := range groupPermissions {
 		permissions := make([]PermissionInfo, 0, len(roleBindings))
 		for roleName, bindings := range roleBindings {
@@ -474,12 +521,6 @@ func (c *UserPermissionCache) synchronize() {
 			_ = c.groupPermissionStore.Add(record)
 		}
 	}
-
-	// Update the resource version hash after successful synchronization
-	c.resourceVersionHash = newHash
-
-	klog.V(2).Infof("UserPermissionCache synchronized: %d users, %d groups, %d discoverable roles",
-		len(userPermissions), len(groupPermissions), len(c.discoverableRoles))
 }
 
 // getDiscoverableClusterRoles returns all ClusterRoles with the discoverable label
@@ -489,13 +530,18 @@ func (c *UserPermissionCache) getDiscoverableClusterRoles() ([]*rbacv1.ClusterRo
 		return nil, err
 	}
 
+	klog.V(4).Infof("Checking %d ClusterRoles for discoverable label %s=true",
+		len(allRoles), clusterviewv1alpha1.DiscoverableClusterRoleLabel)
+
 	var discoverableRoles []*rbacv1.ClusterRole
 	for _, role := range allRoles {
 		if role.Labels != nil && role.Labels[clusterviewv1alpha1.DiscoverableClusterRoleLabel] == "true" {
+			klog.V(4).Infof("Found discoverable ClusterRole: %s", role.Name)
 			discoverableRoles = append(discoverableRoles, role)
 		}
 	}
 
+	klog.V(2).Infof("Found %d discoverable ClusterRoles", len(discoverableRoles))
 	return discoverableRoles, nil
 }
 
@@ -717,6 +763,32 @@ func mergeOrAppendBinding(
 	return append(existingBindings, newBinding)
 }
 
+// extractSubjectsFromClusterRoleBinding extracts subjects from a ClusterRoleBinding
+// Handles both Subject (singular, embedded) and Subjects (plural, array) fields
+// Per API docs: "If both subject and subjects exist then only subjects will be used"
+func extractSubjectsFromClusterRoleBinding(binding *clusterpermissionv1alpha1.ClusterRoleBinding) ([]rbacv1.Subject, bool) {
+	if len(binding.Subjects) > 0 {
+		return binding.Subjects, true
+	}
+	if binding.Subject != nil {
+		return []rbacv1.Subject{*binding.Subject}, true
+	}
+	return nil, false
+}
+
+// extractSubjectsFromRoleBinding extracts subjects from a RoleBinding
+// Handles both Subject (singular, embedded) and Subjects (plural, array) fields
+// Per API docs: "If both subject and subjects exist then only subjects will be used"
+func extractSubjectsFromRoleBinding(binding *clusterpermissionv1alpha1.RoleBinding) ([]rbacv1.Subject, bool) {
+	if len(binding.Subjects) > 0 {
+		return binding.Subjects, true
+	}
+	if binding.Subject != nil {
+		return []rbacv1.Subject{*binding.Subject}, true
+	}
+	return nil, false
+}
+
 // processClusterRoleBinding processes a ClusterRoleBinding and adds permissions to the maps
 func (c *UserPermissionCache) processClusterRoleBinding(
 	binding *clusterpermissionv1alpha1.ClusterRoleBinding,
@@ -725,11 +797,15 @@ func (c *UserPermissionCache) processClusterRoleBinding(
 	groupPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding,
 ) {
 	if binding == nil || binding.RoleRef.Name == "" {
+		klog.V(4).Info("Skipping nil or empty ClusterRoleBinding")
 		return
 	}
 
 	roleRefName := binding.RoleRef.Name
+	klog.V(4).Infof("Processing ClusterRoleBinding for role %s in cluster %s", roleRefName, clusterName)
+
 	if !c.discoverableRolesNames.Has(roleRefName) {
+		klog.V(4).Infof("Skipping ClusterRoleBinding: role %s is not in discoverable roles set", roleRefName)
 		return
 	}
 
@@ -739,7 +815,16 @@ func (c *UserPermissionCache) processClusterRoleBinding(
 		Namespaces: []string{"*"},
 	}
 
-	for _, subject := range binding.Subjects {
+	subjects, ok := extractSubjectsFromClusterRoleBinding(binding)
+	if !ok {
+		klog.V(4).Infof("Skipping ClusterRoleBinding for role %s: no subjects found", roleRefName)
+		return
+	}
+
+	klog.V(4).Infof("Adding ClusterRoleBinding for discoverable role %s with %d subject(s)",
+		roleRefName, len(subjects))
+
+	for _, subject := range subjects {
 		switch subject.Kind {
 		case rbacv1.UserKind:
 			addPermissionForUser(userPermissions, subject.Name, roleRefName, clusterBinding)
@@ -757,11 +842,17 @@ func (c *UserPermissionCache) processRoleBinding(
 	groupPermissions map[string]map[string][]clusterviewv1alpha1.ClusterBinding,
 ) {
 	if binding == nil || binding.RoleRef.Name == "" {
+		klog.V(4).Info("Skipping nil or empty RoleBinding")
 		return
 	}
 
 	roleRefName := binding.RoleRef.Name
+	klog.V(4).Infof("Processing RoleBinding for role %s in cluster %s, namespace %s",
+		roleRefName, clusterName, binding.Namespace)
+
 	if !c.discoverableRolesNames.Has(roleRefName) {
+		klog.V(4).Infof("Skipping RoleBinding: role %s is not in discoverable roles set (has %d roles)",
+			roleRefName, c.discoverableRolesNames.Len())
 		return
 	}
 
@@ -773,7 +864,16 @@ func (c *UserPermissionCache) processRoleBinding(
 		Namespaces: []string{namespace},
 	}
 
-	for _, subject := range binding.Subjects {
+	subjects, ok := extractSubjectsFromRoleBinding(binding)
+	if !ok {
+		klog.V(4).Infof("Skipping RoleBinding for role %s: no subjects found", roleRefName)
+		return
+	}
+
+	klog.V(4).Infof("Adding RoleBinding for discoverable role %s with %d subject(s)",
+		roleRefName, len(subjects))
+
+	for _, subject := range subjects {
 		switch subject.Kind {
 		case rbacv1.UserKind:
 			addPermissionForUser(userPermissions, subject.Name, roleRefName, namespaceBinding)
