@@ -125,11 +125,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 		cluster := util.NewManagedCluster(clusterName)
 		// case 1: cannot create managedCluster without managedClusterSet label
 		gomega.Eventually(func() error {
-			err := util.CreateManagedCluster(userClusterClient, cluster)
-			if err != nil {
-				return fmt.Errorf(err.Error())
-			}
-			return nil
+			return util.CreateManagedCluster(userClusterClient, cluster)
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
 
 		// case 2: cannot create managedCluster with wrong managedClusterSet label
@@ -140,11 +136,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 		}
 		cluster.SetLabels(labels)
 		gomega.Eventually(func() error {
-			err := util.CreateManagedCluster(userClusterClient, cluster)
-			if err != nil {
-				return fmt.Errorf(err.Error())
-			}
-			return nil
+			return util.CreateManagedCluster(userClusterClient, cluster)
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
 
 		// case 3: can create managedCluster with right managedClusterSet label
@@ -169,11 +161,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 			"cluster.open-cluster-management.io/clusterset": "",
 		}
 		gomega.Eventually(func() error {
-			err := util.UpdateManagedClusterLabels(userClusterClient, clusterName, labels)
-			if err != nil {
-				return fmt.Errorf(err.Error())
-			}
-			return nil
+			return util.UpdateManagedClusterLabels(userClusterClient, clusterName, labels)
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
 
 		// case 6: cannot update managedCluster to remove managedClusterSet label
@@ -181,11 +169,7 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 			"cluster.open-cluster-management.io/clusterset": "wrong-set",
 		}
 		gomega.Eventually(func() error {
-			err := util.UpdateManagedClusterLabels(userClusterClient, clusterName, labels)
-			if err != nil {
-				return fmt.Errorf(err.Error())
-			}
-			return nil
+			return util.UpdateManagedClusterLabels(userClusterClient, clusterName, labels)
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
 	})
 
@@ -262,11 +246,7 @@ var _ = ginkgo.Describe("Testing user create/update clusterdeployment with mange
 			"cluster.open-cluster-management.io/clusterset": "",
 		}
 		gomega.Eventually(func() error {
-			err := util.UpdateClusterDeploymentLabels(userHiveClient, clusterDeploymentName, clusterDeploymentName, labels)
-			if err != nil {
-				return fmt.Errorf(err.Error())
-			}
-			return nil
+			return util.UpdateClusterDeploymentLabels(userHiveClient, clusterDeploymentName, clusterDeploymentName, labels)
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
 
 		// case 6: cannot update managedCluster to a wrong managedClusterSet label
@@ -274,11 +254,7 @@ var _ = ginkgo.Describe("Testing user create/update clusterdeployment with mange
 			"cluster.open-cluster-management.io/clusterset": "wrong-set",
 		}
 		gomega.Eventually(func() error {
-			err := util.UpdateClusterDeploymentLabels(userHiveClient, clusterDeploymentName, clusterDeploymentName, labels)
-			if err != nil {
-				return fmt.Errorf(err.Error())
-			}
-			return nil
+			return util.UpdateClusterDeploymentLabels(userHiveClient, clusterDeploymentName, clusterDeploymentName, labels)
 		}, eventuallyTimeout, eventuallyInterval).Should(gomega.HaveOccurred())
 	})
 	ginkgo.It("should create and update the clusterdeployment from clusterpool successfully", func() {
@@ -551,11 +527,7 @@ var _ = ginkgo.Describe("Testing managed cluster deletion", func() {
 		cluster := util.NewManagedCluster(clusterName)
 		ginkgo.By(fmt.Sprintf("create a managedCluster %s as the hosting cluster", clusterName))
 		gomega.Eventually(func() error {
-			err := util.CreateManagedCluster(clusterClient, cluster)
-			if err != nil {
-				return fmt.Errorf(err.Error())
-			}
-			return nil
+			return util.CreateManagedCluster(clusterClient, cluster)
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 		hostedCluster := util.NewManagedCluster(fmt.Sprintf("e2e-hosted-%s", rand.String(6)))
@@ -564,11 +536,7 @@ var _ = ginkgo.Describe("Testing managed cluster deletion", func() {
 			constants.AnnotationKlusterletHostingClusterName: clusterName,
 		}
 		gomega.Eventually(func() error {
-			err := util.CreateManagedCluster(clusterClient, hostedCluster)
-			if err != nil {
-				return fmt.Errorf(err.Error())
-			}
-			return nil
+			return util.CreateManagedCluster(clusterClient, hostedCluster)
 		}, eventuallyTimeout, eventuallyInterval).ShouldNot(gomega.HaveOccurred())
 
 		ginkgo.By(fmt.Sprintf("The hosting cluster %s can not be deleted", clusterName))
