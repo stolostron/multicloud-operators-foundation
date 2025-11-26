@@ -1685,8 +1685,10 @@ open-cluster-management.io/api/work/v1alpha1
 ## explicit; go 1.23.0
 open-cluster-management.io/cluster-permission/api/v1alpha1
 open-cluster-management.io/cluster-permission/client/clientset/versioned
+open-cluster-management.io/cluster-permission/client/clientset/versioned/fake
 open-cluster-management.io/cluster-permission/client/clientset/versioned/scheme
 open-cluster-management.io/cluster-permission/client/clientset/versioned/typed/api/v1alpha1
+open-cluster-management.io/cluster-permission/client/clientset/versioned/typed/api/v1alpha1/fake
 open-cluster-management.io/cluster-permission/client/informers/externalversions
 open-cluster-management.io/cluster-permission/client/informers/externalversions/api
 open-cluster-management.io/cluster-permission/client/informers/externalversions/api/v1alpha1

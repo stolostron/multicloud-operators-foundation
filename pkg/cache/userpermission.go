@@ -12,7 +12,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apiserver/pkg/authentication/user"
@@ -1005,18 +1004,4 @@ func (c *UserPermissionCache) ruleCoversVerb(rule rbacv1.PolicyRule, verb string
 		}
 	}
 	return false
-}
-
-// ListObjects returns the list of UserPermissions as runtime.Object
-func (c *UserPermissionCache) ListObjects(userInfo user.Info) (runtime.Object, error) {
-	return c.List(userInfo, labels.Everything())
-}
-
-// ConvertResource converts a role name to a UserPermission object
-func (c *UserPermissionCache) ConvertResource(name string) runtime.Object {
-	return &clusterviewv1alpha1.UserPermission{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
-		},
-	}
 }
