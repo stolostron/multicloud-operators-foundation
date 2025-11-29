@@ -1,4 +1,4 @@
-package cache
+package userpermission
 
 import (
 	"testing"
@@ -216,7 +216,7 @@ var (
 	}
 )
 
-func setupUserPermissionCache(stopCh chan struct{}) *UserPermissionCache {
+func setupUserPermissionCache(stopCh chan struct{}) *Cache {
 	// Create fake clients
 	fakeKubeClient := fake.NewSimpleClientset(
 		&discoverableClusterRole1,
@@ -259,7 +259,7 @@ func setupUserPermissionCache(stopCh chan struct{}) *UserPermissionCache {
 	cpInformers.Start(stopCh)
 
 	// Create cache
-	cache := NewUserPermissionCache(
+	cache := New(
 		kubeInformers.Rbac().V1().ClusterRoles(),
 		kubeInformers.Rbac().V1().ClusterRoleBindings(),
 		kubeInformers.Rbac().V1().Roles(),
@@ -585,15 +585,17 @@ func TestUserPermissionCache_DiscoverableRoles(t *testing.T) {
 
 	cache := setupUserPermissionCache(stopCh)
 
-	roles, err := cache.getDiscoverableClusterRoles()
-	assert.NoError(t, err)
+	// After synchronization, the cache's permission store should have populated discoverable roles
+	cache.lock.RLock()
+	roles := cache.permissionStore.getDiscoverableRoles()
+	cache.lock.RUnlock()
+
 	assert.Equal(t, 2, len(roles), "Should have 2 discoverable roles")
 
 	roleNames := sets.New[string]()
 	for _, role := range roles {
 		roleNames.Insert(role.Name)
 	}
-
 	assert.True(t, roleNames.Has("admin-role"), "Should have admin-role")
 	assert.True(t, roleNames.Has("view-role"), "Should have view-role")
 }
@@ -626,31 +628,26 @@ func TestUserPermissionCache_SyntheticRoles(t *testing.T) {
 }
 
 func TestUserPermissionCache_PermissionGrantChecks(t *testing.T) {
-	stopCh := make(chan struct{})
-	defer close(stopCh)
-
-	cache := setupUserPermissionCache(stopCh)
-
 	t.Run("clusterRoleGrantsPermission for managedclusteractions", func(t *testing.T) {
-		grants := cache.clusterRoleGrantsPermission(&adminClusterRole, "managedclusteractions",
+		grants := clusterRoleGrantsPermission(&adminClusterRole, "managedclusteractions",
 			"action.open-cluster-management.io")
 		assert.True(t, grants, "adminClusterRole should grant managedclusteractions permission")
 	})
 
 	t.Run("clusterRoleGrantsPermission for managedclusterviews", func(t *testing.T) {
-		grants := cache.clusterRoleGrantsPermission(&viewClusterRole, "managedclusterviews",
+		grants := clusterRoleGrantsPermission(&viewClusterRole, "managedclusterviews",
 			"view.open-cluster-management.io")
 		assert.True(t, grants, "viewClusterRole should grant managedclusterviews permission")
 	})
 
 	t.Run("clusterRoleGrantsPermission returns false for wrong resource", func(t *testing.T) {
-		grants := cache.clusterRoleGrantsPermission(&adminClusterRole, "wrongresource",
+		grants := clusterRoleGrantsPermission(&adminClusterRole, "wrongresource",
 			"action.open-cluster-management.io")
 		assert.False(t, grants, "adminClusterRole should not grant permission for wrong resource")
 	})
 
 	t.Run("clusterRoleGrantsPermission returns false for wrong api group", func(t *testing.T) {
-		grants := cache.clusterRoleGrantsPermission(&adminClusterRole, "managedclusteractions",
+		grants := clusterRoleGrantsPermission(&adminClusterRole, "managedclusteractions",
 			"wrong.api.group")
 		assert.False(t, grants, "adminClusterRole should not grant permission for wrong API group")
 	})
@@ -664,8 +661,12 @@ func TestUserPermissionCache_Synchronize(t *testing.T) {
 
 	// Verify initial synchronization happened
 	assert.NotEmpty(t, cache.resourceVersionHash, "Resource version hash should be set after synchronization")
-	assert.Equal(t, 2, len(cache.discoverableRoles), "Should have 2 discoverable roles")
-	assert.Equal(t, 2, cache.discoverableRolesNames.Len(), "Should track 2 discoverable role names")
+
+	cache.lock.RLock()
+	roles := cache.permissionStore.getDiscoverableRoles()
+	cache.lock.RUnlock()
+
+	assert.Equal(t, 2, len(roles), "Should have 2 discoverable roles")
 
 	// Test idempotency - synchronize again should not change hash
 	initialHash := cache.resourceVersionHash

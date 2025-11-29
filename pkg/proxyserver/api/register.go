@@ -5,12 +5,13 @@ import (
 	"time"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/cache/userpermission"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/log"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/managedcluster"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/managedclusterset"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/project"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/proxy"
-	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/userpermission"
+	userpermissionrest "github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/userpermission"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/client-go/informers"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
@@ -105,7 +106,7 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 		utils.GetViewResourceFromClusterRole,
 	)
 
-	userPermissionCache := cache.NewUserPermissionCache(
+	userPermissionCache := userpermission.New(
 		informerFactory.Rbac().V1().ClusterRoles(),
 		informerFactory.Rbac().V1().ClusterRoleBindings(),
 		informerFactory.Rbac().V1().Roles(),
@@ -120,7 +121,7 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 			clusterInformer.Cluster().V1beta2().ManagedClusterSets().Lister(),
 			informerFactory.Rbac().V1().ClusterRoles().Lister(),
 		),
-		"userpermissions": userpermission.NewREST(userPermissionCache),
+		"userpermissions": userpermissionrest.NewREST(userPermissionCache),
 	}
 
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(clusterviewv1.GroupName, Scheme, ParameterCodec, Codecs)
