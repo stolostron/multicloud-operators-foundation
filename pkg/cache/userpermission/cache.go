@@ -35,6 +35,9 @@ type Cache struct {
 	managedClusterLister     clusterv1lister.ManagedClusterLister
 	clusterPermissionLister  cplisters.ClusterPermissionLister
 
+	// Permission processors (created once and reused)
+	processors []permissionProcessor
+
 	// Permission store for user and group permissions
 	permissionStore *permissionStore
 
@@ -60,6 +63,21 @@ func New(
 		managedClusterLister:     managedClusterLister,
 		clusterPermissionLister:  clusterPermissionLister,
 		permissionStore:          newPermissionStore(),
+	}
+
+	// Initialize permission processors (created once and reused)
+	cache.processors = []permissionProcessor{
+		&adminViewPermissionProcessor{
+			managedClusterLister:     cache.managedClusterLister,
+			clusterRoleLister:        cache.clusterRoleLister,
+			clusterRoleBindingLister: cache.clusterRoleBindingLister,
+			roleLister:               cache.roleLister,
+			roleBindingLister:        cache.roleBindingLister,
+		},
+		&discoverablePermissionProcessor{
+			clusterRoleLister:       cache.clusterRoleLister,
+			clusterPermissionLister: cache.clusterPermissionLister,
+		},
 	}
 
 	return cache

@@ -1,6 +1,10 @@
 package userpermission
 
 import (
+	"crypto/sha256"
+	"fmt"
+	"sort"
+
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	rbacv1listers "k8s.io/client-go/listers/rbac/v1"
@@ -17,9 +21,9 @@ type discoverablePermissionProcessor struct {
 	clusterPermissionLister cplisters.ClusterPermissionLister
 }
 
-// process implements permissionProcessor for discoverablePermissionProcessor
+// sync implements permissionProcessor for discoverablePermissionProcessor
 // Gets discoverable ClusterRoles and processes ClusterPermissions
-func (p *discoverablePermissionProcessor) process(store *permissionStore) error {
+func (p *discoverablePermissionProcessor) sync(store *permissionStore) error {
 	// Get all discoverable ClusterRoles
 	roles, err := p.getDiscoverableClusterRoles()
 	if err != nil {
@@ -175,4 +179,60 @@ func (p *discoverablePermissionProcessor) processRoleBinding(
 		roleRefName, len(subjects))
 
 	store.addPermissionForSubjects(subjects, roleRefName, namespaceBinding)
+}
+
+// getResourceVersionHash implements permissionProcessor for discoverablePermissionProcessor
+// Computes a hash of resources relevant to discoverable permissions:
+// - Discoverable ClusterRoles
+// - ClusterPermissions
+func (p *discoverablePermissionProcessor) getResourceVersionHash() (string, error) {
+	h := sha256.New()
+	var versions []string
+
+	// 1. Discoverable ClusterRoles
+	if err := p.addDiscoverableClusterRoleVersions(&versions); err != nil {
+		return "", err
+	}
+
+	// 2. ClusterPermissions
+	if err := p.addClusterPermissionVersions(&versions); err != nil {
+		return "", err
+	}
+
+	// Sort for deterministic hashing
+	sort.Strings(versions)
+
+	// Write all versions to hash
+	for _, v := range versions {
+		_, _ = h.Write([]byte(v))
+		_, _ = h.Write([]byte("\n"))
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
+// addDiscoverableClusterRoleVersions adds discoverable ClusterRole versions to the list
+func (p *discoverablePermissionProcessor) addDiscoverableClusterRoleVersions(versions *[]string) error {
+	clusterRoles, err := p.clusterRoleLister.List(labels.Everything())
+	if err != nil {
+		return fmt.Errorf("failed to list ClusterRoles: %w", err)
+	}
+	for _, cr := range clusterRoles {
+		if cr.Labels != nil && cr.Labels[clusterviewv1alpha1.DiscoverableClusterRoleLabel] == "true" {
+			*versions = append(*versions, fmt.Sprintf(ClusterRoleVersionFormat, cr.Name, cr.ResourceVersion))
+		}
+	}
+	return nil
+}
+
+// addClusterPermissionVersions adds ClusterPermission versions to the list
+func (p *discoverablePermissionProcessor) addClusterPermissionVersions(versions *[]string) error {
+	clusterPermissions, err := p.clusterPermissionLister.List(labels.Everything())
+	if err != nil {
+		return fmt.Errorf("failed to list ClusterPermissions: %w", err)
+	}
+	for _, cp := range clusterPermissions {
+		*versions = append(*versions, fmt.Sprintf(ClusterPermissionFormat, cp.Namespace, cp.ResourceVersion))
+	}
+	return nil
 }

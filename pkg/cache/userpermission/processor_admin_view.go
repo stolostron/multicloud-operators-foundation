@@ -1,7 +1,12 @@
 package userpermission
 
 import (
+	"crypto/sha256"
+	"fmt"
+	"sort"
+
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/util/sets"
 	rbacv1listers "k8s.io/client-go/listers/rbac/v1"
@@ -20,9 +25,9 @@ type adminViewPermissionProcessor struct {
 	roleBindingLister        rbacv1listers.RoleBindingLister
 }
 
-// process implements permissionProcessor for adminViewPermissionProcessor
+// sync implements permissionProcessor for adminViewPermissionProcessor
 // Scans RoleBindings and ClusterRoleBindings to determine which users/groups have managedcluster admin/view permissions
-func (p *adminViewPermissionProcessor) process(store *permissionStore) error {
+func (p *adminViewPermissionProcessor) sync(store *permissionStore) error {
 	// Get all managed clusters to know which namespaces to check
 	managedClusters, err := p.managedClusterLister.List(labels.Everything())
 	if err != nil {
@@ -46,6 +51,7 @@ func (p *adminViewPermissionProcessor) process(store *permissionStore) error {
 }
 
 // addSyntheticPermissions adds synthetic managedcluster permissions for users and groups
+// If admin permission is granted, view permission is not added since admin is a superset of view
 func addSyntheticPermissions(
 	users, groups []string,
 	grantsAdminPerm, grantsViewPerm bool,
@@ -59,6 +65,8 @@ func addSyntheticPermissions(
 		for _, groupName := range groups {
 			store.addPermissionForGroup(groupName, clusterviewv1alpha1.ManagedClusterAdminRole, binding)
 		}
+		// Admin permission is a superset of view, so skip adding view permission
+		return
 	}
 
 	if grantsViewPerm {
@@ -170,4 +178,184 @@ func (p *adminViewPermissionProcessor) processRoleBindings(
 				users, groups, grantsAdminPerm, grantsViewPerm, binding, store)
 		}
 	}
+}
+
+// getResourceVersionHash implements permissionProcessor for adminViewPermissionProcessor
+// Computes a hash of resources relevant to admin/view synthetic permissions:
+//   - ClusterRoleBindings and their referenced ClusterRoles (that grant managedcluster permissions)
+//   - RoleBindings and their referenced Roles/ClusterRoles (that grant managedcluster permissions,
+//     only in ManagedCluster namespaces)
+func (p *adminViewPermissionProcessor) getResourceVersionHash() (string, error) {
+	h := sha256.New()
+	var versions []string
+
+	// Track ClusterRoles/Roles that grant managedcluster permissions (to avoid duplicates)
+	trackedClusterRoles := sets.New[string]()
+	trackedRoles := sets.New[string]()
+
+	// 1. ClusterRoleBindings that grant managedcluster permissions
+	if err := p.addClusterRoleBindingVersions(&versions, trackedClusterRoles); err != nil {
+		return "", err
+	}
+
+	// 2. RoleBindings that grant managedcluster permissions (only in ManagedCluster namespaces)
+	p.addRoleBindingVersions(&versions, trackedClusterRoles, trackedRoles)
+
+	// Sort for deterministic hashing
+	sort.Strings(versions)
+
+	// Write all versions to hash
+	for _, v := range versions {
+		_, _ = h.Write([]byte(v))
+		_, _ = h.Write([]byte("\n"))
+	}
+
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
+// addClusterRoleBindingVersions adds ClusterRoleBinding versions that grant managedcluster permissions
+func (p *adminViewPermissionProcessor) addClusterRoleBindingVersions(
+	versions *[]string,
+	trackedClusterRoles sets.Set[string],
+) error {
+	clusterRoleBindings, err := p.clusterRoleBindingLister.List(labels.Everything())
+	if err != nil {
+		return fmt.Errorf("failed to list ClusterRoleBindings: %w", err)
+	}
+	for _, crb := range clusterRoleBindings {
+		clusterRole, err := p.clusterRoleLister.Get(crb.RoleRef.Name)
+		if err != nil {
+			klog.V(4).Infof("Failed to get ClusterRole %s: %v", crb.RoleRef.Name, err)
+			continue
+		}
+
+		grantsAdminPerm := clusterRoleGrantsPermission(
+			clusterRole, ManagedClusterActionsResource, ActionAPIGroup)
+		grantsViewPerm := clusterRoleGrantsPermission(
+			clusterRole, ManagedClusterViewsResource, ViewAPIGroup)
+		if !grantsAdminPerm && !grantsViewPerm {
+			continue
+		}
+
+		// Track the ClusterRoleBinding and ClusterRole
+		*versions = append(*versions, fmt.Sprintf(ClusterRoleBindingFormat, crb.Name, crb.ResourceVersion))
+		p.trackClusterRoleVersion(versions, clusterRole, trackedClusterRoles)
+	}
+	return nil
+}
+
+// trackClusterRoleVersion tracks a ClusterRole version if needed
+func (p *adminViewPermissionProcessor) trackClusterRoleVersion(
+	versions *[]string,
+	clusterRole *rbacv1.ClusterRole,
+	trackedClusterRoles sets.Set[string],
+) {
+	if trackedClusterRoles.Has(clusterRole.Name) {
+		return
+	}
+	if clusterRole.Labels != nil && clusterRole.Labels[clusterviewv1alpha1.DiscoverableClusterRoleLabel] == "true" {
+		return
+	}
+	*versions = append(*versions, fmt.Sprintf(ClusterRoleVersionFormat, clusterRole.Name, clusterRole.ResourceVersion))
+	trackedClusterRoles.Insert(clusterRole.Name)
+}
+
+// addRoleBindingVersions adds RoleBinding versions that grant managedcluster permissions
+// Only processes RoleBindings in namespaces that correspond to ManagedClusters
+func (p *adminViewPermissionProcessor) addRoleBindingVersions(
+	versions *[]string,
+	trackedClusterRoles sets.Set[string],
+	trackedRoles sets.Set[string],
+) {
+	// List all RoleBindings across all namespaces
+	roleBindings, err := p.roleBindingLister.List(labels.Everything())
+	if err != nil {
+		klog.Errorf("Failed to list RoleBindings: %v", err)
+		return
+	}
+
+	for _, rb := range roleBindings {
+		// Check if this RoleBinding's namespace corresponds to a ManagedCluster
+		_, err := p.managedClusterLister.Get(rb.Namespace)
+		if err != nil {
+			// Not a ManagedCluster namespace, skip
+			continue
+		}
+
+		p.processRoleBindingVersion(versions, rb, rb.Namespace, trackedClusterRoles, trackedRoles)
+	}
+}
+
+// processRoleBindingVersion processes a single RoleBinding for version tracking
+func (p *adminViewPermissionProcessor) processRoleBindingVersion(
+	versions *[]string,
+	rb *rbacv1.RoleBinding,
+	clusterName string,
+	trackedClusterRoles sets.Set[string],
+	trackedRoles sets.Set[string],
+) {
+	var grantsAdminPerm, grantsViewPerm bool
+
+	switch rb.RoleRef.Kind {
+	case "ClusterRole":
+		grantsAdminPerm, grantsViewPerm = p.checkClusterRoleBindingPermissions(
+			versions, rb.RoleRef.Name, trackedClusterRoles)
+	case "Role":
+		grantsAdminPerm, grantsViewPerm = p.checkRoleBindingPermissions(
+			versions, rb.RoleRef.Name, clusterName, trackedRoles)
+	}
+
+	if grantsAdminPerm || grantsViewPerm {
+		*versions = append(*versions, fmt.Sprintf(RoleBindingFormat, rb.Namespace, rb.Name, rb.ResourceVersion))
+	}
+}
+
+// checkClusterRoleBindingPermissions checks if a ClusterRole grants permissions
+func (p *adminViewPermissionProcessor) checkClusterRoleBindingPermissions(
+	versions *[]string,
+	roleName string,
+	trackedClusterRoles sets.Set[string],
+) (bool, bool) {
+	clusterRole, err := p.clusterRoleLister.Get(roleName)
+	if err != nil {
+		klog.V(4).Infof("Failed to get ClusterRole %s: %v", roleName, err)
+		return false, false
+	}
+
+	grantsAdminPerm, grantsViewPerm := checkRulesForPermissions(clusterRole.Rules)
+	if grantsAdminPerm || grantsViewPerm {
+		p.trackClusterRoleVersion(versions, clusterRole, trackedClusterRoles)
+	}
+	return grantsAdminPerm, grantsViewPerm
+}
+
+// checkRoleBindingPermissions checks if a Role grants permissions
+func (p *adminViewPermissionProcessor) checkRoleBindingPermissions(
+	versions *[]string,
+	roleName string,
+	clusterName string,
+	trackedRoles sets.Set[string],
+) (bool, bool) {
+	role, err := p.roleLister.Roles(clusterName).Get(roleName)
+	if err != nil {
+		klog.V(4).Infof("Failed to get Role %s in namespace %s: %v", roleName, clusterName, err)
+		return false, false
+	}
+
+	grantsAdminPerm, grantsViewPerm := checkRulesForPermissions(role.Rules)
+	if grantsAdminPerm || grantsViewPerm {
+		roleKey := fmt.Sprintf("%s/%s", role.Namespace, role.Name)
+		if !trackedRoles.Has(roleKey) {
+			*versions = append(*versions, fmt.Sprintf(RoleFormat, roleKey, role.ResourceVersion))
+			trackedRoles.Insert(roleKey)
+		}
+	}
+	return grantsAdminPerm, grantsViewPerm
+}
+
+// checkRulesForPermissions checks if policy rules grant admin/view permissions
+func checkRulesForPermissions(rules []rbacv1.PolicyRule) (grantsAdminPerm, grantsViewPerm bool) {
+	grantsAdminPerm = rulesGrantPermission(rules, ManagedClusterActionsResource, ActionAPIGroup)
+	grantsViewPerm = rulesGrantPermission(rules, ManagedClusterViewsResource, ViewAPIGroup)
+	return grantsAdminPerm, grantsViewPerm
 }
