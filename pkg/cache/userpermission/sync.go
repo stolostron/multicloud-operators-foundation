@@ -35,7 +35,7 @@ func (c *Cache) synchronize() {
 
 	// Check if resources have changed
 	if c.resourceVersionHash == newHash {
-		klog.V(4).Info("No changes detected in resources, skipping synchronization")
+		klog.V(2).Info("No changes detected in resources, skipping synchronization")
 		return
 	}
 
@@ -70,6 +70,11 @@ func (c *Cache) synchronize() {
 
 // calculateResourceVersionHash computes a hash from all processors
 func (c *Cache) calculateResourceVersionHash() (string, error) {
+	startTime := time.Now()
+	defer func() {
+		klog.V(2).Infof("calculateResourceVersionHash took %v", time.Since(startTime))
+	}()
+
 	h := sha256.New()
 
 	// Get hash from each processor and combine them
