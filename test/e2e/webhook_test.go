@@ -192,13 +192,17 @@ var _ = ginkgo.Describe("Testing user create/update managedCluster with mangedCl
 })
 
 var _ = ginkgo.Describe("Testing user create/update clusterdeployment with mangedClusterSet label", func() {
-	var userName = rand.String(6)
-	var clusterDeploymentName = "e2e-" + userName
-	var rbacName = "e2e-" + userName
+	var userName string
+	var clusterDeploymentName string
+	var rbacName string
 	var clusterSet1 = "clusterset1-e2e"
 	var clusterSet2 = "clusterset2-e2e"
 	var userHiveClient client.Client
 	ginkgo.BeforeEach(func() {
+		userName = rand.String(6)
+		clusterDeploymentName = "e2e-" + userName
+		rbacName = "e2e-" + userName
+
 		var err error
 		// create rbac with managedClusterSet/join clusterset-e2e permission for user
 		rules := []rbacv1.PolicyRule{
@@ -283,11 +287,11 @@ var _ = ginkgo.Describe("Testing user create/update clusterdeployment with mange
 	})
 	ginkgo.It("should create and update the clusterdeployment from clusterpool successfully", func() {
 		err := util.CreateClusterDeployment(userHiveClient, clusterDeploymentName, clusterDeploymentName, "pool", "pool-ns", nil, false)
-		gomega.Expect(err).Should(gomega.HaveOccurred())
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
 	ginkgo.It("should create and update the clusterdeployment from AI successfully", func() {
 		err := util.CreateClusterDeployment(userHiveClient, clusterDeploymentName, clusterDeploymentName, "", "", nil, true)
-		gomega.Expect(err).Should(gomega.HaveOccurred())
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
 })
 

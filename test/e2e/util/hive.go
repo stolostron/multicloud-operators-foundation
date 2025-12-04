@@ -161,6 +161,8 @@ func CreateClusterDeployment(hiveClient client.Client, name, namespace, clusterP
 			{
 				Kind:       "AgentCluster",
 				APIVersion: "capi-provider.agent-install.openshift.io/v1alpha1",
+				Name:       "fake-agent-cluster",
+				UID:        "fake-uid-12345",
 			},
 		}
 	}
