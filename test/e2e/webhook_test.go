@@ -283,11 +283,11 @@ var _ = ginkgo.Describe("Testing user create/update clusterdeployment with mange
 	})
 	ginkgo.It("should create and update the clusterdeployment from clusterpool successfully", func() {
 		err := util.CreateClusterDeployment(userHiveClient, clusterDeploymentName, clusterDeploymentName, "pool", "pool-ns", nil, false)
-		gomega.Expect(err).Should(gomega.HaveOccurred())
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
 	ginkgo.It("should create and update the clusterdeployment from AI successfully", func() {
 		err := util.CreateClusterDeployment(userHiveClient, clusterDeploymentName, clusterDeploymentName, "", "", nil, true)
-		gomega.Expect(err).Should(gomega.HaveOccurred())
+		gomega.Expect(err).ShouldNot(gomega.HaveOccurred())
 	})
 })
 
