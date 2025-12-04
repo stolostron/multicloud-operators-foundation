@@ -17,11 +17,8 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter"
 	apiextensionsclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
 	apilabels "k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/dynamic"
-	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -29,6 +26,8 @@ import (
 	addonv1alpha1 "open-cluster-management.io/api/client/addon/clientset/versioned"
 	clusterv1client "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterv1informers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	clusterpermissionclient "open-cluster-management.io/cluster-permission/client/clientset/versioned"
+	clusterpermissioninformers "open-cluster-management.io/cluster-permission/client/informers/externalversions"
 )
 
 const clusterPermissionCRDName = "clusterpermissions.rbac.open-cluster-management.io"
@@ -105,20 +104,17 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 	if err != nil {
 		return err
 	}
-	clusterPermissionClient, err := dynamic.NewForConfig(clusterCfg)
+
+	// Create typed ClusterPermission client and informer
+	clusterPermissionClient, err := clusterpermissionclient.NewForConfig(clusterCfg)
 	if err != nil {
 		return err
 	}
-	clusterPermissionFactory := dynamicinformer.NewDynamicSharedInformerFactory(clusterPermissionClient, 10*time.Minute)
-	clusterPermissionInformers := clusterPermissionFactory.ForResource(schema.GroupVersionResource{
-		Group:    "rbac.open-cluster-management.io",
-		Version:  "v1alpha1",
-		Resource: "clusterpermissions",
-	})
-	clusterPermissionLister := clusterPermissionInformers.Lister()
+	clusterPermissionInformerFactory := clusterpermissioninformers.NewSharedInformerFactory(clusterPermissionClient, 10*time.Minute)
+	clusterPermissionInformer := clusterPermissionInformerFactory.Api().V1alpha1().ClusterPermissions()
 
 	proxyServer, err := NewProxyServer(clusterClient, informerFactory, clusterInformers,
-		clusterPermissionInformers.Informer(), clusterPermissionLister,
+		clusterPermissionInformer.Informer(), clusterPermissionInformer.Lister(),
 		apiServerConfig, proxyGetter, logProxyGetter)
 	if err != nil {
 		return err
@@ -142,7 +138,7 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 			}
 
 			klog.Infof("Starting ClusterPermission Informer")
-			clusterPermissionFactory.Start(stopCh)
+			clusterPermissionInformerFactory.Start(stopCh)
 			return true, nil
 		}); err != nil {
 			klog.Errorf("failed to check clusterpermission crd %v", err)

@@ -24,6 +24,8 @@ kube::codegen::gen_openapi \
     --output-pkg "${REPO_ROOT}/pkg/proxyserver/apis/openapi" \
     --extra-pkgs "open-cluster-management.io/api/cluster/v1" \
     --extra-pkgs "open-cluster-management.io/api/cluster/v1beta2" \
+    --extra-pkgs "github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1" \
+    --extra-pkgs "k8s.io/api/rbac/v1" \
     --extra-pkgs "k8s.io/apimachinery/pkg/api/resource" \
     --extra-pkgs "k8s.io/apimachinery/pkg/runtime" \
     --extra-pkgs "k8s.io/apimachinery/pkg/apis/meta/v1" \

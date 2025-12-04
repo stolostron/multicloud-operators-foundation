@@ -4,6 +4,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+
+	clusterviewv1alpha1 "github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1"
 	clusterv1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 )
 
@@ -28,6 +30,8 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 	scheme.AddKnownTypes(GroupVersion,
 		&clusterv1beta2.ManagedClusterSet{},
 		&clusterv1beta2.ManagedClusterSetList{},
+		&clusterviewv1alpha1.UserPermission{},
+		&clusterviewv1alpha1.UserPermissionList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil

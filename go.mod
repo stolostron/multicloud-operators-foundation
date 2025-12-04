@@ -18,7 +18,7 @@ require (
 	github.com/prometheus/common v0.62.0
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/pflag v1.0.9
-	github.com/stolostron/cluster-lifecycle-api v0.0.0-20250821030137-6a5f0b6576fd
+	github.com/stolostron/cluster-lifecycle-api v0.0.0-20251120064629-5d78c3f111c5
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/net v0.47.0
 	k8s.io/api v0.34.1
@@ -35,7 +35,8 @@ require (
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b
 	open-cluster-management.io/addon-framework v0.12.0
 	open-cluster-management.io/api v1.0.1-0.20250911094832-3b7c6bea0358
-	open-cluster-management.io/managed-serviceaccount v0.5.0
+	open-cluster-management.io/cluster-permission v0.16.2
+	open-cluster-management.io/managed-serviceaccount v0.7.0
 	open-cluster-management.io/sdk-go v0.16.0
 	sigs.k8s.io/controller-runtime v0.20.2
 )

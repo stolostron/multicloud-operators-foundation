@@ -1,6 +1,6 @@
 # APIs in group clusterview.open-cluster-management.io
 
-There are 3 aggregated APIs in this group for users to list authorized ManagedClusters, ManagedClusterSets and KubeVirt Projects.
+There are 4 aggregated APIs in this group for users to list authorized ManagedClusters, ManagedClusterSets, KubeVirt Projects, and User Permissions.
 
 ## `managedclusters.clusterview.open-cluster-management.io` API
 
@@ -443,7 +443,7 @@ items:
     name: 8ae384ef-db25-5677-8b8e-f43152c1b960
 ```
 
-##### Example using `clusterRoleBindings` (plural) field
+#### Example using `clusterRoleBindings` (plural) field
 
 ```yaml
 apiVersion: rbac.open-cluster-management.io/v1alpha1
@@ -520,3 +520,306 @@ items:
       project: all_projects
     name: 8ae384ef-db25-5677-8b8e-f43152c1b960
 ```
+
+## `userpermissions.clusterview.open-cluster-management.io` API
+
+The `userpermissions.clusterview.open-cluster-management.io` API allows users to discover their permissions across the fleet of managed clusters. This API returns both ClusterRole definitions and their cluster/namespace bindings, providing a complete view of what permissions a user has and where they can use them.
+
+### Overview
+
+The UserPermission API is a label-based discovery system where:
+
+- ACM administrators define ClusterRoles with specific labels (`clusterview.open-cluster-management.io/discoverable: "true"`)
+- Users can query their permissions by calling the aggregated API
+- The system determines permissions by reading ClusterPermission resources on the hub cluster
+- Both individual user permissions and group-based permissions are supported
+
+### How It Works
+
+1. **Labeled ClusterRoles**: Administrators create ClusterRoles with the discoverable label
+2. **Permission Grant**: ClusterPermission resources bind users/groups to labeled ClusterRoles on specific clusters/namespaces
+3. **API Access**: Administrators grant users permission to call the userpermissions API
+4. **Discovery**: Users call the API to see which ClusterRoles they have access to and where
+
+### API Operations
+
+The API supports:
+
+- `LIST`: Get all ClusterRoles the user has bindings to
+- `GET`: Get a specific ClusterRole by name (returns 404 if user has no bindings to it)
+
+Both operations only return ClusterRoles that the requesting user actually has permissions for.
+
+### Examples
+
+#### Example 1: Basic Setup - Granting Permissions to User Bob
+
+**Step 1**: Administrator creates labeled ClusterRoles
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: acm-kubevirt.io:admin
+  labels:
+    clusterview.open-cluster-management.io/discoverable: "true"
+rules:
+- apiGroups: ["kubevirt.io"]
+  resources: ["virtualmachines", "virtualmachineinstances"]
+  verbs: ["get", "list", "create", "update", "delete"]
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "create", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: acm-deployments-admin
+  labels:
+    clusterview.open-cluster-management.io/discoverable: "true"
+rules:
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "create", "update", "delete"]
+- apiGroups: [""]
+  resources: ["configmaps", "serviceaccounts"]
+  verbs: ["get", "list", "create", "update", "delete"]
+```
+
+**Step 2**: Administrator grants Bob permissions via ClusterPermission resources
+
+```yaml
+# Grant cluster-wide kubevirt admin on cluster1
+apiVersion: rbac.open-cluster-management.io/v1alpha1
+kind: ClusterPermission
+metadata:
+  name: bob-kubevirt-admin-permission
+  namespace: cluster1
+spec:
+  clusterRoleBindings:
+    - name: bob-kubevirt-admin
+      subjects:
+        - kind: User
+          apiGroup: rbac.authorization.k8s.io
+          name: Bob
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: acm-kubevirt.io:admin
+---
+# Grant namespace-scoped deployments admin on cluster1
+apiVersion: rbac.open-cluster-management.io/v1alpha1
+kind: ClusterPermission
+metadata:
+  name: bob-deployments-admin-permission
+  namespace: cluster1
+spec:
+  roleBindings:
+    - name: bob-deployments-admin
+      namespace: app-ns
+      subjects:
+        - kind: User
+          apiGroup: rbac.authorization.k8s.io
+          name: Bob
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: acm-deployments-admin
+```
+
+**Step 3**: Administrator grants Bob API access
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: userpermissions-reader
+rules:
+- apiGroups: ["clusterview.open-cluster-management.io"]
+  resources: ["userpermissions"]
+  verbs: ["list", "get"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: bob-userpermissions-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: userpermissions-reader
+subjects:
+  - kind: User
+    apiGroup: rbac.authorization.k8s.io
+    name: Bob
+```
+
+**Step 4**: Bob lists his permissions
+
+```bash
+kubectl get userpermissions.clusterview.open-cluster-management.io
+```
+
+Output:
+
+```
+NAME                   BINDINGS
+acm-kubevirt.io:admin  cluster1(*)
+acm-deployments-admin  cluster1(app-ns)
+```
+
+Get detailed information:
+
+```bash
+kubectl get userpermissions.clusterview.open-cluster-management.io -oyaml
+```
+
+Output:
+
+```yaml
+apiVersion: v1
+kind: List
+items:
+- metadata:
+    name: acm-kubevirt.io:admin
+  status:
+    bindings:
+    - cluster: cluster1
+      scope: cluster
+      namespaces: ["*"]
+    clusterRoleDefinition:
+      rules:
+      - apiGroups: ["kubevirt.io"]
+        resources: ["virtualmachines", "virtualmachineinstances"]
+        verbs: ["get", "list", "create", "update", "delete"]
+      - apiGroups: [""]
+        resources: ["configmaps", "secrets"]
+        verbs: ["get", "list", "create", "update"]
+- metadata:
+    name: acm-deployments-admin
+  status:
+    bindings:
+    - cluster: cluster1
+      scope: namespace
+      namespaces: ["app-ns"]
+    clusterRoleDefinition:
+      rules:
+      - apiGroups: ["apps"]
+        resources: ["deployments"]
+        verbs: ["get", "list", "create", "update", "delete"]
+      - apiGroups: [""]
+        resources: ["configmaps", "serviceaccounts"]
+        verbs: ["get", "list", "create", "update", "delete"]
+```
+
+#### Example 2: Group-Based Permissions
+
+**Step 1**: Administrator grants permissions to a group
+
+```yaml
+apiVersion: rbac.open-cluster-management.io/v1alpha1
+kind: ClusterPermission
+metadata:
+  name: team-deployments-permission
+  namespace: cluster1
+spec:
+  roleBindings:
+    - name: team-deployments-admin
+      namespace: app-ns
+      subjects:
+        - kind: Group
+          apiGroup: rbac.authorization.k8s.io
+          name: development-team
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: acm-deployments-admin
+```
+
+**Step 2**: Grant API access to the group
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: team-userpermissions-reader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: userpermissions-reader
+subjects:
+  - kind: Group
+    apiGroup: rbac.authorization.k8s.io
+    name: development-team
+```
+
+**Step 3**: Any member of the development-team group can now query their permissions and will see the permissions granted to the group.
+
+#### Example 3: ManagedClusterAdmin/ManagedClusterView Integration
+
+If a user has `managedclusteradmin` or `managedclusterview` permissions (bound to `open-cluster-management:admin:<cluster-name>` or `open-cluster-management:view:<cluster-name>` ClusterRoles), the UserPermission API will automatically include synthetic permission entries.
+
+**User with managedclusteradmin on cluster1 and cluster2, plus kubevirt-admin on cluster1:**
+
+```bash
+kubectl get userpermissions.clusterview.open-cluster-management.io -oyaml
+```
+
+Output:
+
+```yaml
+apiVersion: v1
+kind: List
+items:
+- metadata:
+    name: managedcluster:admin
+  status:
+    bindings:
+    - cluster: cluster1
+      scope: cluster
+      namespaces: ["*"]
+    - cluster: cluster2
+      scope: cluster
+      namespaces: ["*"]
+    clusterRoleDefinition:
+      rules:
+      - apiGroups: ["*"]
+        resources: ["*"]
+        verbs: ["*"]
+- metadata:
+    name: acm-kubevirt.io:admin
+  status:
+    bindings:
+    - cluster: cluster1
+      scope: cluster
+      namespaces: ["*"]
+    clusterRoleDefinition:
+      rules:
+      - apiGroups: ["kubevirt.io"]
+        resources: ["virtualmachines", "virtualmachineinstances"]
+        verbs: ["get", "list", "create", "update", "delete"]
+      # ... (additional rules)
+```
+
+#### Example 4: Get Specific ClusterRole
+
+To get information about a specific ClusterRole:
+
+```bash
+kubectl get userpermissions.clusterview.open-cluster-management.io acm-kubevirt.io:admin -oyaml
+```
+
+This returns details for that specific ClusterRole if the user has bindings to it, or returns a 404 Not Found error if the user has no bindings to that ClusterRole.
+
+### Important Notes
+
+1. **Discoverable Label Required**: Only ClusterRoles with the label `clusterview.open-cluster-management.io/discoverable: "true"` are discoverable through this API.
+
+2. **ClusterRole References Only**: The API only considers ClusterPermissions that bind users/groups to ClusterRoles. Role definitions or rule-based permissions in ClusterPermissions are ignored.
+
+3. **Group Membership Assumption**: The system assumes that hub and managed clusters share the same identity providers, so group memberships are consistent across hub and managed clusters.
+
+4. **Performance**: The API uses an efficient caching layer to minimize load on the API server. Permissions are pre-computed rather than queried in real-time.
+
+5. **Security**: Users only see ClusterRoles they have actual permissions for, following standard Kubernetes API conventions.
+
+6. **Response Size**: When users have access to many large ClusterRoles, LIST operations can result in large response payloads. In such cases, use GET operations for specific ClusterRoles to get targeted information.

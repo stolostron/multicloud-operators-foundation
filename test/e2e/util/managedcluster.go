@@ -90,8 +90,21 @@ func DeleteNamespace(name string) error {
 		if !errors.IsNotFound(err) {
 			return err
 		}
+		// Namespace already deleted
+		return nil
 	}
-	return nil
+
+	// Wait for namespace to be fully deleted to avoid race conditions with subsequent tests
+	return wait.PollUntilContextTimeout(context.TODO(), 1*time.Second, 60*time.Second, true, func(ctx context.Context) (bool, error) {
+		_, err := kubeClient.CoreV1().Namespaces().Get(ctx, name, metav1.GetOptions{})
+		if errors.IsNotFound(err) {
+			return true, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		return false, nil
+	})
 }
 
 func CreateManagedCluster(client clusterclient.Interface, cluster *clusterv1.ManagedCluster) error {

@@ -5,15 +5,18 @@ import (
 	"time"
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/cache/userpermission"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/log"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/managedcluster"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/managedclusterset"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/project"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/proxy"
+	userpermissionrest "github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/userpermission"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/client-go/informers"
 	clusterclient "open-cluster-management.io/api/client/cluster/clientset/versioned"
 	clusterinformers "open-cluster-management.io/api/client/cluster/informers/externalversions"
+	cplisters "open-cluster-management.io/cluster-permission/client/listers/api/v1alpha1"
 
 	apisclusterview "github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview"
 	clusterviewv1 "github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1"
@@ -55,7 +58,7 @@ func Install(proxyServiceInfoGetter *getter.ProxyServiceInfoGetter,
 	informerFactory informers.SharedInformerFactory,
 	clusterInformer clusterinformers.SharedInformerFactory,
 	clusterPermissionInformer kubecache.SharedIndexInformer,
-	clusterPermissionLister kubecache.GenericLister) error {
+	clusterPermissionLister cplisters.ClusterPermissionLister) error {
 	if err := installProxyGroup(proxyServiceInfoGetter, logProxyGetter, server); err != nil {
 		return err
 	}
@@ -71,7 +74,7 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 	informerFactory informers.SharedInformerFactory,
 	clusterInformer clusterinformers.SharedInformerFactory,
 	clusterPermissionInformer kubecache.SharedIndexInformer,
-	clusterPermissionLister kubecache.GenericLister,
+	clusterPermissionLister cplisters.ClusterPermissionLister,
 ) error {
 
 	clusterCache := cache.NewClusterCache(
@@ -103,12 +106,22 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 		utils.GetViewResourceFromClusterRole,
 	)
 
+	userPermissionCache := userpermission.New(
+		informerFactory.Rbac().V1().ClusterRoles(),
+		informerFactory.Rbac().V1().ClusterRoleBindings(),
+		informerFactory.Rbac().V1().Roles(),
+		informerFactory.Rbac().V1().RoleBindings(),
+		clusterInformer.Cluster().V1().ManagedClusters().Lister(),
+		clusterPermissionLister,
+	)
+
 	v1beta1storage := map[string]rest.Storage{
 		"managedclustersets": managedclusterset.NewREST(
 			client, clusterSetCache, clusterSetCache,
 			clusterInformer.Cluster().V1beta2().ManagedClusterSets().Lister(),
 			informerFactory.Rbac().V1().ClusterRoles().Lister(),
 		),
+		"userpermissions": userpermissionrest.NewREST(userPermissionCache),
 	}
 
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(clusterviewv1.GroupName, Scheme, ParameterCodec, Codecs)
@@ -118,6 +131,7 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 
 	go clusterCache.Run(1 * time.Second)
 	go clusterSetCache.Run(1 * time.Second)
+	go userPermissionCache.Run(2 * time.Second)
 	return server.InstallAPIGroup(&apiGroupInfo)
 }
 

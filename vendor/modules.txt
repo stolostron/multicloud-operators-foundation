@@ -416,10 +416,13 @@ github.com/spf13/pflag
 # github.com/stoewer/go-strcase v1.3.0
 ## explicit; go 1.11
 github.com/stoewer/go-strcase
-# github.com/stolostron/cluster-lifecycle-api v0.0.0-20250821030137-6a5f0b6576fd
-## explicit; go 1.23.6
+# github.com/stolostron/cluster-lifecycle-api v0.0.0-20251120064629-5d78c3f111c5
+## explicit; go 1.24.0
 github.com/stolostron/cluster-lifecycle-api/action/v1beta1
+github.com/stolostron/cluster-lifecycle-api/client/clusterview/clientset/versioned/scheme
+github.com/stolostron/cluster-lifecycle-api/client/clusterview/clientset/versioned/typed/clusterview/v1alpha1
 github.com/stolostron/cluster-lifecycle-api/clusterinfo/v1beta1
+github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1
 github.com/stolostron/cluster-lifecycle-api/constants
 github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry
 github.com/stolostron/cluster-lifecycle-api/helpers/localcluster
@@ -1680,8 +1683,21 @@ open-cluster-management.io/api/cluster/v1beta2
 open-cluster-management.io/api/utils/work/v1/workapplier
 open-cluster-management.io/api/work/v1
 open-cluster-management.io/api/work/v1alpha1
-# open-cluster-management.io/managed-serviceaccount v0.5.0
-## explicit; go 1.20
+# open-cluster-management.io/cluster-permission v0.16.2
+## explicit; go 1.23.0
+open-cluster-management.io/cluster-permission/api/v1alpha1
+open-cluster-management.io/cluster-permission/client/clientset/versioned
+open-cluster-management.io/cluster-permission/client/clientset/versioned/fake
+open-cluster-management.io/cluster-permission/client/clientset/versioned/scheme
+open-cluster-management.io/cluster-permission/client/clientset/versioned/typed/api/v1alpha1
+open-cluster-management.io/cluster-permission/client/clientset/versioned/typed/api/v1alpha1/fake
+open-cluster-management.io/cluster-permission/client/informers/externalversions
+open-cluster-management.io/cluster-permission/client/informers/externalversions/api
+open-cluster-management.io/cluster-permission/client/informers/externalversions/api/v1alpha1
+open-cluster-management.io/cluster-permission/client/informers/externalversions/internalinterfaces
+open-cluster-management.io/cluster-permission/client/listers/api/v1alpha1
+# open-cluster-management.io/managed-serviceaccount v0.7.0
+## explicit; go 1.22.0
 open-cluster-management.io/managed-serviceaccount/apis/authentication/v1alpha1
 open-cluster-management.io/managed-serviceaccount/apis/authentication/v1beta1
 open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versioned
