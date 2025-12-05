@@ -11,7 +11,6 @@ HELM=${HELM:-_output/tools/bin/helm}
 KUBECTL=${KUBECTL:-kubectl}
 OCM_BRANCH=${OCM_BRANCH:-main}
 
-CLUSTER_PROXY_ADDON_IMAGE=${CLUSTER_PROXY_ADDON_IMAGE:-quay.io/stolostron/cluster-proxy-addon}
 IMAGE_CLUSTER_PROXY=${IMAGE_CLUSTER_PROXY:-quay.io/stolostron/cluster-proxy}
 IMAGE_MANAGED_SERVICEACCOUNT=${IMAGE_MANAGED_SERVICEACCOUNT:-quay.io/stolostron/managed-serviceaccount}
 
@@ -46,24 +45,29 @@ function waitForAddon() {
 }
 
 
-rm -rf cluster-proxy-addon
-echo "############  Cloning cluster-proxy-addon"
-git clone --depth 1 --branch "$OCM_BRANCH" https://github.com/stolostron/cluster-proxy-addon.git
+# Use the same chart that installer used in the backplane-operator repo
+rm -rf backplane-operator
+echo "############  Cloning backplane-operator"
+git clone --depth 1 --branch "$OCM_BRANCH" https://github.com/stolostron/backplane-operator.git
 
-cd cluster-proxy-addon || {
-  printf "cd failed, cluster-proxy-addon does not exist"
+cd backplane-operator || {
+  printf "cd failed, backplane-operator does not exist"
   exit 1
 }
 
 BASEDDOMAIN=$($KUBECTL get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}')
 
+# Install cluster-proxy CRDs first
+oc apply -f https://raw.githubusercontent.com/stolostron/cluster-proxy/main/charts/cluster-proxy/crds/managedproxyconfigurations.yaml
+oc apply -f https://raw.githubusercontent.com/stolostron/cluster-proxy/main/charts/cluster-proxy/crds/managedproxyserviceresolvers.yaml
+
 ../$HELM install \
 	-n open-cluster-management --create-namespace \
-	cluster-proxy-addon chart/cluster-proxy-addon \
+	cluster-proxy-addon pkg/templates/charts/toggle/cluster-proxy-addon \
+  --set global.namespace=open-cluster-management \
 	--set global.pullPolicy=Always \
-	--set global.imageOverrides.cluster_proxy_addon="${CLUSTER_PROXY_ADDON_IMAGE}:main" \
 	--set global.imageOverrides.cluster_proxy="${IMAGE_CLUSTER_PROXY}:main" \
-	--set cluster_basedomain="${BASEDDOMAIN}"
+	--set hubconfig.clusterIngressDomain="${BASEDDOMAIN}"
 if [ $? -eq 1 ]; then
   echo "failed to install cluster-proxy addon"
   exit 1
