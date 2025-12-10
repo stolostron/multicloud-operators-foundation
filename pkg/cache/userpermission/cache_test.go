@@ -701,9 +701,10 @@ func TestUserPermissionCache_UserAndGroupPermissions(t *testing.T) {
 		assert.True(t, roleNames.Has("view-role"), "Should have view-role from group2")
 	})
 
-	t.Run("user with both individual and group permissions gets combined permissions", func(t *testing.T) {
+	t.Run("user with both individual and group permissions gets deduplicated permissions", func(t *testing.T) {
 		// user1 has managedcluster:admin via direct ClusterRoleBinding
 		// user1 also belongs to group1 which has managedcluster:view via ClusterRoleBinding
+		// The deduplication logic should remove managedcluster:view since admin is a superset
 		user := &user.DefaultInfo{
 			Name:   "user1",
 			Groups: []string{"group1"},
@@ -717,19 +718,43 @@ func TestUserPermissionCache_UserAndGroupPermissions(t *testing.T) {
 			roleNames.Insert(item.Name)
 		}
 
-		// Should have both admin permission (from user binding) and view permission (from group binding)
+		// Should only have admin permission (view is deduplicated since admin is a superset)
 		assert.True(t, roleNames.Has(clusterviewv1alpha1.ManagedClusterAdminRole),
 			"Should have admin role from user's direct ClusterRoleBinding")
-		assert.True(t, roleNames.Has(clusterviewv1alpha1.ManagedClusterViewRole),
-			"Should have view role from group1 membership")
-		assert.Equal(t, 2, roleNames.Len(), "Should have exactly 2 roles")
+		assert.False(t, roleNames.Has(clusterviewv1alpha1.ManagedClusterViewRole),
+			"Should NOT have view role - it should be deduplicated since admin is a superset")
+		assert.Equal(t, 1, roleNames.Len(), "Should have exactly 1 role after deduplication")
 
-		// Verify both roles have proper ClusterRoleDefinition
+		// Verify the admin role has proper ClusterRoleDefinition
 		for _, item := range result.Items {
 			assert.NotNil(t, item.Status.ClusterRoleDefinition.Rules,
 				"Role %s should have ClusterRoleDefinition", item.Name)
 			assert.Greater(t, len(item.Status.ClusterRoleDefinition.Rules), 0,
 				"Role %s should have non-empty Rules", item.Name)
 		}
+	})
+
+	t.Run("user with only view permission is not affected by deduplication", func(t *testing.T) {
+		// A user belonging to group1 which has managedcluster:view via ClusterRoleBinding
+		// Since there's no admin permission, view should still be shown
+		user := &user.DefaultInfo{
+			Name:   "someViewUser",
+			Groups: []string{"group1"},
+		}
+
+		result, err := cache.List(user, labels.Everything())
+		assert.NoError(t, err)
+
+		roleNames := sets.New[string]()
+		for _, item := range result.Items {
+			roleNames.Insert(item.Name)
+		}
+
+		// Should have view permission (no admin to deduplicate it)
+		assert.True(t, roleNames.Has(clusterviewv1alpha1.ManagedClusterViewRole),
+			"Should have view role from group1 membership")
+		assert.False(t, roleNames.Has(clusterviewv1alpha1.ManagedClusterAdminRole),
+			"Should NOT have admin role")
+		assert.Equal(t, 1, roleNames.Len(), "Should have exactly 1 role (view)")
 	})
 }

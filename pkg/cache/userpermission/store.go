@@ -79,7 +79,8 @@ func (ps *permissionStore) addPermissionForSubject(
 	}
 }
 
-// getPermissions returns combined permissions for a user and their groups
+// getPermissions returns combined permissions for a user and their groups.
+// If both managedcluster:admin and managedcluster:view exist, only admin is returned since it's a superset.
 func (ps *permissionStore) getPermissions(userName string, groups []string) map[string][]clusterviewv1alpha1.ClusterBinding {
 	roleBindings := make(map[string][]clusterviewv1alpha1.ClusterBinding)
 
@@ -105,6 +106,11 @@ func (ps *permissionStore) getPermissions(userName string, groups []string) map[
 				}
 			}
 		}
+	}
+
+	// Deduplicate: if managedcluster:admin exists, remove managedcluster:view since admin is a superset
+	if _, hasAdmin := roleBindings[clusterviewv1alpha1.ManagedClusterAdminRole]; hasAdmin {
+		delete(roleBindings, clusterviewv1alpha1.ManagedClusterViewRole)
 	}
 
 	return roleBindings
