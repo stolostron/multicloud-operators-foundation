@@ -110,7 +110,7 @@ func (p *discoverablePermissionProcessor) processClusterRoleBinding(
 	clusterName string,
 	store *permissionStore,
 ) {
-	if binding == nil || binding.RoleRef.Name == "" {
+	if binding == nil || binding.RoleRef == nil || binding.RoleRef.Name == "" {
 		klog.V(4).Info("Skipping nil or empty ClusterRoleBinding")
 		return
 	}
