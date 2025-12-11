@@ -407,13 +407,15 @@ Script: `test-userpermission-performance.sh`
 
 ### Overview
 
-The `userpermissions` API allows users to discover their permissions across the fleet of managed clusters. It returns ClusterRole definitions and their cluster/namespace bindings based on ClusterPermission resources and discoverable ClusterRoles.
+The `userpermissions` API allows users to discover their permissions across the fleet of managed clusters. It returns ClusterRole definitions and their cluster/namespace bindings based on ClusterPermission resources and discoverable ClusterRoles. It also generates synthetic `managedcluster:admin` and `managedcluster:view` permissions based on RBAC bindings.
 
 **Key Features:**
 
 - Tests both LIST and GET operations
 - Creates **multiple discoverable ClusterRoles** with the label `clusterview.open-cluster-management.io/discoverable: "true"`
 - Creates **multiple ClusterPermission objects** per cluster namespace referencing the discoverable ClusterRoles
+- Creates **admin/view RBAC bindings** to test synthetic permission generation
+- Tests both `processor_discoverable.go` and `processor_admin_view.go` code paths
 - Tests caching layer performance
 
 ### Prerequisites
@@ -449,6 +451,8 @@ bash test-userpermission-performance.sh full
 | `NAMESPACES_PER_CLUSTER` | Total namespace bindings per cluster | 10 |
 | `NUM_CLUSTERPERMISSIONS` | ClusterPermission objects per cluster | 5 |
 | `NUM_CLUSTERROLES` | Discoverable ClusterRoles to create | 5 |
+| `NUM_ADMIN_BINDINGS_PER_CLUSTER` | Creates N admin ClusterRoles, N ClusterRoleBindings, N Roles, and N RoleBindings per cluster | 3 |
+| `NUM_VIEW_BINDINGS_PER_CLUSTER` | Creates N view ClusterRoles, N ClusterRoleBindings, N Roles, and N RoleBindings per cluster | 2 |
 | `NUM_ITERATIONS` | Performance test iterations | 10 |
 | `KUBECONFIG` | Path to kubeconfig file | ~/.kube/config |
 
@@ -502,6 +506,52 @@ cluster-2:
 - 6 ClusterPermissions (2 clusters × 3 CPs each)
 - 12 namespace bindings total
 
+#### Admin/View RBAC for Synthetic Permissions
+
+The script also creates RBAC bindings to test the synthetic `managedcluster:admin` and `managedcluster:view` permission generation.
+
+**Example: `NUM_CLUSTERS=2`, `NUM_ADMIN_BINDINGS_PER_CLUSTER=3`, `NUM_VIEW_BINDINGS_PER_CLUSTER=2`**
+
+For each cluster, creates:
+
+```text
+cluster-1:
+  Admin ClusterRoles and ClusterRoleBindings (3 pairs, 1:1 mapping):
+    - perf-test-admin-cr-c1-1 + perf-test-admin-crb-c1-1
+    - perf-test-admin-cr-c1-2 + perf-test-admin-crb-c1-2
+    - perf-test-admin-cr-c1-3 + perf-test-admin-crb-c1-3
+    (each ClusterRole grants create on managedclusteractions)
+
+  View ClusterRoles and ClusterRoleBindings (2 pairs, 1:1 mapping):
+    - perf-test-view-cr-c1-1 + perf-test-view-crb-c1-1
+    - perf-test-view-cr-c1-2 + perf-test-view-crb-c1-2
+    (each ClusterRole grants create on managedclusterviews)
+
+  Admin Roles and RoleBindings (3 pairs in cluster-1 namespace):
+    - perf-test-admin-role-1 + perf-test-admin-rb-1
+    - perf-test-admin-role-2 + perf-test-admin-rb-2
+    - perf-test-admin-role-3 + perf-test-admin-rb-3
+
+  View Roles and RoleBindings (2 pairs in cluster-1 namespace):
+    - perf-test-view-role-1 + perf-test-view-rb-1
+    - perf-test-view-role-2 + perf-test-view-rb-2
+
+cluster-2:
+  (same pattern as cluster-1)
+```
+
+**Total for 2 clusters:**
+
+- 10 ClusterRoles (5 per cluster: 3 admin, 2 view)
+- 10 ClusterRoleBindings (5 per cluster: 3 admin, 2 view)
+- 10 Roles (5 per cluster: 3 admin, 2 view)
+- 10 RoleBindings (5 per cluster: 3 admin, 2 view)
+
+This tests both code paths in `processor_admin_view.go`:
+
+- `processClusterRoleBindings()` - Cluster-wide permissions
+- `processRoleBindings()` - Namespace-scoped permissions
+
 #### What Gets Tested
 
 The API performance for:
@@ -511,12 +561,17 @@ The API performance for:
 1. **ClusterRole Discovery**: Finding all discoverable ClusterRoles
 2. **ClusterPermission Lookup**: Finding all ClusterPermissions for the user/group
 3. **Binding Matching**: Matching ClusterPermissions to discoverable ClusterRoles
-4. **Aggregation**: Combining bindings from multiple ClusterPermissions
-5. **Response Generation**: Creating UserPermission objects with bindings and ClusterRole definitions
+4. **Admin/View RBAC Processing**:
+   - Processing ClusterRoleBindings that grant `managedclusteractions/managedclusterviews` permissions
+   - Processing RoleBindings in cluster namespaces
+   - Generating synthetic `managedcluster:admin` and `managedcluster:view` ClusterRoles
+5. **Aggregation**: Combining bindings from multiple ClusterPermissions
+6. **Deduplication**: Removing duplicate permissions (admin is superset of view)
+7. **Response Generation**: Creating UserPermission objects with bindings and ClusterRole definitions
 
 **GET Operation:**
 
-1. **ClusterRole Validation**: Checking if the requested ClusterRole is discoverable
+1. **ClusterRole Validation**: Checking if the requested ClusterRole is discoverable or synthetic
 2. **Permission Check**: Verifying user has bindings to the ClusterRole
 3. **Binding Aggregation**: Collecting all bindings for the specific ClusterRole
 4. **Response Generation**: Creating UserPermission object with complete details
@@ -525,7 +580,7 @@ The API performance for:
 
 #### `setup` - Create Test Data
 
-Creates discoverable ClusterRoles and ClusterPermissions:
+Creates discoverable ClusterRoles, ClusterPermissions, and admin/view RBAC bindings:
 
 ```bash
 KUBECONFIG=/path/to/config bash test-userpermission-performance.sh setup
@@ -535,6 +590,9 @@ This creates:
 
 - Discoverable ClusterRoles with the required label
 - Multiple ClusterPermission objects per cluster
+- Admin/view ClusterRoles (2 per cluster)
+- Admin/view ClusterRoleBindings
+- Admin/view Roles and RoleBindings in cluster namespaces
 - RBAC for test user/group
 - Test namespace bindings across all clusters
 
@@ -563,11 +621,19 @@ KUBECONFIG=/path/to/config bash test-userpermission-performance.sh full
 
 #### `cleanup` - Remove Test Data
 
-Removes all test ClusterRoles and ClusterPermissions:
+Removes all test ClusterRoles, ClusterPermissions, and admin/view RBAC resources:
 
 ```bash
 KUBECONFIG=/path/to/config bash test-userpermission-performance.sh cleanup
 ```
+
+This deletes:
+
+- All ClusterPermissions with `test=performance` label
+- All ClusterRoleBindings with `test=performance` label
+- All ClusterRoles with `test=performance` label (discoverable and admin/view)
+- All Roles and RoleBindings with `test=performance` label in cluster namespaces
+- Test user RBAC
 
 ### Test Scenarios
 
@@ -804,7 +870,9 @@ After gathering performance data:
 ### References
 
 - API Implementation: [pkg/proxyserver/rest/userpermission/userpermission.go](../../pkg/proxyserver/rest/userpermission/userpermission.go)
-- UserPermission Cache: [pkg/cache/userpermission.go](../../pkg/cache/userpermission.go)
+- UserPermission Cache: [pkg/cache/userpermission/store.go](../../pkg/cache/userpermission/store.go)
+- Discoverable ClusterRole Processor: [pkg/cache/userpermission/processor_discoverable.go](../../pkg/cache/userpermission/processor_discoverable.go)
+- Admin/View Synthetic Permission Processor: [pkg/cache/userpermission/processor_admin_view.go](../../pkg/cache/userpermission/processor_admin_view.go)
 - API Types: [pkg/proxyserver/apis/clusterview/v1alpha1/types_userpermission.go](../../pkg/proxyserver/apis/clusterview/v1alpha1/types_userpermission.go)
 
 ---
