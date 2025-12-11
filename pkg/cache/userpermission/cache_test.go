@@ -758,3 +758,94 @@ func TestUserPermissionCache_UserAndGroupPermissions(t *testing.T) {
 		assert.Equal(t, 1, roleNames.Len(), "Should have exactly 1 role (view)")
 	})
 }
+
+func TestUserPermissionCache_NilRoleRef(t *testing.T) {
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
+	// Create a ClusterPermission with nil RoleRef (using inline ClusterRole)
+	cpWithNilRoleRef := clusterpermissionv1alpha1.ClusterPermission{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "cluster1-nil-roleref",
+			Namespace:       "cluster1",
+			ResourceVersion: "3",
+		},
+		Spec: clusterpermissionv1alpha1.ClusterPermissionSpec{
+			ClusterRole: &clusterpermissionv1alpha1.ClusterRole{
+				Rules: []rbacv1.PolicyRule{
+					{
+						Verbs:     []string{"create"},
+						APIGroups: []string{"apps"},
+						Resources: []string{"services"},
+					},
+				},
+			},
+			ClusterRoleBindings: &[]clusterpermissionv1alpha1.ClusterRoleBinding{
+				{
+					// RoleRef is nil when using inline ClusterRole
+					RoleRef: nil,
+					Subject: &rbacv1.Subject{
+						Kind:      rbacv1.ServiceAccountKind,
+						Name:      "test-sa",
+						Namespace: "test-namespace",
+					},
+				},
+			},
+		},
+	}
+
+	// Create fake clients
+	fakeKubeClient := fake.NewSimpleClientset(
+		&discoverableClusterRole1,
+		&discoverableClusterRole2,
+	)
+	fakeClusterClient := clusterfake.NewSimpleClientset(&cluster1)
+	fakeClusterPermissionClient := cpfake.NewSimpleClientset(&cpWithNilRoleRef)
+
+	// Create informers
+	kubeInformers := informers.NewSharedInformerFactory(fakeKubeClient, 10*time.Minute)
+	clusterInformers := clusterv1informers.NewSharedInformerFactory(fakeClusterClient, 10*time.Minute)
+	cpInformers := cpinformers.NewSharedInformerFactory(fakeClusterPermissionClient, 10*time.Minute)
+
+	// Add objects to informers
+	kubeInformers.Rbac().V1().ClusterRoles().Informer().GetIndexer().Add(&discoverableClusterRole1)
+	kubeInformers.Rbac().V1().ClusterRoles().Informer().GetIndexer().Add(&discoverableClusterRole2)
+	clusterInformers.Cluster().V1().ManagedClusters().Informer().GetIndexer().Add(&cluster1)
+	cpInformers.Api().V1alpha1().ClusterPermissions().Informer().GetIndexer().Add(&cpWithNilRoleRef)
+
+	// Start informers
+	kubeInformers.Start(stopCh)
+	clusterInformers.Start(stopCh)
+	cpInformers.Start(stopCh)
+
+	// Create cache
+	cache := New(
+		kubeInformers.Rbac().V1().ClusterRoles(),
+		kubeInformers.Rbac().V1().ClusterRoleBindings(),
+		kubeInformers.Rbac().V1().Roles(),
+		kubeInformers.Rbac().V1().RoleBindings(),
+		clusterInformers.Cluster().V1().ManagedClusters().Lister(),
+		cpInformers.Api().V1alpha1().ClusterPermissions().Lister(),
+	)
+
+	// This should not panic - the fix handles nil RoleRef gracefully
+	t.Run("synchronize does not panic with nil RoleRef", func(t *testing.T) {
+		assert.NotPanics(t, func() {
+			cache.synchronize()
+		}, "synchronize should not panic when ClusterPermission has nil RoleRef")
+	})
+
+	// Verify the cache is still functional
+	t.Run("cache is functional after processing nil RoleRef", func(t *testing.T) {
+		user := &user.DefaultInfo{
+			Name:   "test-user",
+			Groups: []string{},
+		}
+
+		result, err := cache.List(user, labels.Everything())
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		// User should have no permissions since the ClusterPermission with nil RoleRef was skipped
+		assert.Equal(t, 0, len(result.Items))
+	})
+}
