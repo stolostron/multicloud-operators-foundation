@@ -52,6 +52,10 @@ var _ = rest.Lister(&REST{})
 // List retrieves a list of UserPermissions for the current user
 func (s *REST) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
 	startTime := time.Now()
+	defer func() {
+		klog.V(4).Infof("[DEBUG] UserPermission LIST took %v", time.Since(startTime))
+	}()
+
 	user, ok := request.UserFrom(ctx)
 	if !ok {
 		return nil, errors.NewForbidden(clusterviewv1alpha1.Resource("userpermissions"), "", fmt.Errorf("unable to list userpermissions without a user on the context"))
@@ -62,9 +66,7 @@ func (s *REST) List(ctx context.Context, options *metainternalversion.ListOption
 		selector = options.LabelSelector
 	}
 
-	result, err := s.cache.List(user, selector)
-	klog.V(4).Infof("[DEBUG] UserPermission LIST took %v", time.Since(startTime))
-	return result, err
+	return s.cache.List(user, selector)
 }
 
 func (s *REST) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
@@ -140,14 +142,16 @@ var _ = rest.Getter(&REST{})
 // Get retrieves a specific UserPermission by ClusterRole name
 func (s *REST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
 	startTime := time.Now()
+	defer func() {
+		klog.V(4).Infof("[DEBUG] UserPermission GET took %v", time.Since(startTime))
+	}()
+
 	user, ok := request.UserFrom(ctx)
 	if !ok {
 		return nil, errors.NewForbidden(clusterviewv1alpha1.Resource("userpermissions"), "", fmt.Errorf("unable to get userpermission without a user on the context"))
 	}
 
-	result, err := s.cache.Get(user, name)
-	klog.V(4).Infof("[DEBUG] UserPermission GET took %v", time.Since(startTime))
-	return result, err
+	return s.cache.Get(user, name)
 }
 
 var _ = rest.SingularNameProvider(&REST{})

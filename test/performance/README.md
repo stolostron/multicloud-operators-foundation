@@ -4,12 +4,13 @@ This directory contains performance testing tools for ClusterView aggregated API
 
 ## Available Performance Tests
 
-This directory provides performance testing for two ClusterView aggregated APIs:
+This directory provides performance testing for ClusterView aggregated APIs:
 
 - **KubeVirt Projects API** (`kubevirtprojects.clusterview.open-cluster-management.io`) - Aggregates project access information across managed clusters
 - **UserPermission API** (`userpermissions.clusterview.open-cluster-management.io`) - Discovers user permissions across the fleet of managed clusters
+- **APIServer Aggregation Overhead Test** - Measures the performance overhead introduced by Kubernetes APIServer aggregation layer
 
-Each API has its own dedicated performance test script and documentation below.
+Each test has its own dedicated script and documentation below.
 
 ## Prerequisites
 
@@ -874,6 +875,68 @@ After gathering performance data:
 - Discoverable ClusterRole Processor: [pkg/cache/userpermission/processor_discoverable.go](../../pkg/cache/userpermission/processor_discoverable.go)
 - Admin/View Synthetic Permission Processor: [pkg/cache/userpermission/processor_admin_view.go](../../pkg/cache/userpermission/processor_admin_view.go)
 - API Types: [pkg/proxyserver/apis/clusterview/v1alpha1/types_userpermission.go](../../pkg/proxyserver/apis/clusterview/v1alpha1/types_userpermission.go)
+
+---
+
+## APIServer Aggregation Overhead Test
+
+Script: `test-aggregation-overhead.sh`
+
+### Overview
+
+This test measures the performance overhead introduced by the Kubernetes APIServer aggregation layer by comparing direct proxyserver access versus access through the K8s aggregation layer.
+
+**Purpose:** Identify whether performance bottlenecks are in:
+- The proxyserver code (cache, indexing, processing), or
+- The K8s APIServer aggregation layer (routing, proxying)
+
+### Quick Start
+
+```bash
+# 1. Login as your user
+oc login -u <test-user> -p <password> --server <k8s-api-server>
+
+# 2. Get your token and run the test
+TOKEN=$(oc whoami -t) bash test-aggregation-overhead.sh
+
+# With custom iterations
+TOKEN=$(oc whoami -t) NUM_ITERATIONS=20 bash test-aggregation-overhead.sh
+```
+
+### Configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `TOKEN` | Bearer token from `oc whoami -t` | (required) |
+| `NUM_ITERATIONS` | Number of test iterations | 10 |
+
+### What It Tests
+
+**Test 1: Direct ProxyServer** - Bypasses K8s aggregation, measures pure proxyserver performance (~20ms)
+
+**Test 2: K8s APIServer Aggregation** - Goes through full aggregation layer (~4000ms)
+
+### Sample Output
+
+```text
+[Test 1] Direct ProxyServer Average: 22ms
+[Test 2] K8s APIServer Aggregation Average: 6378ms
+
+Performance Difference: ~290x slower through aggregation
+```
+
+### Interpreting Results
+
+- **Large difference (20ms vs 4000ms)**: Bottleneck is K8s aggregation layer
+- **Similar performance (both ~2000ms)**: Bottleneck is proxyserver code
+- **Direct slower (3000ms vs 4000ms)**: Multiple bottlenecks
+
+### Use Cases
+
+- Diagnose slow API response times
+- Identify optimization targets
+- Compare before/after code changes
+- Troubleshoot production issues
 
 ---
 
