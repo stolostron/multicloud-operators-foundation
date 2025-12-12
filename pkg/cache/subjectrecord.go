@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/openshift/library-go/pkg/authorization/authorizationutil"
 	"k8s.io/klog/v2"
@@ -158,6 +159,7 @@ func NewAuthCache(clusterRoleInformer rbacv1informers.ClusterRoleInformer,
 
 // synchronize runs a a full synchronization over the cache data.  it must be run in a single-writer model, it's not thread-safe by design.
 func (ac *AuthCache) synchronize() {
+	startTime := time.Now()
 	// if none of our internal reflectors changed, then we can skip reviewing the cache
 	skip, currentState := ac.skip.SkipSynchronize(ac.lastState, ac.lastSyncResourceVersioner, ac.policyLastSyncResourceVersioner)
 	if skip {
@@ -175,7 +177,9 @@ func (ac *AuthCache) synchronize() {
 	ac.knownResources = resources
 	ac.synchronizeClusterRoleBindings(userSubjectRecordStore, groupSubjectRecordStore)
 	ac.lastState = currentState
-	klog.V(2).Infoln("synchronize...", ac.knownResources, ac.knownUsers, ac.knownGroups)
+	klog.V(2).Infof("synchronize: resources=%d users=%d groups=%d took=%v",
+		len(ac.knownResources), len(ac.knownUsers), len(ac.knownGroups), time.Since(startTime))
+	klog.V(5).Infoln("synchronize...", ac.knownResources, ac.knownUsers, ac.knownGroups)
 }
 
 // synchronizeRoleBindings synchronizes access over each clusterRoleBinding
