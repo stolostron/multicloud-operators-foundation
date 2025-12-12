@@ -19,9 +19,6 @@ type permissionProcessor interface {
 // synchronize runs a full synchronization of the cache
 func (c *Cache) synchronize() {
 	startTime := time.Now()
-	defer func() {
-		klog.V(2).Infof("synchronize took %v", time.Since(startTime))
-	}()
 
 	// Calculate hash of all processors' resource versions before acquiring the lock
 	newHash, err := c.calculateResourceVersionHash()
@@ -35,7 +32,7 @@ func (c *Cache) synchronize() {
 
 	// Check if resources have changed
 	if c.resourceVersionHash == newHash {
-		klog.V(2).Info("No changes detected in resources, skipping synchronization")
+		klog.V(4).Infof("No changes detected in resources, skipping synchronization, took %v", time.Since(startTime))
 		return
 	}
 
@@ -64,15 +61,16 @@ func (c *Cache) synchronize() {
 	// Update the resource version hash after successful synchronization
 	c.resourceVersionHash = newHash
 
-	klog.V(2).Infof("UserPermissionCache synchronized: %d users, %d groups, %d discoverable roles",
-		len(store.userStore.List()), len(store.groupStore.List()), len(store.getDiscoverableRoles()))
+	klog.V(2).Infof("UserPermissionCache synchronized: %d users, %d groups, %d discoverable roles, took %v",
+		len(store.userStore.List()), len(store.groupStore.List()), len(store.getDiscoverableRoles()),
+		time.Since(startTime))
 }
 
 // calculateResourceVersionHash computes a hash from all processors
 func (c *Cache) calculateResourceVersionHash() (string, error) {
 	startTime := time.Now()
 	defer func() {
-		klog.V(2).Infof("calculateResourceVersionHash took %v", time.Since(startTime))
+		klog.V(4).Infof("calculateResourceVersionHash took %v", time.Since(startTime))
 	}()
 
 	h := sha256.New()

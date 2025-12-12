@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/errors"
 	metainternalversion "k8s.io/apimachinery/pkg/apis/meta/internalversion"
@@ -12,6 +13,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apiserver/pkg/endpoints/request"
 	"k8s.io/apiserver/pkg/registry/rest"
+	"k8s.io/klog/v2"
 
 	clusterviewv1alpha1 "github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache/userpermission"
@@ -49,6 +51,11 @@ var _ = rest.Lister(&REST{})
 
 // List retrieves a list of UserPermissions for the current user
 func (s *REST) List(ctx context.Context, options *metainternalversion.ListOptions) (runtime.Object, error) {
+	startTime := time.Now()
+	defer func() {
+		klog.V(4).Infof("[DEBUG] UserPermission LIST took %v", time.Since(startTime))
+	}()
+
 	user, ok := request.UserFrom(ctx)
 	if !ok {
 		return nil, errors.NewForbidden(clusterviewv1alpha1.Resource("userpermissions"), "", fmt.Errorf("unable to list userpermissions without a user on the context"))
@@ -134,6 +141,11 @@ var _ = rest.Getter(&REST{})
 
 // Get retrieves a specific UserPermission by ClusterRole name
 func (s *REST) Get(ctx context.Context, name string, options *metav1.GetOptions) (runtime.Object, error) {
+	startTime := time.Now()
+	defer func() {
+		klog.V(4).Infof("[DEBUG] UserPermission GET took %v", time.Since(startTime))
+	}()
+
 	user, ok := request.UserFrom(ctx)
 	if !ok {
 		return nil, errors.NewForbidden(clusterviewv1alpha1.Resource("userpermissions"), "", fmt.Errorf("unable to get userpermission without a user on the context"))

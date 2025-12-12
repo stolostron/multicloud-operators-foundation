@@ -53,8 +53,9 @@ create_test_clusterpermissions() {
         fi
 
         local role_bindings=""
-        for ((i=start_project; i<=end_project; i++)); do
-            local project_name="project-${i}"
+        local proj_idx
+        for ((proj_idx=start_project; proj_idx<=end_project; proj_idx++)); do
+            local project_name="project-${proj_idx}"
             role_bindings="${role_bindings}
   - namespace: ${project_name}
     roleRef:
@@ -87,12 +88,13 @@ setup_on_existing_clusters() {
     log_info "Finding existing managed cluster namespaces..."
 
     # Get list of managed cluster namespaces
-    local clusters=$(kubectl get namespaces -l cluster.open-cluster-management.io/managedCluster -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || echo "")
+    local clusters=$(kubectl get namespaces -l open-cluster-management.io/cluster-name \
+        -o jsonpath='{.items[*].metadata.name}' 2>/dev/null || echo "")
 
     if [ -z "$clusters" ]; then
         log_warn "No managed cluster namespaces found"
         log_warn "Looking for any namespaces that look like clusters..."
-        clusters=$(kubectl get namespaces -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | grep -E '^(cluster|local-cluster)' | head -${NUM_CLUSTERS} | tr '\n' ' ' || echo "")
+        clusters=$(kubectl get namespaces -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | grep -E '^(perf-test-cluster|cluster|local-cluster)' | head -${NUM_CLUSTERS} | tr '\n' ' ' || echo "")
     fi
 
     if [ -z "$clusters" ]; then
