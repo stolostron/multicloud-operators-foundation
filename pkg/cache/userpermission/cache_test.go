@@ -58,7 +58,8 @@ var (
 		},
 	}
 
-	// ClusterRole that grants managedclusteractions create permission
+	// ClusterRole that grants BOTH managedclusteractions AND managedclusterviews create permissions
+	// This represents the actual permissions needed for managedcluster:admin role
 	adminClusterRole = rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "managedcluster-admin",
@@ -69,6 +70,11 @@ var (
 				Verbs:     []string{"create"},
 				APIGroups: []string{"action.open-cluster-management.io"},
 				Resources: []string{"managedclusteractions"},
+			},
+			{
+				Verbs:     []string{"create"},
+				APIGroups: []string{"view.open-cluster-management.io"},
+				Resources: []string{"managedclusterviews"},
 			},
 		},
 	}
