@@ -115,7 +115,7 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 		clusterPermissionLister,
 	)
 
-	v1beta1storage := map[string]rest.Storage{
+	v1alpha1storage := map[string]rest.Storage{
 		"managedclustersets": managedclusterset.NewREST(
 			client, clusterSetCache, clusterSetCache,
 			clusterInformer.Cluster().V1beta2().ManagedClusterSets().Lister(),
@@ -127,7 +127,7 @@ func installClusterViewGroup(server *genericapiserver.GenericAPIServer,
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(clusterviewv1.GroupName, Scheme, ParameterCodec, Codecs)
 
 	apiGroupInfo.VersionedResourcesStorageMap[clusterviewv1.SchemeGroupVersion.Version] = v1storage
-	apiGroupInfo.VersionedResourcesStorageMap[clusterviewv1alpha1.SchemeGroupVersion.Version] = v1beta1storage
+	apiGroupInfo.VersionedResourcesStorageMap[clusterviewv1alpha1.SchemeGroupVersion.Version] = v1alpha1storage
 
 	go clusterCache.Run(1 * time.Second)
 	go clusterSetCache.Run(1 * time.Second)
