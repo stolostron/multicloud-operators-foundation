@@ -108,9 +108,34 @@ func (ps *permissionStore) getPermissions(userName string, groups []string) map[
 		}
 	}
 
-	// Deduplicate: if managedcluster:admin exists, remove managedcluster:view since admin is a superset
-	if _, hasAdmin := roleBindings[clusterviewv1alpha1.ManagedClusterAdminRole]; hasAdmin {
-		delete(roleBindings, clusterviewv1alpha1.ManagedClusterViewRole)
+	// Deduplicate per-cluster: if managedcluster:admin exists for a cluster,
+	// remove managedcluster:view bindings only for that specific cluster since admin is a superset.
+	// Note: Both admin and view are always cluster-scoped (never namespace-scoped) in the current
+	// implementation, so we only need to check cluster names.
+	adminBindings, hasAdmin := roleBindings[clusterviewv1alpha1.ManagedClusterAdminRole]
+	viewBindings, hasView := roleBindings[clusterviewv1alpha1.ManagedClusterViewRole]
+
+	if hasAdmin && hasView {
+		// Build a set of clusters that have admin permissions
+		adminClusters := sets.New[string]()
+		for _, binding := range adminBindings {
+			adminClusters.Insert(binding.Cluster)
+		}
+
+		// Filter out view bindings for clusters that already have admin
+		filteredViewBindings := make([]clusterviewv1alpha1.ClusterBinding, 0, len(viewBindings))
+		for _, binding := range viewBindings {
+			if !adminClusters.Has(binding.Cluster) {
+				filteredViewBindings = append(filteredViewBindings, binding)
+			}
+		}
+
+		// Update or remove view role based on remaining bindings
+		if len(filteredViewBindings) > 0 {
+			roleBindings[clusterviewv1alpha1.ManagedClusterViewRole] = filteredViewBindings
+		} else {
+			delete(roleBindings, clusterviewv1alpha1.ManagedClusterViewRole)
+		}
 	}
 
 	return roleBindings
