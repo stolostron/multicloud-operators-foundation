@@ -756,7 +756,12 @@ subjects:
 
 #### Example 3: ManagedClusterAdmin/ManagedClusterView Integration
 
-If a user has `managedclusteradmin` or `managedclusterview` permissions (bound to `open-cluster-management:admin:<cluster-name>` or `open-cluster-management:view:<cluster-name>` ClusterRoles), the UserPermission API will automatically include synthetic permission entries.
+The UserPermission API automatically generates synthetic `managedcluster:admin` and `managedcluster:view` permission entries based on RBAC permissions:
+
+- **managedcluster:admin**: Granted when a user has **both** `create` permission on `managedclusteractions` (action.open-cluster-management.io) AND `managedclusterviews` (view.open-cluster-management.io) resources
+- **managedcluster:view**: Granted when a user has `create` permission on `managedclusterviews` (view.open-cluster-management.io) resources
+
+**Known Limitation**: The `managedcluster:admin` role requires both permissions to be granted by a **single** ClusterRole or Role. If a user has permissions from multiple separate RoleBindings/ClusterRoleBindings (e.g., one binding granting `managedclusteractions` create and another binding granting `managedclusterviews` create), they will only receive the `managedcluster:view` role, not the `managedcluster:admin` role. To grant admin permissions, create a single ClusterRole or Role that includes both permission rules.
 
 **User with managedclusteradmin on cluster1 and cluster2, plus kubevirt-admin on cluster1:**
 

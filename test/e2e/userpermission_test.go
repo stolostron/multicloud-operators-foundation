@@ -280,7 +280,7 @@ var _ = ginkgo.Describe("Testing UserPermission API", func() {
 	})
 
 	ginkgo.It("should show synthetic managedcluster:admin and managedcluster:view roles", func() {
-		ginkgo.By("Creating ClusterRole that grants managedclusteractions create permission")
+		ginkgo.By("Creating ClusterRole that grants both managedclusteractions and managedclusterviews create permissions")
 		adminClusterRole := &rbacv1.ClusterRole{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-admin-" + rand.String(6),
@@ -289,6 +289,11 @@ var _ = ginkgo.Describe("Testing UserPermission API", func() {
 				{
 					APIGroups: []string{"action.open-cluster-management.io"},
 					Resources: []string{"managedclusteractions"},
+					Verbs:     []string{"create"},
+				},
+				{
+					APIGroups: []string{"view.open-cluster-management.io"},
+					Resources: []string{"managedclusterviews"},
 					Verbs:     []string{"create"},
 				},
 			},

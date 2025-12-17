@@ -58,7 +58,8 @@ var (
 		},
 	}
 
-	// ClusterRole that grants managedclusteractions create permission
+	// ClusterRole that grants BOTH managedclusteractions AND managedclusterviews create permissions
+	// This represents the actual permissions needed for managedcluster:admin role
 	adminClusterRole = rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:            "managedcluster-admin",
@@ -69,6 +70,11 @@ var (
 				Verbs:     []string{"create"},
 				APIGroups: []string{"action.open-cluster-management.io"},
 				Resources: []string{"managedclusteractions"},
+			},
+			{
+				Verbs:     []string{"create"},
+				APIGroups: []string{"view.open-cluster-management.io"},
+				Resources: []string{"managedclusterviews"},
 			},
 		},
 	}
@@ -757,6 +763,132 @@ func TestUserPermissionCache_UserAndGroupPermissions(t *testing.T) {
 			"Should NOT have admin role")
 		assert.Equal(t, 1, roleNames.Len(), "Should have exactly 1 role (view)")
 	})
+}
+
+func TestUserPermissionCache_PerClusterDeduplication(t *testing.T) {
+	stopCh := make(chan struct{})
+	defer close(stopCh)
+
+	// Setup scenario: Bob has admin on cluster1 (BOTH action AND view create permission)
+	// and only view on cluster2 (only view create permission)
+	// This tests the per-cluster deduplication logic
+
+	// Bob has BOTH action AND view permission in cluster1 via two separate rolebindings
+	rbBobActionInCluster1 := rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "bob-action-cluster1",
+			Namespace:       "cluster1",
+			ResourceVersion: "12",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:     rbacv1.GroupKind,
+				APIGroup: rbacv1.GroupName,
+				Name:     "test-group",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     "managedcluster-admin", // This grants BOTH action AND view
+		},
+	}
+
+	// Bob has only view permission in cluster2
+	rbBobViewInCluster2 := rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:            "bob-view-cluster2",
+			Namespace:       "cluster2",
+			ResourceVersion: "13",
+		},
+		Subjects: []rbacv1.Subject{
+			{
+				Kind:     rbacv1.GroupKind,
+				APIGroup: rbacv1.GroupName,
+				Name:     "test-group",
+			},
+		},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     "managedcluster-view", // This grants only view
+		},
+	}
+
+	// Create fake clients
+	fakeKubeClient := fake.NewSimpleClientset(
+		&adminClusterRole,
+		&viewClusterRole,
+		&rbBobActionInCluster1,
+		&rbBobViewInCluster2,
+	)
+
+	fakeClusterClient := clusterfake.NewSimpleClientset(&cluster1, &cluster2)
+	fakeClusterPermissionClient := cpfake.NewSimpleClientset()
+
+	// Create informers
+	kubeInformers := informers.NewSharedInformerFactory(fakeKubeClient, 10*time.Minute)
+	clusterInformers := clusterv1informers.NewSharedInformerFactory(fakeClusterClient, 10*time.Minute)
+	cpInformers := cpinformers.NewSharedInformerFactory(fakeClusterPermissionClient, 10*time.Minute)
+
+	// Add objects to informers
+	kubeInformers.Rbac().V1().ClusterRoles().Informer().GetIndexer().Add(&adminClusterRole)
+	kubeInformers.Rbac().V1().ClusterRoles().Informer().GetIndexer().Add(&viewClusterRole)
+	kubeInformers.Rbac().V1().RoleBindings().Informer().GetIndexer().Add(&rbBobActionInCluster1)
+	kubeInformers.Rbac().V1().RoleBindings().Informer().GetIndexer().Add(&rbBobViewInCluster2)
+
+	clusterInformers.Cluster().V1().ManagedClusters().Informer().GetIndexer().Add(&cluster1)
+	clusterInformers.Cluster().V1().ManagedClusters().Informer().GetIndexer().Add(&cluster2)
+
+	// Start informers
+	kubeInformers.Start(stopCh)
+	clusterInformers.Start(stopCh)
+	cpInformers.Start(stopCh)
+
+	// Create cache
+	cache := New(
+		kubeInformers.Rbac().V1().ClusterRoles(),
+		kubeInformers.Rbac().V1().ClusterRoleBindings(),
+		kubeInformers.Rbac().V1().Roles(),
+		kubeInformers.Rbac().V1().RoleBindings(),
+		clusterInformers.Cluster().V1().ManagedClusters().Lister(),
+		cpInformers.Api().V1alpha1().ClusterPermissions().Lister(),
+	)
+
+	// Trigger initial synchronization
+	cache.synchronize()
+
+	bob := &user.DefaultInfo{
+		Name:   "Bob",
+		Groups: []string{"test-group"},
+	}
+
+	result, err := cache.List(bob, labels.Everything())
+	assert.NoError(t, err)
+	assert.NotNil(t, result)
+
+	// Build a map of role names to bindings for easier verification
+	roleBindings := make(map[string][]clusterviewv1alpha1.ClusterBinding)
+	for _, item := range result.Items {
+		roleBindings[item.Name] = item.Status.Bindings
+	}
+
+	// Bob should have BOTH managedcluster:admin on cluster1 AND managedcluster:view on cluster2
+	// The old bug would have removed managedcluster:view completely
+	assert.Contains(t, roleBindings, clusterviewv1alpha1.ManagedClusterAdminRole,
+		"Bob should have managedcluster:admin role")
+	assert.Contains(t, roleBindings, clusterviewv1alpha1.ManagedClusterViewRole,
+		"Bob should have managedcluster:view role")
+
+	// Verify admin bindings only include cluster1
+	adminBindings := roleBindings[clusterviewv1alpha1.ManagedClusterAdminRole]
+	assert.Equal(t, 1, len(adminBindings), "Should have exactly 1 admin binding")
+	assert.Equal(t, "cluster1", adminBindings[0].Cluster, "Admin binding should be for cluster1")
+
+	// Verify view bindings only include cluster2 (cluster1 should be filtered out since it has admin)
+	viewBindings := roleBindings[clusterviewv1alpha1.ManagedClusterViewRole]
+	assert.Equal(t, 1, len(viewBindings), "Should have exactly 1 view binding")
+	assert.Equal(t, "cluster2", viewBindings[0].Cluster, "View binding should be for cluster2")
 }
 
 func TestUserPermissionCache_NilRoleRef(t *testing.T) {

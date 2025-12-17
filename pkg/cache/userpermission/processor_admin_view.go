@@ -51,7 +51,9 @@ func (p *adminViewPermissionProcessor) sync(store *permissionStore) error {
 }
 
 // addSyntheticPermissions adds synthetic managedcluster permissions for users and groups
-// If admin permission is granted, view permission is not added since admin is a superset of view
+// Admin permission is only granted when the user has BOTH managedclusteraction create AND
+// managedclusterview create permissions (grantsAdminPerm = hasActionPerm && hasViewPerm).
+// When admin is granted, view permission is not added since admin is a superset of view.
 func addSyntheticPermissions(
 	users, groups []string,
 	grantsAdminPerm, grantsViewPerm bool,
@@ -99,10 +101,14 @@ func (p *adminViewPermissionProcessor) processClusterRoleBindings(
 		}
 
 		// Check if this ClusterRole grants create on managedclusteractions or managedclusterviews
-		grantsAdminPerm := clusterRoleGrantsPermission(
+		hasActionPerm := clusterRoleGrantsPermission(
 			clusterRole, ManagedClusterActionsResource, ActionAPIGroup)
-		grantsViewPerm := clusterRoleGrantsPermission(
+		hasViewPerm := clusterRoleGrantsPermission(
 			clusterRole, ManagedClusterViewsResource, ViewAPIGroup)
+
+		// Admin permission requires BOTH action AND view create permissions
+		grantsAdminPerm := hasActionPerm && hasViewPerm
+		grantsViewPerm := hasViewPerm
 
 		if !grantsAdminPerm && !grantsViewPerm {
 			continue
@@ -140,7 +146,7 @@ func (p *adminViewPermissionProcessor) processRoleBindings(
 
 		for _, rb := range roleBindings {
 			// Get the Role or ClusterRole referenced by this binding
-			var grantsAdminPerm, grantsViewPerm bool
+			var hasActionPerm, hasViewPerm bool
 
 			switch rb.RoleRef.Kind {
 			case "ClusterRole":
@@ -148,9 +154,9 @@ func (p *adminViewPermissionProcessor) processRoleBindings(
 				if err != nil {
 					continue
 				}
-				grantsAdminPerm = clusterRoleGrantsPermission(
+				hasActionPerm = clusterRoleGrantsPermission(
 					clusterRole, ManagedClusterActionsResource, ActionAPIGroup)
-				grantsViewPerm = clusterRoleGrantsPermission(
+				hasViewPerm = clusterRoleGrantsPermission(
 					clusterRole, ManagedClusterViewsResource, ViewAPIGroup)
 			case "Role":
 				role, err := p.roleLister.Roles(clusterName).Get(rb.RoleRef.Name)
@@ -158,9 +164,13 @@ func (p *adminViewPermissionProcessor) processRoleBindings(
 					continue
 				}
 				// For Role, we need to check the rules directly
-				grantsAdminPerm = roleGrantsPermission(role, ManagedClusterActionsResource, ActionAPIGroup)
-				grantsViewPerm = roleGrantsPermission(role, ManagedClusterViewsResource, ViewAPIGroup)
+				hasActionPerm = roleGrantsPermission(role, ManagedClusterActionsResource, ActionAPIGroup)
+				hasViewPerm = roleGrantsPermission(role, ManagedClusterViewsResource, ViewAPIGroup)
 			}
+
+			// Admin permission requires BOTH action AND view create permissions
+			grantsAdminPerm := hasActionPerm && hasViewPerm
+			grantsViewPerm := hasViewPerm
 
 			if !grantsAdminPerm && !grantsViewPerm {
 				continue
@@ -229,10 +239,15 @@ func (p *adminViewPermissionProcessor) addClusterRoleBindingVersions(
 			continue
 		}
 
-		grantsAdminPerm := clusterRoleGrantsPermission(
+		hasActionPerm := clusterRoleGrantsPermission(
 			clusterRole, ManagedClusterActionsResource, ActionAPIGroup)
-		grantsViewPerm := clusterRoleGrantsPermission(
+		hasViewPerm := clusterRoleGrantsPermission(
 			clusterRole, ManagedClusterViewsResource, ViewAPIGroup)
+
+		// Admin permission requires BOTH action AND view create permissions
+		grantsAdminPerm := hasActionPerm && hasViewPerm
+		grantsViewPerm := hasViewPerm
+
 		if !grantsAdminPerm && !grantsViewPerm {
 			continue
 		}
@@ -354,8 +369,9 @@ func (p *adminViewPermissionProcessor) checkRoleBindingPermissions(
 }
 
 // checkRulesForPermissions checks if policy rules grant admin/view permissions
+// Admin permission requires BOTH action AND view create permissions
 func checkRulesForPermissions(rules []rbacv1.PolicyRule) (grantsAdminPerm, grantsViewPerm bool) {
-	grantsAdminPerm = rulesGrantPermission(rules, ManagedClusterActionsResource, ActionAPIGroup)
-	grantsViewPerm = rulesGrantPermission(rules, ManagedClusterViewsResource, ViewAPIGroup)
-	return grantsAdminPerm, grantsViewPerm
+	hasActionPerm := rulesGrantPermission(rules, ManagedClusterActionsResource, ActionAPIGroup)
+	hasViewPerm := rulesGrantPermission(rules, ManagedClusterViewsResource, ViewAPIGroup)
+	return hasActionPerm && hasViewPerm, hasViewPerm
 }
