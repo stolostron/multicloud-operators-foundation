@@ -2,6 +2,7 @@ module github.com/stolostron/multicloud-operators-foundation
 
 go 1.24.0
 
+// dummy comment
 require (
 	github.com/go-logr/logr v1.4.2
 	github.com/gogo/protobuf v1.3.2
