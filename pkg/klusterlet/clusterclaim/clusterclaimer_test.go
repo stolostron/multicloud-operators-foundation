@@ -1,16 +1,20 @@
 package clusterclaim
 
 import (
+	"strings"
 	"testing"
 
 	"k8s.io/apimachinery/pkg/types"
 
 	apiconfigv1 "github.com/openshift/api/config/v1"
 	apioauthv1 "github.com/openshift/api/oauth/v1"
+	operatorv1 "github.com/openshift/api/operator/v1"
 	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
 	configfake "github.com/openshift/client-go/config/clientset/versioned/fake"
 	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
 	oauthfake "github.com/openshift/client-go/oauth/clientset/versioned/fake"
+	openshiftoperatorclientset "github.com/openshift/client-go/operator/clientset/versioned"
+	fakeoperatorclient "github.com/openshift/client-go/operator/clientset/versioned/fake"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -490,14 +494,15 @@ func newMicroShiftVersionConfigmap(version string) *corev1.ConfigMap {
 
 func TestClusterClaimerList(t *testing.T) {
 	tests := []struct {
-		name           string
-		clusterName    string
-		kubeClient     kubernetes.Interface
-		configV1Client openshiftclientset.Interface
-		oauthV1Client  openshiftoauthclientset.Interface
-		mapper         meta.RESTMapper
-		expectClaims   map[string]string
-		expectErr      error
+		name             string
+		clusterName      string
+		kubeClient       kubernetes.Interface
+		configV1Client   openshiftclientset.Interface
+		oauthV1Client    openshiftoauthclientset.Interface
+		operatorV1Client openshiftoperatorclientset.Interface
+		mapper           meta.RESTMapper
+		expectClaims     map[string]string
+		expectErr        error
 	}{
 		{
 			name:           "claims of OCP on AWS",
@@ -653,11 +658,16 @@ func TestClusterClaimerList(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			operatorClient := test.operatorV1Client
+			if operatorClient == nil {
+				operatorClient = fakeoperatorclient.NewSimpleClientset()
+			}
 			clusterClaimer := ClusterClaimer{
 				KubeClient:       test.kubeClient,
 				Mapper:           test.mapper,
 				ConfigV1Client:   test.configV1Client,
 				OauthV1Client:    test.oauthV1Client,
+				OperatorV1Client: operatorClient,
 				managedclusterID: test.clusterName,
 			}
 			claims, err := clusterClaimer.GenerateExpectClusterClaims()
@@ -740,35 +750,210 @@ func TestOpenshiftDedicated(t *testing.T) {
 }
 
 func TestROSA(t *testing.T) {
-	tests := []struct {
-		name        string
-		kubeClient  kubernetes.Interface
-		mapper      meta.RESTMapper
-		expectedRet bool
-		expectedErr error
+	testCases := []struct {
+		name              string
+		configMaps        []runtime.Object
+		consoles          []runtime.Object
+		expectedResult    bool
+		expectedError     bool
+		expectedErrorType string
 	}{
 		{
-			name:        "is ROSA",
-			kubeClient:  newFakeKubeClient([]runtime.Object{newConfigmap("openshift-config", "rosa-brand-logo")}),
-			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectedRet: true,
-			expectedErr: nil,
+			name: "ROSA detected via rosa-brand-logo configmap",
+			configMaps: []runtime.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "rosa-brand-logo",
+						Namespace: "openshift-config",
+					},
+				},
+			},
+			consoles:       []runtime.Object{},
+			expectedResult: true,
+			expectedError:  false,
 		},
 		{
-			name:        "is openshift not ROSA",
-			kubeClient:  newFakeKubeClient(nil),
-			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
-			expectedRet: false,
-			expectedErr: nil,
+			name:       "ROSA detected via console brand when configmap not found",
+			configMaps: []runtime.Object{},
+			consoles: []runtime.Object{
+				&operatorv1.Console{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: operatorv1.ConsoleSpec{
+						Customization: operatorv1.ConsoleCustomization{
+							Brand: operatorv1.BrandROSA,
+						},
+					},
+				},
+			},
+			expectedResult: true,
+			expectedError:  false,
+		},
+		{
+			name:       "Not ROSA - configmap not found and console brand is OpenShift",
+			configMaps: []runtime.Object{},
+			consoles: []runtime.Object{
+				&operatorv1.Console{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: operatorv1.ConsoleSpec{
+						Customization: operatorv1.ConsoleCustomization{
+							Brand: operatorv1.BrandOpenShift,
+						},
+					},
+				},
+			},
+			expectedResult: false,
+			expectedError:  false,
+		},
+		{
+			name:       "Not ROSA - configmap not found and console brand is OKD",
+			configMaps: []runtime.Object{},
+			consoles: []runtime.Object{
+				&operatorv1.Console{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: operatorv1.ConsoleSpec{
+						Customization: operatorv1.ConsoleCustomization{
+							Brand: operatorv1.BrandOKD,
+						},
+					},
+				},
+			},
+			expectedResult: false,
+			expectedError:  false,
+		},
+		{
+			name:       "Not ROSA - configmap not found and console brand is Online",
+			configMaps: []runtime.Object{},
+			consoles: []runtime.Object{
+				&operatorv1.Console{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: operatorv1.ConsoleSpec{
+						Customization: operatorv1.ConsoleCustomization{
+							Brand: operatorv1.BrandOnline,
+						},
+					},
+				},
+			},
+			expectedResult: false,
+			expectedError:  false,
+		},
+		{
+			name:       "Not ROSA - configmap not found and console brand is ocp",
+			configMaps: []runtime.Object{},
+			consoles: []runtime.Object{
+				&operatorv1.Console{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: operatorv1.ConsoleSpec{
+						Customization: operatorv1.ConsoleCustomization{
+							Brand: operatorv1.BrandOCP,
+						},
+					},
+				},
+			},
+			expectedResult: false,
+			expectedError:  false,
+		},
+		{
+			name:       "Not ROSA - configmap not found and console brand is Dedicated",
+			configMaps: []runtime.Object{},
+			consoles: []runtime.Object{
+				&operatorv1.Console{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: operatorv1.ConsoleSpec{
+						Customization: operatorv1.ConsoleCustomization{
+							Brand: operatorv1.BrandDedicated,
+						},
+					},
+				},
+			},
+			expectedResult: false,
+			expectedError:  false,
+		},
+		{
+			name:       "Not ROSA - configmap not found and console brand is Azure",
+			configMaps: []runtime.Object{},
+			consoles: []runtime.Object{
+				&operatorv1.Console{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: operatorv1.ConsoleSpec{
+						Customization: operatorv1.ConsoleCustomization{
+							Brand: operatorv1.BrandAzure,
+						},
+					},
+				},
+			},
+			expectedResult: false,
+			expectedError:  false,
+		},
+		{
+			name:       "Not ROSA - configmap not found and console brand is empty",
+			configMaps: []runtime.Object{},
+			consoles: []runtime.Object{
+				&operatorv1.Console{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster",
+					},
+					Spec: operatorv1.ConsoleSpec{
+						Customization: operatorv1.ConsoleCustomization{
+							Brand: "",
+						},
+					},
+				},
+			},
+			expectedResult: false,
+			expectedError:  false,
+		},
+		{
+			name:           "Console not found - not ROSA",
+			configMaps:     []runtime.Object{},
+			consoles:       []runtime.Object{},
+			expectedResult: false,
+			expectedError:  false,
 		},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, Mapper: test.mapper}
-			rst, err := clusterClaimer.isROSA()
-			assert.Equal(t, test.expectedRet, rst)
-			assert.Equal(t, test.expectedErr, err)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			kubeClient := kubefake.NewSimpleClientset(tc.configMaps...)
+			var operatorClient openshiftoperatorclientset.Interface
+			operatorClient = fakeoperatorclient.NewSimpleClientset(tc.consoles...)
+
+			claimer := &ClusterClaimer{
+				KubeClient:       kubeClient,
+				OperatorV1Client: operatorClient,
+			}
+
+			result, err := claimer.isROSA()
+
+			if tc.expectedError {
+				if err == nil {
+					t.Errorf("Expected error but got nil")
+				}
+				if tc.expectedErrorType != "" && !strings.Contains(err.Error(), tc.expectedErrorType) {
+					t.Errorf("Expected error containing '%s', but got: %v", tc.expectedErrorType, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("Unexpected error: %v", err)
+				}
+			}
+
+			if result != tc.expectedResult {
+				t.Errorf("Expected result %v, but got %v", tc.expectedResult, result)
+			}
 		})
 	}
 }
@@ -1199,7 +1384,12 @@ func TestUpdatePlatformProduct(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, Mapper: test.mapper, ConfigV1Client: test.configV1Client}
+			clusterClaimer := ClusterClaimer{
+				KubeClient:       test.kubeClient,
+				Mapper:           test.mapper,
+				ConfigV1Client:   test.configV1Client,
+				OperatorV1Client: fakeoperatorclient.NewSimpleClientset(),
+			}
 			platform, product, err := clusterClaimer.getPlatformProduct()
 			assert.Equal(t, test.expectErr, err)
 			assert.Equal(t, test.expectPlatform, platform)

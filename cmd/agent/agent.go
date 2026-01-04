@@ -22,8 +22,9 @@ import (
 	restutils "github.com/stolostron/multicloud-operators-foundation/pkg/utils/rest"
 	addonutils "open-cluster-management.io/addon-framework/pkg/utils"
 
-	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
+	openshiftconfigclientset "github.com/openshift/client-go/config/clientset/versioned"
 	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
+	openshiftoperatorclientset "github.com/openshift/client-go/operator/clientset/versioned"
 	routev1 "github.com/openshift/client-go/route/clientset/versioned"
 	"open-cluster-management.io/addon-framework/pkg/lease"
 	clusterclientset "open-cluster-management.io/api/client/cluster/clientset/versioned"
@@ -136,9 +137,15 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 		setupLog.Error(err, "New route client config error:")
 	}
 
-	openshiftClient, err := openshiftclientset.NewForConfig(managedClusterConfig)
+	openshiftClient, err := openshiftconfigclientset.NewForConfig(managedClusterConfig)
 	if err != nil {
 		setupLog.Error(err, "Unable to create managed cluster openshift config clientset.")
+		os.Exit(1)
+	}
+
+	operatorClient, err := openshiftoperatorclientset.NewForConfig(managedClusterConfig)
+	if err != nil {
+		setupLog.Error(err, "Unable to create managed cluster openshift operator clientset.")
 		os.Exit(1)
 	}
 
@@ -247,10 +254,11 @@ func startManager(o *options.AgentOptions, ctx context.Context) {
 			ConfigV1Client:           openshiftClient,
 		}
 		clusterClaimer := clusterclaimctl.ClusterClaimer{
-			KubeClient:     managedClusterKubeClient,
-			ConfigV1Client: openshiftClient,
-			OauthV1Client:  osOauthClient,
-			Mapper:         reloadMapper,
+			KubeClient:       managedClusterKubeClient,
+			ConfigV1Client:   openshiftClient,
+			OperatorV1Client: operatorClient,
+			OauthV1Client:    osOauthClient,
+			Mapper:           reloadMapper,
 		}
 
 		clusterClaimReconciler, err := clusterclaimctl.NewClusterClaimReconciler(

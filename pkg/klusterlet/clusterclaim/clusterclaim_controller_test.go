@@ -331,7 +331,7 @@ func TestGenLabelsToClaims(t *testing.T) {
 
 	s := scheme.Scheme
 	s.AddKnownTypes(clusterv1beta1.SchemeGroupVersion, &clusterv1beta1.ManagedClusterInfo{})
-	clusterv1beta1.AddToScheme(s)
+	_ = clusterv1beta1.AddToScheme(s)
 
 	clusterName := "test-cluster"
 	for _, test := range tests {
@@ -395,13 +395,13 @@ func TestSyncLabelsToClaims(t *testing.T) {
 
 	s := scheme.Scheme
 	s.AddKnownTypes(clusterv1beta1.SchemeGroupVersion, &clusterv1beta1.ManagedClusterInfo{})
-	clusterv1beta1.AddToScheme(s)
+	_ = clusterv1beta1.AddToScheme(s)
 
 	// populate with the current claims
 	hubClient := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(managedClusterInfo).Build()
 	clusterClient := clusterfake.NewSimpleClientset(current[0], current[1])
 
-	reconciler, _ := NewClusterClaimReconciler(
+	reconciler, err := NewClusterClaimReconciler(
 		ctrl.Log,
 		testClusterName,
 		clusterClient,
