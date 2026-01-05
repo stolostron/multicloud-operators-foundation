@@ -773,6 +773,39 @@ func TestROSA(t *testing.T) {
 	}
 }
 
+func TestROSACluster(t *testing.T) {
+	tests := []struct {
+		name        string
+		kubeClient  kubernetes.Interface
+		mapper      meta.RESTMapper
+		expectedRet bool
+		expectedErr error
+	}{
+		{
+			name:        "is ROSA",
+			kubeClient:  newFakeKubeClient([]runtime.Object{newConfigmap("openshift-config", "rosa-brand-logo")}),
+			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectedRet: true,
+			expectedErr: nil,
+		},
+		{
+			name:        "is openshift not ROSA",
+			kubeClient:  newFakeKubeClient(nil),
+			mapper:      newFakeRestMapper([]*restmapper.APIGroupResources{projectAPIGroupResources}),
+			expectedRet: false,
+			expectedErr: nil,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			clusterClaimer := ClusterClaimer{KubeClient: test.kubeClient, Mapper: test.mapper}
+			rst, err := clusterClaimer.IsROSACluster()
+			assert.Equal(t, test.expectedRet, rst)
+			assert.Equal(t, test.expectedErr, err)
+		})
+	}
+}
 func TestARO(t *testing.T) {
 	tests := []struct {
 		name        string

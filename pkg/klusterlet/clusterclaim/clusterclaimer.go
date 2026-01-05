@@ -761,3 +761,11 @@ func (c *ClusterClaimer) getMicroShiftVersion() (string, error) {
 
 	return version, nil
 }
+
+func (c *ClusterClaimer) IsROSACluster() (bool, error) {
+	rst, err := c.isROSA()
+	if err != nil {
+		return false, err
+	}
+	return rst, nil
+}

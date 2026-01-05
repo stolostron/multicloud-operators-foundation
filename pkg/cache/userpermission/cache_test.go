@@ -456,7 +456,73 @@ func TestUserPermissionCache_Get(t *testing.T) {
 		})
 	}
 }
+func TestUserPermissionCache_GetUP(t *testing.T) {
+	stopCh := make(chan struct{})
+	defer close(stopCh)
 
+	cache := setupUserPermissionCache(stopCh)
+
+	tests := []struct {
+		name          string
+		user          user.Info
+		roleName      string
+		expectError   bool
+		expectBinding bool
+	}{
+		{
+			name: "user1 can get managedcluster:admin",
+			user: &user.DefaultInfo{
+				Name:   "user1",
+				Groups: []string{},
+			},
+			roleName:      clusterviewv1alpha1.ManagedClusterAdminRole,
+			expectError:   false,
+			expectBinding: true,
+		},
+		{
+			name: "user3 can get admin-role",
+			user: &user.DefaultInfo{
+				Name:   "user3",
+				Groups: []string{},
+			},
+			roleName:      "admin-role",
+			expectError:   false,
+			expectBinding: true,
+		},
+		{
+			name: "user without permission cannot get role",
+			user: &user.DefaultInfo{
+				Name:   "noPermUser",
+				Groups: []string{},
+			},
+			roleName:      "admin-role",
+			expectError:   true,
+			expectBinding: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := cache.GetUP(tt.user, tt.roleName)
+
+			if tt.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, result)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, result)
+				assert.Equal(t, tt.roleName, result.Name)
+
+				if tt.expectBinding {
+					assert.Greater(t, len(result.Status.Bindings), 0,
+						"Expected at least one binding for role %s", tt.roleName)
+					assert.NotNil(t, result.Status.ClusterRoleDefinition.Rules,
+						"Expected ClusterRoleDefinition for role %s", tt.roleName)
+				}
+			}
+		})
+	}
+}
 func TestUserPermissionCache_MergeBindings(t *testing.T) {
 	tests := []struct {
 		name             string
