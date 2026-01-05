@@ -11,8 +11,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/uuid"
 
 	configv1 "github.com/openshift/api/config/v1"
-	openshiftclientset "github.com/openshift/client-go/config/clientset/versioned"
+	operatorv1 "github.com/openshift/api/operator/v1"
+	openshiftconfigclientset "github.com/openshift/client-go/config/clientset/versioned"
 	openshiftoauthclientset "github.com/openshift/client-go/oauth/clientset/versioned"
+	openshiftoperatorclientset "github.com/openshift/client-go/operator/clientset/versioned"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -124,8 +126,9 @@ func init() {
 
 type ClusterClaimer struct {
 	KubeClient       kubernetes.Interface
-	ConfigV1Client   openshiftclientset.Interface
+	ConfigV1Client   openshiftconfigclientset.Interface
 	OauthV1Client    openshiftoauthclientset.Interface
+	OperatorV1Client openshiftoperatorclientset.Interface
 	Mapper           meta.RESTMapper
 	managedclusterID string
 }
@@ -311,15 +314,27 @@ func (c *ClusterClaimer) isOpenshiftDedicated() (bool, error) {
 
 func (c *ClusterClaimer) isROSA() (bool, error) {
 	_, err := c.KubeClient.CoreV1().ConfigMaps("openshift-config").Get(context.TODO(), "rosa-brand-logo", metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return false, nil
-		}
+	if err == nil {
+		return true, nil
+	}
+
+	if !apierrors.IsNotFound(err) {
 		klog.Errorf("failed to get configmap openshift-config/rosa-brand-logo. err: %v", err)
 		return false, err
 	}
 
-	return true, nil
+	// the configmap openshift-config/rosa-brand-logo will be removed in OCP 4.22, so need to use console.operator instead.
+	console, err := c.OperatorV1Client.OperatorV1().Consoles().Get(context.TODO(), "cluster", metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return false, nil
+	}
+
+	if err != nil {
+		klog.Errorf("failed to get cluster console. err: %v", err)
+		return false, err
+	}
+
+	return console.Spec.Customization.Brand == operatorv1.BrandROSA, nil
 }
 
 func (c *ClusterClaimer) isARO() (bool, error) {
