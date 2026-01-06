@@ -547,3 +547,260 @@ func Test_getClientConfig(t *testing.T) {
 		})
 	}
 }
+
+func Test_syncUpgradeableCondition(t *testing.T) {
+	now := metav1.Now()
+	tests := []struct {
+		name              string
+		clusterVersion    *apiconfigv1.ClusterVersion
+		initialConditions []metav1.Condition
+		expectCondition   *metav1.Condition
+	}{
+		{
+			name: "Upgradeable condition is False",
+			clusterVersion: &apiconfigv1.ClusterVersion{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "version",
+				},
+				Status: apiconfigv1.ClusterVersionStatus{
+					Conditions: []apiconfigv1.ClusterOperatorStatusCondition{
+						{
+							Type:               "Upgradeable",
+							Status:             apiconfigv1.ConditionFalse,
+							LastTransitionTime: now,
+							Reason:             "AdminAckRequired",
+							Message:            "Kubernetes 1.28 and therefore OpenShift 4.15 remove several APIs which require admin consideration.",
+						},
+					},
+				},
+			},
+			initialConditions: []metav1.Condition{},
+			expectCondition: &metav1.Condition{
+				Type:               "Upgradeable",
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: now,
+				Reason:             "AdminAckRequired",
+				Message:            "Kubernetes 1.28 and therefore OpenShift 4.15 remove several APIs which require admin consideration.",
+			},
+		},
+		{
+			name: "Upgradeable condition is True",
+			clusterVersion: &apiconfigv1.ClusterVersion{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "version",
+				},
+				Status: apiconfigv1.ClusterVersionStatus{
+					Conditions: []apiconfigv1.ClusterOperatorStatusCondition{
+						{
+							Type:               "Upgradeable",
+							Status:             apiconfigv1.ConditionTrue,
+							LastTransitionTime: now,
+							Reason:             "AsExpected",
+							Message:            "Cluster is upgradeable",
+						},
+					},
+				},
+			},
+			initialConditions: []metav1.Condition{},
+			expectCondition: &metav1.Condition{
+				Type:               "Upgradeable",
+				Status:             metav1.ConditionTrue,
+				LastTransitionTime: now,
+				Reason:             "AsExpected",
+				Message:            "Cluster is upgradeable",
+			},
+		},
+		{
+			name: "Upgradeable condition not present in ClusterVersion",
+			clusterVersion: &apiconfigv1.ClusterVersion{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "version",
+				},
+				Status: apiconfigv1.ClusterVersionStatus{
+					Conditions: []apiconfigv1.ClusterOperatorStatusCondition{
+						{
+							Type:   "Failing",
+							Status: apiconfigv1.ConditionFalse,
+						},
+					},
+				},
+			},
+			initialConditions: []metav1.Condition{
+				{
+					Type:   "Upgradeable",
+					Status: metav1.ConditionTrue,
+				},
+			},
+			expectCondition: nil, // Should be removed
+		},
+		{
+			name: "Update existing Upgradeable condition",
+			clusterVersion: &apiconfigv1.ClusterVersion{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "version",
+				},
+				Status: apiconfigv1.ClusterVersionStatus{
+					Conditions: []apiconfigv1.ClusterOperatorStatusCondition{
+						{
+							Type:               "Upgradeable",
+							Status:             apiconfigv1.ConditionFalse,
+							LastTransitionTime: now,
+							Reason:             "NewReason",
+							Message:            "New message",
+						},
+					},
+				},
+			},
+			initialConditions: []metav1.Condition{
+				{
+					Type:   "Upgradeable",
+					Status: metav1.ConditionTrue,
+					Reason: "OldReason",
+				},
+			},
+			expectCondition: &metav1.Condition{
+				Type:               "Upgradeable",
+				Status:             metav1.ConditionFalse,
+				LastTransitionTime: now,
+				Reason:             "NewReason",
+				Message:            "New message",
+			},
+		},
+		{
+			name: "Upgradeable condition removed from ClusterVersion should remove from ManagedClusterInfo",
+			clusterVersion: &apiconfigv1.ClusterVersion{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "version",
+				},
+				Status: apiconfigv1.ClusterVersionStatus{
+					Conditions: []apiconfigv1.ClusterOperatorStatusCondition{
+						{
+							Type:   "Available",
+							Status: apiconfigv1.ConditionTrue,
+						},
+					},
+				},
+			},
+			initialConditions: []metav1.Condition{
+				{
+					Type:   "Upgradeable",
+					Status: metav1.ConditionFalse,
+					Reason: "SomeReason",
+				},
+				{
+					Type:   "OtherCondition",
+					Status: metav1.ConditionTrue,
+				},
+			},
+			expectCondition: nil, // Should be removed, other conditions should remain
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			syncer := &distributionInfoSyncer{
+				configV1Client:       configfake.NewSimpleClientset(),
+				managedClusterClient: kubefake.NewSimpleClientset(),
+			}
+
+			clusterInfoStatus := &v1beta1.ClusterInfoStatus{
+				Conditions: test.initialConditions,
+			}
+
+			syncer.syncUpgradeableCondition(clusterInfoStatus, test.clusterVersion)
+
+			if test.expectCondition == nil {
+				// Check that Upgradeable condition is not present
+				found := false
+				for _, cond := range clusterInfoStatus.Conditions {
+					if cond.Type == "Upgradeable" {
+						found = true
+						break
+					}
+				}
+				assert.False(t, found, "Upgradeable condition should not be present")
+
+				// Verify other conditions are not affected
+				if test.name == "Upgradeable condition removed from ClusterVersion should remove from ManagedClusterInfo" {
+					otherCondFound := false
+					for _, cond := range clusterInfoStatus.Conditions {
+						if cond.Type == "OtherCondition" {
+							otherCondFound = true
+							break
+						}
+					}
+					assert.True(t, otherCondFound, "Other conditions should remain unaffected")
+				}
+			} else {
+				// Check that Upgradeable condition is present and matches expected
+				found := false
+				for _, cond := range clusterInfoStatus.Conditions {
+					if cond.Type == "Upgradeable" {
+						found = true
+						assert.Equal(t, test.expectCondition.Status, cond.Status)
+						assert.Equal(t, test.expectCondition.Reason, cond.Reason)
+						assert.Equal(t, test.expectCondition.Message, cond.Message)
+						assert.Equal(t, test.expectCondition.LastTransitionTime, cond.LastTransitionTime)
+						break
+					}
+				}
+				assert.True(t, found, "Upgradeable condition should be present")
+			}
+		})
+	}
+}
+
+func Test_syncOCPDistributionInfo_UpgradeableCondition(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("ClusterVersion not found removes Upgradeable condition", func(t *testing.T) {
+		// Setup: ClusterVersion doesn't exist (OCP 3.x scenario)
+		configV1Client := configfake.NewSimpleClientset() // No ClusterVersion
+
+		syncer := &distributionInfoSyncer{
+			configV1Client:       configV1Client,
+			managedClusterClient: kubefake.NewSimpleClientset(),
+		}
+
+		clusterInfoStatus := &v1beta1.ClusterInfoStatus{
+			KubeVendor: v1beta1.KubeVendorOpenShift,
+			Conditions: []metav1.Condition{
+				{
+					Type:   "Upgradeable",
+					Status: metav1.ConditionFalse,
+					Reason: "SomeReason",
+				},
+				{
+					Type:   "OtherCondition",
+					Status: metav1.ConditionTrue,
+				},
+			},
+		}
+
+		err := syncer.syncOCPDistributionInfo(ctx, clusterInfoStatus)
+		assert.NoError(t, err)
+
+		// Verify Upgradeable condition is removed
+		found := false
+		for _, cond := range clusterInfoStatus.Conditions {
+			if cond.Type == "Upgradeable" {
+				found = true
+				break
+			}
+		}
+		assert.False(t, found, "Upgradeable condition should be removed when ClusterVersion not found")
+
+		// Verify other conditions remain
+		otherCondFound := false
+		for _, cond := range clusterInfoStatus.Conditions {
+			if cond.Type == "OtherCondition" {
+				otherCondFound = true
+				break
+			}
+		}
+		assert.True(t, otherCondFound, "Other conditions should remain unaffected")
+
+		// Verify OCP version is set to 3
+		assert.Equal(t, "3", clusterInfoStatus.DistributionInfo.OCP.Version)
+	})
+}
