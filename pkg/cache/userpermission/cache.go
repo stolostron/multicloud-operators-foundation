@@ -215,3 +215,11 @@ func (c *Cache) getSyntheticViewRoleDefinition() clusterviewv1alpha1.ClusterRole
 		},
 	}
 }
+
+func (c *Cache) GetUP(userInfo user.Info, name string) (*clusterviewv1alpha1.UserPermission, error) {
+	up, err := c.Get(userInfo, name)
+	if err != nil {
+		return nil, err
+	}
+	return up, nil
+}
