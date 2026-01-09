@@ -10,6 +10,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/v2"
@@ -40,6 +41,8 @@ func (s *distributionInfoSyncer) syncOCPDistributionInfo(ctx context.Context, cl
 	clusterVersion, err := s.configV1Client.ConfigV1().ClusterVersions().Get(ctx, "version", metav1.GetOptions{})
 	if errors.IsNotFound(err) {
 		clusterInfoStatus.DistributionInfo.OCP.Version = clusterclaim.OCP3Version
+		// Remove Upgradeable condition when ClusterVersion not found
+		meta.RemoveStatusCondition(&clusterInfoStatus.Conditions, string(configv1.OperatorUpgradeable))
 		return nil
 	}
 	if err != nil {
@@ -106,6 +109,10 @@ func (s *distributionInfoSyncer) syncOCPDistributionInfo(ctx context.Context, cl
 	}
 
 	clusterInfoStatus.DistributionInfo.OCP = ocpDistributionInfo
+
+	// Sync Upgradeable condition from ClusterVersion to ManagedClusterInfo
+	s.syncUpgradeableCondition(clusterInfoStatus, clusterVersion)
+
 	return nil
 }
 
@@ -157,4 +164,35 @@ func (s *distributionInfoSyncer) getClusterCA(ctx context.Context, kubeAPIServer
 
 	klog.Warningf("Cannot get ca from service account, error:%v", err)
 	return nil
+}
+
+// syncUpgradeableCondition syncs the Upgradeable condition from ClusterVersion to ManagedClusterInfo.
+// According to the ClusterVersion API docs, the Upgradeable condition is only populated when Upgradeable=False.
+// The cluster-version operator will allow updates when this condition is not False, including when it is missing, True, or Unknown.
+func (s *distributionInfoSyncer) syncUpgradeableCondition(clusterInfoStatus *clusterv1beta1.ClusterInfoStatus, clusterVersion *configv1.ClusterVersion) {
+	// Find the Upgradeable condition in ClusterVersion
+	var upgradeableCondition *configv1.ClusterOperatorStatusCondition
+	for i := range clusterVersion.Status.Conditions {
+		if clusterVersion.Status.Conditions[i].Type == configv1.OperatorUpgradeable {
+			upgradeableCondition = &clusterVersion.Status.Conditions[i]
+			break
+		}
+	}
+
+	if upgradeableCondition == nil {
+		// Upgradeable condition not present in ClusterVersion, remove it from ManagedClusterInfo
+		meta.RemoveStatusCondition(&clusterInfoStatus.Conditions, string(configv1.OperatorUpgradeable))
+		return
+	}
+
+	// Copy the Upgradeable condition to ManagedClusterInfo
+	newCondition := metav1.Condition{
+		Type:               string(configv1.OperatorUpgradeable),
+		Status:             metav1.ConditionStatus(upgradeableCondition.Status),
+		LastTransitionTime: upgradeableCondition.LastTransitionTime,
+		Reason:             string(upgradeableCondition.Reason),
+		Message:            upgradeableCondition.Message,
+	}
+
+	meta.SetStatusCondition(&clusterInfoStatus.Conditions, newCondition)
 }
