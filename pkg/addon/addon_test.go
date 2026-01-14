@@ -214,13 +214,42 @@ func TestManifest(t *testing.T) {
 			expectedNodeSelector: true,
 			expectedCount:        8,
 		},
+		{
+			name:                      "OCP with custom namespace via InstallNamespace",
+			cluster:                   newCluster("cluster1", "OpenShift", map[string]string{}, map[string]string{}),
+			addon:                     newAddon("work-manager", "cluster1", "custom-ns", ""),
+			expectedNamespace:         "custom-ns",
+			expectedNamespaceOrphaned: true,
+			expectedImage:             "quay.io/stolostron/multicloud-manager:2.5.0",
+			expectedClusterRoleBindingNames: sets.New[string](
+				"open-cluster-management:klusterlet-addon-workmgr:custom-ns",
+				"open-cluster-management:klusterlet-addon-workmgr-log:custom-ns",
+			),
+			expectedCount: 9,
+		},
+		{
+			name:    "OCP with with AddOnDeploymentConfig custom namespace",
+			cluster: newCluster("cluster1", "OpenShift", map[string]string{}, map[string]string{}),
+			addon: newAddonWithConfig("work-manager", "cluster1", "",
+				newAddonConfigWithNamespace("custom-ns")),
+			addonDeploymentConfig:     newAddonConfigWithNamespace("custom-ns"),
+			expectedNamespace:         "custom-ns",
+			expectedNamespaceOrphaned: true,
+			expectedImage:             "quay.io/stolostron/multicloud-manager:2.5.0",
+			expectedClusterRoleBindingNames: sets.New[string](
+				"open-cluster-management:klusterlet-addon-workmgr:custom-ns",
+				"open-cluster-management:klusterlet-addon-workmgr-log:custom-ns",
+			),
+			expectedCount: 9,
+		},
 
 		{
-			name:              "is not OCP",
-			cluster:           newCluster("cluster1", "IKS", map[string]string{}, map[string]string{}),
-			addon:             newAddon("work-manager", "cluster1", "test", ""),
-			expectedNamespace: "test",
-			expectedImage:     "quay.io/stolostron/multicloud-manager:2.5.0",
+			name:                      "is not OCP",
+			cluster:                   newCluster("cluster1", "IKS", map[string]string{}, map[string]string{}),
+			addon:                     newAddon("work-manager", "cluster1", "test", ""),
+			expectedNamespace:         "test",
+			expectedNamespaceOrphaned: true,
+			expectedImage:             "quay.io/stolostron/multicloud-manager:2.5.0",
 			expectedClusterRoleBindingNames: sets.New[string](
 				"open-cluster-management:klusterlet-addon-workmgr:test",
 				"open-cluster-management:klusterlet-addon-workmgr-log:test",
@@ -283,9 +312,10 @@ func TestManifest(t *testing.T) {
 				}),
 			addon: newAddonWithCustomizedAnnotation(
 				"work-manager", "local-cluster-test", "", map[string]string{}),
-			expectedNamespace:    "klusterlet-local-cluster-test",
-			expectedImage:        "quay.io/test/multicloud-manager:2.5.0",
-			expectedNodeSelector: true,
+			expectedNamespace:         "klusterlet-local-cluster-test",
+			expectedNamespaceOrphaned: true,
+			expectedImage:             "quay.io/test/multicloud-manager:2.5.0",
+			expectedNodeSelector:      true,
 			expectedClusterRoleBindingNames: sets.New[string](
 				"open-cluster-management:klusterlet-addon-workmgr:klusterlet-local-cluster-test",
 			),
@@ -329,8 +359,9 @@ func TestManifest(t *testing.T) {
 						v1.ResourceMemory: resource.MustParse("64Mi"),
 					},
 				}),
-			expectedNamespace: "test",
-			expectedImage:     "quay.io/stolostron/multicloud-manager:2.5.0",
+			expectedNamespace:         "test",
+			expectedNamespaceOrphaned: true,
+			expectedImage:             "quay.io/stolostron/multicloud-manager:2.5.0",
 			expectedClusterRoleBindingNames: sets.New[string](
 				"open-cluster-management:klusterlet-addon-workmgr:test",
 				"open-cluster-management:klusterlet-addon-workmgr-log:test",
@@ -425,6 +456,15 @@ func TestManifest(t *testing.T) {
 					}
 				case *rbacv1.ClusterRoleBinding:
 					clusterRoleNames.Insert(object.Name)
+				case *v1.Namespace:
+					// Verify deletion-orphan annotation based on expectation
+					_, hasAnnotation := object.Annotations["addon.open-cluster-management.io/deletion-orphan"]
+					if test.expectedNamespaceOrphaned && !hasAnnotation {
+						t.Errorf("expected namespace %s to have deletion-orphan annotation, but it doesn't", object.Name)
+					}
+					if !test.expectedNamespaceOrphaned && hasAnnotation {
+						t.Errorf("expected namespace %s to NOT have deletion-orphan annotation, but it does", object.Name)
+					}
 				}
 			}
 
