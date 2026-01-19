@@ -1,5 +1,5 @@
-# namespace is klusterlet-{clusterName} in hosted mode, and we need to
-# set specific label/annotation.
+# namespace is klusterlet-{clusterName} in hosted mode or custom namespace in default mode.
+# We need to set deletion-orphan annotation to prevent accidental deletion when shared by multiple addons.
 {{- if ne .Release.Namespace "open-cluster-management-agent-addon" }}
 apiVersion: v1
 kind: Namespace
@@ -10,8 +10,9 @@ metadata:
     addon.open-cluster-management.io/hosted-manifest-location: hosting
   {{- end }}
     addon.open-cluster-management.io/namespace: "true"
-  {{- if eq .Values.installMode "Hosted" }}
   annotations:
+    # Prevent namespace deletion when addon is removed
+    # Hosted mode: shared with other addons and klusterlet components
+    # Default mode with custom namespace: may be shared via AddOnDeploymentConfig
     "addon.open-cluster-management.io/deletion-orphan": ""
-  {{- end }}
 {{- end }}
