@@ -11,7 +11,8 @@ ENV USER_UID=10001 \
     USER_NAME=acm-foundation
 
 LABEL \
-    name="multicloud-operators-foundation" \
+    name="multicluster-engine/multicloud-manager-rhel9" \
+    cpe="cpe:/a:redhat:multicluster_engine:2.10::el9" \
     com.redhat.component="multicloud-operators-foundation" \
     description="Stolostron Foundation supports some foundational components based ManagedCluster for \
     MultiCluster Engine (MCE) and Advanced Cluster Management (ACM)." \
