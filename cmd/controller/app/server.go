@@ -158,6 +158,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		agentAddon, err := addonfactory.NewAgentAddonFactory(addon.WorkManagerAddonName, addon.ChartFS, addon.ChartDir).
 			WithScheme(scheme).
 			WithConfigGVRs(afutils.AddOnDeploymentConfigGVR).
+			WithAgentDeployTriggerClusterFilter(afutils.ClusterImageRegistriesAnnotationChanged).
 			WithGetValuesFuncs(
 				addon.NewGetValuesFunc(o.AddonImage),
 				addonfactory.GetValuesFromAddonAnnotation,

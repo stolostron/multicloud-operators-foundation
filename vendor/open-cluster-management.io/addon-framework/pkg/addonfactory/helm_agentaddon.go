@@ -208,8 +208,9 @@ func (a *HelmAgentAddon) getValues(
 	if err != nil {
 		return nil, err
 	}
+	cap := a.capabilities(cluster, addon)
 	values, err := chartutil.ToRenderValues(a.chart, overrideValues,
-		releaseOptions, a.capabilities(cluster, addon))
+		releaseOptions, cap)
 	if err != nil {
 		klog.Errorf("failed to render helm chart with values %v. err:%v", overrideValues, err)
 		return values, err
@@ -283,7 +284,7 @@ func (a *HelmAgentAddon) getDefaultValues(
 		if len(hostingClusterName) > 0 {
 			hostingCluster, err := a.clusterClient.ClusterV1().ManagedClusters().
 				Get(context.TODO(), hostingClusterName, metav1.GetOptions{})
-			if err == nil {
+			if err == nil { //nolint:gocritic
 				defaultValues.HostingClusterCapabilities = *a.capabilities(hostingCluster, addon)
 			} else if errors.IsNotFound(err) {
 				klog.Infof("hostingCluster %s not found, skip providing default value hostingClusterCapabilities",
