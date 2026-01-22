@@ -13,7 +13,7 @@ require (
 	github.com/openshift/build-machinery-go v0.0.0-20250602125535-1b6d00b8c37c
 	github.com/openshift/client-go v0.0.0-20251015124057-db0dee36e235
 	github.com/openshift/hive/apis v0.0.0-20260112204344-c8e217da439f
-	github.com/openshift/library-go v0.0.0-20240621150525-4bb4238aef81
+	github.com/openshift/library-go v0.0.0-20250711143941-47604345e7ea
 	github.com/prometheus/client_golang v1.22.0
 	github.com/prometheus/common v0.62.0
 	github.com/smartystreets/goconvey v1.8.1
@@ -33,11 +33,11 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-aggregator v0.33.4
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b
-	open-cluster-management.io/addon-framework v0.12.0
-	open-cluster-management.io/api v1.0.1-0.20250911094832-3b7c6bea0358
+	open-cluster-management.io/addon-framework v1.1.2
+	open-cluster-management.io/api v1.1.0
 	open-cluster-management.io/cluster-permission v0.16.2
 	open-cluster-management.io/managed-serviceaccount v0.7.0
-	open-cluster-management.io/sdk-go v0.16.0
+	open-cluster-management.io/sdk-go v1.1.0
 	sigs.k8s.io/controller-runtime v0.20.2
 )
 
@@ -59,7 +59,6 @@ require (
 	github.com/cyphar/filepath-securejoin v0.4.1 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
-	github.com/evanphx/json-patch v5.9.11+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -140,7 +139,7 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20250303144028-a0af3efb3deb // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250303144028-a0af3efb3deb // indirect
 	google.golang.org/grpc v1.72.1 // indirect
-	google.golang.org/protobuf v1.36.5 // indirect
+	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.12.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect

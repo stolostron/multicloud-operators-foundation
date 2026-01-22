@@ -52,9 +52,6 @@ github.com/davecgh/go-spew/spew
 ## explicit; go 1.13
 github.com/emicklei/go-restful/v3
 github.com/emicklei/go-restful/v3/log
-# github.com/evanphx/json-patch v5.9.11+incompatible
-## explicit
-github.com/evanphx/json-patch
 # github.com/evanphx/json-patch/v5 v5.9.11
 ## explicit; go 1.18
 github.com/evanphx/json-patch/v5
@@ -362,8 +359,8 @@ github.com/openshift/hive/apis/hive/v1/openstack
 github.com/openshift/hive/apis/hive/v1/vsphere
 github.com/openshift/hive/apis/hiveinternal/v1alpha1
 github.com/openshift/hive/apis/scheme
-# github.com/openshift/library-go v0.0.0-20240621150525-4bb4238aef81
-## explicit; go 1.22.0
+# github.com/openshift/library-go v0.0.0-20250711143941-47604345e7ea
+## explicit; go 1.24.0
 github.com/openshift/library-go/pkg/authorization/authorizationutil
 github.com/openshift/library-go/pkg/crypto
 # github.com/pkg/errors v0.9.1
@@ -757,8 +754,8 @@ google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
 google.golang.org/grpc/status
 google.golang.org/grpc/tap
-# google.golang.org/protobuf v1.36.5
-## explicit; go 1.21
+# google.golang.org/protobuf v1.36.6
+## explicit; go 1.22
 google.golang.org/protobuf/encoding/protodelim
 google.golang.org/protobuf/encoding/protojson
 google.golang.org/protobuf/encoding/prototext
@@ -1626,8 +1623,8 @@ k8s.io/utils/path
 k8s.io/utils/pointer
 k8s.io/utils/ptr
 k8s.io/utils/trace
-# open-cluster-management.io/addon-framework v0.12.0
-## explicit; go 1.22.0
+# open-cluster-management.io/addon-framework v1.1.2
+## explicit; go 1.24.0
 open-cluster-management.io/addon-framework/pkg/addonfactory
 open-cluster-management.io/addon-framework/pkg/addonmanager
 open-cluster-management.io/addon-framework/pkg/addonmanager/constants
@@ -1642,7 +1639,7 @@ open-cluster-management.io/addon-framework/pkg/assets
 open-cluster-management.io/addon-framework/pkg/index
 open-cluster-management.io/addon-framework/pkg/lease
 open-cluster-management.io/addon-framework/pkg/utils
-# open-cluster-management.io/api v1.0.1-0.20250911094832-3b7c6bea0358
+# open-cluster-management.io/api v1.1.0
 ## explicit; go 1.24.0
 open-cluster-management.io/api/addon/v1alpha1
 open-cluster-management.io/api/client/addon/clientset/versioned
@@ -1692,6 +1689,7 @@ open-cluster-management.io/api/cluster/v1
 open-cluster-management.io/api/cluster/v1alpha1
 open-cluster-management.io/api/cluster/v1beta1
 open-cluster-management.io/api/cluster/v1beta2
+open-cluster-management.io/api/operator/v1
 open-cluster-management.io/api/utils/work/v1/workapplier
 open-cluster-management.io/api/work/v1
 open-cluster-management.io/api/work/v1alpha1
@@ -1719,8 +1717,8 @@ open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versio
 open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versioned/typed/authentication/v1alpha1/fake
 open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versioned/typed/authentication/v1beta1
 open-cluster-management.io/managed-serviceaccount/pkg/generated/clientset/versioned/typed/authentication/v1beta1/fake
-# open-cluster-management.io/sdk-go v0.16.0
-## explicit; go 1.22.0
+# open-cluster-management.io/sdk-go v1.1.0
+## explicit; go 1.24.0
 open-cluster-management.io/sdk-go/pkg/apis/cluster/v1beta2
 open-cluster-management.io/sdk-go/pkg/apis/work/v1/applier
 open-cluster-management.io/sdk-go/pkg/apis/work/v1/builder
