@@ -139,10 +139,10 @@ func (r *ClusterInfoReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	if utils.ClusterIsOffLine(clusterConditions) {
 		newClusterInfo.Status.NodeList = []clusterinfov1beta1.NodeStatus{}
 	}
-	newClusterInfo.Status.Conditions = clusterConditions
-	syncedCondition := meta.FindStatusCondition(clusterInfo.Status.Conditions, clusterinfov1beta1.ManagedClusterInfoSynced)
-	if syncedCondition != nil {
-		newClusterInfo.Status.Conditions = append(newClusterInfo.Status.Conditions, *syncedCondition)
+
+	// Merge cluster conditions into existing conditions instead of replacing them
+	for _, condition := range clusterConditions {
+		meta.SetStatusCondition(&newClusterInfo.Status.Conditions, condition)
 	}
 
 	if !reflect.DeepEqual(newClusterInfo.Status, clusterInfo.Status) {
