@@ -129,7 +129,7 @@ func validateError(t *testing.T, err, expectedErrorType error) {
 
 func newTestClusterInfoReconciler(existingObjs []runtime.Object) *ClusterInfoReconciler {
 	return &ClusterInfoReconciler{
-		client: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(existingObjs...).Build(),
+		client: fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(existingObjs...).WithStatusSubresource(&clusterinfov1beta1.ManagedClusterInfo{}).Build(),
 		scheme: scheme,
 	}
 }
@@ -263,4 +263,196 @@ func TestReconcile(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestReconcileConditionMerge(t *testing.T) {
+	ctx := context.Background()
+	now := metav1.Now()
+
+	cluster := &clusterv1.ManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ManagedClusterName,
+			Finalizers: []string{
+				clusterFinalizerName,
+			},
+		},
+		Spec: clusterv1.ManagedClusterSpec{
+			ManagedClusterClientConfigs: []clusterv1.ClientConfig{
+				{
+					URL: "https://test.example.com",
+				},
+			},
+		},
+		Status: clusterv1.ManagedClusterStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:               clusterv1.ManagedClusterConditionAvailable,
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: now,
+					Reason:             "ManagedClusterAvailable",
+					Message:            "Managed cluster is available",
+				},
+				{
+					Type:               clusterv1.ManagedClusterConditionJoined,
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: now,
+					Reason:             "ManagedClusterJoined",
+					Message:            "Managed cluster joined",
+				},
+			},
+		},
+	}
+
+	clusterInfo := &clusterinfov1beta1.ManagedClusterInfo{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ManagedClusterName,
+			Namespace: ManagedClusterName,
+		},
+		Spec: clusterinfov1beta1.ClusterInfoSpec{
+			MasterEndpoint: "https://test.example.com",
+		},
+		Status: clusterinfov1beta1.ClusterInfoStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:               clusterinfov1beta1.ManagedClusterInfoSynced,
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: now,
+					Reason:             "ManagedClusterInfoSynced",
+					Message:            "Managed cluster info is synced",
+				},
+				{
+					Type:               "CustomCondition",
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: now,
+					Reason:             "CustomReason",
+					Message:            "Custom condition",
+				},
+			},
+		},
+	}
+
+	svrc := newTestClusterInfoReconciler([]runtime.Object{cluster, clusterInfo})
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name: ManagedClusterName,
+		},
+	}
+
+	_, err := svrc.Reconcile(ctx, req)
+	assert.NoError(t, err)
+
+	// Get the updated clusterInfo
+	updatedClusterInfo := &clusterinfov1beta1.ManagedClusterInfo{}
+	err = svrc.client.Get(ctx, types.NamespacedName{Name: ManagedClusterName, Namespace: ManagedClusterName}, updatedClusterInfo)
+	assert.NoError(t, err)
+
+	// Verify that all conditions are present
+	// Should have: Available, Joined (from cluster), ManagedClusterInfoSynced, CustomCondition (from clusterInfo)
+	assert.Equal(t, 4, len(updatedClusterInfo.Status.Conditions), "Expected 4 conditions after merge")
+
+	// Verify each condition exists
+	conditionTypes := make(map[string]bool)
+	for _, condition := range updatedClusterInfo.Status.Conditions {
+		conditionTypes[condition.Type] = true
+	}
+
+	assert.True(t, conditionTypes[clusterv1.ManagedClusterConditionAvailable], "Available condition should be present")
+	assert.True(t, conditionTypes[clusterv1.ManagedClusterConditionJoined], "Joined condition should be present")
+	assert.True(t, conditionTypes[clusterinfov1beta1.ManagedClusterInfoSynced], "ManagedClusterInfoSynced condition should be preserved")
+	assert.True(t, conditionTypes["CustomCondition"], "CustomCondition should be preserved")
+}
+
+func TestReconcileConditionUpdate(t *testing.T) {
+	ctx := context.Background()
+	oldTime := metav1.NewTime(time.Now().Add(-1 * time.Hour))
+	newTime := metav1.Now()
+
+	cluster := &clusterv1.ManagedCluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ManagedClusterName,
+			Finalizers: []string{
+				clusterFinalizerName,
+			},
+		},
+		Spec: clusterv1.ManagedClusterSpec{
+			ManagedClusterClientConfigs: []clusterv1.ClientConfig{
+				{
+					URL: "https://test.example.com",
+				},
+			},
+		},
+		Status: clusterv1.ManagedClusterStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:               clusterv1.ManagedClusterConditionAvailable,
+					Status:             metav1.ConditionFalse,
+					LastTransitionTime: newTime,
+					Reason:             "ManagedClusterNotAvailable",
+					Message:            "Managed cluster is not available",
+				},
+			},
+		},
+	}
+
+	clusterInfo := &clusterinfov1beta1.ManagedClusterInfo{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ManagedClusterName,
+			Namespace: ManagedClusterName,
+		},
+		Spec: clusterinfov1beta1.ClusterInfoSpec{
+			MasterEndpoint: "https://test.example.com",
+		},
+		Status: clusterinfov1beta1.ClusterInfoStatus{
+			Conditions: []metav1.Condition{
+				{
+					Type:               clusterv1.ManagedClusterConditionAvailable,
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: oldTime,
+					Reason:             "ManagedClusterAvailable",
+					Message:            "Managed cluster is available",
+				},
+				{
+					Type:               clusterinfov1beta1.ManagedClusterInfoSynced,
+					Status:             metav1.ConditionTrue,
+					LastTransitionTime: oldTime,
+					Reason:             "ManagedClusterInfoSynced",
+					Message:            "Managed cluster info is synced",
+				},
+			},
+		},
+	}
+
+	svrc := newTestClusterInfoReconciler([]runtime.Object{cluster, clusterInfo})
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name: ManagedClusterName,
+		},
+	}
+
+	_, err := svrc.Reconcile(ctx, req)
+	assert.NoError(t, err)
+
+	// Get the updated clusterInfo
+	updatedClusterInfo := &clusterinfov1beta1.ManagedClusterInfo{}
+	err = svrc.client.Get(ctx, types.NamespacedName{Name: ManagedClusterName, Namespace: ManagedClusterName}, updatedClusterInfo)
+	assert.NoError(t, err)
+
+	// Verify that conditions are properly updated
+	var availableCondition *metav1.Condition
+	var syncedCondition *metav1.Condition
+	for i, condition := range updatedClusterInfo.Status.Conditions {
+		if condition.Type == clusterv1.ManagedClusterConditionAvailable {
+			availableCondition = &updatedClusterInfo.Status.Conditions[i]
+		}
+		if condition.Type == clusterinfov1beta1.ManagedClusterInfoSynced {
+			syncedCondition = &updatedClusterInfo.Status.Conditions[i]
+		}
+	}
+
+	assert.NotNil(t, availableCondition, "Available condition should be present")
+	assert.Equal(t, metav1.ConditionFalse, availableCondition.Status, "Available condition should be updated to False")
+	assert.Equal(t, "ManagedClusterNotAvailable", availableCondition.Reason, "Available condition reason should be updated")
+
+	assert.NotNil(t, syncedCondition, "ManagedClusterInfoSynced condition should be preserved")
+	assert.Equal(t, metav1.ConditionTrue, syncedCondition.Status, "ManagedClusterInfoSynced condition should remain True")
 }
