@@ -1433,6 +1433,15 @@ func TestGetPlatformByNode(t *testing.T) {
 			expectFound:    false,
 			expectErr:      nil,
 		},
+		{
+			name:           "no node",
+			kubeClient:     newFakeKubeClient([]runtime.Object{}),
+			product:        ProductOther,
+			expectPlatform: "",
+			expectProduct:  "",
+			expectFound:    false,
+			expectErr:      nil,
+		},
 	}
 
 	for _, test := range tests {
