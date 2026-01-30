@@ -120,6 +120,17 @@ type RegistrationHubConfiguration struct {
 	// +listType=map
 	// +listMapKey=authType
 	RegistrationDrivers []RegistrationDriverHub `json:"registrationDrivers,omitempty"`
+
+	// ImporterConfiguration represents the configuration of the cluster importer
+	// +optional
+	ImporterConfiguration *ImporterConfiguration `json:"importerConfiguration,omitempty"`
+}
+
+type ImporterConfiguration struct {
+	// renderers specifies which import renderers to use.
+	// Valid values are: "render-auto", "render-from-config-secret"
+	// +optional
+	Renderers []string `json:"renderers,omitempty"`
 }
 
 const (
@@ -197,15 +208,22 @@ type EndpointExposure struct {
 type Endpoint struct {
 	// type specifies how the endpoint is exposed.
 	// You may need to apply an object to expose the endpoint, for example: a route.
-	// TODO: support loadbalancer.
 	// +kubebuilder:default:=hostname
-	// +kubebuilder:validation:Enum=hostname
+	// +kubebuilder:validation:Enum=hostname;loadBalancer;route
 	// +required
 	Type EndpointExposureType `json:"type,omitempty"`
 
 	// hostname points to a fixed hostname for serving agents' handshakes.
 	// +optional
 	Hostname *HostnameConfig `json:"hostname,omitempty"`
+
+	// LoadBalancer points customized configuration for loadBalancer type.
+	// +optional
+	LoadBalancer *LoadBalancerConfig `json:"loadBalancer,omitempty"`
+
+	// Route points customized configuration for route type.
+	// +optional
+	Route *RouteConfig `json:"route,omitempty"`
 }
 
 // HostnameConfig references a fixed hostname.
@@ -219,12 +237,40 @@ type HostnameConfig struct {
 	CABundle []byte `json:"caBundle,omitempty"`
 }
 
-// GRPCEndpointExposureType represents the type of endpoint exposure for gRPC.
+// LoadBalancerConfig references customized configuration for LoadBalancer type.
+type LoadBalancerConfig struct {
+	// Host is the customized host name of the endpoint.
+	// +optional
+	Host string `json:"host,omitempty"`
+
+	// CABundle is a customized caBundle of the endpoint.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+}
+
+// RouteConfig references customized configuration for Route type.
+type RouteConfig struct {
+	// Host is the customized host name of the endpoint.
+	// +optional
+	Host string `json:"host,omitempty"`
+
+	// CABundle is a customized caBundle of the endpoint.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+}
+
+// EndpointExposureType represents the type of endpoint exposure.
 type EndpointExposureType string
 
 const (
 	// EndpointTypeHostname is the endpoint exposure type for hostname.
 	EndpointTypeHostname EndpointExposureType = "hostname"
+
+	// EndpointTypeLoadBalancer is the endpoint exposure type for load balancer.
+	EndpointTypeLoadBalancer EndpointExposureType = "loadBalancer"
+
+	// EndpointTypeRoute is the endpoint exposure type for route.
+	EndpointTypeRoute EndpointExposureType = "route"
 )
 
 type CSRConfig struct {
@@ -464,6 +510,8 @@ type ClusterManagerStatus struct {
 	// Progressing: Components in hub are in a transitioning state.
 	// Degraded: Components in hub do not match the desired configuration and only provide
 	// degraded service.
+	// +listType=map
+	// +listMapKey=type
 	Conditions []metav1.Condition `json:"conditions"`
 
 	// Generations are used to determine when an item needs to be reconciled or has changed in a way that needs a reaction.

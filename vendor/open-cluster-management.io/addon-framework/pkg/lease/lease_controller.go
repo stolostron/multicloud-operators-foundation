@@ -58,7 +58,7 @@ func NewLeaseUpdater(
 }
 
 func (r *leaseUpdater) Start(ctx context.Context) {
-	wait.JitterUntilWithContext(context.TODO(), r.reconcile, time.Duration(r.leaseDurationSeconds)*time.Second, leaseUpdateJitterFactor, true)
+	wait.JitterUntilWithContext(ctx, r.reconcile, time.Duration(r.leaseDurationSeconds)*time.Second, leaseUpdateJitterFactor, true)
 }
 
 func (r *leaseUpdater) WithHubLeaseConfig(config *rest.Config, clusterName string) LeaseUpdater {
