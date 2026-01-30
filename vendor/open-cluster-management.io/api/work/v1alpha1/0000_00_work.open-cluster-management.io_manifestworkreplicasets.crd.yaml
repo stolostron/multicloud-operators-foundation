@@ -303,6 +303,14 @@ spec:
                             - type
                             type: object
                           type: array
+                        feedbackScrapeType:
+                          default: Poll
+                          description: FeedbackScrapeType represents the way to monitor
+                            resource, it could be Poll or Watch
+                          enum:
+                          - Poll
+                          - Watch
+                          type: string
                         resourceIdentifier:
                           description: |-
                             ResourceIdentifier represents the group, resource, name and namespace of a resoure.
@@ -723,6 +731,9 @@ spec:
                   - type
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               placementSummary:
                 description: PlacementRef Summary
                 items:
@@ -751,11 +762,19 @@ spec:
                           type: integer
                         degraded:
                           type: integer
+                        desiredTotal:
+                          description: DesiredTotal is the number of ManifestWorks
+                            that will be created by the ManifestWorkReplicaSet.
+                          type: integer
                         progressing:
                           type: integer
                         total:
                           description: Total number of ManifestWorks managed by the
                             ManifestWorkReplicaSet
+                          type: integer
+                        updated:
+                          description: Updated is the number of clusters with updated
+                            revision applied.
                           type: integer
                       type: object
                   type: object
@@ -773,10 +792,18 @@ spec:
                     type: integer
                   degraded:
                     type: integer
+                  desiredTotal:
+                    description: DesiredTotal is the number of ManifestWorks that
+                      will be created by the ManifestWorkReplicaSet.
+                    type: integer
                   progressing:
                     type: integer
                   total:
                     description: Total number of ManifestWorks managed by the ManifestWorkReplicaSet
+                    type: integer
+                  updated:
+                    description: Updated is the number of clusters with updated revision
+                      applied.
                     type: integer
                 type: object
             type: object

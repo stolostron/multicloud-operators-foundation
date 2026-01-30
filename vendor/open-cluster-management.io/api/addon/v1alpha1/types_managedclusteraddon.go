@@ -54,6 +54,7 @@ type ManagedClusterAddOnSpec struct {
 // RegistrationConfig defines the configuration of the addon agent to register to hub. The Klusterlet agent will
 // create a csr for the addon agent with the registrationConfig.
 type RegistrationConfig struct {
+	// Deprecated: Will be replaced with type: kubeClient and type: csr in v1beta1.
 	// signerName is the name of signer that addon agent will use to create csr.
 	// +required
 	// +kubebuilder:validation:MaxLength=571
@@ -61,6 +62,7 @@ type RegistrationConfig struct {
 	// +kubebuilder:validation:Pattern=^([a-z0-9][a-z0-9-]*[a-z0-9]\.)+[a-z]+\/[a-z0-9-\.]+$
 	SignerName string `json:"signerName"`
 
+	// Deprecated: Will be replaced with type: kubeClient and type: csr in v1beta1.
 	// subject is the user subject of the addon agent to be registered to the hub.
 	// If it is not set, the addon agent will have the default subject
 	// "subject": {
@@ -99,8 +101,8 @@ type Subject struct {
 // +k8s:deepcopy-gen=true
 type ManagedClusterAddOnStatus struct {
 	// conditions describe the state of the managed and monitored components for the operator.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
+	// +listType=map
+	// +listMapKey=type
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"  patchStrategy:"merge" patchMergeKey:"type"`
 
@@ -158,6 +160,14 @@ type ManagedClusterAddOnStatus struct {
 	// set by each addon implementation, by default, the lease mode will be used.
 	// +optional
 	HealthCheck HealthCheck `json:"healthCheck,omitempty"`
+
+	// kubeClientDriver specifies the authentication driver used by the ManagedClusterAddOn
+	// for kubeClient registration when the signer name is `kubernetes.io/kube-apiserver-client`.
+	// Supported values are `csr` and `token`.
+	// The field is set by the agent to declare which authentication driver it is using.
+	// +optional
+	// +kubebuilder:validation:Enum=csr;token
+	KubeClientDriver string `json:"kubeClientDriver,omitempty"`
 }
 
 // ObjectReference contains enough information to let you inspect or modify the referred object.
@@ -191,7 +201,6 @@ type ConfigReference struct {
 	// defaultConfigs.
 	ConfigReferent `json:",inline"`
 
-	// Deprecated: Use LastAppliedConfig instead
 	// lastObservedGeneration is the observed generation of the add-on configuration.
 	LastObservedGeneration int64 `json:"lastObservedGeneration"`
 

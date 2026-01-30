@@ -406,6 +406,18 @@ spec:
                       - feature
                       type: object
                     type: array
+                  importerConfiguration:
+                    description: ImporterConfiguration represents the configuration
+                      of the cluster importer
+                    properties:
+                      renderers:
+                        description: |-
+                          renderers specifies which import renderers to use.
+                          Valid values are: "render-auto", "render-from-config-secret"
+                        items:
+                          type: string
+                        type: array
+                    type: object
                   registrationDrivers:
                     description: |-
                       RegistrationDrivers represent the list of hub registration drivers that contain information used by hub to initialize the hub cluster
@@ -494,7 +506,7 @@ spec:
                           Claims lists the names of resources, defined in spec.resourceClaims,
                           that are used by this container.
 
-                          This is an alpha field and requires enabling the
+                          This field depends on the
                           DynamicResourceAllocation feature gate.
 
                           This field is immutable. It can only be set for containers.
@@ -580,6 +592,34 @@ spec:
                               required:
                               - host
                               type: object
+                            loadBalancer:
+                              description: LoadBalancer points customized configuration
+                                for loadBalancer type.
+                              properties:
+                                caBundle:
+                                  description: CABundle is a customized caBundle of
+                                    the endpoint.
+                                  format: byte
+                                  type: string
+                                host:
+                                  description: Host is the customized host name of
+                                    the endpoint.
+                                  type: string
+                              type: object
+                            route:
+                              description: Route points customized configuration for
+                                route type.
+                              properties:
+                                caBundle:
+                                  description: CABundle is a customized caBundle of
+                                    the endpoint.
+                                  format: byte
+                                  type: string
+                                host:
+                                  description: Host is the customized host name of
+                                    the endpoint.
+                                  type: string
+                              type: object
                             type:
                               default: hostname
                               description: |-
@@ -587,6 +627,8 @@ spec:
                                 You may need to apply an object to expose the endpoint, for example: a route.
                               enum:
                               - hostname
+                              - loadBalancer
+                              - route
                               type: string
                           required:
                           - type
@@ -609,6 +651,34 @@ spec:
                               required:
                               - host
                               type: object
+                            loadBalancer:
+                              description: LoadBalancer points customized configuration
+                                for loadBalancer type.
+                              properties:
+                                caBundle:
+                                  description: CABundle is a customized caBundle of
+                                    the endpoint.
+                                  format: byte
+                                  type: string
+                                host:
+                                  description: Host is the customized host name of
+                                    the endpoint.
+                                  type: string
+                              type: object
+                            route:
+                              description: Route points customized configuration for
+                                route type.
+                              properties:
+                                caBundle:
+                                  description: CABundle is a customized caBundle of
+                                    the endpoint.
+                                  format: byte
+                                  type: string
+                                host:
+                                  description: Host is the customized host name of
+                                    the endpoint.
+                                  type: string
+                              type: object
                             type:
                               default: hostname
                               description: |-
@@ -616,6 +686,8 @@ spec:
                                 You may need to apply an object to expose the endpoint, for example: a route.
                               enum:
                               - hostname
+                              - loadBalancer
+                              - route
                               type: string
                           required:
                           - type
@@ -790,6 +862,9 @@ spec:
                   - type
                   type: object
                 type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               generations:
                 description: Generations are used to determine when an item needs
                   to be reconciled or has changed in a way that needs a reaction.
