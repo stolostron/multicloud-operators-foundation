@@ -75,6 +75,7 @@ func init() {
 
 func main() {
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+	klog.Info("Starting work-manager agent")
 	o := options.NewAgentOptions()
 	o.AddFlags(pflag.CommandLine)
 	klog.InitFlags(nil)
