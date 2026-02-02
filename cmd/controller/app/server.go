@@ -77,6 +77,7 @@ func init() {
 }
 
 func Run(o *options.ControllerRunOptions, ctx context.Context) error {
+	klog.Info("Starting multicloud-operators-foundation controller")
 
 	// clusterset to cluster map
 	clusterSetClusterMapper := helpers.NewClusterSetMapper()
