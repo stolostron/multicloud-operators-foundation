@@ -75,6 +75,9 @@ func init() {
 
 func main() {
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+
+	klog.Info("Starting multicloud-operators-foundation agent")
+
 	o := options.NewAgentOptions()
 	o.AddFlags(pflag.CommandLine)
 	klog.InitFlags(nil)
