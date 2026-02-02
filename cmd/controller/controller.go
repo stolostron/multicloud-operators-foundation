@@ -21,6 +21,7 @@ import (
 )
 
 func main() {
+	klog.Info("Starting multicloud-operators-foundation controller")
 	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
 
 	s := options.NewControllerRunOptions()
