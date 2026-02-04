@@ -560,7 +560,8 @@ func (c *ClusterClaimer) getNodeInfo() (architecture, providerID string, err err
 	}
 
 	if len(nodes.Items) == 0 {
-		return "", "", fmt.Errorf("failed to get nodes list, the count of nodes is 0")
+		klog.Info("there is no node in the cluster.")
+		return "", "", nil
 	}
 
 	architecture = nodes.Items[0].Status.NodeInfo.Architecture
