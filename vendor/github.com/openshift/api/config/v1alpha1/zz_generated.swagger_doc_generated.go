@@ -118,6 +118,40 @@ func (ClusterImagePolicyStatus) SwaggerDoc() map[string]string {
 	return map_ClusterImagePolicyStatus
 }
 
+var map_AlertmanagerConfig = map[string]string{
+	"":               "alertmanagerConfig provides configuration options for the default Alertmanager instance that runs in the `openshift-monitoring` namespace. Use this configuration to control whether the default Alertmanager is deployed, how it logs, and how its pods are scheduled.",
+	"deploymentMode": "deploymentMode determines whether the default Alertmanager instance should be deployed as part of the monitoring stack. Allowed values are Disabled, DefaultConfig, and CustomConfig. When set to Disabled, the Alertmanager instance will not be deployed. When set to DefaultConfig, the platform will deploy Alertmanager with default settings. When set to CustomConfig, the Alertmanager will be deployed with custom configuration.",
+	"customConfig":   "customConfig must be set when deploymentMode is CustomConfig, and must be unset otherwise. When set to CustomConfig, the Alertmanager will be deployed with custom configuration.",
+}
+
+func (AlertmanagerConfig) SwaggerDoc() map[string]string {
+	return map_AlertmanagerConfig
+}
+
+var map_AlertmanagerCustomConfig = map[string]string{
+	"":                          "AlertmanagerCustomConfig represents the configuration for a custom Alertmanager deployment. alertmanagerCustomConfig provides configuration options for the default Alertmanager instance that runs in the `openshift-monitoring` namespace. Use this configuration to control whether the default Alertmanager is deployed, how it logs, and how its pods are scheduled.",
+	"logLevel":                  "logLevel defines the verbosity of logs emitted by Alertmanager. This field allows users to control the amount and severity of logs generated, which can be useful for debugging issues or reducing noise in production environments. Allowed values are Error, Warn, Info, and Debug. When set to Error, only errors will be logged. When set to Warn, both warnings and errors will be logged. When set to Info, general information, warnings, and errors will all be logged. When set to Debug, detailed debugging information will be logged. When omitted, this means no opinion and the platform is left to choose a reasonable default, that is subject to change over time. The current default value is `Info`.",
+	"nodeSelector":              "nodeSelector defines the nodes on which the Pods are scheduled nodeSelector is optional.\n\nWhen omitted, this means the user has no opinion and the platform is left to choose reasonable defaults. These defaults are subject to change over time. The current default value is `kubernetes.io/os: linux`.",
+	"resources":                 "resources defines the compute resource requests and limits for the Alertmanager container. This includes CPU, memory and HugePages constraints to help control scheduling and resource usage. When not specified, defaults are used by the platform. Requests cannot exceed limits. This field is optional. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/ This is a simplified API that maps to Kubernetes ResourceRequirements. The current default values are:\n  resources:\n   - name: cpu\n     request: 4m\n     limit: null\n   - name: memory\n     request: 40Mi\n     limit: null\nMaximum length for this list is 10. Minimum length for this list is 1.",
+	"secrets":                   "secrets defines a list of secrets that need to be mounted into the Alertmanager. The secrets must reside within the same namespace as the Alertmanager object. They will be added as volumes named secret-<secret-name> and mounted at /etc/alertmanager/secrets/<secret-name> within the 'alertmanager' container of the Alertmanager Pods.\n\nThese secrets can be used to authenticate Alertmanager with endpoint receivers. For example, you can use secrets to: - Provide certificates for TLS authentication with receivers that require private CA certificates - Store credentials for Basic HTTP authentication with receivers that require password-based auth - Store any other authentication credentials needed by your alert receivers\n\nThis field is optional. Maximum length for this list is 10. Minimum length for this list is 1. Entries in this list must be unique.",
+	"tolerations":               "tolerations defines tolerations for the pods. tolerations is optional.\n\nWhen omitted, this means the user has no opinion and the platform is left to choose reasonable defaults. These defaults are subject to change over time. Defaults are empty/unset. Maximum length for this list is 10 Minimum length for this list is 1",
+	"topologySpreadConstraints": "topologySpreadConstraints defines rules for how Alertmanager Pods should be distributed across topology domains such as zones, nodes, or other user-defined labels. topologySpreadConstraints is optional. This helps improve high availability and resource efficiency by avoiding placing too many replicas in the same failure domain.\n\nWhen omitted, this means no opinion and the platform is left to choose a default, which is subject to change over time. This field maps directly to the `topologySpreadConstraints` field in the Pod spec. Default is empty list. Maximum length for this list is 10. Minimum length for this list is 1 Entries must have unique topologyKey and whenUnsatisfiable pairs.",
+	"volumeClaimTemplate":       "volumeClaimTemplate Defines persistent storage for Alertmanager. Use this setting to configure the persistent volume claim, including storage class, volume size, and name. If omitted, the Pod uses ephemeral storage and alert data will not persist across restarts. This field is optional.",
+}
+
+func (AlertmanagerCustomConfig) SwaggerDoc() map[string]string {
+	return map_AlertmanagerCustomConfig
+}
+
+var map_Audit = map[string]string{
+	"":        "Audit profile configurations",
+	"profile": "profile is a required field for configuring the audit log level of the Kubernetes Metrics Server. Allowed values are None, Metadata, Request, or RequestResponse. When set to None, audit logging is disabled and no audit events are recorded. When set to Metadata, only request metadata (such as requesting user, timestamp, resource, verb, etc.) is logged, but not the request or response body. When set to Request, event metadata and the request body are logged, but not the response body. When set to RequestResponse, event metadata, request body, and response body are all logged, providing the most detailed audit information.\n\nSee: https://kubernetes.io/docs/tasks/debug-application-cluster/audit/#audit-policy for more information about auditing and log levels.",
+}
+
+func (Audit) SwaggerDoc() map[string]string {
+	return map_Audit
+}
+
 var map_ClusterMonitoring = map[string]string{
 	"":         "ClusterMonitoring is the Custom Resource object which holds the current status of Cluster Monitoring Operator. CMO is a central component of the monitoring stack.\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support. ClusterMonitoring is the Schema for the Cluster Monitoring Operators API",
 	"metadata": "metadata is the standard object metadata.",
@@ -140,8 +174,10 @@ func (ClusterMonitoringList) SwaggerDoc() map[string]string {
 }
 
 var map_ClusterMonitoringSpec = map[string]string{
-	"":            "ClusterMonitoringSpec defines the desired state of Cluster Monitoring Operator",
-	"userDefined": "userDefined set the deployment mode for user-defined monitoring in addition to the default platform monitoring.",
+	"":                    "ClusterMonitoringSpec defines the desired state of Cluster Monitoring Operator",
+	"userDefined":         "userDefined set the deployment mode for user-defined monitoring in addition to the default platform monitoring. userDefined is optional. When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time. The current default value is `Disabled`.",
+	"alertmanagerConfig":  "alertmanagerConfig allows users to configure how the default Alertmanager instance should be deployed in the `openshift-monitoring` namespace. alertmanagerConfig is optional. When omitted, this means no opinion and the platform is left to choose a reasonable default, that is subject to change over time. The current default value is `DefaultConfig`.",
+	"metricsServerConfig": "metricsServerConfig is an optional field that can be used to configure the Kubernetes Metrics Server that runs in the openshift-monitoring namespace. Specifically, it can configure how the Metrics Server instance is deployed, pod scheduling, its audit policy and log verbosity. When omitted, this means no opinion and the platform is left to choose a reasonable default, which is subject to change over time.",
 }
 
 func (ClusterMonitoringSpec) SwaggerDoc() map[string]string {
@@ -149,31 +185,45 @@ func (ClusterMonitoringSpec) SwaggerDoc() map[string]string {
 }
 
 var map_ClusterMonitoringStatus = map[string]string{
-	"": "MonitoringOperatorStatus defines the observed state of MonitoringOperator",
+	"": "ClusterMonitoringStatus defines the observed state of ClusterMonitoring",
 }
 
 func (ClusterMonitoringStatus) SwaggerDoc() map[string]string {
 	return map_ClusterMonitoringStatus
 }
 
+var map_ContainerResource = map[string]string{
+	"":        "ContainerResource defines a single resource requirement for a container.",
+	"name":    "name of the resource (e.g. \"cpu\", \"memory\", \"hugepages-2Mi\"). This field is required. name must consist only of alphanumeric characters, `-`, `_` and `.` and must start and end with an alphanumeric character.",
+	"request": "request is the minimum amount of the resource required (e.g. \"2Mi\", \"1Gi\"). This field is optional. When limit is specified, request cannot be greater than limit.",
+	"limit":   "limit is the maximum amount of the resource allowed (e.g. \"2Mi\", \"1Gi\"). This field is optional. When request is specified, limit cannot be less than request. The value must be greater than 0 when specified.",
+}
+
+func (ContainerResource) SwaggerDoc() map[string]string {
+	return map_ContainerResource
+}
+
+var map_MetricsServerConfig = map[string]string{
+	"":                          "MetricsServerConfig provides configuration options for the Metrics Server instance that runs in the `openshift-monitoring` namespace. Use this configuration to control how the Metrics Server instance is deployed, how it logs, and how its pods are scheduled.",
+	"audit":                     "audit defines the audit configuration used by the Metrics Server instance. audit is optional. When omitted, this means no opinion and the platform is left to choose a reasonable default, that is subject to change over time. The current default sets audit.profile to Metadata",
+	"nodeSelector":              "nodeSelector defines the nodes on which the Pods are scheduled nodeSelector is optional.\n\nWhen omitted, this means the user has no opinion and the platform is left to choose reasonable defaults. These defaults are subject to change over time. The current default value is `kubernetes.io/os: linux`.",
+	"tolerations":               "tolerations defines tolerations for the pods. tolerations is optional.\n\nWhen omitted, this means the user has no opinion and the platform is left to choose reasonable defaults. These defaults are subject to change over time. Defaults are empty/unset. Maximum length for this list is 10 Minimum length for this list is 1",
+	"verbosity":                 "verbosity defines the verbosity of log messages for Metrics Server. Valid values are Errors, Info, Trace, TraceAll and omitted. When set to Errors, only critical messages and errors are logged. When set to Info, only basic information messages are logged. When set to Trace, information useful for general debugging is logged. When set to TraceAll, detailed information about metric scraping is logged. When omitted, this means no opinion and the platform is left to choose a reasonable default, that is subject to change over time. The current default value is `Errors`",
+	"resources":                 "resources defines the compute resource requests and limits for the Metrics Server container. This includes CPU, memory and HugePages constraints to help control scheduling and resource usage. When not specified, defaults are used by the platform. Requests cannot exceed limits. This field is optional. More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/ This is a simplified API that maps to Kubernetes ResourceRequirements. The current default values are:\n  resources:\n   - name: cpu\n     request: 4m\n     limit: null\n   - name: memory\n     request: 40Mi\n     limit: null\nMaximum length for this list is 10. Minimum length for this list is 1.",
+	"topologySpreadConstraints": "topologySpreadConstraints defines rules for how Metrics Server Pods should be distributed across topology domains such as zones, nodes, or other user-defined labels. topologySpreadConstraints is optional. This helps improve high availability and resource efficiency by avoiding placing too many replicas in the same failure domain.\n\nWhen omitted, this means no opinion and the platform is left to choose a default, which is subject to change over time. This field maps directly to the `topologySpreadConstraints` field in the Pod spec. Default is empty list. Maximum length for this list is 10. Minimum length for this list is 1 Entries must have unique topologyKey and whenUnsatisfiable pairs.",
+}
+
+func (MetricsServerConfig) SwaggerDoc() map[string]string {
+	return map_MetricsServerConfig
+}
+
 var map_UserDefinedMonitoring = map[string]string{
 	"":     "UserDefinedMonitoring config for user-defined projects.",
-	"mode": "mode defines the different configurations of UserDefinedMonitoring Valid values are Disabled and NamespaceIsolated Disabled disables monitoring for user-defined projects. This restricts the default monitoring stack, installed in the openshift-monitoring project, to monitor only platform namespaces, which prevents any custom monitoring configurations or resources from being applied to user-defined namespaces. NamespaceIsolated enables monitoring for user-defined projects with namespace-scoped tenancy. This ensures that metrics, alerts, and monitoring data are isolated at the namespace level.",
+	"mode": "mode defines the different configurations of UserDefinedMonitoring Valid values are Disabled and NamespaceIsolated Disabled disables monitoring for user-defined projects. This restricts the default monitoring stack, installed in the openshift-monitoring project, to monitor only platform namespaces, which prevents any custom monitoring configurations or resources from being applied to user-defined namespaces. NamespaceIsolated enables monitoring for user-defined projects with namespace-scoped tenancy. This ensures that metrics, alerts, and monitoring data are isolated at the namespace level. The current default value is `Disabled`.",
 }
 
 func (UserDefinedMonitoring) SwaggerDoc() map[string]string {
 	return map_UserDefinedMonitoring
-}
-
-var map_FulcioCAWithRekor = map[string]string{
-	"":              "FulcioCAWithRekor defines the root of trust based on the Fulcio certificate and the Rekor public key.",
-	"fulcioCAData":  "fulcioCAData contains inline base64-encoded data for the PEM format fulcio CA. fulcioCAData must be at most 8192 characters.",
-	"rekorKeyData":  "rekorKeyData contains inline base64-encoded data for the PEM format from the Rekor public key. rekorKeyData must be at most 8192 characters.",
-	"fulcioSubject": "fulcioSubject specifies OIDC issuer and the email of the Fulcio authentication configuration.",
-}
-
-func (FulcioCAWithRekor) SwaggerDoc() map[string]string {
-	return map_FulcioCAWithRekor
 }
 
 var map_ImagePolicy = map[string]string{
@@ -187,6 +237,17 @@ func (ImagePolicy) SwaggerDoc() map[string]string {
 	return map_ImagePolicy
 }
 
+var map_ImagePolicyFulcioCAWithRekorRootOfTrust = map[string]string{
+	"":              "ImagePolicyFulcioCAWithRekorRootOfTrust defines the root of trust based on the Fulcio certificate and the Rekor public key.",
+	"fulcioCAData":  "fulcioCAData contains inline base64-encoded data for the PEM format fulcio CA. fulcioCAData must be at most 8192 characters.",
+	"rekorKeyData":  "rekorKeyData contains inline base64-encoded data for the PEM format from the Rekor public key. rekorKeyData must be at most 8192 characters.",
+	"fulcioSubject": "fulcioSubject specifies OIDC issuer and the email of the Fulcio authentication configuration.",
+}
+
+func (ImagePolicyFulcioCAWithRekorRootOfTrust) SwaggerDoc() map[string]string {
+	return map_ImagePolicyFulcioCAWithRekorRootOfTrust
+}
+
 var map_ImagePolicyList = map[string]string{
 	"":         "ImagePolicyList is a list of ImagePolicy resources\n\nCompatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.",
 	"metadata": "metadata is the standard list's metadata. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata",
@@ -194,6 +255,27 @@ var map_ImagePolicyList = map[string]string{
 
 func (ImagePolicyList) SwaggerDoc() map[string]string {
 	return map_ImagePolicyList
+}
+
+var map_ImagePolicyPKIRootOfTrust = map[string]string{
+	"":                      "ImagePolicyPKIRootOfTrust defines the root of trust based on Root CA(s) and corresponding intermediate certificates.",
+	"caRootsData":           "caRootsData contains base64-encoded data of a certificate bundle PEM file, which contains one or more CA roots in the PEM format. The total length of the data must not exceed 8192 characters. ",
+	"caIntermediatesData":   "caIntermediatesData contains base64-encoded data of a certificate bundle PEM file, which contains one or more intermediate certificates in the PEM format. The total length of the data must not exceed 8192 characters. caIntermediatesData requires caRootsData to be set. ",
+	"pkiCertificateSubject": "pkiCertificateSubject defines the requirements imposed on the subject to which the certificate was issued.",
+}
+
+func (ImagePolicyPKIRootOfTrust) SwaggerDoc() map[string]string {
+	return map_ImagePolicyPKIRootOfTrust
+}
+
+var map_ImagePolicyPublicKeyRootOfTrust = map[string]string{
+	"":             "ImagePolicyPublicKeyRootOfTrust defines the root of trust based on a sigstore public key.",
+	"keyData":      "keyData contains inline base64-encoded data for the PEM format public key. KeyData must be at most 8192 characters.",
+	"rekorKeyData": "rekorKeyData contains inline base64-encoded data for the PEM format from the Rekor public key. rekorKeyData must be at most 8192 characters.",
+}
+
+func (ImagePolicyPublicKeyRootOfTrust) SwaggerDoc() map[string]string {
+	return map_ImagePolicyPublicKeyRootOfTrust
 }
 
 var map_ImagePolicySpec = map[string]string{
@@ -214,15 +296,14 @@ func (ImagePolicyStatus) SwaggerDoc() map[string]string {
 	return map_ImagePolicyStatus
 }
 
-var map_PKI = map[string]string{
-	"":                      "PKI defines the root of trust based on Root CA(s) and corresponding intermediate certificates.",
-	"caRootsData":           "caRootsData contains base64-encoded data of a certificate bundle PEM file, which contains one or more CA roots in the PEM format. The total length of the data must not exceed 8192 characters. ",
-	"caIntermediatesData":   "caIntermediatesData contains base64-encoded data of a certificate bundle PEM file, which contains one or more intermediate certificates in the PEM format. The total length of the data must not exceed 8192 characters. caIntermediatesData requires caRootsData to be set. ",
-	"pkiCertificateSubject": "pkiCertificateSubject defines the requirements imposed on the subject to which the certificate was issued.",
+var map_ImageSigstoreVerificationPolicy = map[string]string{
+	"":               "ImageSigstoreVerificationPolicy defines the verification policy for the items in the scopes list.",
+	"rootOfTrust":    "rootOfTrust specifies the root of trust for the policy.",
+	"signedIdentity": "signedIdentity specifies what image identity the signature claims about the image. The required matchPolicy field specifies the approach used in the verification process to verify the identity in the signature and the actual image identity, the default matchPolicy is \"MatchRepoDigestOrExact\".",
 }
 
-func (PKI) SwaggerDoc() map[string]string {
-	return map_PKI
+func (ImageSigstoreVerificationPolicy) SwaggerDoc() map[string]string {
+	return map_ImageSigstoreVerificationPolicy
 }
 
 var map_PKICertificateSubject = map[string]string{
@@ -233,16 +314,6 @@ var map_PKICertificateSubject = map[string]string{
 
 func (PKICertificateSubject) SwaggerDoc() map[string]string {
 	return map_PKICertificateSubject
-}
-
-var map_Policy = map[string]string{
-	"":               "Policy defines the verification policy for the items in the scopes list.",
-	"rootOfTrust":    "rootOfTrust specifies the root of trust for the policy.",
-	"signedIdentity": "signedIdentity specifies what image identity the signature claims about the image. The required matchPolicy field specifies the approach used in the verification process to verify the identity in the signature and the actual image identity, the default matchPolicy is \"MatchRepoDigestOrExact\".",
-}
-
-func (Policy) SwaggerDoc() map[string]string {
-	return map_Policy
 }
 
 var map_PolicyFulcioSubject = map[string]string{
@@ -285,7 +356,7 @@ func (PolicyMatchRemapIdentity) SwaggerDoc() map[string]string {
 
 var map_PolicyRootOfTrust = map[string]string{
 	"":                  "PolicyRootOfTrust defines the root of trust based on the selected policyType.",
-	"policyType":        "policyType serves as the union's discriminator. Users are required to assign a value to this field, choosing one of the policy types that define the root of trust. \"PublicKey\" indicates that the policy relies on a sigstore publicKey and may optionally use a Rekor verification. \"FulcioCAWithRekor\" indicates that the policy is based on the Fulcio certification and incorporates a Rekor verification. \"PKI\" is a DevPreview feature that indicates that the policy is based on the certificates from Bring Your Own Public Key Infrastructure (BYOPKI). This value is enabled by turning on the SigstoreImageVerificationPKI feature gate.",
+	"policyType":        "policyType serves as the union's discriminator. Users are required to assign a value to this field, choosing one of the policy types that define the root of trust. \"PublicKey\" indicates that the policy relies on a sigstore publicKey and may optionally use a Rekor verification. \"FulcioCAWithRekor\" indicates that the policy is based on the Fulcio certification and incorporates a Rekor verification. \"PKI\" indicates that the policy is based on the certificates from Bring Your Own Public Key Infrastructure (BYOPKI). This value is enabled by turning on the SigstoreImageVerificationPKI feature gate.",
 	"publicKey":         "publicKey defines the root of trust based on a sigstore public key.",
 	"fulcioCAWithRekor": "fulcioCAWithRekor defines the root of trust based on the Fulcio certificate and the Rekor public key. For more information about Fulcio and Rekor, please refer to the document at: https://github.com/sigstore/fulcio and https://github.com/sigstore/rekor",
 	"pki":               "pki defines the root of trust based on Bring Your Own Public Key Infrastructure (BYOPKI) Root CA(s) and corresponding intermediate certificates.",
@@ -293,16 +364,6 @@ var map_PolicyRootOfTrust = map[string]string{
 
 func (PolicyRootOfTrust) SwaggerDoc() map[string]string {
 	return map_PolicyRootOfTrust
-}
-
-var map_PublicKey = map[string]string{
-	"":             "PublicKey defines the root of trust based on a sigstore public key.",
-	"keyData":      "keyData contains inline base64-encoded data for the PEM format public key. KeyData must be at most 8192 characters.",
-	"rekorKeyData": "rekorKeyData contains inline base64-encoded data for the PEM format from the Rekor public key. rekorKeyData must be at most 8192 characters.",
-}
-
-func (PublicKey) SwaggerDoc() map[string]string {
-	return map_PublicKey
 }
 
 var map_GatherConfig = map[string]string{
