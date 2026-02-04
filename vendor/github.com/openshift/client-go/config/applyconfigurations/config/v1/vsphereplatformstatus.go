@@ -6,7 +6,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 )
 
-// VSpherePlatformStatusApplyConfiguration represents an declarative configuration of the VSpherePlatformStatus type for use
+// VSpherePlatformStatusApplyConfiguration represents a declarative configuration of the VSpherePlatformStatus type for use
 // with apply.
 type VSpherePlatformStatusApplyConfiguration struct {
 	APIServerInternalIP  *string                                        `json:"apiServerInternalIP,omitempty"`
@@ -15,10 +15,11 @@ type VSpherePlatformStatusApplyConfiguration struct {
 	IngressIPs           []string                                       `json:"ingressIPs,omitempty"`
 	NodeDNSIP            *string                                        `json:"nodeDNSIP,omitempty"`
 	LoadBalancer         *VSpherePlatformLoadBalancerApplyConfiguration `json:"loadBalancer,omitempty"`
+	DNSRecordsType       *configv1.DNSRecordsType                       `json:"dnsRecordsType,omitempty"`
 	MachineNetworks      []configv1.CIDR                                `json:"machineNetworks,omitempty"`
 }
 
-// VSpherePlatformStatusApplyConfiguration constructs an declarative configuration of the VSpherePlatformStatus type for use with
+// VSpherePlatformStatusApplyConfiguration constructs a declarative configuration of the VSpherePlatformStatus type for use with
 // apply.
 func VSpherePlatformStatus() *VSpherePlatformStatusApplyConfiguration {
 	return &VSpherePlatformStatusApplyConfiguration{}
@@ -73,6 +74,14 @@ func (b *VSpherePlatformStatusApplyConfiguration) WithNodeDNSIP(value string) *V
 // If called multiple times, the LoadBalancer field is set to the value of the last call.
 func (b *VSpherePlatformStatusApplyConfiguration) WithLoadBalancer(value *VSpherePlatformLoadBalancerApplyConfiguration) *VSpherePlatformStatusApplyConfiguration {
 	b.LoadBalancer = value
+	return b
+}
+
+// WithDNSRecordsType sets the DNSRecordsType field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DNSRecordsType field is set to the value of the last call.
+func (b *VSpherePlatformStatusApplyConfiguration) WithDNSRecordsType(value configv1.DNSRecordsType) *VSpherePlatformStatusApplyConfiguration {
+	b.DNSRecordsType = &value
 	return b
 }
 
