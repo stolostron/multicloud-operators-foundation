@@ -83,7 +83,7 @@ func Test_printManagedCluster(t *testing.T) {
 			rows[i].Object.Object = nil
 		}
 		if !reflect.DeepEqual(test.expected, rows) {
-			t.Errorf("%d mismatch: %s", i, diff.ObjectReflectDiff(test.expected, rows))
+			t.Errorf("%d mismatch: %s", i, diff.Diff(test.expected, rows))
 		}
 	}
 }
@@ -175,7 +175,7 @@ func Test_printManagedClusterList(t *testing.T) {
 			rows[i].Object.Object = nil
 		}
 		if !reflect.DeepEqual(test.expected, rows) {
-			t.Errorf("%d mismatch: %s", i, diff.ObjectReflectDiff(test.expected, rows))
+			t.Errorf("%d mismatch: %s", i, diff.Diff(test.expected, rows))
 		}
 	}
 }
