@@ -6,7 +6,7 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 )
 
-// BareMetalPlatformStatusApplyConfiguration represents an declarative configuration of the BareMetalPlatformStatus type for use
+// BareMetalPlatformStatusApplyConfiguration represents a declarative configuration of the BareMetalPlatformStatus type for use
 // with apply.
 type BareMetalPlatformStatusApplyConfiguration struct {
 	APIServerInternalIP  *string                                          `json:"apiServerInternalIP,omitempty"`
@@ -15,10 +15,11 @@ type BareMetalPlatformStatusApplyConfiguration struct {
 	IngressIPs           []string                                         `json:"ingressIPs,omitempty"`
 	NodeDNSIP            *string                                          `json:"nodeDNSIP,omitempty"`
 	LoadBalancer         *BareMetalPlatformLoadBalancerApplyConfiguration `json:"loadBalancer,omitempty"`
+	DNSRecordsType       *configv1.DNSRecordsType                         `json:"dnsRecordsType,omitempty"`
 	MachineNetworks      []configv1.CIDR                                  `json:"machineNetworks,omitempty"`
 }
 
-// BareMetalPlatformStatusApplyConfiguration constructs an declarative configuration of the BareMetalPlatformStatus type for use with
+// BareMetalPlatformStatusApplyConfiguration constructs a declarative configuration of the BareMetalPlatformStatus type for use with
 // apply.
 func BareMetalPlatformStatus() *BareMetalPlatformStatusApplyConfiguration {
 	return &BareMetalPlatformStatusApplyConfiguration{}
@@ -73,6 +74,14 @@ func (b *BareMetalPlatformStatusApplyConfiguration) WithNodeDNSIP(value string) 
 // If called multiple times, the LoadBalancer field is set to the value of the last call.
 func (b *BareMetalPlatformStatusApplyConfiguration) WithLoadBalancer(value *BareMetalPlatformLoadBalancerApplyConfiguration) *BareMetalPlatformStatusApplyConfiguration {
 	b.LoadBalancer = value
+	return b
+}
+
+// WithDNSRecordsType sets the DNSRecordsType field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DNSRecordsType field is set to the value of the last call.
+func (b *BareMetalPlatformStatusApplyConfiguration) WithDNSRecordsType(value configv1.DNSRecordsType) *BareMetalPlatformStatusApplyConfiguration {
+	b.DNSRecordsType = &value
 	return b
 }
 

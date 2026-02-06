@@ -1,0 +1,6 @@
+{
+  "status": "already_passing",
+  "changes_made": [],
+  "build_output": "vendor/github.com/openshift/build-machinery-go/make/targets/openshift/imagebuilder.mk:19: warning: overriding recipe for target 'ensure-imagebuilder'\nvendor/github.com/openshift/build-machinery-go/make/targets/openshift/imagebuilder.mk:19: warning: ignoring old recipe for target 'ensure-imagebuilder'\nfatal: No names found, cannot describe anything.\n...\ngo build -mod=vendor -trimpath ... github.com/stolostron/multicloud-operators-foundation/cmd/agent\n...\nBUILD_SUCCESS",
+  "test_output": "go test -mod=vendor -race ./pkg/...\nok  \tgithub.com/stolostron/multicloud-operators-foundation/pkg/addon\t(cached)\n...\nok  \tgithub.com/stolostron/multicloud-operators-foundation/pkg/webhook/validating\t(cached)\nAll tests passed."
+}

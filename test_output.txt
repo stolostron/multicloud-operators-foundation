@@ -1,0 +1,52 @@
+vendor/github.com/openshift/build-machinery-go/make/targets/openshift/imagebuilder.mk:19: warning: overriding recipe for target 'ensure-imagebuilder'
+vendor/github.com/openshift/build-machinery-go/make/targets/openshift/imagebuilder.mk:19: warning: ignoring old recipe for target 'ensure-imagebuilder'
+Using existing kube-apiserver from "/workspace/target/_output/tools/kubebuilder/bin"
+go test -mod=vendor -race ./pkg/... 
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/addon	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/cache	(cached)
+?   	github.com/stolostron/multicloud-operators-foundation/pkg/constants	[no test files]
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterca	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterinfo	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterrole	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clusterclaim	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clusterdeployment	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/clustersetmapper	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/globalclusterset	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncclusterrolebinding	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncrolebinding	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/controllers/gc	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/controllers/hostedannotation	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/controllers/imageregistry	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/controllers/managedserviceaccount	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/helpers	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/helpers/certificate	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/action	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterclaim	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/clusterinfo	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/nodecollector	(cached)
+?   	github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/objectsource	[no test files]
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/klusterlet/view	(cached)
+?   	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/api	[no test files]
+?   	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview	[no test files]
+?   	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1	[no test files]
+?   	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/clusterview/v1alpha1	[no test files]
+?   	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/openapi	[no test files]
+?   	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/proxy	[no test files]
+?   	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1	[no test files]
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/controller	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/getter	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/helpers	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/printers	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/printers/internalversion	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/printers/storage	(cached)
+?   	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/log	[no test files]
+?   	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/managedcluster	[no test files]
+?   	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/managedclusterset	[no test files]
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/proxy	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/utils	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/utils/clusterset	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/utils/equals	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/utils/rest	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/webhook/mutating	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/webhook/serve	(cached)
+ok  	github.com/stolostron/multicloud-operators-foundation/pkg/webhook/validating	(cached)
