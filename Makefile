@@ -1,6 +1,8 @@
 all: build
 .PHONY: all
 
+SHELL := /bin/bash
+
 # Include the library makefile
 include $(addprefix ./vendor/github.com/openshift/build-machinery-go/make/, \
 	golang.mk \
