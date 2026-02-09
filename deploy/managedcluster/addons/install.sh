@@ -9,7 +9,7 @@ pwd
 HELM=${HELM:-_output/tools/bin/helm}
 
 KUBECTL=${KUBECTL:-kubectl}
-OCM_BRANCH=${OCM_BRANCH:-main}
+OCM_BRANCH=${OCM_BRANCH:-backplane-2.6}
 
 CLUSTER_PROXY_ADDON_IMAGE=${CLUSTER_PROXY_ADDON_IMAGE:-quay.io/stolostron/cluster-proxy-addon}
 IMAGE_CLUSTER_PROXY=${IMAGE_CLUSTER_PROXY:-quay.io/stolostron/cluster-proxy}
@@ -61,14 +61,16 @@ BASEDDOMAIN=$($KUBECTL get ingress.config.openshift.io cluster -o=jsonpath='{.sp
 	-n open-cluster-management --create-namespace \
 	cluster-proxy-addon chart/cluster-proxy-addon \
 	--set global.pullPolicy=Always \
-	--set global.imageOverrides.cluster_proxy_addon="${CLUSTER_PROXY_ADDON_IMAGE}:main" \
-	--set global.imageOverrides.cluster_proxy="${IMAGE_CLUSTER_PROXY}:main" \
+	--set global.imageOverrides.cluster_proxy_addon="${CLUSTER_PROXY_ADDON_IMAGE}:backplane-2.6" \
+	--set global.imageOverrides.cluster_proxy="${IMAGE_CLUSTER_PROXY}:backplane-2.6" \
 	--set cluster_basedomain="${BASEDDOMAIN}"
 if [ $? -eq 1 ]; then
   echo "failed to install cluster-proxy addon"
   exit 1
 fi
 
+# cluster-proxy-addon takes a long time to become available, wait 5 minutes before checking
+sleep 300
 waitForAddon "cluster-proxy" "cluster1"
 
 $KUBECTL wait --for=condition=Available -n cluster1 mca cluster-proxy --timeout=120s
@@ -77,6 +79,18 @@ if [ $? -eq 1 ]; then
   $KUBECTL get -n cluster1 mca cluster-proxy -o yaml
   $KUBECTL get -n open-cluster-management pods
   exit 1
+fi
+
+# Print last 50 lines of proxy-server logs to verify agent connectivity to hub
+PROXY_SERVER_POD=$($KUBECTL get pods -n open-cluster-management -l proxy.open-cluster-management.io/component-name=proxy-server -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
+if [ -n "$PROXY_SERVER_POD" ]; then
+  # Use the first pod if multiple are found
+  PROXY_SERVER_POD=$(echo "$PROXY_SERVER_POD" | awk '{print $1}')
+  echo "############  Proxy-server pod logs (last 50 lines):"
+  $KUBECTL logs -n open-cluster-management "$PROXY_SERVER_POD" --tail=50
+else
+  echo "WARNING: proxy-server pod not found in open-cluster-management namespace"
+  $KUBECTL get pods -n open-cluster-management
 fi
 
 cd ../ || exist
