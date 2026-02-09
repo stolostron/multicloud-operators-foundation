@@ -69,6 +69,8 @@ if [ $? -eq 1 ]; then
   exit 1
 fi
 
+# cluster-proxy-addon takes a long time to become available, wait 5 minutes before checking
+sleep 300
 waitForAddon "cluster-proxy" "cluster1"
 
 $KUBECTL wait --for=condition=Available -n cluster1 mca cluster-proxy --timeout=120s
@@ -77,6 +79,15 @@ if [ $? -eq 1 ]; then
   $KUBECTL get -n cluster1 mca cluster-proxy -o yaml
   $KUBECTL get -n open-cluster-management pods
   exit 1
+fi
+
+# Print last 50 lines of proxy-server logs to verify agent connectivity to hub
+PROXY_SERVER_POD=$($KUBECTL get pods -n cluster-proxy-addon -l proxy.open-cluster-management.io/component-name=proxy-server -o jsonpath='{.items[0].metadata.name}')
+if [ -n "$PROXY_SERVER_POD" ]; then
+  echo "############  Proxy-server pod logs (last 50 lines):"
+  $KUBECTL logs -n cluster-proxy-addon "$PROXY_SERVER_POD" --tail=50
+else
+  echo "WARNING: proxy-server pod not found in cluster-proxy-addon namespace"
 fi
 
 cd ../ || exist
