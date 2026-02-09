@@ -82,12 +82,15 @@ if [ $? -eq 1 ]; then
 fi
 
 # Print last 50 lines of proxy-server logs to verify agent connectivity to hub
-PROXY_SERVER_POD=$($KUBECTL get pods -n cluster-proxy-addon -l proxy.open-cluster-management.io/component-name=proxy-server -o jsonpath='{.items[0].metadata.name}')
+PROXY_SERVER_POD=$($KUBECTL get pods -n open-cluster-management -l proxy.open-cluster-management.io/component-name=proxy-server -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
 if [ -n "$PROXY_SERVER_POD" ]; then
+  # Use the first pod if multiple are found
+  PROXY_SERVER_POD=$(echo "$PROXY_SERVER_POD" | awk '{print $1}')
   echo "############  Proxy-server pod logs (last 50 lines):"
-  $KUBECTL logs -n cluster-proxy-addon "$PROXY_SERVER_POD" --tail=50
+  $KUBECTL logs -n open-cluster-management "$PROXY_SERVER_POD" --tail=50
 else
-  echo "WARNING: proxy-server pod not found in cluster-proxy-addon namespace"
+  echo "WARNING: proxy-server pod not found in open-cluster-management namespace"
+  $KUBECTL get pods -n open-cluster-management
 fi
 
 cd ../ || exist
