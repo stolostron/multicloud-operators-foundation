@@ -9,7 +9,7 @@ pwd
 HELM=${HELM:-_output/tools/bin/helm}
 
 KUBECTL=${KUBECTL:-kubectl}
-OCM_BRANCH=${OCM_BRANCH:-main}
+OCM_BRANCH=${OCM_BRANCH:-backplane-2.6}
 
 CLUSTER_PROXY_ADDON_IMAGE=${CLUSTER_PROXY_ADDON_IMAGE:-quay.io/stolostron/cluster-proxy-addon}
 IMAGE_CLUSTER_PROXY=${IMAGE_CLUSTER_PROXY:-quay.io/stolostron/cluster-proxy}
@@ -61,8 +61,8 @@ BASEDDOMAIN=$($KUBECTL get ingress.config.openshift.io cluster -o=jsonpath='{.sp
 	-n open-cluster-management --create-namespace \
 	cluster-proxy-addon chart/cluster-proxy-addon \
 	--set global.pullPolicy=Always \
-	--set global.imageOverrides.cluster_proxy_addon="${CLUSTER_PROXY_ADDON_IMAGE}:main" \
-	--set global.imageOverrides.cluster_proxy="${IMAGE_CLUSTER_PROXY}:main" \
+	--set global.imageOverrides.cluster_proxy_addon="${CLUSTER_PROXY_ADDON_IMAGE}:backplane-2.6" \
+	--set global.imageOverrides.cluster_proxy="${IMAGE_CLUSTER_PROXY}:backplane-2.6" \
 	--set cluster_basedomain="${BASEDDOMAIN}"
 if [ $? -eq 1 ]; then
   echo "failed to install cluster-proxy addon"
