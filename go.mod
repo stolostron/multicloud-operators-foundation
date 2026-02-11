@@ -12,7 +12,7 @@ require (
 	github.com/openshift/api v0.0.0-20251120220512-cb382c9eaf42
 	github.com/openshift/build-machinery-go v0.0.0-20250530140348-dc5b2804eeee
 	github.com/openshift/client-go v0.0.0-20251015124057-db0dee36e235
-	github.com/openshift/hive/apis v0.0.0-20260127213836-e33d70397d57
+	github.com/openshift/hive/apis v0.0.0-20260210203134-7d52d803da27
 	github.com/openshift/library-go v0.0.0-20251107090138-0de9712313a5
 	github.com/prometheus/client_golang v1.22.0
 	github.com/prometheus/common v0.62.0
