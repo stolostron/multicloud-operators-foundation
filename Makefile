@@ -46,8 +46,8 @@ export XDG_CACHE_HOME ?= $(BASE_DIR)/.cache
 export KUBEBUILDER_ASSETS ?=$(shell pwd)/$(PERMANENT_TMP_GOPATH)/kubebuilder/bin
 
 K8S_VERSION ?=1.29.1
-KB_TOOLS_ARCHIVE_NAME :=kubebuilder-tools-$(K8S_VERSION)-$(GOHOSTOS)-$(GOHOSTARCH).tar.gz
-KB_TOOLS_ARCHIVE_PATH := $(PERMANENT_TMP_GOPATH)/$(KB_TOOLS_ARCHIVE_NAME)
+
+SETUP_ENVTEST := $(shell go env GOPATH)/bin/setup-envtest
 
 # Add packages to do unit test
 GO_TEST_PACKAGES :=./pkg/...
@@ -140,8 +140,20 @@ ensure-kubebuilder:
 ifeq "" "$(wildcard $(KUBEBUILDER_ASSETS))"
 	$(info Downloading kube-apiserver into '$(KUBEBUILDER_ASSETS)')
 	mkdir -p '$(KUBEBUILDER_ASSETS)'
-	curl -s -f -L https://storage.googleapis.com/kubebuilder-tools/$(KB_TOOLS_ARCHIVE_NAME) -o '$(KB_TOOLS_ARCHIVE_PATH)'
-	tar -C '$(KUBEBUILDER_ASSETS)' --strip-components=2 -zvxf '$(KB_TOOLS_ARCHIVE_PATH)'
+ifeq "" "$(wildcard $(SETUP_ENVTEST))"
+	$(info Installing setup-envtest into '$(SETUP_ENVTEST)')
+	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.22
+endif
+	ENVTEST_K8S_PATH=$$($(SETUP_ENVTEST) use $(K8S_VERSION) --bin-dir $(KUBEBUILDER_ASSETS) -p path); \
+	if [ -z "$$ENVTEST_K8S_PATH" ]; then \
+		echo "Error: setup-envtest returned empty path"; \
+		exit 1; \
+	fi; \
+	if [ ! -d "$$ENVTEST_K8S_PATH" ]; then \
+		echo "Error: setup-envtest path does not exist: $$ENVTEST_K8S_PATH"; \
+		exit 1; \
+	fi; \
+	cp -r $$ENVTEST_K8S_PATH/* $(KUBEBUILDER_ASSETS)/
 else
 	$(info Using existing kube-apiserver from "$(KUBEBUILDER_ASSETS)")
 endif
