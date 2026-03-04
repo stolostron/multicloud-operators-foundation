@@ -42,12 +42,8 @@ endif
 # Controller runtime need use this variable as tmp cache dir. if not set, ut will fail in prow
 export XDG_CACHE_HOME ?= $(BASE_DIR)/.cache
 
-# KUBEBUILDER for unit test
-export KUBEBUILDER_ASSETS ?=$(shell pwd)/$(PERMANENT_TMP_GOPATH)/kubebuilder/bin
-
-K8S_VERSION ?=1.29.1
-KB_TOOLS_ARCHIVE_NAME :=kubebuilder-tools-$(K8S_VERSION)-$(GOHOSTOS)-$(GOHOSTARCH).tar.gz
-KB_TOOLS_ARCHIVE_PATH := $(PERMANENT_TMP_GOPATH)/$(KB_TOOLS_ARCHIVE_NAME)
+# envtest setup using sdk-go ensure-envtest.sh
+ENSURE_ENVTEST_SCRIPT := https://raw.githubusercontent.com/open-cluster-management-io/sdk-go/main/ci/envtest/ensure-envtest.sh
 
 # Add packages to do unit test
 GO_TEST_PACKAGES :=./pkg/...
@@ -62,7 +58,7 @@ CRD_OPTIONS ?= "crd:crdVersions=v1"
 # It will generate target "image-$(1)" for building the image and binding it as a prerequisite to target "images".
 $(call build-image,$(IMAGE),$(IMAGE_REGISTRY)/$(IMAGE),./Dockerfile,.)
 
-test-unit: ensure-kubebuilder
+test-unit: envtest-setup
 
 deploy-hub:
 	deploy/managedcluster/hub/install.sh
@@ -135,16 +131,10 @@ update-protobuf:
 	go install k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo@$(CODE_GENENRATOR_VERSION)
 	hack/update-protobuf.sh
 
-# Ensure kubebuilder
-ensure-kubebuilder:
-ifeq "" "$(wildcard $(KUBEBUILDER_ASSETS))"
-	$(info Downloading kube-apiserver into '$(KUBEBUILDER_ASSETS)')
-	mkdir -p '$(KUBEBUILDER_ASSETS)'
-	curl -s -f -L https://storage.googleapis.com/kubebuilder-tools/$(KB_TOOLS_ARCHIVE_NAME) -o '$(KB_TOOLS_ARCHIVE_PATH)'
-	tar -C '$(KUBEBUILDER_ASSETS)' --strip-components=2 -zvxf '$(KB_TOOLS_ARCHIVE_PATH)'
-else
-	$(info Using existing kube-apiserver from "$(KUBEBUILDER_ASSETS)")
-endif
+.PHONY: envtest-setup
+envtest-setup:
+	$(eval export KUBEBUILDER_ASSETS=$(shell curl -fsSL $(ENSURE_ENVTEST_SCRIPT) | bash))
+	@echo "KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)"
 
 ensure-helm:
 ifeq "" "$(wildcard $(HELM))"
