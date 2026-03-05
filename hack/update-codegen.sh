@@ -7,6 +7,10 @@ CODEGEN_PKG=${CODEGEN_PKG:-$(cd ${REPO_ROOT}; ls -d -1 ./vendor/k8s.io/code-gene
 
 verify="${VERIFY:-}"
 
+# Force -mod=mod for code generation to allow go install to work
+# validation-gen is not available in vendor directory for k8s.io/code-generator v0.33.3
+export GOFLAGS="-mod=mod"
+
 source "${CODEGEN_PKG}/kube_codegen.sh"
 
 # By default, it will generate deepcopy, defaulter and conversion for all types under the pkg/apis directory
