@@ -42,13 +42,6 @@ endif
 # Controller runtime need use this variable as tmp cache dir. if not set, ut will fail in prow
 export XDG_CACHE_HOME ?= $(BASE_DIR)/.cache
 
-# KUBEBUILDER for unit test
-export KUBEBUILDER_ASSETS ?=$(shell pwd)/$(PERMANENT_TMP_GOPATH)/kubebuilder/bin
-
-K8S_VERSION ?=1.29.1
-
-SETUP_ENVTEST := $(shell go env GOPATH)/bin/setup-envtest
-
 # Add packages to do unit test
 GO_TEST_PACKAGES :=./pkg/...
 
@@ -62,7 +55,7 @@ CRD_OPTIONS ?= "crd:crdVersions=v1"
 # It will generate target "image-$(1)" for building the image and binding it as a prerequisite to target "images".
 $(call build-image,$(IMAGE),$(IMAGE_REGISTRY)/$(IMAGE),./Dockerfile,.)
 
-test-unit: ensure-kubebuilder
+test-unit: envtest-setup
 
 deploy-hub:
 	deploy/managedcluster/hub/install.sh
@@ -135,28 +128,12 @@ update-protobuf:
 	go install k8s.io/code-generator/cmd/go-to-protobuf/protoc-gen-gogo@$(CODE_GENENRATOR_VERSION)
 	hack/update-protobuf.sh
 
-# Ensure kubebuilder
-ensure-kubebuilder:
-ifeq "" "$(wildcard $(KUBEBUILDER_ASSETS))"
-	$(info Downloading kube-apiserver into '$(KUBEBUILDER_ASSETS)')
-	mkdir -p '$(KUBEBUILDER_ASSETS)'
-ifeq "" "$(wildcard $(SETUP_ENVTEST))"
-	$(info Installing setup-envtest into '$(SETUP_ENVTEST)')
-	go install sigs.k8s.io/controller-runtime/tools/setup-envtest@release-0.22
-endif
-	ENVTEST_K8S_PATH=$$($(SETUP_ENVTEST) use $(K8S_VERSION) --bin-dir $(KUBEBUILDER_ASSETS) -p path); \
-	if [ -z "$$ENVTEST_K8S_PATH" ]; then \
-		echo "Error: setup-envtest returned empty path"; \
-		exit 1; \
-	fi; \
-	if [ ! -d "$$ENVTEST_K8S_PATH" ]; then \
-		echo "Error: setup-envtest path does not exist: $$ENVTEST_K8S_PATH"; \
-		exit 1; \
-	fi; \
-	cp -r $$ENVTEST_K8S_PATH/* $(KUBEBUILDER_ASSETS)/
-else
-	$(info Using existing kube-apiserver from "$(KUBEBUILDER_ASSETS)")
-endif
+ENSURE_ENVTEST_SCRIPT := https://raw.githubusercontent.com/open-cluster-management-io/sdk-go/main/ci/envtest/ensure-envtest.sh
+
+.PHONY: envtest-setup
+envtest-setup:
+	$(eval export KUBEBUILDER_ASSETS=$(shell curl -fsSL $(ENSURE_ENVTEST_SCRIPT) | bash))
+	@echo "KUBEBUILDER_ASSETS=$(KUBEBUILDER_ASSETS)"
 
 ensure-helm:
 ifeq "" "$(wildcard $(HELM))"
