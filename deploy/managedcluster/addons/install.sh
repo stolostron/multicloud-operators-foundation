@@ -126,7 +126,42 @@ waitForAddon "managed-serviceaccount" "cluster1"
 $KUBECTL wait --for=condition=Available -n cluster1 mca managed-serviceaccount --timeout=120s
 if [ $? -eq 1 ]; then
   echo "cannot wait mca managed-serviceaccount in cluster1 available"
+
+  echo "############  MCA status:"
   $KUBECTL get -n cluster1 mca managed-serviceaccount -o yaml
+
+  echo "############  ManifestWorks for managed-serviceaccount in cluster1:"
+  $KUBECTL get manifestwork -n cluster1 | grep managed-serviceaccount
+  $KUBECTL get manifestwork -n cluster1 -l open-cluster-management.io/addon-name=managed-serviceaccount -o yaml
+
+  echo "############  Addon agent deployment and pods in open-cluster-management-agent-addon namespace:"
+  $KUBECTL get deploy,pods -n open-cluster-management-agent-addon | grep managed-serviceaccount
+  $KUBECTL get pods -n open-cluster-management-agent-addon -l open-cluster-management.io/addon-name=managed-serviceaccount -o wide
+
+  echo "############  Addon agent pod details (describe + logs):"
+  MSA_PODS=$($KUBECTL get pods -n open-cluster-management-agent-addon -l open-cluster-management.io/addon-name=managed-serviceaccount -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
+  if [ -n "$MSA_PODS" ]; then
+    for pod in $MSA_PODS; do
+      echo "--- Describing pod: $pod ---"
+      $KUBECTL describe pod -n open-cluster-management-agent-addon "$pod"
+      echo "--- Logs from pod: $pod ---"
+      $KUBECTL logs -n open-cluster-management-agent-addon "$pod" --tail=80 --all-containers
+    done
+  else
+    echo "WARNING: No managed-serviceaccount agent pods found"
+  fi
+
+  echo "############  Events in open-cluster-management-agent-addon namespace:"
+  $KUBECTL get events -n open-cluster-management-agent-addon --sort-by='.lastTimestamp' | tail -30
+
+  echo "############  Addon manager pods and logs on hub:"
+  $KUBECTL get pods -n open-cluster-management | grep managed-serviceaccount
+  MSA_MGR_POD=$($KUBECTL get pods -n open-cluster-management -l app=managed-serviceaccount-addon-manager -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+  if [ -n "$MSA_MGR_POD" ]; then
+    echo "--- Addon manager logs (last 80 lines): ---"
+    $KUBECTL logs -n open-cluster-management "$MSA_MGR_POD" --tail=80
+  fi
+
   exit 1
 fi
 
