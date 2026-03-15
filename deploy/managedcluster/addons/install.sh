@@ -69,8 +69,8 @@ if [ $? -eq 1 ]; then
   exit 1
 fi
 
-# cluster-proxy-addon takes a long time to become available, wait 5 minutes before checking
-sleep 300
+# cluster-proxy-addon takes a long time to become available, wait 8 minutes before checking
+sleep 480
 waitForAddon "cluster-proxy" "cluster1"
 
 $KUBECTL wait --for=condition=Available -n cluster1 mca cluster-proxy --timeout=120s
