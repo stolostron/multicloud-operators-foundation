@@ -93,6 +93,19 @@ else
   $KUBECTL get pods -n open-cluster-management
 fi
 
+# Print proxy-agent pod status and logs on the managed cluster side
+echo "############  Proxy-agent pods in open-cluster-management-agent-addon namespace:"
+$KUBECTL get pods -n open-cluster-management-agent-addon -l open-cluster-management.io/addon-name=cluster-proxy -o wide
+PROXY_AGENT_PODS=$($KUBECTL get pods -n open-cluster-management-agent-addon -l open-cluster-management.io/addon-name=cluster-proxy -o jsonpath='{.items[*].metadata.name}' 2>/dev/null)
+if [ -n "$PROXY_AGENT_PODS" ]; then
+  for pod in $PROXY_AGENT_PODS; do
+    echo "############  Proxy-agent pod logs ($pod, last 50 lines):"
+    $KUBECTL logs -n open-cluster-management-agent-addon "$pod" --tail=50 --all-containers
+  done
+else
+  echo "WARNING: No proxy-agent pods found in open-cluster-management-agent-addon namespace"
+fi
+
 cd ../ || exist
 rm -rf cluster-proxy-addon
 
