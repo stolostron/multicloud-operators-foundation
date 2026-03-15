@@ -113,7 +113,7 @@ cd managed-serviceaccount || {
   --set hubDeployMode=AddOnTemplate \
   --set targetCluster=cluster1 \
   --set image=quay.io/stolostron/managed-serviceaccount \
-  --set tag=main
+  --set tag="${OCM_BRANCH}"
 if [ $? -eq 1 ]; then
   echo "failed to install managed-serviceaccount addon"
   exit 1
