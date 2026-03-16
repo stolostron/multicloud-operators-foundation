@@ -96,13 +96,14 @@ var _ = ginkgo.Describe("Testing installation of work-manager add-on", func() {
 			haveAddonInDefaultModeIt()
 		})
 
-		ginkgo.When("hosed add-on installation is enabled", func() {
+		ginkgo.When("hosted add-on installation is enabled", func() {
 			ginkgo.BeforeEach(func() {
 				clusterName = fmt.Sprintf("cluster-hosted-hosted-%s", rand.String(5))
 				annotations = map[string]string{
 					apiconstants.AnnotationKlusterletDeployMode:         "Hosted",
 					apiconstants.AnnotationKlusterletHostingClusterName: hostingClusterName,
 					addonlib.AnnotationEnableHostedModeAddons:           "true",
+					addonapiv1alpha1.HostingClusterNameAnnotationKey:    hostingClusterName,
 				}
 			})
 
