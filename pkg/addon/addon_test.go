@@ -611,29 +611,48 @@ func TestCreateOrUpdateRoleBinding(t *testing.T) {
 		name            string
 		initObjects     []runtime.Object
 		clusterName     string
+		addon           *addonapiv1alpha1.ManagedClusterAddOn
+		expectError     bool
+		errorContains   string
 		validateActions func(t *testing.T, actions []clienttesting.Action)
 	}{
 		{
 			name:        "create a new rolebinding",
 			initObjects: []runtime.Object{},
 			clusterName: "cluster1",
+			addon: &addonapiv1alpha1.ManagedClusterAddOn{
+				ObjectMeta: metav1.ObjectMeta{Name: "work-manager"},
+				Status: addonapiv1alpha1.ManagedClusterAddOnStatus{
+					Registrations: []addonapiv1alpha1.RegistrationConfig{
+						{
+							SignerName: "kubernetes.io/kube-apiserver-client",
+							Subject: addonapiv1alpha1.Subject{
+								User: "system:open-cluster-management:cluster:cluster1:addon:work-manager:agent:work-manager",
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
 				if len(actions) != 1 {
-					t.Errorf("expecte 2 actions, but got %v", actions)
+					t.Errorf("expected 1 action, but got %d: %v", len(actions), actions)
 				}
 
 				createAction := actions[0].(clienttesting.CreateActionImpl)
 				createObject := createAction.Object.(*rbacv1.RoleBinding)
 
-				groups := agent.DefaultGroups("cluster1", "work-manager")
-
-				if createObject.Subjects[0].Name != groups[0] {
-					t.Errorf("Expected group name is %s, but got %s", groups[0], createObject.Subjects[0].Name)
+				expectedUser := "system:open-cluster-management:cluster:cluster1:addon:work-manager:agent:work-manager"
+				if createObject.Subjects[0].Name != expectedUser {
+					t.Errorf("Expected user name is %s, but got %s", expectedUser, createObject.Subjects[0].Name)
+				}
+				if createObject.Subjects[0].Kind != rbacv1.UserKind {
+					t.Errorf("Expected subject kind is %s, but got %s", rbacv1.UserKind, createObject.Subjects[0].Kind)
 				}
 			},
 		},
 		{
-			name: "no update",
+			name: "no update when rolebinding matches",
 			initObjects: []runtime.Object{
 				&rbacv1.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{
@@ -642,9 +661,9 @@ func TestCreateOrUpdateRoleBinding(t *testing.T) {
 					},
 					Subjects: []rbacv1.Subject{
 						{
-							Kind:     rbacv1.GroupKind,
+							Kind:     rbacv1.UserKind,
 							APIGroup: "rbac.authorization.k8s.io",
-							Name:     agent.DefaultGroups("cluster1", "work-manager")[0],
+							Name:     "system:open-cluster-management:cluster:cluster1:addon:work-manager:agent:work-manager",
 						},
 					},
 					RoleRef: rbacv1.RoleRef{
@@ -655,14 +674,28 @@ func TestCreateOrUpdateRoleBinding(t *testing.T) {
 				},
 			},
 			clusterName: "cluster1",
+			addon: &addonapiv1alpha1.ManagedClusterAddOn{
+				ObjectMeta: metav1.ObjectMeta{Name: "work-manager"},
+				Status: addonapiv1alpha1.ManagedClusterAddOnStatus{
+					Registrations: []addonapiv1alpha1.RegistrationConfig{
+						{
+							SignerName: "kubernetes.io/kube-apiserver-client",
+							Subject: addonapiv1alpha1.Subject{
+								User: "system:open-cluster-management:cluster:cluster1:addon:work-manager:agent:work-manager",
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
 				if len(actions) != 0 {
-					t.Errorf("expecte 0 actions, but got %v", actions)
+					t.Errorf("expected 0 actions, but got %d: %v", len(actions), actions)
 				}
 			},
 		},
 		{
-			name: "update rolebinding",
+			name: "update rolebinding subjects",
 			initObjects: []runtime.Object{
 				&rbacv1.RoleBinding{
 					ObjectMeta: metav1.ObjectMeta{
@@ -671,31 +704,104 @@ func TestCreateOrUpdateRoleBinding(t *testing.T) {
 					},
 					Subjects: []rbacv1.Subject{
 						{
-							Kind:     rbacv1.GroupKind,
+							Kind:     rbacv1.UserKind,
 							APIGroup: "rbac.authorization.k8s.io",
-							Name:     "test",
+							Name:     "old-user",
 						},
 					},
 					RoleRef: rbacv1.RoleRef{
 						APIGroup: "rbac.authorization.k8s.io",
 						Kind:     "ClusterRole",
-						Name:     "test",
+						Name:     clusterRoleName,
 					},
 				},
 			},
 			clusterName: "cluster1",
+			addon: &addonapiv1alpha1.ManagedClusterAddOn{
+				ObjectMeta: metav1.ObjectMeta{Name: "work-manager"},
+				Status: addonapiv1alpha1.ManagedClusterAddOnStatus{
+					Registrations: []addonapiv1alpha1.RegistrationConfig{
+						{
+							SignerName: "kubernetes.io/kube-apiserver-client",
+							Subject: addonapiv1alpha1.Subject{
+								User: "system:open-cluster-management:cluster:cluster1:addon:work-manager:agent:work-manager",
+							},
+						},
+					},
+				},
+			},
+			expectError: false,
 			validateActions: func(t *testing.T, actions []clienttesting.Action) {
 				if len(actions) != 1 {
-					t.Errorf("expecte 2 actions, but got %v", actions)
+					t.Errorf("expected 1 action, but got %d: %v", len(actions), actions)
 				}
 
 				updatedAction := actions[0].(clienttesting.UpdateActionImpl)
 				updateObject := updatedAction.Object.(*rbacv1.RoleBinding)
 
-				groups := agent.DefaultGroups("cluster1", "work-manager")
-
-				if updateObject.Subjects[0].Name != groups[0] {
-					t.Errorf("Expected group name is %s, but got %s", groups[0], updateObject.Subjects[0].Name)
+				expectedUser := "system:open-cluster-management:cluster:cluster1:addon:work-manager:agent:work-manager"
+				if updateObject.Subjects[0].Name != expectedUser {
+					t.Errorf("Expected user name is %s, but got %s", expectedUser, updateObject.Subjects[0].Name)
+				}
+			},
+		},
+		{
+			name: "error on roleref mismatch",
+			initObjects: []runtime.Object{
+				&rbacv1.RoleBinding{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      clusterRoleName,
+						Namespace: "cluster1",
+					},
+					Subjects: []rbacv1.Subject{
+						{
+							Kind:     rbacv1.UserKind,
+							APIGroup: "rbac.authorization.k8s.io",
+							Name:     "system:open-cluster-management:cluster:cluster1:addon:work-manager:agent:work-manager",
+						},
+					},
+					RoleRef: rbacv1.RoleRef{
+						APIGroup: "rbac.authorization.k8s.io",
+						Kind:     "ClusterRole",
+						Name:     "wrong-cluster-role",
+					},
+				},
+			},
+			clusterName: "cluster1",
+			addon: &addonapiv1alpha1.ManagedClusterAddOn{
+				ObjectMeta: metav1.ObjectMeta{Name: "work-manager"},
+				Status: addonapiv1alpha1.ManagedClusterAddOnStatus{
+					Registrations: []addonapiv1alpha1.RegistrationConfig{
+						{
+							SignerName: "kubernetes.io/kube-apiserver-client",
+							Subject: addonapiv1alpha1.Subject{
+								User: "system:open-cluster-management:cluster:cluster1:addon:work-manager:agent:work-manager",
+							},
+						},
+					},
+				},
+			},
+			expectError:   true,
+			errorContains: "mismatched RoleRef",
+			validateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 0 {
+					t.Errorf("expected 0 actions when error occurs, but got %d: %v", len(actions), actions)
+				}
+			},
+		},
+		{
+			name:        "no subjects ready - pending error",
+			initObjects: []runtime.Object{},
+			clusterName: "cluster1",
+			addon: &addonapiv1alpha1.ManagedClusterAddOn{
+				ObjectMeta: metav1.ObjectMeta{Name: "work-manager"},
+				Status:     addonapiv1alpha1.ManagedClusterAddOnStatus{},
+			},
+			expectError:   true,
+			errorContains: "registration subject not ready",
+			validateActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 0 {
+					t.Errorf("expected 0 actions when subject not ready, but got %d: %v", len(actions), actions)
 				}
 			},
 		},
@@ -711,15 +817,37 @@ func TestCreateOrUpdateRoleBinding(t *testing.T) {
 			opt := NewRegistrationOption(kubeClient, kubeInformers.Rbac().V1().RoleBindings(), "work-manager")
 			err := opt.PermissionConfig(
 				&clusterv1.ManagedCluster{ObjectMeta: metav1.ObjectMeta{Name: test.clusterName, UID: "test-uid"}},
-				&addonapiv1alpha1.ManagedClusterAddOn{ObjectMeta: metav1.ObjectMeta{Name: "work-manager"}},
+				test.addon,
 			)
-			if err != nil {
-				t.Errorf("createOrUpdateRoleBinding expected no error, but got %v", err)
+
+			if test.expectError {
+				if err == nil {
+					t.Errorf("expected error but got none")
+				} else if test.errorContains != "" && !contains(err.Error(), test.errorContains) {
+					t.Errorf("expected error to contain '%s', but got: %v", test.errorContains, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("expected no error, but got %v", err)
+				}
 			}
 
 			test.validateActions(t, kubeClient.Actions())
 		})
 	}
+}
+
+func contains(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 || (len(s) > 0 && len(substr) > 0 && s[:len(substr)] == substr) || (len(s) > len(substr) && s[len(s)-len(substr):] == substr) || containsHelper(s, substr))
+}
+
+func containsHelper(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
 }
 
 func TestAddonConfigCustomizedVariableFunc(t *testing.T) {

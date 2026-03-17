@@ -202,6 +202,14 @@ func (r *RoleBindingBuilder) Users(users ...string) *RoleBindingBuilder {
 	return r
 }
 
+// Subjects sets the subjects of the RoleBinding directly from a list of rbacv1.Subject.
+// This method replaces any existing subjects and is useful when you already have
+// constructed Subject objects (e.g., from registration configurations).
+func (r *RoleBindingBuilder) Subjects(subjects ...rbacv1.Subject) *RoleBindingBuilder {
+	r.RoleBinding.Subjects = subjects
+	return r
+}
+
 // SAs adds the specified service accounts as the subjects of the
 // RoleBinding.
 func (r *RoleBindingBuilder) SAs(namespace string, serviceAccountNames ...string) *RoleBindingBuilder {
