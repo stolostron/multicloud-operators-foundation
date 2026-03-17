@@ -58,7 +58,7 @@ cd backplane-operator || {
 BASEDDOMAIN=$($KUBECTL get ingress.config.openshift.io cluster -o=jsonpath='{.spec.domain}')
 
 # Install cluster-proxy CRDs first
-oc apply -f https://raw.githubusercontent.com/stolostron/cluster-proxy/main/charts/cluster-proxy/crds/managedproxyconfigurations.yaml
+oc apply -f https://raw.githubusercontent.com/stolostron/cluster-proxy/$OCM_BRANCH/charts/cluster-proxy/crds/managedproxyconfigurations.yaml
 
 ../$HELM install \
 	-n open-cluster-management --create-namespace \
