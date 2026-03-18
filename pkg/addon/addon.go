@@ -9,6 +9,8 @@ import (
 
 	apiconstants "github.com/stolostron/cluster-lifecycle-api/constants"
 	"github.com/stolostron/cluster-lifecycle-api/helpers/localcluster"
+	certificatesv1 "k8s.io/api/certificates/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/types"
 	rbacv1informers "k8s.io/client-go/informers/rbac/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -117,15 +119,19 @@ func NewRegistrationOption(kubeClient kubernetes.Interface, rolebindingInformer 
 		CSRConfigurations: agent.KubeClientSignerConfigurations(addonName, addonName),
 		CSRApproveCheck:   utils.DefaultCSRApprover(addonName),
 		PermissionConfig: func(cluster *clusterv1.ManagedCluster, addon *addonapiv1alpha1.ManagedClusterAddOn) error {
-			return createOrUpdateRoleBinding(kubeClient, rolebindingInformer, addonName, cluster)
+			subjects := utils.BuildSubjectsFromRegistration(addon, certificatesv1.KubeAPIServerClientSignerName)
+			// If no subjects found, return pending error
+			if len(subjects) == 0 {
+				return &agent.SubjectNotReadyError{}
+			}
+			return createOrUpdateRoleBinding(kubeClient, rolebindingInformer, addonName, cluster, subjects)
 		},
 	}
 }
 
 // createOrUpdateRoleBinding create or update a role binding for a given cluster
-func createOrUpdateRoleBinding(kubeClient kubernetes.Interface, rolebindingInformer rbacv1informers.RoleBindingInformer, addonName string, cluster *clusterv1.ManagedCluster) error {
-	groups := agent.DefaultGroups(cluster.Name, addonName)
-	acmRoleBinding := helpers.NewRoleBindingForClusterRole(clusterRoleName, cluster.Name).Groups(groups[0]).BindingOrDie()
+func createOrUpdateRoleBinding(kubeClient kubernetes.Interface, rolebindingInformer rbacv1informers.RoleBindingInformer, addonName string, cluster *clusterv1.ManagedCluster, subjects []rbacv1.Subject) error {
+	acmRoleBinding := helpers.NewRoleBindingForClusterRole(clusterRoleName, cluster.Name).Subjects(subjects...).BindingOrDie()
 
 	// role and rolebinding have the same name
 	binding, err := rolebindingInformer.Lister().RoleBindings(cluster.Name).Get(roleBindingName)
@@ -148,11 +154,14 @@ func createOrUpdateRoleBinding(kubeClient kubernetes.Interface, rolebindingInfor
 		return err
 	}
 
-	needUpdate := false
+	// Check for RoleRef mismatch - this is immutable, so return error if different
 	if !reflect.DeepEqual(acmRoleBinding.RoleRef, binding.RoleRef) {
-		needUpdate = true
-		binding.RoleRef = acmRoleBinding.RoleRef
+		return fmt.Errorf("RoleBinding for cluster %s addon %s has mismatched RoleRef (immutable field). "+
+			"Please delete the RoleBinding %s/%s to allow recreation",
+			cluster.Name, addonName, cluster.Name, roleBindingName)
 	}
+
+	needUpdate := false
 	if !reflect.DeepEqual(acmRoleBinding.Subjects, binding.Subjects) {
 		needUpdate = true
 		binding.Subjects = acmRoleBinding.Subjects
