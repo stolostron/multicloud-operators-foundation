@@ -1,5 +1,6 @@
 // +k8s:deepcopy-gen=package,register
 // +k8s:openapi-gen=true
+// +k8s:openapi-model-package=com.github.stolostron.multicloud-operators-foundation.proxyserver.apis.proxy.v1beta1
 // +k8s:conversion-gen=github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/proxy
 // +k8s:defaulter-gen=TypeMeta
 
