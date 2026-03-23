@@ -21,13 +21,13 @@ require (
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20251120064629-5d78c3f111c5
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/net v0.47.0
-	k8s.io/api v0.35.2
+	k8s.io/api v0.35.3
 	k8s.io/apiextensions-apiserver v0.35.0
-	k8s.io/apimachinery v0.35.2
+	k8s.io/apimachinery v0.35.3
 	k8s.io/apiserver v0.35.0
 	k8s.io/cli-runtime v0.34.2
-	k8s.io/client-go v0.35.2
-	k8s.io/code-generator v0.35.2
+	k8s.io/client-go v0.35.3
+	k8s.io/code-generator v0.35.3
 	k8s.io/component-base v0.35.2
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.130.1
@@ -155,3 +155,7 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.2-0.20260122202528-d9cc6641c482 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
+
+replace github.com/stolostron/cluster-lifecycle-api => github.com/zhujian7/cluster-lifecycle-api v0.0.0-20260323124324-df2c3cafd9c6
+
+replace open-cluster-management.io/api => github.com/zhujian7/api-ocm v0.0.0-20260323133537-d15e36c322ab
