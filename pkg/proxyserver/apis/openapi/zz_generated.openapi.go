@@ -8,6 +8,8 @@
 package openapi
 
 import (
+	v1alpha1 "github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1"
+	v1beta1 "github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1"
 	v1 "k8s.io/api/rbac/v1"
 	resource "k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,103 +17,105 @@ import (
 	version "k8s.io/apimachinery/pkg/version"
 	common "k8s.io/kube-openapi/pkg/common"
 	spec "k8s.io/kube-openapi/pkg/validation/spec"
+	clusterv1 "open-cluster-management.io/api/cluster/v1"
+	v1beta2 "open-cluster-management.io/api/cluster/v1beta2"
 )
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1.ClusterBinding":                                    schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_ClusterBinding(ref),
-		"github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1.ClusterRoleDefinition":                             schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_ClusterRoleDefinition(ref),
-		"github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1.UserPermission":                                    schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_UserPermission(ref),
-		"github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1.UserPermissionList":                                schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_UserPermissionList(ref),
-		"github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1.UserPermissionStatus":                              schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_UserPermissionStatus(ref),
-		"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1.ClusterStatus":             schema_proxyserver_apis_proxy_v1beta1_ClusterStatus(ref),
-		"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1.ClusterStatusList":         schema_proxyserver_apis_proxy_v1beta1_ClusterStatusList(ref),
-		"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1.ClusterStatusProxyOptions": schema_proxyserver_apis_proxy_v1beta1_ClusterStatusProxyOptions(ref),
-		v1.AggregationRule{}.OpenAPIModelName():                                                                              schema_k8sio_api_rbac_v1_AggregationRule(ref),
-		v1.ClusterRole{}.OpenAPIModelName():                                                                                  schema_k8sio_api_rbac_v1_ClusterRole(ref),
-		v1.ClusterRoleBinding{}.OpenAPIModelName():                                                                           schema_k8sio_api_rbac_v1_ClusterRoleBinding(ref),
-		v1.ClusterRoleBindingList{}.OpenAPIModelName():                                                                       schema_k8sio_api_rbac_v1_ClusterRoleBindingList(ref),
-		v1.ClusterRoleList{}.OpenAPIModelName():                                                                              schema_k8sio_api_rbac_v1_ClusterRoleList(ref),
-		v1.PolicyRule{}.OpenAPIModelName():                                                                                   schema_k8sio_api_rbac_v1_PolicyRule(ref),
-		v1.Role{}.OpenAPIModelName():                                                                                         schema_k8sio_api_rbac_v1_Role(ref),
-		v1.RoleBinding{}.OpenAPIModelName():                                                                                  schema_k8sio_api_rbac_v1_RoleBinding(ref),
-		v1.RoleBindingList{}.OpenAPIModelName():                                                                              schema_k8sio_api_rbac_v1_RoleBindingList(ref),
-		v1.RoleList{}.OpenAPIModelName():                                                                                     schema_k8sio_api_rbac_v1_RoleList(ref),
-		v1.RoleRef{}.OpenAPIModelName():                                                                                      schema_k8sio_api_rbac_v1_RoleRef(ref),
-		v1.Subject{}.OpenAPIModelName():                                                                                      schema_k8sio_api_rbac_v1_Subject(ref),
-		resource.Quantity{}.OpenAPIModelName():                                                                               schema_apimachinery_pkg_api_resource_Quantity(ref),
-		metav1.APIGroup{}.OpenAPIModelName():                                                                                 schema_pkg_apis_meta_v1_APIGroup(ref),
-		metav1.APIGroupList{}.OpenAPIModelName():                                                                             schema_pkg_apis_meta_v1_APIGroupList(ref),
-		metav1.APIResource{}.OpenAPIModelName():                                                                              schema_pkg_apis_meta_v1_APIResource(ref),
-		metav1.APIResourceList{}.OpenAPIModelName():                                                                          schema_pkg_apis_meta_v1_APIResourceList(ref),
-		metav1.APIVersions{}.OpenAPIModelName():                                                                              schema_pkg_apis_meta_v1_APIVersions(ref),
-		metav1.ApplyOptions{}.OpenAPIModelName():                                                                             schema_pkg_apis_meta_v1_ApplyOptions(ref),
-		metav1.Condition{}.OpenAPIModelName():                                                                                schema_pkg_apis_meta_v1_Condition(ref),
-		metav1.CreateOptions{}.OpenAPIModelName():                                                                            schema_pkg_apis_meta_v1_CreateOptions(ref),
-		metav1.DeleteOptions{}.OpenAPIModelName():                                                                            schema_pkg_apis_meta_v1_DeleteOptions(ref),
-		metav1.Duration{}.OpenAPIModelName():                                                                                 schema_pkg_apis_meta_v1_Duration(ref),
-		metav1.FieldSelectorRequirement{}.OpenAPIModelName():                                                                 schema_pkg_apis_meta_v1_FieldSelectorRequirement(ref),
-		metav1.FieldsV1{}.OpenAPIModelName():                                                                                 schema_pkg_apis_meta_v1_FieldsV1(ref),
-		metav1.GetOptions{}.OpenAPIModelName():                                                                               schema_pkg_apis_meta_v1_GetOptions(ref),
-		metav1.GroupKind{}.OpenAPIModelName():                                                                                schema_pkg_apis_meta_v1_GroupKind(ref),
-		metav1.GroupResource{}.OpenAPIModelName():                                                                            schema_pkg_apis_meta_v1_GroupResource(ref),
-		metav1.GroupVersion{}.OpenAPIModelName():                                                                             schema_pkg_apis_meta_v1_GroupVersion(ref),
-		metav1.GroupVersionForDiscovery{}.OpenAPIModelName():                                                                 schema_pkg_apis_meta_v1_GroupVersionForDiscovery(ref),
-		metav1.GroupVersionKind{}.OpenAPIModelName():                                                                         schema_pkg_apis_meta_v1_GroupVersionKind(ref),
-		metav1.GroupVersionResource{}.OpenAPIModelName():                                                                     schema_pkg_apis_meta_v1_GroupVersionResource(ref),
-		metav1.InternalEvent{}.OpenAPIModelName():                                                                            schema_pkg_apis_meta_v1_InternalEvent(ref),
-		metav1.LabelSelector{}.OpenAPIModelName():                                                                            schema_pkg_apis_meta_v1_LabelSelector(ref),
-		metav1.LabelSelectorRequirement{}.OpenAPIModelName():                                                                 schema_pkg_apis_meta_v1_LabelSelectorRequirement(ref),
-		metav1.List{}.OpenAPIModelName():                                                                                     schema_pkg_apis_meta_v1_List(ref),
-		metav1.ListMeta{}.OpenAPIModelName():                                                                                 schema_pkg_apis_meta_v1_ListMeta(ref),
-		metav1.ListOptions{}.OpenAPIModelName():                                                                              schema_pkg_apis_meta_v1_ListOptions(ref),
-		metav1.ManagedFieldsEntry{}.OpenAPIModelName():                                                                       schema_pkg_apis_meta_v1_ManagedFieldsEntry(ref),
-		metav1.MicroTime{}.OpenAPIModelName():                                                                                schema_pkg_apis_meta_v1_MicroTime(ref),
-		metav1.ObjectMeta{}.OpenAPIModelName():                                                                               schema_pkg_apis_meta_v1_ObjectMeta(ref),
-		metav1.OwnerReference{}.OpenAPIModelName():                                                                           schema_pkg_apis_meta_v1_OwnerReference(ref),
-		metav1.PartialObjectMetadata{}.OpenAPIModelName():                                                                    schema_pkg_apis_meta_v1_PartialObjectMetadata(ref),
-		metav1.PartialObjectMetadataList{}.OpenAPIModelName():                                                                schema_pkg_apis_meta_v1_PartialObjectMetadataList(ref),
-		metav1.Patch{}.OpenAPIModelName():                                                                                    schema_pkg_apis_meta_v1_Patch(ref),
-		metav1.PatchOptions{}.OpenAPIModelName():                                                                             schema_pkg_apis_meta_v1_PatchOptions(ref),
-		metav1.Preconditions{}.OpenAPIModelName():                                                                            schema_pkg_apis_meta_v1_Preconditions(ref),
-		metav1.RootPaths{}.OpenAPIModelName():                                                                                schema_pkg_apis_meta_v1_RootPaths(ref),
-		metav1.ServerAddressByClientCIDR{}.OpenAPIModelName():                                                                schema_pkg_apis_meta_v1_ServerAddressByClientCIDR(ref),
-		metav1.Status{}.OpenAPIModelName():                                                                                   schema_pkg_apis_meta_v1_Status(ref),
-		metav1.StatusCause{}.OpenAPIModelName():                                                                              schema_pkg_apis_meta_v1_StatusCause(ref),
-		metav1.StatusDetails{}.OpenAPIModelName():                                                                            schema_pkg_apis_meta_v1_StatusDetails(ref),
-		metav1.Table{}.OpenAPIModelName():                                                                                    schema_pkg_apis_meta_v1_Table(ref),
-		metav1.TableColumnDefinition{}.OpenAPIModelName():                                                                    schema_pkg_apis_meta_v1_TableColumnDefinition(ref),
-		metav1.TableOptions{}.OpenAPIModelName():                                                                             schema_pkg_apis_meta_v1_TableOptions(ref),
-		metav1.TableRow{}.OpenAPIModelName():                                                                                 schema_pkg_apis_meta_v1_TableRow(ref),
-		metav1.TableRowCondition{}.OpenAPIModelName():                                                                        schema_pkg_apis_meta_v1_TableRowCondition(ref),
-		metav1.Time{}.OpenAPIModelName():                                                                                     schema_pkg_apis_meta_v1_Time(ref),
-		metav1.Timestamp{}.OpenAPIModelName():                                                                                schema_pkg_apis_meta_v1_Timestamp(ref),
-		metav1.TypeMeta{}.OpenAPIModelName():                                                                                 schema_pkg_apis_meta_v1_TypeMeta(ref),
-		metav1.UpdateOptions{}.OpenAPIModelName():                                                                            schema_pkg_apis_meta_v1_UpdateOptions(ref),
-		metav1.WatchEvent{}.OpenAPIModelName():                                                                               schema_pkg_apis_meta_v1_WatchEvent(ref),
-		runtime.RawExtension{}.OpenAPIModelName():                                                                            schema_k8sio_apimachinery_pkg_runtime_RawExtension(ref),
-		runtime.TypeMeta{}.OpenAPIModelName():                                                                                schema_k8sio_apimachinery_pkg_runtime_TypeMeta(ref),
-		runtime.Unknown{}.OpenAPIModelName():                                                                                 schema_k8sio_apimachinery_pkg_runtime_Unknown(ref),
-		version.Info{}.OpenAPIModelName():                                                                                    schema_k8sio_apimachinery_pkg_version_Info(ref),
-		"open-cluster-management.io/api/cluster/v1.ClientConfig":                                                             schema_open_cluster_managementio_api_cluster_v1_ClientConfig(ref),
-		"open-cluster-management.io/api/cluster/v1.ClusterSetManagedNamespaceConfig":                                         schema_open_cluster_managementio_api_cluster_v1_ClusterSetManagedNamespaceConfig(ref),
-		"open-cluster-management.io/api/cluster/v1.ManagedCluster":                                                           schema_open_cluster_managementio_api_cluster_v1_ManagedCluster(ref),
-		"open-cluster-management.io/api/cluster/v1.ManagedClusterClaim":                                                      schema_open_cluster_managementio_api_cluster_v1_ManagedClusterClaim(ref),
-		"open-cluster-management.io/api/cluster/v1.ManagedClusterList":                                                       schema_open_cluster_managementio_api_cluster_v1_ManagedClusterList(ref),
-		"open-cluster-management.io/api/cluster/v1.ManagedClusterSpec":                                                       schema_open_cluster_managementio_api_cluster_v1_ManagedClusterSpec(ref),
-		"open-cluster-management.io/api/cluster/v1.ManagedClusterStatus":                                                     schema_open_cluster_managementio_api_cluster_v1_ManagedClusterStatus(ref),
-		"open-cluster-management.io/api/cluster/v1.ManagedClusterVersion":                                                    schema_open_cluster_managementio_api_cluster_v1_ManagedClusterVersion(ref),
-		"open-cluster-management.io/api/cluster/v1.ManagedNamespaceConfig":                                                   schema_open_cluster_managementio_api_cluster_v1_ManagedNamespaceConfig(ref),
-		"open-cluster-management.io/api/cluster/v1.Taint":                                                                    schema_open_cluster_managementio_api_cluster_v1_Taint(ref),
-		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSelector":                                              schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSelector(ref),
-		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSet":                                                   schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSet(ref),
-		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBinding":                                            schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBinding(ref),
-		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingList":                                        schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindingList(ref),
-		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingSpec":                                        schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindingSpec(ref),
-		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingStatus":                                      schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindingStatus(ref),
-		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetList":                                               schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetList(ref),
-		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetSpec":                                               schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetSpec(ref),
-		"open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetStatus":                                             schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetStatus(ref),
+		v1alpha1.ClusterBinding{}.OpenAPIModelName():                    schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_ClusterBinding(ref),
+		v1alpha1.ClusterRoleDefinition{}.OpenAPIModelName():             schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_ClusterRoleDefinition(ref),
+		v1alpha1.UserPermission{}.OpenAPIModelName():                    schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_UserPermission(ref),
+		v1alpha1.UserPermissionList{}.OpenAPIModelName():                schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_UserPermissionList(ref),
+		v1alpha1.UserPermissionStatus{}.OpenAPIModelName():              schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_UserPermissionStatus(ref),
+		v1beta1.ClusterStatus{}.OpenAPIModelName():                      schema_proxyserver_apis_proxy_v1beta1_ClusterStatus(ref),
+		v1beta1.ClusterStatusList{}.OpenAPIModelName():                  schema_proxyserver_apis_proxy_v1beta1_ClusterStatusList(ref),
+		v1beta1.ClusterStatusProxyOptions{}.OpenAPIModelName():          schema_proxyserver_apis_proxy_v1beta1_ClusterStatusProxyOptions(ref),
+		v1.AggregationRule{}.OpenAPIModelName():                         schema_k8sio_api_rbac_v1_AggregationRule(ref),
+		v1.ClusterRole{}.OpenAPIModelName():                             schema_k8sio_api_rbac_v1_ClusterRole(ref),
+		v1.ClusterRoleBinding{}.OpenAPIModelName():                      schema_k8sio_api_rbac_v1_ClusterRoleBinding(ref),
+		v1.ClusterRoleBindingList{}.OpenAPIModelName():                  schema_k8sio_api_rbac_v1_ClusterRoleBindingList(ref),
+		v1.ClusterRoleList{}.OpenAPIModelName():                         schema_k8sio_api_rbac_v1_ClusterRoleList(ref),
+		v1.PolicyRule{}.OpenAPIModelName():                              schema_k8sio_api_rbac_v1_PolicyRule(ref),
+		v1.Role{}.OpenAPIModelName():                                    schema_k8sio_api_rbac_v1_Role(ref),
+		v1.RoleBinding{}.OpenAPIModelName():                             schema_k8sio_api_rbac_v1_RoleBinding(ref),
+		v1.RoleBindingList{}.OpenAPIModelName():                         schema_k8sio_api_rbac_v1_RoleBindingList(ref),
+		v1.RoleList{}.OpenAPIModelName():                                schema_k8sio_api_rbac_v1_RoleList(ref),
+		v1.RoleRef{}.OpenAPIModelName():                                 schema_k8sio_api_rbac_v1_RoleRef(ref),
+		v1.Subject{}.OpenAPIModelName():                                 schema_k8sio_api_rbac_v1_Subject(ref),
+		resource.Quantity{}.OpenAPIModelName():                          schema_apimachinery_pkg_api_resource_Quantity(ref),
+		metav1.APIGroup{}.OpenAPIModelName():                            schema_pkg_apis_meta_v1_APIGroup(ref),
+		metav1.APIGroupList{}.OpenAPIModelName():                        schema_pkg_apis_meta_v1_APIGroupList(ref),
+		metav1.APIResource{}.OpenAPIModelName():                         schema_pkg_apis_meta_v1_APIResource(ref),
+		metav1.APIResourceList{}.OpenAPIModelName():                     schema_pkg_apis_meta_v1_APIResourceList(ref),
+		metav1.APIVersions{}.OpenAPIModelName():                         schema_pkg_apis_meta_v1_APIVersions(ref),
+		metav1.ApplyOptions{}.OpenAPIModelName():                        schema_pkg_apis_meta_v1_ApplyOptions(ref),
+		metav1.Condition{}.OpenAPIModelName():                           schema_pkg_apis_meta_v1_Condition(ref),
+		metav1.CreateOptions{}.OpenAPIModelName():                       schema_pkg_apis_meta_v1_CreateOptions(ref),
+		metav1.DeleteOptions{}.OpenAPIModelName():                       schema_pkg_apis_meta_v1_DeleteOptions(ref),
+		metav1.Duration{}.OpenAPIModelName():                            schema_pkg_apis_meta_v1_Duration(ref),
+		metav1.FieldSelectorRequirement{}.OpenAPIModelName():            schema_pkg_apis_meta_v1_FieldSelectorRequirement(ref),
+		metav1.FieldsV1{}.OpenAPIModelName():                            schema_pkg_apis_meta_v1_FieldsV1(ref),
+		metav1.GetOptions{}.OpenAPIModelName():                          schema_pkg_apis_meta_v1_GetOptions(ref),
+		metav1.GroupKind{}.OpenAPIModelName():                           schema_pkg_apis_meta_v1_GroupKind(ref),
+		metav1.GroupResource{}.OpenAPIModelName():                       schema_pkg_apis_meta_v1_GroupResource(ref),
+		metav1.GroupVersion{}.OpenAPIModelName():                        schema_pkg_apis_meta_v1_GroupVersion(ref),
+		metav1.GroupVersionForDiscovery{}.OpenAPIModelName():            schema_pkg_apis_meta_v1_GroupVersionForDiscovery(ref),
+		metav1.GroupVersionKind{}.OpenAPIModelName():                    schema_pkg_apis_meta_v1_GroupVersionKind(ref),
+		metav1.GroupVersionResource{}.OpenAPIModelName():                schema_pkg_apis_meta_v1_GroupVersionResource(ref),
+		metav1.InternalEvent{}.OpenAPIModelName():                       schema_pkg_apis_meta_v1_InternalEvent(ref),
+		metav1.LabelSelector{}.OpenAPIModelName():                       schema_pkg_apis_meta_v1_LabelSelector(ref),
+		metav1.LabelSelectorRequirement{}.OpenAPIModelName():            schema_pkg_apis_meta_v1_LabelSelectorRequirement(ref),
+		metav1.List{}.OpenAPIModelName():                                schema_pkg_apis_meta_v1_List(ref),
+		metav1.ListMeta{}.OpenAPIModelName():                            schema_pkg_apis_meta_v1_ListMeta(ref),
+		metav1.ListOptions{}.OpenAPIModelName():                         schema_pkg_apis_meta_v1_ListOptions(ref),
+		metav1.ManagedFieldsEntry{}.OpenAPIModelName():                  schema_pkg_apis_meta_v1_ManagedFieldsEntry(ref),
+		metav1.MicroTime{}.OpenAPIModelName():                           schema_pkg_apis_meta_v1_MicroTime(ref),
+		metav1.ObjectMeta{}.OpenAPIModelName():                          schema_pkg_apis_meta_v1_ObjectMeta(ref),
+		metav1.OwnerReference{}.OpenAPIModelName():                      schema_pkg_apis_meta_v1_OwnerReference(ref),
+		metav1.PartialObjectMetadata{}.OpenAPIModelName():               schema_pkg_apis_meta_v1_PartialObjectMetadata(ref),
+		metav1.PartialObjectMetadataList{}.OpenAPIModelName():           schema_pkg_apis_meta_v1_PartialObjectMetadataList(ref),
+		metav1.Patch{}.OpenAPIModelName():                               schema_pkg_apis_meta_v1_Patch(ref),
+		metav1.PatchOptions{}.OpenAPIModelName():                        schema_pkg_apis_meta_v1_PatchOptions(ref),
+		metav1.Preconditions{}.OpenAPIModelName():                       schema_pkg_apis_meta_v1_Preconditions(ref),
+		metav1.RootPaths{}.OpenAPIModelName():                           schema_pkg_apis_meta_v1_RootPaths(ref),
+		metav1.ServerAddressByClientCIDR{}.OpenAPIModelName():           schema_pkg_apis_meta_v1_ServerAddressByClientCIDR(ref),
+		metav1.Status{}.OpenAPIModelName():                              schema_pkg_apis_meta_v1_Status(ref),
+		metav1.StatusCause{}.OpenAPIModelName():                         schema_pkg_apis_meta_v1_StatusCause(ref),
+		metav1.StatusDetails{}.OpenAPIModelName():                       schema_pkg_apis_meta_v1_StatusDetails(ref),
+		metav1.Table{}.OpenAPIModelName():                               schema_pkg_apis_meta_v1_Table(ref),
+		metav1.TableColumnDefinition{}.OpenAPIModelName():               schema_pkg_apis_meta_v1_TableColumnDefinition(ref),
+		metav1.TableOptions{}.OpenAPIModelName():                        schema_pkg_apis_meta_v1_TableOptions(ref),
+		metav1.TableRow{}.OpenAPIModelName():                            schema_pkg_apis_meta_v1_TableRow(ref),
+		metav1.TableRowCondition{}.OpenAPIModelName():                   schema_pkg_apis_meta_v1_TableRowCondition(ref),
+		metav1.Time{}.OpenAPIModelName():                                schema_pkg_apis_meta_v1_Time(ref),
+		metav1.Timestamp{}.OpenAPIModelName():                           schema_pkg_apis_meta_v1_Timestamp(ref),
+		metav1.TypeMeta{}.OpenAPIModelName():                            schema_pkg_apis_meta_v1_TypeMeta(ref),
+		metav1.UpdateOptions{}.OpenAPIModelName():                       schema_pkg_apis_meta_v1_UpdateOptions(ref),
+		metav1.WatchEvent{}.OpenAPIModelName():                          schema_pkg_apis_meta_v1_WatchEvent(ref),
+		runtime.RawExtension{}.OpenAPIModelName():                       schema_k8sio_apimachinery_pkg_runtime_RawExtension(ref),
+		runtime.TypeMeta{}.OpenAPIModelName():                           schema_k8sio_apimachinery_pkg_runtime_TypeMeta(ref),
+		runtime.Unknown{}.OpenAPIModelName():                            schema_k8sio_apimachinery_pkg_runtime_Unknown(ref),
+		version.Info{}.OpenAPIModelName():                               schema_k8sio_apimachinery_pkg_version_Info(ref),
+		clusterv1.ClientConfig{}.OpenAPIModelName():                     schema_open_cluster_managementio_api_cluster_v1_ClientConfig(ref),
+		clusterv1.ClusterSetManagedNamespaceConfig{}.OpenAPIModelName(): schema_open_cluster_managementio_api_cluster_v1_ClusterSetManagedNamespaceConfig(ref),
+		clusterv1.ManagedCluster{}.OpenAPIModelName():                   schema_open_cluster_managementio_api_cluster_v1_ManagedCluster(ref),
+		clusterv1.ManagedClusterClaim{}.OpenAPIModelName():              schema_open_cluster_managementio_api_cluster_v1_ManagedClusterClaim(ref),
+		clusterv1.ManagedClusterList{}.OpenAPIModelName():               schema_open_cluster_managementio_api_cluster_v1_ManagedClusterList(ref),
+		clusterv1.ManagedClusterSpec{}.OpenAPIModelName():               schema_open_cluster_managementio_api_cluster_v1_ManagedClusterSpec(ref),
+		clusterv1.ManagedClusterStatus{}.OpenAPIModelName():             schema_open_cluster_managementio_api_cluster_v1_ManagedClusterStatus(ref),
+		clusterv1.ManagedClusterVersion{}.OpenAPIModelName():            schema_open_cluster_managementio_api_cluster_v1_ManagedClusterVersion(ref),
+		clusterv1.ManagedNamespaceConfig{}.OpenAPIModelName():           schema_open_cluster_managementio_api_cluster_v1_ManagedNamespaceConfig(ref),
+		clusterv1.Taint{}.OpenAPIModelName():                            schema_open_cluster_managementio_api_cluster_v1_Taint(ref),
+		v1beta2.ManagedClusterSelector{}.OpenAPIModelName():             schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSelector(ref),
+		v1beta2.ManagedClusterSet{}.OpenAPIModelName():                  schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSet(ref),
+		v1beta2.ManagedClusterSetBinding{}.OpenAPIModelName():           schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBinding(ref),
+		v1beta2.ManagedClusterSetBindingList{}.OpenAPIModelName():       schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindingList(ref),
+		v1beta2.ManagedClusterSetBindingSpec{}.OpenAPIModelName():       schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindingSpec(ref),
+		v1beta2.ManagedClusterSetBindingStatus{}.OpenAPIModelName():     schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindingStatus(ref),
+		v1beta2.ManagedClusterSetList{}.OpenAPIModelName():              schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetList(ref),
+		v1beta2.ManagedClusterSetSpec{}.OpenAPIModelName():              schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetSpec(ref),
+		v1beta2.ManagedClusterSetStatus{}.OpenAPIModelName():            schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetStatus(ref),
 	}
 }
 
@@ -220,14 +224,14 @@ func schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_UserPermission
 						SchemaProps: spec.SchemaProps{
 							Description: "Status contains the permission bindings for this ClusterRole across clusters",
 							Default:     map[string]interface{}{},
-							Ref:         ref("github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1.UserPermissionStatus"),
+							Ref:         ref(v1alpha1.UserPermissionStatus{}.OpenAPIModelName()),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1.UserPermissionStatus", metav1.ObjectMeta{}.OpenAPIModelName()},
+			v1alpha1.UserPermissionStatus{}.OpenAPIModelName(), metav1.ObjectMeta{}.OpenAPIModelName()},
 	}
 }
 
@@ -265,7 +269,7 @@ func schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_UserPermission
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1.UserPermission"),
+										Ref:     ref(v1alpha1.UserPermission{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -276,7 +280,7 @@ func schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_UserPermission
 			},
 		},
 		Dependencies: []string{
-			"github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1.UserPermission", metav1.ListMeta{}.OpenAPIModelName()},
+			v1alpha1.UserPermission{}.OpenAPIModelName(), metav1.ListMeta{}.OpenAPIModelName()},
 	}
 }
 
@@ -295,7 +299,7 @@ func schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_UserPermission
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1.ClusterBinding"),
+										Ref:     ref(v1alpha1.ClusterBinding{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -305,14 +309,14 @@ func schema_stolostron_cluster_lifecycle_api_clusterview_v1alpha1_UserPermission
 						SchemaProps: spec.SchemaProps{
 							Description: "ClusterRoleDefinition contains the complete ClusterRole definition This includes all the rules (apiGroups, resources, verbs) that define the permissions",
 							Default:     map[string]interface{}{},
-							Ref:         ref("github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1.ClusterRoleDefinition"),
+							Ref:         ref(v1alpha1.ClusterRoleDefinition{}.OpenAPIModelName()),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1.ClusterBinding", "github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1.ClusterRoleDefinition"},
+			v1alpha1.ClusterBinding{}.OpenAPIModelName(), v1alpha1.ClusterRoleDefinition{}.OpenAPIModelName()},
 	}
 }
 
@@ -388,7 +392,7 @@ func schema_proxyserver_apis_proxy_v1beta1_ClusterStatusList(ref common.Referenc
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1.ClusterStatus"),
+										Ref:     ref(v1beta1.ClusterStatus{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -399,7 +403,7 @@ func schema_proxyserver_apis_proxy_v1beta1_ClusterStatusList(ref common.Referenc
 			},
 		},
 		Dependencies: []string{
-			"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/proxy/v1beta1.ClusterStatus", metav1.ListMeta{}.OpenAPIModelName()},
+			v1beta1.ClusterStatus{}.OpenAPIModelName(), metav1.ListMeta{}.OpenAPIModelName()},
 	}
 }
 
@@ -3902,14 +3906,14 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedCluster(ref common.R
 						SchemaProps: spec.SchemaProps{
 							Description: "Spec represents a desired configuration for the agent on the managed cluster.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("open-cluster-management.io/api/cluster/v1.ManagedClusterSpec"),
+							Ref:         ref(clusterv1.ManagedClusterSpec{}.OpenAPIModelName()),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Status represents the current status of joined managed cluster",
 							Default:     map[string]interface{}{},
-							Ref:         ref("open-cluster-management.io/api/cluster/v1.ManagedClusterStatus"),
+							Ref:         ref(clusterv1.ManagedClusterStatus{}.OpenAPIModelName()),
 						},
 					},
 				},
@@ -3917,7 +3921,7 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedCluster(ref common.R
 			},
 		},
 		Dependencies: []string{
-			metav1.ObjectMeta{}.OpenAPIModelName(), "open-cluster-management.io/api/cluster/v1.ManagedClusterSpec", "open-cluster-management.io/api/cluster/v1.ManagedClusterStatus"},
+			metav1.ObjectMeta{}.OpenAPIModelName(), clusterv1.ManagedClusterSpec{}.OpenAPIModelName(), clusterv1.ManagedClusterStatus{}.OpenAPIModelName()},
 	}
 }
 
@@ -3984,7 +3988,7 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterList(ref comm
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("open-cluster-management.io/api/cluster/v1.ManagedCluster"),
+										Ref:     ref(clusterv1.ManagedCluster{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -3995,7 +3999,7 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterList(ref comm
 			},
 		},
 		Dependencies: []string{
-			metav1.ListMeta{}.OpenAPIModelName(), "open-cluster-management.io/api/cluster/v1.ManagedCluster"},
+			metav1.ListMeta{}.OpenAPIModelName(), clusterv1.ManagedCluster{}.OpenAPIModelName()},
 	}
 }
 
@@ -4014,7 +4018,7 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterSpec(ref comm
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("open-cluster-management.io/api/cluster/v1.ClientConfig"),
+										Ref:     ref(clusterv1.ClientConfig{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -4043,7 +4047,7 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterSpec(ref comm
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("open-cluster-management.io/api/cluster/v1.Taint"),
+										Ref:     ref(clusterv1.Taint{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -4053,7 +4057,7 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterSpec(ref comm
 			},
 		},
 		Dependencies: []string{
-			"open-cluster-management.io/api/cluster/v1.ClientConfig", "open-cluster-management.io/api/cluster/v1.Taint"},
+			clusterv1.ClientConfig{}.OpenAPIModelName(), clusterv1.Taint{}.OpenAPIModelName()},
 	}
 }
 
@@ -4118,7 +4122,7 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterStatus(ref co
 						SchemaProps: spec.SchemaProps{
 							Description: "version represents the kubernetes version of the managed cluster.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("open-cluster-management.io/api/cluster/v1.ManagedClusterVersion"),
+							Ref:         ref(clusterv1.ManagedClusterVersion{}.OpenAPIModelName()),
 						},
 					},
 					"clusterClaims": {
@@ -4129,7 +4133,7 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterStatus(ref co
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("open-cluster-management.io/api/cluster/v1.ManagedClusterClaim"),
+										Ref:     ref(clusterv1.ManagedClusterClaim{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -4152,7 +4156,7 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterStatus(ref co
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("open-cluster-management.io/api/cluster/v1.ClusterSetManagedNamespaceConfig"),
+										Ref:     ref(clusterv1.ClusterSetManagedNamespaceConfig{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -4163,7 +4167,7 @@ func schema_open_cluster_managementio_api_cluster_v1_ManagedClusterStatus(ref co
 			},
 		},
 		Dependencies: []string{
-			resource.Quantity{}.OpenAPIModelName(), metav1.Condition{}.OpenAPIModelName(), "open-cluster-management.io/api/cluster/v1.ClusterSetManagedNamespaceConfig", "open-cluster-management.io/api/cluster/v1.ManagedClusterClaim", "open-cluster-management.io/api/cluster/v1.ManagedClusterVersion"},
+			resource.Quantity{}.OpenAPIModelName(), metav1.Condition{}.OpenAPIModelName(), clusterv1.ClusterSetManagedNamespaceConfig{}.OpenAPIModelName(), clusterv1.ManagedClusterClaim{}.OpenAPIModelName(), clusterv1.ManagedClusterVersion{}.OpenAPIModelName()},
 	}
 }
 
@@ -4314,14 +4318,14 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSet(ref 
 						SchemaProps: spec.SchemaProps{
 							Description: "Spec defines the attributes of the ManagedClusterSet",
 							Default:     map[string]interface{}{},
-							Ref:         ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetSpec"),
+							Ref:         ref(v1beta2.ManagedClusterSetSpec{}.OpenAPIModelName()),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Status represents the current status of the ManagedClusterSet",
 							Default:     map[string]interface{}{},
-							Ref:         ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetStatus"),
+							Ref:         ref(v1beta2.ManagedClusterSetStatus{}.OpenAPIModelName()),
 						},
 					},
 				},
@@ -4329,7 +4333,7 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSet(ref 
 			},
 		},
 		Dependencies: []string{
-			metav1.ObjectMeta{}.OpenAPIModelName(), "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetSpec", "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetStatus"},
+			metav1.ObjectMeta{}.OpenAPIModelName(), v1beta2.ManagedClusterSetSpec{}.OpenAPIModelName(), v1beta2.ManagedClusterSetStatus{}.OpenAPIModelName()},
 	}
 }
 
@@ -4364,14 +4368,14 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindi
 						SchemaProps: spec.SchemaProps{
 							Description: "Spec defines the attributes of ManagedClusterSetBinding.",
 							Default:     map[string]interface{}{},
-							Ref:         ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingSpec"),
+							Ref:         ref(v1beta2.ManagedClusterSetBindingSpec{}.OpenAPIModelName()),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Description: "Status represents the current status of the ManagedClusterSetBinding",
 							Default:     map[string]interface{}{},
-							Ref:         ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingStatus"),
+							Ref:         ref(v1beta2.ManagedClusterSetBindingStatus{}.OpenAPIModelName()),
 						},
 					},
 				},
@@ -4379,7 +4383,7 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindi
 			},
 		},
 		Dependencies: []string{
-			metav1.ObjectMeta{}.OpenAPIModelName(), "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingSpec", "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBindingStatus"},
+			metav1.ObjectMeta{}.OpenAPIModelName(), v1beta2.ManagedClusterSetBindingSpec{}.OpenAPIModelName(), v1beta2.ManagedClusterSetBindingStatus{}.OpenAPIModelName()},
 	}
 }
 
@@ -4419,7 +4423,7 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindi
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBinding"),
+										Ref:     ref(v1beta2.ManagedClusterSetBinding{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -4430,7 +4434,7 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetBindi
 			},
 		},
 		Dependencies: []string{
-			metav1.ListMeta{}.OpenAPIModelName(), "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSetBinding"},
+			metav1.ListMeta{}.OpenAPIModelName(), v1beta2.ManagedClusterSetBinding{}.OpenAPIModelName()},
 	}
 }
 
@@ -4522,7 +4526,7 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetList(
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSet"),
+										Ref:     ref(v1beta2.ManagedClusterSet{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -4533,7 +4537,7 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetList(
 			},
 		},
 		Dependencies: []string{
-			metav1.ListMeta{}.OpenAPIModelName(), "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSet"},
+			metav1.ListMeta{}.OpenAPIModelName(), v1beta2.ManagedClusterSet{}.OpenAPIModelName()},
 	}
 }
 
@@ -4548,7 +4552,7 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetSpec(
 						SchemaProps: spec.SchemaProps{
 							Description: "clusterSelector represents a selector of ManagedClusters",
 							Default:     map[string]interface{}{},
-							Ref:         ref("open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSelector"),
+							Ref:         ref(v1beta2.ManagedClusterSelector{}.OpenAPIModelName()),
 						},
 					},
 					"managedNamespaces": {
@@ -4567,7 +4571,7 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetSpec(
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("open-cluster-management.io/api/cluster/v1.ManagedNamespaceConfig"),
+										Ref:     ref(clusterv1.ManagedNamespaceConfig{}.OpenAPIModelName()),
 									},
 								},
 							},
@@ -4577,7 +4581,7 @@ func schema_open_cluster_managementio_api_cluster_v1beta2_ManagedClusterSetSpec(
 			},
 		},
 		Dependencies: []string{
-			"open-cluster-management.io/api/cluster/v1.ManagedNamespaceConfig", "open-cluster-management.io/api/cluster/v1beta2.ManagedClusterSelector"},
+			clusterv1.ManagedNamespaceConfig{}.OpenAPIModelName(), v1beta2.ManagedClusterSelector{}.OpenAPIModelName()},
 	}
 }
 
