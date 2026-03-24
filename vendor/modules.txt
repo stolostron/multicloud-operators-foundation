@@ -428,7 +428,7 @@ github.com/spf13/pflag
 # github.com/stoewer/go-strcase v1.3.1
 ## explicit; go 1.11
 github.com/stoewer/go-strcase
-# github.com/stolostron/cluster-lifecycle-api v0.0.0-20251120064629-5d78c3f111c5 => github.com/zhujian7/cluster-lifecycle-api v0.0.0-20260323124324-df2c3cafd9c6
+# github.com/stolostron/cluster-lifecycle-api v0.0.0-20260324114735-8efd4fbacf23
 ## explicit; go 1.25.0
 github.com/stolostron/cluster-lifecycle-api/action/v1beta1
 github.com/stolostron/cluster-lifecycle-api/client/clusterview/clientset/versioned/scheme
@@ -1652,7 +1652,7 @@ open-cluster-management.io/addon-framework/pkg/assets
 open-cluster-management.io/addon-framework/pkg/index
 open-cluster-management.io/addon-framework/pkg/lease
 open-cluster-management.io/addon-framework/pkg/utils
-# open-cluster-management.io/api v1.2.1-0.20260318090229-dc9347b2683e => github.com/zhujian7/api-ocm v0.0.0-20260323133537-d15e36c322ab
+# open-cluster-management.io/api v1.2.1-0.20260324013313-8d44fee52d97
 ## explicit; go 1.25.0
 open-cluster-management.io/api/addon/v1alpha1
 open-cluster-management.io/api/addon/v1beta1
@@ -1902,5 +1902,3 @@ sigs.k8s.io/structured-merge-diff/v6/value
 ## explicit; go 1.22
 sigs.k8s.io/yaml
 sigs.k8s.io/yaml/goyaml.v3
-# github.com/stolostron/cluster-lifecycle-api => github.com/zhujian7/cluster-lifecycle-api v0.0.0-20260323124324-df2c3cafd9c6
-# open-cluster-management.io/api => github.com/zhujian7/api-ocm v0.0.0-20260323133537-d15e36c322ab
