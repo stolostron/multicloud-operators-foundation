@@ -48,6 +48,7 @@ import (
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncclusterrolebinding"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/clusterset/syncrolebinding"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/gc"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/hostedannotation"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/imageregistry"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/controllers/managedserviceaccount"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/helpers"
@@ -181,6 +182,11 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 		err = addonMgr.AddAgent(agentAddon)
 		if err != nil {
 			klog.Fatal(err)
+		}
+
+		if err = hostedannotation.SetupWithManager(mgr); err != nil {
+			klog.Errorf("unable to setup addon hosted annotation reconciler: %v", err)
+			return err
 		}
 	}
 
