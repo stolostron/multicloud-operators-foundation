@@ -18,7 +18,7 @@ require (
 	github.com/prometheus/common v0.66.1
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/pflag v1.0.10
-	github.com/stolostron/cluster-lifecycle-api v0.0.0-20251120064629-5d78c3f111c5
+	github.com/stolostron/cluster-lifecycle-api v0.0.0-20260324114735-8efd4fbacf23
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/net v0.48.0
 	k8s.io/api v0.35.3
@@ -34,7 +34,7 @@ require (
 	k8s.io/kube-aggregator v0.33.4
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912
 	open-cluster-management.io/addon-framework v1.2.1-0.20260311070615-53f52b854cda
-	open-cluster-management.io/api v1.2.1-0.20260318090229-dc9347b2683e
+	open-cluster-management.io/api v1.2.1-0.20260324013313-8d44fee52d97
 	open-cluster-management.io/cluster-permission v0.16.2
 	open-cluster-management.io/managed-serviceaccount v0.7.0
 	open-cluster-management.io/sdk-go v1.2.1-0.20260306024852-c0938d15158a
@@ -155,7 +155,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.2-0.20260122202528-d9cc6641c482 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
-
-replace github.com/stolostron/cluster-lifecycle-api => github.com/zhujian7/cluster-lifecycle-api v0.0.0-20260323124324-df2c3cafd9c6
-
-replace open-cluster-management.io/api => github.com/zhujian7/api-ocm v0.0.0-20260323133537-d15e36c322ab
