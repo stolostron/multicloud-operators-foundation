@@ -3,15 +3,16 @@
 package options
 
 import (
-	"crypto/tls"
 	"fmt"
 
 	"github.com/spf13/pflag"
+	"github.com/stolostron/cluster-lifecycle-api/helpers/tlsprofile"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/api"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/apis/openapi"
 	openapinamer "k8s.io/apiserver/pkg/endpoints/openapi"
 	genericapiserver "k8s.io/apiserver/pkg/server"
 	genericapiserveroptions "k8s.io/apiserver/pkg/server/options"
+	"k8s.io/client-go/rest"
 )
 
 type Options struct {
@@ -59,7 +60,10 @@ func (o *Options) SetDefaults() error {
 	return nil
 }
 
-func (o *Options) APIServerConfig() (*genericapiserver.Config, error) {
+// APIServerConfig creates the generic API server configuration with OpenShift TLS profile support.
+// It reads the TLS profile from OpenShift APIServer CR and applies the appropriate TLS version
+// and cipher suites to the secure serving configuration. On non-OpenShift clusters, defaults to TLS 1.2.
+func (o *Options) APIServerConfig(kubeConfig *rest.Config) (*genericapiserver.Config, error) {
 	serverConfig := genericapiserver.NewConfig(api.Codecs)
 	if err := o.ServerRun.ApplyTo(serverConfig); err != nil {
 		return nil, err
@@ -68,7 +72,20 @@ func (o *Options) APIServerConfig() (*genericapiserver.Config, error) {
 	if err := o.SecureServing.ApplyTo(&serverConfig.SecureServing, &serverConfig.LoopbackClientConfig); err != nil {
 		return nil, err
 	}
-	serverConfig.SecureServing.MinTLSVersion = tls.VersionTLS12
+
+	// Get TLS profile from OpenShift APIServer CR
+	// Returns default TLS 1.2 config on non-OpenShift clusters (NotFound handled internally)
+	// Returns error only for real configuration problems
+	tlsConfig, err := tlsprofile.GetTLSConfig(kubeConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get TLS configuration: %w", err)
+	}
+
+	// Apply TLS settings to generic API server's SecureServingInfo
+	serverConfig.SecureServing.MinTLSVersion = tlsConfig.MinVersion
+	if len(tlsConfig.CipherSuites) > 0 {
+		serverConfig.SecureServing.CipherSuites = tlsConfig.CipherSuites
+	}
 
 	if err := o.Authentication.ApplyTo(&serverConfig.Authentication, serverConfig.SecureServing, nil); err != nil {
 		return nil, err

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/spf13/pflag"
+	"github.com/stolostron/cluster-lifecycle-api/helpers/tlsprofile"
+	"k8s.io/client-go/rest"
 )
 
 // Config contains the server (the webhook) cert and key.
@@ -89,12 +91,25 @@ func cachingCertificateLoader(certFile, keyFile string) func() (*tls.Certificate
 	}
 }
 
-func ConfigTLS(o *Options) *tls.Config {
+// ConfigTLS creates a TLS configuration with support for OpenShift TLS security profiles.
+// It reads the TLS profile from the OpenShift APIServer CR and applies the appropriate
+// TLS version and cipher suites. On non-OpenShift clusters, defaults to TLS 1.2.
+// Returns error only for real configuration failures (NotFound is handled internally).
+func ConfigTLS(o *Options, kubeConfig *rest.Config) (*tls.Config, error) {
 	dynamicCertLoader := cachingCertificateLoader(o.CertFile, o.KeyFile)
-	return &tls.Config{
-		MinVersion: tls.VersionTLS12,
-		GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-			return dynamicCertLoader()
-		},
+
+	// Get TLS profile from OpenShift APIServer CR
+	// Returns default TLS 1.2 config on non-OpenShift clusters (NotFound handled internally)
+	// Returns error only for real configuration problems
+	tlsConfig, err := tlsprofile.GetTLSConfig(kubeConfig)
+	if err != nil {
+		return nil, err
 	}
+
+	// Add certificate loader
+	tlsConfig.GetCertificate = func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
+		return dynamicCertLoader()
+	}
+
+	return tlsConfig, nil
 }

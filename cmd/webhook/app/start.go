@@ -1,10 +1,12 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 
+	"github.com/stolostron/cluster-lifecycle-api/helpers/tlsprofile"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/informers"
@@ -29,8 +31,16 @@ func init() {
 	utilruntime.Must(hivev1.AddToScheme(scheme))
 }
 
-func Run(opts *options.Options, stopCh <-chan struct{}) error {
+func Run(opts *options.Options, externalStopCh <-chan struct{}) error {
 	klog.Info("starting foundation webhook server")
+
+	// Create cancellable context for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Create internal stop channel that we can control for graceful shutdown
+	// This allows us to properly stop all components when TLS profile changes
+	stopCh := make(chan struct{})
 
 	kubeConfig, err := clientcmd.BuildConfigFromFlags("", opts.KubeConfigFile)
 	if err != nil {
@@ -39,6 +49,13 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 	}
 	kubeConfig.QPS = opts.QPS
 	kubeConfig.Burst = opts.Burst
+
+	// Start TLS profile watcher to detect changes and trigger graceful restart
+	// Returns nil on non-OpenShift clusters, error only for real problems
+	if err := tlsprofile.StartTLSProfileWatcher(ctx, kubeConfig, cancel); err != nil {
+		klog.Errorf("Failed to start TLS profile watcher: %v", err)
+		return err
+	}
 
 	kubeClientSet, err := kubernetes.NewForConfig(kubeConfig)
 	if err != nil {
@@ -91,15 +108,46 @@ func Run(opts *options.Options, stopCh <-chan struct{}) error {
 
 	http.HandleFunc("/validating", validatingAh.ServeValidateResource)
 
-	server := &http.Server{
-		Addr:      ":8000",
-		TLSConfig: options.ConfigTLS(opts),
-	}
-	err = server.ListenAndServeTLS("", "")
+	// Get TLS configuration from OpenShift APIServer CR
+	// Returns default TLS 1.2 on non-OpenShift, error only for real problems
+	tlsConfig, err := options.ConfigTLS(opts, kubeConfig)
 	if err != nil {
-		klog.Errorf("Listen server tls error: %+v", err)
+		klog.Errorf("Failed to configure TLS: %v", err)
 		return err
 	}
 
+	server := &http.Server{
+		Addr:      ":8000",
+		TLSConfig: tlsConfig,
+	}
+
+	// Merge shutdown signals and trigger server shutdown
+	go func() {
+		select {
+		case <-externalStopCh:
+			klog.Info("Received stop signal, shutting down webhook server...")
+		case <-ctx.Done():
+			klog.Info("TLS profile changed, shutting down webhook server for restart...")
+		}
+
+		// Stop informers
+		close(stopCh)
+
+		// Graceful shutdown of HTTP server
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			klog.Errorf("Error during server shutdown: %v", err)
+		}
+	}()
+
+	// Run server in main goroutine - blocks until Shutdown() is called
+	klog.Info("Starting webhook server on :8000")
+	if err := server.ListenAndServeTLS("", ""); err != nil && err != http.ErrServerClosed {
+		return fmt.Errorf("webhook server failed: %w", err)
+	}
+
+	klog.Info("Webhook server shutdown complete")
 	return nil
 }

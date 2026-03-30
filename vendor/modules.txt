@@ -428,7 +428,7 @@ github.com/spf13/pflag
 # github.com/stoewer/go-strcase v1.3.1
 ## explicit; go 1.11
 github.com/stoewer/go-strcase
-# github.com/stolostron/cluster-lifecycle-api v0.0.0-20260324114735-8efd4fbacf23
+# github.com/stolostron/cluster-lifecycle-api v0.0.0-20260330032750-43755d6ceb09
 ## explicit; go 1.25.0
 github.com/stolostron/cluster-lifecycle-api/action/v1beta1
 github.com/stolostron/cluster-lifecycle-api/client/clusterview/clientset/versioned/scheme
@@ -438,6 +438,7 @@ github.com/stolostron/cluster-lifecycle-api/clusterview/v1alpha1
 github.com/stolostron/cluster-lifecycle-api/constants
 github.com/stolostron/cluster-lifecycle-api/helpers/imageregistry
 github.com/stolostron/cluster-lifecycle-api/helpers/localcluster
+github.com/stolostron/cluster-lifecycle-api/helpers/tlsprofile
 github.com/stolostron/cluster-lifecycle-api/imageregistry/v1alpha1
 github.com/stolostron/cluster-lifecycle-api/view/v1beta1
 # github.com/stretchr/testify v1.11.1
