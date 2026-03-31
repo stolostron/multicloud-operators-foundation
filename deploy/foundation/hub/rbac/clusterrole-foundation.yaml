@@ -120,3 +120,8 @@ rules:
   - apiGroups: ["apiextensions.k8s.io"]
     resources: ["customresourcedefinitions"]
     verbs: ["get"]
+  # Access OpenShift APIServer CR to read TLS security profile configuration
+  # for proxy server and webhook server HTTPS endpoints
+  - apiGroups: ["config.openshift.io"]
+    resources: ["apiservers"]
+    verbs: ["get", "list", "watch"]
