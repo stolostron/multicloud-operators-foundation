@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/stolostron/cluster-lifecycle-api/helpers/tlsprofile"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/utils"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,7 +33,7 @@ import (
 
 const clusterPermissionCRDName = "clusterpermissions.rbac.open-cluster-management.io"
 
-func Run(s *options.Options, stopCh <-chan struct{}) error {
+func Run(s *options.Options, externalStopCh <-chan struct{}) error {
 	if err := s.SetDefaults(); err != nil {
 		return err
 	}
@@ -41,8 +42,23 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 		return utilerrors.NewAggregate(errs)
 	}
 
+	// Create cancellable context for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Create internal stop channel that we can control for graceful shutdown
+	// This allows us to properly stop all components when TLS profile changes
+	stopCh := make(chan struct{})
+
 	clusterCfg, err := clientcmd.BuildConfigFromFlags("", s.KubeConfigFile)
 	if err != nil {
+		return err
+	}
+
+	// Start TLS profile watcher to detect changes and trigger graceful restart
+	// Returns nil on non-OpenShift clusters, error only for real problems
+	if err := tlsprofile.StartTLSProfileWatcher(ctx, clusterCfg, cancel); err != nil {
+		klog.Errorf("Failed to start TLS profile watcher: %v", err)
 		return err
 	}
 
@@ -87,7 +103,7 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 	ctrl := controller.NewProxyServiceInfoController(kubeClient, configMapLabels,
 		configmapInformerFactory.Core().V1().ConfigMaps(), proxyGetter, stopCh)
 
-	apiServerConfig, err := s.APIServerConfig()
+	apiServerConfig, err := s.APIServerConfig(clusterCfg)
 	if err != nil {
 		return err
 	}
@@ -145,5 +161,19 @@ func Run(s *options.Options, stopCh <-chan struct{}) error {
 		}
 	}()
 
+	// Merge external shutdown signals into stopCh
+	// When externalStopCh or ctx.Done() fires, close stopCh to trigger graceful shutdown
+	go func() {
+		select {
+		case <-externalStopCh:
+			klog.Info("Received stop signal, initiating graceful shutdown...")
+		case <-ctx.Done():
+			klog.Info("TLS profile changed, initiating graceful shutdown for restart...")
+		}
+		close(stopCh)
+	}()
+
+	// Run server in main goroutine - blocks until stopCh is closed
+	klog.Info("Starting proxy server on :6443")
 	return proxyServer.Run(stopCh)
 }
