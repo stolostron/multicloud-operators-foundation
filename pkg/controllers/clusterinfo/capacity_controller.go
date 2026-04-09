@@ -99,22 +99,33 @@ func (r *CapacityReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	return ctrl.Result{}, r.client.Status().Update(ctx, cluster)
 }
 
-// for OCP,the master and infra nodes are not included in the subscription cost calculation.
-// the worker nodes are include the nodes with worker label or without controlPlane or infra label.
+// for OCP, the master and infra nodes are not included in the subscription cost calculation.
+// A node is NOT a worker if it has the infra role label, even if it also has the worker label.
+// A node with both control-plane/master and worker labels (e.g. SNO) IS counted as a worker.
+// A node with no recognized role labels is treated as a worker.
 func isWorker(node clusterinfov1beta1.NodeStatus) bool {
 	if node.Labels == nil {
 		return true
 	}
 
-	isControlPlane := false
-	for key := range node.Labels {
-		switch key {
-		case LabelNodeRoleWorker:
-			return true
-		case LabelNodeRoleOldControlPlane, LabelNodeRoleControlPlane, LabelNodeRoleInfra:
-			isControlPlane = true
-		}
+	// Infra role takes priority: infra nodes are never counted as workers,
+	// even if they also carry the worker role label.
+	if _, ok := node.Labels[LabelNodeRoleInfra]; ok {
+		return false
 	}
 
-	return !isControlPlane
+	_, hasWorker := node.Labels[LabelNodeRoleWorker]
+	if hasWorker {
+		return true
+	}
+
+	// If the node has control-plane or master labels (without worker), it's not a worker.
+	_, hasControlPlane := node.Labels[LabelNodeRoleControlPlane]
+	_, hasMaster := node.Labels[LabelNodeRoleOldControlPlane]
+	if hasControlPlane || hasMaster {
+		return false
+	}
+
+	// No recognized role labels — treat as worker.
+	return true
 }
