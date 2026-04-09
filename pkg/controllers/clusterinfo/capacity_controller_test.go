@@ -194,6 +194,30 @@ func Test_IsWorker(t *testing.T) {
 			},
 			expected: false,
 		},
+		{
+			name: "infra node with worker label",
+			node: clusterv1beta1.NodeStatus{
+				Name:   "",
+				Labels: map[string]string{LabelNodeRoleInfra: "", LabelNodeRoleWorker: ""},
+			},
+			expected: false,
+		},
+		{
+			name: "control-plane node",
+			node: clusterv1beta1.NodeStatus{
+				Name:   "",
+				Labels: map[string]string{LabelNodeRoleControlPlane: ""},
+			},
+			expected: false,
+		},
+		{
+			name: "worker only",
+			node: clusterv1beta1.NodeStatus{
+				Name:   "",
+				Labels: map[string]string{LabelNodeRoleWorker: ""},
+			},
+			expected: true,
+		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
