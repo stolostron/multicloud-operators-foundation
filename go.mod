@@ -1,6 +1,6 @@
 module github.com/stolostron/multicloud-operators-foundation
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/go-bindata/go-bindata v3.1.2+incompatible
