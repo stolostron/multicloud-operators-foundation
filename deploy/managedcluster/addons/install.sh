@@ -65,7 +65,7 @@ oc apply -f https://raw.githubusercontent.com/stolostron/cluster-proxy/$OCM_BRAN
 	cluster-proxy-addon pkg/templates/charts/toggle/cluster-proxy-addon \
   --set global.namespace=open-cluster-management \
 	--set global.pullPolicy=Always \
-	--set global.imageOverrides.cluster_proxy="${IMAGE_CLUSTER_PROXY}:main" \
+	--set global.imageOverrides.cluster_proxy="${IMAGE_CLUSTER_PROXY}:${OCM_BRANCH}" \
 	--set hubconfig.clusterIngressDomain="${BASEDDOMAIN}"
 if [ $? -eq 1 ]; then
   echo "failed to install cluster-proxy addon"
