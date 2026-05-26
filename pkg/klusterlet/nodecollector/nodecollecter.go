@@ -70,6 +70,7 @@ type queryResult struct {
 type resourceCollector struct {
 	nodeLister         corev1lister.NodeLister
 	nodeSynced         cache.InformerSynced
+	reconcileCh        chan struct{}
 	kubeClient         kubernetes.Interface
 	client             client.Client
 	clusterName        string
@@ -86,9 +87,19 @@ func NewCollector(
 	nodeInformer corev1informers.NodeInformer,
 	kubeClient kubernetes.Interface,
 	client client.Client, clusterName, componentNamespace string, enableNodeCapacity bool) Collector {
+	reconcileCh := make(chan struct{}, 1)
+	nodeInformer.Informer().AddEventHandler(cache.ResourceEventHandlerFuncs{
+		DeleteFunc: func(obj interface{}) {
+			select {
+			case reconcileCh <- struct{}{}:
+			default:
+			}
+		},
+	})
 	return &resourceCollector{
 		nodeLister:         nodeInformer.Lister(),
 		nodeSynced:         nodeInformer.Informer().HasSynced,
+		reconcileCh:        reconcileCh,
 		kubeClient:         kubeClient,
 		client:             client,
 		clusterName:        clusterName,
@@ -104,7 +115,30 @@ func (r *resourceCollector) Start(ctx context.Context) {
 		klog.Errorf("Failed to sync node cache")
 		return
 	}
-	wait.JitterUntilWithContext(context.TODO(), r.reconcile, time.Duration(updateInterval)*time.Second, updateJitterFactor, true)
+
+	r.reconcile(ctx)
+
+	timer := time.NewTimer(wait.Jitter(time.Duration(updateInterval)*time.Second, updateJitterFactor))
+	defer timer.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-r.reconcileCh:
+			r.reconcile(ctx)
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			timer.Reset(wait.Jitter(time.Duration(updateInterval)*time.Second, updateJitterFactor))
+		case <-timer.C:
+			r.reconcile(ctx)
+			timer.Reset(wait.Jitter(time.Duration(updateInterval)*time.Second, updateJitterFactor))
+		}
+	}
 }
 
 func (r *resourceCollector) reconcile(ctx context.Context) {

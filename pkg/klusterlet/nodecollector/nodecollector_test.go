@@ -127,6 +127,23 @@ func TestReconcile(t *testing.T) {
 			prometheusData: model.Vector{},
 		},
 		{
+			name:              "nodes removed from cache",
+			resources:         []runtime.Object{newNode("node1", 1, true)},
+			clusterInfoStatus: metav1.ConditionTrue,
+			existingNodeList: []clusterv1beta1.NodeStatus{
+				newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true),
+				newResourceStatus("node2", map[clusterapiv1.ResourceName]int64{"cpu": 2}, true),
+				newResourceStatus("node3", map[clusterapiv1.ResourceName]int64{"cpu": 1}, false),
+			},
+			validateKubeActions: func(t *testing.T, actions []clienttesting.Action) {
+				assertActions(t, actions, "get", "create")
+			},
+			expectedNodeList: []clusterv1beta1.NodeStatus{
+				newResourceStatus("node1", map[clusterapiv1.ResourceName]int64{"cpu": 1}, true),
+			},
+			prometheusData: model.Vector{},
+		},
+		{
 			name:              "missing node metrics",
 			resources:         []runtime.Object{newConfigmap(string(ca))},
 			clusterInfoStatus: metav1.ConditionTrue,
@@ -232,6 +249,7 @@ func TestReconcile(t *testing.T) {
 			}
 			ctrl := &resourceCollector{
 				nodeLister:         infomerFactory.Core().V1().Nodes().Lister(),
+				reconcileCh:        make(chan struct{}, 1),
 				kubeClient:         fakekubeClient,
 				client:             client,
 				clusterName:        "cluster1",
