@@ -6,6 +6,8 @@ import (
 
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/cache/userpermission"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/printers"
+	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/printers/storage"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/log"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/managedcluster"
 	"github.com/stolostron/multicloud-operators-foundation/pkg/proxyserver/rest/managedclusterset"
@@ -140,14 +142,20 @@ func installProxyGroup(proxyServiceInfoGetter *getter.ProxyServiceInfoGetter,
 	server *genericapiserver.GenericAPIServer) error {
 	apiGroupInfo := genericapiserver.NewDefaultAPIGroupInfo(proxyv1beta1.GroupName, Scheme, ParameterCodec, Codecs)
 	apiGroupInfo.VersionedResourcesStorageMap[proxyv1beta1.SchemeGroupVersion.Version] = map[string]rest.Storage{
-		"clusterstatuses":            &clusterStatusStorage{},
+		"clusterstatuses": &clusterStatusStorage{
+			tableConverter: storage.TableConvertor{
+				TableGenerator: printers.NewTableGenerator().With(addClusterStatusHandlers),
+			},
+		},
 		"clusterstatuses/aggregator": proxy.NewProxyRest(proxyServiceInfoGetter),
 		"clusterstatuses/log":        log.NewLogRest(logProxyGetter),
 	}
 	return server.InstallAPIGroup(&apiGroupInfo)
 }
 
-type clusterStatusStorage struct{}
+type clusterStatusStorage struct {
+	tableConverter rest.TableConvertor
+}
 
 var (
 	_ = rest.Storage(&clusterStatusStorage{})
@@ -192,10 +200,38 @@ func (s *clusterStatusStorage) NamespaceScoped() bool {
 }
 
 func (s *clusterStatusStorage) ConvertToTable(ctx context.Context, object runtime.Object, tableOptions runtime.Object) (*metav1.Table, error) {
-	return nil, nil
+	return s.tableConverter.ConvertToTable(ctx, object, tableOptions)
 }
 
 // SingularNameProvider interface
 func (s *clusterStatusStorage) GetSingularName() string {
 	return "clusterstatus"
+}
+
+func addClusterStatusHandlers(h printers.PrintHandler) {
+	columnDefinitions := []metav1.TableColumnDefinition{
+		{Name: "Name", Type: "string", Format: "name", Description: "Name of the cluster status."},
+	}
+	_ = h.TableHandler(columnDefinitions, printClusterStatus)
+	_ = h.TableHandler(columnDefinitions, printClusterStatusList)
+}
+
+func printClusterStatus(obj *proxyv1beta1.ClusterStatus, options printers.GenerateOptions) ([]metav1.TableRow, error) {
+	row := metav1.TableRow{
+		Object: runtime.RawExtension{Object: obj},
+	}
+	row.Cells = append(row.Cells, obj.Name)
+	return []metav1.TableRow{row}, nil
+}
+
+func printClusterStatusList(list *proxyv1beta1.ClusterStatusList, options printers.GenerateOptions) ([]metav1.TableRow, error) {
+	rows := make([]metav1.TableRow, 0, len(list.Items))
+	for i := range list.Items {
+		r, err := printClusterStatus(&list.Items[i], options)
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, r...)
+	}
+	return rows, nil
 }
