@@ -18,27 +18,27 @@ require (
 	github.com/prometheus/common v0.66.1
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/pflag v1.0.10
-	github.com/stolostron/cluster-lifecycle-api v0.0.0-20251120064629-5d78c3f111c5
+	github.com/stolostron/cluster-lifecycle-api v0.0.0-20260324114735-8efd4fbacf23
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/net v0.55.0
-	k8s.io/api v0.35.1
+	k8s.io/api v0.35.3
 	k8s.io/apiextensions-apiserver v0.35.1
-	k8s.io/apimachinery v0.35.1
+	k8s.io/apimachinery v0.35.3
 	k8s.io/apiserver v0.35.1
 	k8s.io/cli-runtime v0.35.1
-	k8s.io/client-go v0.35.1
-	k8s.io/code-generator v0.35.1
-	k8s.io/component-base v0.35.1
+	k8s.io/client-go v0.35.3
+	k8s.io/code-generator v0.35.3
+	k8s.io/component-base v0.35.2
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kube-aggregator v0.33.4
 	k8s.io/kube-openapi v0.0.0-20250910181357-589584f1c912
 	open-cluster-management.io/addon-framework v1.2.0
-	open-cluster-management.io/api v1.2.0
+	open-cluster-management.io/api v1.2.1-0.20260324013313-8d44fee52d97
 	open-cluster-management.io/cluster-permission v0.16.2
 	open-cluster-management.io/managed-serviceaccount v0.7.0
 	open-cluster-management.io/sdk-go v1.2.0
-	sigs.k8s.io/controller-runtime v0.22.4
+	sigs.k8s.io/controller-runtime v0.23.1
 )
 
 require (
@@ -152,6 +152,6 @@ require (
 	sigs.k8s.io/kustomize/api v0.20.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.20.1 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v6 v6.3.1 // indirect
+	sigs.k8s.io/structured-merge-diff/v6 v6.3.2-0.20260122202528-d9cc6641c482 // indirect
 	sigs.k8s.io/yaml v1.6.0 // indirect
 )
