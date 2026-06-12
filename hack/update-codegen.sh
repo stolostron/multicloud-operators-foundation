@@ -20,6 +20,7 @@ echo "${REPO_ROOT}/hack/.api_violation.report"
 kube::codegen::gen_openapi \
     --boilerplate "${REPO_ROOT}/hack/custom-boilerplate.go.txt" \
     --update-report \
+    --output-model-name-file "zz_generated.model_name.go" \
     --output-dir "${REPO_ROOT}/pkg/proxyserver/apis/openapi" \
     --output-pkg "${REPO_ROOT}/pkg/proxyserver/apis/openapi" \
     --extra-pkgs "open-cluster-management.io/api/cluster/v1" \
@@ -30,3 +31,6 @@ kube::codegen::gen_openapi \
     --extra-pkgs "k8s.io/apimachinery/pkg/runtime" \
     --extra-pkgs "k8s.io/apimachinery/pkg/apis/meta/v1" \
     ${REPO_ROOT}/pkg/proxyserver/apis
+
+# Restore changes to the vendor directory
+git -C "${REPO_ROOT}" restore "${REPO_ROOT}/vendor/"
