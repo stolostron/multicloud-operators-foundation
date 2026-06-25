@@ -57,7 +57,7 @@ func (c *LogProxyGetter) ProxyServiceAvailable(ctx context.Context, clusterName 
 func (c *LogProxyGetter) NewHandler(ctx context.Context, clusterName, podNamespace, podName, containerName string) (*Handler, error) {
 	logTokenSecret, err := c.KubeClient.CoreV1().Secrets(clusterName).Get(ctx, helpers.LogManagedServiceAccountName, v1.GetOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("faield to get log token secret in cluster %s. %v", clusterName, err)
+		return nil, fmt.Errorf("failed to get pod log access token secret in cluster %s. %v", clusterName, err)
 	}
 	clusterProxyCfg := &rest.Config{
 		Host: fmt.Sprintf("https://%s/%s", c.ProxyServiceHost, clusterName),
@@ -121,7 +121,7 @@ func (c *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	logReq := c.logClient.CoreV1().Pods(c.podNamespace).GetLogs(c.podName, options)
 	podlogs, err := logReq.Stream(context.Background())
 	if err != nil {
-		writeResponseErr(fmt.Sprintf("faield to stream log. %v", err))
+		writeResponseErr(fmt.Sprintf("failed to stream log. %v", err))
 		return
 	}
 	defer podlogs.Close()
@@ -129,7 +129,7 @@ func (c *Handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	buf := new(bytes.Buffer)
 	_, err = io.Copy(buf, podlogs)
 	if err != nil {
-		writeResponseErr(fmt.Sprintf("faield to copy log. %v", err))
+		writeResponseErr(fmt.Sprintf("failed to copy log. %v", err))
 		return
 	}
 
