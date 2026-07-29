@@ -13,6 +13,9 @@ hasRoute: false
 enableSyncLabelsToClusterClaims: true
 enableNodeCapacity: true
 
+networkPolicies:
+  enabled: false
+
 affinity: {}
 
 tolerations:

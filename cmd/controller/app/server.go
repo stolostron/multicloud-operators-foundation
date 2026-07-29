@@ -159,7 +159,7 @@ func Run(o *options.ControllerRunOptions, ctx context.Context) error {
 			WithConfigGVRs(afutils.AddOnDeploymentConfigGVR).
 			WithAgentDeployTriggerClusterFilter(afutils.ClusterImageRegistriesAnnotationChanged).
 			WithGetValuesFuncs(
-				addon.NewGetValuesFunc(o.AddonImage),
+				addon.NewGetValuesFunc(o.AddonImage, o.EnableNetworkPolicies),
 				addonfactory.GetValuesFromAddonAnnotation,
 				addonfactory.GetAddOnDeploymentConfigValues(
 					afutils.NewAddOnDeploymentConfigGetter(addonClient),

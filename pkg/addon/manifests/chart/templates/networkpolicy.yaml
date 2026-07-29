@@ -1,0 +1,45 @@
+{{- if .Values.networkPolicies.enabled }}
+# Purpose: Default-deny for klusterlet-addon-workmgr (work-manager) on the
+# managed cluster, then allow agent listen ingress and DNS/API egress.
+# Health probes (:8000) are omitted — kubelet probes are not blocked by
+# NetworkPolicy. Peers are port-based (empty "to"/"from") for portability.
+# Gaps: API egress is limited to :443/:6443 (non-standard API ports will
+# fail); DNS is port-only (not openshift-dns namespace-scoped).
+# Enabled when ocm-controller runs with --enable-network-policies=true.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: work-manager-addon-agent-network-policy
+  namespace: {{ .Release.Namespace }}
+  labels:
+    component: work-manager
+spec:
+  podSelector:
+    matchLabels:
+      component: work-manager
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # agent listen (--port=4443)
+  - ports:
+    - protocol: TCP
+      port: 4443
+  egress:
+  # DNS (:53 common; :5353 used by some distributions)
+  - ports:
+    - protocol: UDP
+      port: 53
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 5353
+    - protocol: TCP
+      port: 5353
+  # Hub kubeconfig API and spoke kube-apiserver
+  - ports:
+    - protocol: TCP
+      port: 443
+    - protocol: TCP
+      port: 6443
+{{- end }}
