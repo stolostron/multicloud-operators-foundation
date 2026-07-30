@@ -60,13 +60,20 @@ BASEDDOMAIN=$($KUBECTL get ingress.config.openshift.io cluster -o=jsonpath='{.sp
 # Install cluster-proxy CRDs first
 oc apply -f https://raw.githubusercontent.com/stolostron/cluster-proxy/$OCM_BRANCH/charts/cluster-proxy/crds/managedproxyconfigurations.yaml
 
+# Match injectValuesOverrides() in backplane-operator pkg/rendering/renderer.go.
+# Raw helm install does not run the Go renderer; without these --sets the manager
+# gets --enable-kube-api-proxy= / --enable-service-proxy= (empty bools) and CrashLoopBackOffs.
 ../$HELM install \
 	-n open-cluster-management --create-namespace \
 	cluster-proxy-addon pkg/templates/charts/toggle/cluster-proxy-addon \
   --set global.namespace=open-cluster-management \
 	--set global.pullPolicy=Always \
 	--set global.imageOverrides.cluster_proxy="${IMAGE_CLUSTER_PROXY}:${OCM_BRANCH}" \
-	--set hubconfig.clusterIngressDomain="${BASEDDOMAIN}"
+	--set global.networkPolicies.enabled=true \
+	--set hubconfig.clusterIngressDomain="${BASEDDOMAIN}" \
+	--set enableKubeApiProxy=false \
+	--set enableServiceProxy=true \
+	--set enableImpersonation=true
 if [ $? -eq 1 ]; then
   echo "failed to install cluster-proxy addon"
   exit 1

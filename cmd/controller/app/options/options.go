@@ -20,6 +20,7 @@ type ControllerRunOptions struct {
 	RenewDeadline         time.Duration
 	RetryPeriod           time.Duration
 	EnableAddonDeploy     bool
+	EnableNetworkPolicies bool
 	AddonImage            string
 	AddonInstallNamespace string
 	QPS                   float32
@@ -35,6 +36,7 @@ func NewControllerRunOptions() *ControllerRunOptions {
 		EnableInventory:       true,
 		EnableLeaderElection:  true,
 		EnableAddonDeploy:     false,
+		EnableNetworkPolicies: false,
 		EnableRBAC:            true,
 		QPS:                   100.0,
 		Burst:                 200,
@@ -73,6 +75,8 @@ func (o *ControllerRunOptions) AddFlags(fs *pflag.FlagSet) {
 		"of a leadership. This is only applicable if leader election is enabled.")
 	fs.BoolVar(&o.EnableAddonDeploy, "enable-agent-deploy", o.EnableAddonDeploy,
 		"Enable deploy addon agent.")
+	fs.BoolVar(&o.EnableNetworkPolicies, "enable-network-policies", o.EnableNetworkPolicies,
+		"Enable NetworkPolicy for the work-manager addon agent on managed clusters.")
 	fs.StringVar(&o.AddonImage, "agent-addon-image", o.AddonImage,
 		"image of the addon agent to deploy.")
 	fs.StringVar(&o.AddonInstallNamespace, "agent-addon-install-namespace", o.AddonInstallNamespace,

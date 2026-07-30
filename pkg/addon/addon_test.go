@@ -11,6 +11,7 @@ import (
 	"github.com/stolostron/cluster-lifecycle-api/imageregistry/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -143,16 +144,22 @@ func newAddonConfigWithResourceRequirement(containerID string, resources v1.Reso
 
 func newAgentAddon(t *testing.T, cluster *clusterv1.ManagedCluster,
 	addonDeploymentConfig *addonapiv1alpha1.AddOnDeploymentConfig) agent.AgentAddon {
+	return newAgentAddonWithNetworkPolicies(t, cluster, addonDeploymentConfig, false)
+}
+
+func newAgentAddonWithNetworkPolicies(t *testing.T, cluster *clusterv1.ManagedCluster,
+	addonDeploymentConfig *addonapiv1alpha1.AddOnDeploymentConfig, enableNetworkPolicies bool) agent.AgentAddon {
 	registrationOption := NewRegistrationOption(nil, nil, WorkManagerAddonName)
 
-	scheme := runtime.NewScheme()
-	clusterv1.Install(scheme)
+	agentScheme := runtime.NewScheme()
+	_ = clientgoscheme.AddToScheme(agentScheme)
+	clusterv1.Install(agentScheme)
 
-	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(cluster).Build()
+	client := fake.NewClientBuilder().WithScheme(agentScheme).WithObjects(cluster).Build()
 	getter := newTestConfigGetter(addonDeploymentConfig)
-	getValuesFunc := NewGetValuesFunc(addonImage)
+	getValuesFunc := NewGetValuesFunc(addonImage, enableNetworkPolicies)
 	agentAddon, err := addonfactory.NewAgentAddonFactory(WorkManagerAddonName, ChartFS, ChartDir).
-		WithScheme(scheme).
+		WithScheme(agentScheme).
 		WithGetValuesFuncs(getValuesFunc, addonfactory.GetValuesFromAddonAnnotation,
 			addonfactory.GetAddOnDeploymentConfigValues(
 				getter,
@@ -929,4 +936,46 @@ func TestAddonConfigCustomizedVariableFunc(t *testing.T) {
 
 		})
 	}
+}
+
+func TestWorkManagerNetworkPolicy(t *testing.T) {
+	cluster := newCluster("cluster1", "OpenShift", map[string]string{}, map[string]string{})
+	addon := newAddon("work-manager", "cluster1", "", "")
+
+	t.Run("disabled omits NetworkPolicy", func(t *testing.T) {
+		agentAddon := newAgentAddonWithNetworkPolicies(t, cluster, nil, false)
+		objects, err := agentAddon.Manifests(cluster, addon)
+		if err != nil {
+			t.Fatalf("failed to get manifests: %v", err)
+		}
+		for _, o := range objects {
+			if np, ok := o.(*networkingv1.NetworkPolicy); ok {
+				t.Fatalf("unexpected NetworkPolicy %s when networkPolicies.enabled=false", np.Name)
+			}
+		}
+	})
+
+	t.Run("enabled embeds agent NetworkPolicy", func(t *testing.T) {
+		agentAddon := newAgentAddonWithNetworkPolicies(t, cluster, nil, true)
+		objects, err := agentAddon.Manifests(cluster, addon)
+		if err != nil {
+			t.Fatalf("failed to get manifests: %v", err)
+		}
+		var found *networkingv1.NetworkPolicy
+		for _, o := range objects {
+			if np, ok := o.(*networkingv1.NetworkPolicy); ok {
+				found = np
+				break
+			}
+		}
+		if found == nil {
+			t.Fatal("expected work-manager-addon-agent-network-policy when networkPolicies.enabled=true")
+		}
+		if found.Name != "work-manager-addon-agent-network-policy" {
+			t.Errorf("unexpected NetworkPolicy name: %s", found.Name)
+		}
+		if found.Spec.PodSelector.MatchLabels["component"] != "work-manager" {
+			t.Errorf("unexpected podSelector: %v", found.Spec.PodSelector.MatchLabels)
+		}
+	})
 }

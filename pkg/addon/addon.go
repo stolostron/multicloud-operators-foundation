@@ -62,13 +62,18 @@ type GlobalValues struct {
 	NodeSelector    map[string]string `json:"nodeSelector,"`
 }
 
-type Values struct {
-	GlobalValues                    GlobalValues `json:"global,omitempty"`
-	EnableSyncLabelsToClusterClaims string       `json:"enableSyncLabelsToClusterClaims"`
-	EnableNodeCapacity              string       `json:"enableNodeCapacity"`
+type NetworkPoliciesValues struct {
+	Enabled bool `json:"enabled"`
 }
 
-func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
+type Values struct {
+	GlobalValues                    GlobalValues          `json:"global,omitempty"`
+	EnableSyncLabelsToClusterClaims string                `json:"enableSyncLabelsToClusterClaims"`
+	EnableNodeCapacity              string                `json:"enableNodeCapacity"`
+	NetworkPolicies                 NetworkPoliciesValues `json:"networkPolicies"`
+}
+
+func NewGetValuesFunc(imageName string, enableNetworkPolicies bool) addonfactory.GetValuesFunc {
 	return func(cluster *clusterv1.ManagedCluster,
 		addon *addonapiv1alpha1.ManagedClusterAddOn) (addonfactory.Values, error) {
 		overrideName, err := imageregistry.OverrideImageByAnnotation(cluster.GetAnnotations(), imageName)
@@ -95,6 +100,9 @@ func NewGetValuesFunc(imageName string) addonfactory.GetValuesFunc {
 			},
 			EnableSyncLabelsToClusterClaims: enableSyncLabelsToClusterClaims,
 			EnableNodeCapacity:              enableNodeCapacity,
+			NetworkPolicies: NetworkPoliciesValues{
+				Enabled: enableNetworkPolicies,
+			},
 		}
 
 		nodeSelector, err := getNodeSelector(cluster)
