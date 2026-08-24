@@ -5,7 +5,7 @@ ENV GO_PACKAGE github.com/stolostron/multicloud-operators-foundation
 
 RUN XDG_CACHE_HOME=/tmp/cache make build --warn-undefined-variables
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest
+FROM registry.redhat.io/ubi9/ubi-minimal-pqc:latest
 
 ENV USER_UID=10001 \
     USER_NAME=acm-foundation
