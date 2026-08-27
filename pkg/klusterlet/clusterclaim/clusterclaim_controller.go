@@ -122,7 +122,7 @@ func (r *clusterClaimReconciler) Reconcile(ctx context.Context, req ctrl.Request
 }
 
 func (r *clusterClaimReconciler) syncControlPlaneCreatedClaims(ctx context.Context) error {
-	return syncClaims(ctx, r.clusterClient,
+	return syncClaims(ctx, r.clusterClient, r.clusterClaimLister,
 		r.generateExpectClusterClaims,
 		updateChecks,
 		func() ([]*clusterv1alpha1.ClusterClaim, error) {
@@ -131,7 +131,7 @@ func (r *clusterClaimReconciler) syncControlPlaneCreatedClaims(ctx context.Conte
 }
 
 func (r *clusterClaimReconciler) syncLabelsToClaims(ctx context.Context) error {
-	return syncClaims(ctx, r.clusterClient,
+	return syncClaims(ctx, r.clusterClient, r.clusterClaimLister,
 		func() ([]*clusterv1alpha1.ClusterClaim, error) {
 			return genLabelsToClaims(r.hubClient, r.clusterName)
 		},
@@ -147,6 +147,7 @@ func (r *clusterClaimReconciler) syncLabelsToClaims(ctx context.Context) error {
 // 3. Get existing claims, compare with expected claims, and clean unexpected ones.
 func syncClaims(ctx context.Context,
 	clusterClient clusterclientset.Interface,
+	claimLister clusterv1alpha1lister.ClusterClaimLister,
 	getExpectedClaims func() ([]*clusterv1alpha1.ClusterClaim, error),
 	updatechecks []updateCheck,
 	getExistingClaims func() ([]*clusterv1alpha1.ClusterClaim, error)) error {
@@ -159,7 +160,7 @@ func syncClaims(ctx context.Context,
 	// Create/Update claims.
 	errs := []error{}
 	for _, c := range expectClaims {
-		if err := createOrUpdateClusterClaim(ctx, clusterClient, c, updatechecks); err != nil {
+		if err := createOrUpdateClusterClaim(ctx, clusterClient, claimLister, c, updatechecks); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -272,9 +273,10 @@ var updateChecks = []updateCheck{
 }
 
 func createOrUpdateClusterClaim(ctx context.Context, clusterClient clusterclientset.Interface,
+	claimLister clusterv1alpha1lister.ClusterClaimLister,
 	newClaim *clusterv1alpha1.ClusterClaim,
 	updateChecks []updateCheck) error {
-	oldClaim, err := clusterClient.ClusterV1alpha1().ClusterClaims().Get(ctx, newClaim.Name, metav1.GetOptions{})
+	oldClaim, err := claimLister.Get(newClaim.Name)
 	switch {
 	case errors.IsNotFound(err):
 		_, err := clusterClient.ClusterV1alpha1().ClusterClaims().Create(ctx, newClaim, metav1.CreateOptions{})
@@ -292,8 +294,9 @@ func createOrUpdateClusterClaim(ctx context.Context, clusterClient clusterclient
 				}
 			}
 		}
-		oldClaim.Spec = newClaim.Spec
-		_, err := clusterClient.ClusterV1alpha1().ClusterClaims().Update(ctx, oldClaim, metav1.UpdateOptions{})
+		updated := oldClaim.DeepCopy()
+		updated.Spec = newClaim.Spec
+		_, err := clusterClient.ClusterV1alpha1().ClusterClaims().Update(ctx, updated, metav1.UpdateOptions{})
 		if err != nil {
 			return fmt.Errorf("unable to update ClusterClaim %q: %w", oldClaim.Name, err)
 		}
