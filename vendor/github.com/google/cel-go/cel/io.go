@@ -52,7 +52,12 @@ func CheckedExprToAstWithSource(checkedExpr *exprpb.CheckedExpr, src Source) (*A
 	if err != nil {
 		return nil, err
 	}
-	return &Ast{source: src, impl: checked}, nil
+	out := &Ast{source: src, impl: checked}
+	if err := checkLoadedASTDepth(checked); err != nil {
+		out.loadErr = err
+		return out, err
+	}
+	return out, nil
 }
 
 // AstToCheckedExpr converts an Ast to an protobuf CheckedExpr value.
@@ -83,7 +88,26 @@ func ParsedExprToAstWithSource(parsedExpr *exprpb.ParsedExpr, src Source) *Ast {
 		src = common.NewInfoSource(parsedExpr.GetSourceInfo())
 	}
 	e, _ := ast.ProtoToExpr(parsedExpr.GetExpr())
-	return &Ast{source: src, impl: ast.NewAST(e, info)}
+	out := &Ast{source: src, impl: ast.NewAST(e, info)}
+	// ParsedExprToAstWithSource has no error return, so record an over-depth violation on the Ast
+	// to be surfaced when it is later checked or planned.
+	out.loadErr = checkLoadedASTDepth(out.impl)
+	return out
+}
+
+// checkLoadedASTDepth guards ASTs that enter through the proto conversion helpers
+// (ParsedExprToAst / CheckedExprToAst) against nesting deeper than the parser's recursion limit.
+// Those entry points bypass the parser, so without this check a deeply nested loaded AST could
+// exhaust the Go stack during later checking or planning. It returns a normal error rather than
+// risking that overflow; the traversal itself is bounded so it stays safe on the same input.
+//
+// Embedders that fully control their AST inputs can skip this by building the AST through the
+// common/ast package directly instead of these conversion helpers.
+func checkLoadedASTDepth(a *ast.AST) error {
+	if ast.ExceedsDepth(a, defaultMaxASTDepth) {
+		return fmt.Errorf("input exceeds maximum expression nesting depth: %d", defaultMaxASTDepth)
+	}
+	return nil
 }
 
 // AstToParsedExpr converts an Ast to an protobuf ParsedExpr value.
@@ -99,7 +123,13 @@ func AstToParsedExpr(a *Ast) (*exprpb.ParsedExpr, error) {
 // Note, the conversion may not be an exact replica of the original expression, but will produce
 // a string that is semantically equivalent and whose textual representation is stable.
 func AstToString(a *Ast) (string, error) {
-	return parser.Unparse(a.NativeRep().Expr(), a.NativeRep().SourceInfo())
+	return ExprToString(a.NativeRep().Expr(), a.NativeRep().SourceInfo())
+}
+
+// ExprToString converts an AST Expr node back to a string using macro call tracking metadata from
+// source info if any macros are encountered within the expression.
+func ExprToString(e ast.Expr, info *ast.SourceInfo) (string, error) {
+	return parser.Unparse(e, info)
 }
 
 // RefValueToValue converts between ref.Val and google.api.expr.v1alpha1.Value.
@@ -118,6 +148,55 @@ func ValueAsAlphaProto(res ref.Val) (*exprpb.Value, error) {
 	alpha := &exprpb.Value{}
 	err = convertProto(canonical, alpha)
 	return alpha, err
+}
+
+// RefValToExprValue converts between ref.Val and google.api.expr.v1alpha1.ExprValue.
+// The result ExprValue is the serialized proto form.
+func RefValToExprValue(res ref.Val) (*exprpb.ExprValue, error) {
+	return ExprValueAsAlphaProto(res)
+}
+
+// ExprValueAsAlphaProto converts between ref.Val and google.api.expr.v1alpha1.ExprValue.
+// The result ExprValue is the serialized proto form.
+func ExprValueAsAlphaProto(res ref.Val) (*exprpb.ExprValue, error) {
+	canonical, err := ExprValueAsProto(res)
+	if err != nil {
+		return nil, err
+	}
+	alpha := &exprpb.ExprValue{}
+	err = convertProto(canonical, alpha)
+	return alpha, err
+}
+
+// ExprValueAsProto converts between ref.Val and cel.expr.ExprValue.
+// The result ExprValue is the serialized proto form.
+func ExprValueAsProto(res ref.Val) (*celpb.ExprValue, error) {
+	switch res := res.(type) {
+	case *types.Unknown:
+		return &celpb.ExprValue{
+			Kind: &celpb.ExprValue_Unknown{
+				Unknown: &celpb.UnknownSet{
+					Exprs: res.IDs(),
+				},
+			}}, nil
+	case *types.Err:
+		return &celpb.ExprValue{
+			Kind: &celpb.ExprValue_Error{
+				Error: &celpb.ErrorSet{
+					// Keeping the error code as UNKNOWN since there's no error codes associated with
+					// Cel-Go runtime errors.
+					Errors: []*celpb.Status{{Code: 2, Message: res.Error()}},
+				},
+			},
+		}, nil
+	default:
+		val, err := ValueAsProto(res)
+		if err != nil {
+			return nil, err
+		}
+		return &celpb.ExprValue{
+			Kind: &celpb.ExprValue_Value{Value: val}}, nil
+	}
 }
 
 // ValueAsProto converts between ref.Val and cel.expr.Value.
