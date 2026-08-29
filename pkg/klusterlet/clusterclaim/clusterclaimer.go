@@ -373,6 +373,10 @@ func (c *ClusterClaimer) getOCPVersion() (version, clusterID string, err error) 
 	clusterID = string(clusterVersion.Spec.ClusterID)
 	historyItems := clusterVersion.Status.History
 
+	if len(historyItems) == 1 {
+		return historyItems[0].Version, clusterID, nil
+	}
+
 	var latestCompleteTime *metav1.Time
 	var latestCompleteVersion string
 
