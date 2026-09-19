@@ -67,11 +67,11 @@ func TestCreateOrUpdate(t *testing.T) {
 				newClusterClaim("x", "y"),
 			},
 			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
-				if len(actions) != 2 {
-					t.Errorf("Expect %d actions, but got: %v", 2, len(actions))
+				if len(actions) != 1 {
+					t.Errorf("Expect %d actions, but got: %v", 1, len(actions))
 				}
-				if actions[1].GetVerb() != "create" {
-					t.Errorf("Expect action create, but got: %s", actions[1].GetVerb())
+				if actions[0].GetVerb() != "create" {
+					t.Errorf("Expect action create, but got: %s", actions[0].GetVerb())
 				}
 			},
 		},
@@ -84,33 +84,40 @@ func TestCreateOrUpdate(t *testing.T) {
 				newClusterClaim("x", "z"),
 			},
 			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
-				if len(actions) != 2 {
-					t.Errorf("Expect 2 actions, but got: %v", len(actions))
+				if len(actions) != 1 {
+					t.Errorf("Expect 1 actions, but got: %v", len(actions))
 				}
-				if actions[1].GetVerb() != "update" {
-					t.Errorf("Expect action update, but got: %s", actions[1].GetVerb())
+				if actions[0].GetVerb() != "update" {
+					t.Errorf("Expect action update, but got: %s", actions[0].GetVerb())
 				}
 			},
 		},
 		{
-			name:    "update cluster claim with create only list with empty",
+			name: "skip update when spec is unchanged",
+			objects: []runtime.Object{
+				newClusterClaim("x", "y"),
+			},
+			clusterclaims: []*clusterv1alpha1.ClusterClaim{
+				newClusterClaim("x", "y"),
+			},
+			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
+				if len(actions) != 0 {
+					t.Errorf("Expect 0 actions, but got %d actions: %v", len(actions), actions)
+				}
+			},
+		},
+		{
+			name:    "create cluster claim with create only list",
 			objects: []runtime.Object{},
 			clusterclaims: []*clusterv1alpha1.ClusterClaim{
 				newClusterClaim(ClaimK8sID, "y"),
-				newClusterClaim(ClaimK8sID, "z"),
 			},
 			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
-				if len(actions) != 3 {
-					t.Errorf("Expect 3 actions, but got %d actions: %v", len(actions), actions)
+				if len(actions) != 1 {
+					t.Errorf("Expect 1 actions, but got %d actions: %v", len(actions), actions)
 				}
-				if actions[0].GetVerb() != "get" {
-					t.Errorf("Expect action get, but got: %s", actions[1].GetVerb())
-				}
-				if actions[1].GetVerb() != "create" {
-					t.Errorf("Expect action create, but got: %s", actions[1].GetVerb())
-				}
-				if actions[2].GetVerb() != "get" {
-					t.Errorf("Expect action get, but got: %s", actions[1].GetVerb())
+				if actions[0].GetVerb() != "create" {
+					t.Errorf("Expect action create, but got: %s", actions[0].GetVerb())
 				}
 			},
 		},
@@ -123,11 +130,8 @@ func TestCreateOrUpdate(t *testing.T) {
 				newClusterClaim(ClaimK8sID, "yy"),
 			},
 			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
-				if len(actions) != 1 {
-					t.Errorf("Expect 1 actions, but got %d actions: %v", len(actions), actions)
-				}
-				if actions[0].GetVerb() != "get" {
-					t.Errorf("Expect action get, but got: %s", actions[1].GetVerb())
+				if len(actions) != 0 {
+					t.Errorf("Expect 0 actions, but got %d actions: %v", len(actions), actions)
 				}
 			},
 		},
@@ -142,15 +146,8 @@ func TestCreateOrUpdate(t *testing.T) {
 				newClusterClaim(ClaimOCMPlatform, PlatformOther),
 			},
 			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
-				// expect 2 'get' actions
-				if len(actions) != 2 {
-					t.Errorf("Expect 2 actions, but got %d actions: %v", len(actions), actions)
-				}
-				if actions[0].GetVerb() != "get" {
-					t.Errorf("Expect action get, but got: %s", actions[1].GetVerb())
-				}
-				if actions[1].GetVerb() != "get" {
-					t.Errorf("Expect action get, but got: %s", actions[1].GetVerb())
+				if len(actions) != 0 {
+					t.Errorf("Expect 0 actions, but got %d actions: %v", len(actions), actions)
 				}
 			},
 		},
@@ -165,20 +162,13 @@ func TestCreateOrUpdate(t *testing.T) {
 				newClusterClaim(ClaimOCMPlatform, PlatformAWS),
 			},
 			validateAddonActions: func(t *testing.T, actions []clienttesting.Action) {
-				// expect 4 actions: get update get update
-				if len(actions) != 4 {
-					t.Errorf("Expect 3 actions, but got %d actions: %v", len(actions), actions)
+				if len(actions) != 2 {
+					t.Errorf("Expect 2 actions, but got %d actions: %v", len(actions), actions)
 				}
-				if actions[0].GetVerb() != "get" {
-					t.Errorf("Expect action get, but got: %s", actions[1].GetVerb())
+				if actions[0].GetVerb() != "update" {
+					t.Errorf("Expect action update, but got: %s", actions[0].GetVerb())
 				}
 				if actions[1].GetVerb() != "update" {
-					t.Errorf("Expect action update, but got: %s", actions[1].GetVerb())
-				}
-				if actions[2].GetVerb() != "get" {
-					t.Errorf("Expect action get, but got: %s", actions[1].GetVerb())
-				}
-				if actions[3].GetVerb() != "update" {
 					t.Errorf("Expect action update, but got: %s", actions[1].GetVerb())
 				}
 			},
@@ -188,13 +178,24 @@ func TestCreateOrUpdate(t *testing.T) {
 	ctx := context.Background()
 	for _, tc := range testcases {
 		clusterClient := clusterfake.NewSimpleClientset(tc.objects...)
+		claimLister := newFakeClusterClaimLister(clusterClaimsFromObjects(tc.objects))
 		for _, cc := range tc.clusterclaims {
-			if err := createOrUpdateClusterClaim(ctx, clusterClient, cc, updateChecks); err != nil {
+			if err := createOrUpdateClusterClaim(ctx, clusterClient, claimLister, cc, updateChecks); err != nil {
 				t.Errorf("%s: unexpected error: %v", tc.name, err)
 			}
 		}
 		tc.validateAddonActions(t, clusterClient.Actions())
 	}
+}
+
+func clusterClaimsFromObjects(objects []runtime.Object) []*clusterv1alpha1.ClusterClaim {
+	claims := make([]*clusterv1alpha1.ClusterClaim, 0, len(objects))
+	for _, obj := range objects {
+		if claim, ok := obj.(*clusterv1alpha1.ClusterClaim); ok {
+			claims = append(claims, claim)
+		}
+	}
+	return claims
 }
 
 var testClusterName = "test-cluster"
