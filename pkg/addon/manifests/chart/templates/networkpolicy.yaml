@@ -42,4 +42,8 @@ spec:
       port: 443
     - protocol: TCP
       port: 6443
+  # Prometheus
+  - ports:
+    - protocol: TCP
+      port: 9091
 {{- end }}
