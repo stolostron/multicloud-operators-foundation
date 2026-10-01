@@ -37,16 +37,12 @@ import (
 )
 
 const (
-	updateJitterFactor                             = 0.25
-	updateInterval                                 = 30
-	resourceCore         clusterapiv1.ResourceName = "core"
-	resourceSocket       clusterapiv1.ResourceName = "socket"
-	resourceCoreWorker   clusterapiv1.ResourceName = "core_worker"
-	resourceSocketWorker clusterapiv1.ResourceName = "socket_worker"
-	resourceCPUWorker    clusterapiv1.ResourceName = "cpu_worker"
-	defaultServer                                  = "https://prometheus-k8s.openshift-monitoring.svc:9091"
-	defaultTokenFile                               = "/var/run/secrets/kubernetes.io/serviceaccount/token" // #nosec G101
-	caConfigMapName                                = "ocm-controller-metrics-ca"
+	updateJitterFactor                           = 0.25
+	updateInterval                               = time.Duration(30) * time.Second
+	resourceSocket     clusterapiv1.ResourceName = "socket"
+	defaultServer                                = "https://prometheus-k8s.openshift-monitoring.svc:9091"
+	defaultTokenFile                             = "/var/run/secrets/kubernetes.io/serviceaccount/token" // #nosec G101
+	caConfigMapName                              = "ocm-controller-metrics-ca"
 
 	// LabelNodeRolePrefix is a label prefix for node roles
 	// It's copied over to here until it's merged in core: https://github.com/kubernetes/kubernetes/pull/39112
@@ -60,11 +56,6 @@ const (
 type Collector interface {
 	// Start starts a goroutine to update lease
 	Start(ctx context.Context)
-}
-
-type queryResult struct {
-	val      prometheusmodel.SampleValue
-	isWorker bool
 }
 
 type resourceCollector struct {
@@ -81,6 +72,7 @@ type resourceCollector struct {
 	server             string
 	componentNamespace string
 	enableNodeCapacity bool
+	prometheusErrCount int
 }
 
 func NewCollector(
@@ -118,7 +110,7 @@ func (r *resourceCollector) Start(ctx context.Context) {
 
 	r.reconcile(ctx)
 
-	timer := time.NewTimer(wait.Jitter(time.Duration(updateInterval)*time.Second, updateJitterFactor))
+	timer := time.NewTimer(wait.Jitter(updateInterval, updateJitterFactor))
 	defer timer.Stop()
 
 	for {
@@ -126,17 +118,17 @@ func (r *resourceCollector) Start(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		case <-r.reconcileCh:
-			r.reconcile(ctx)
 			if !timer.Stop() {
 				select {
 				case <-timer.C:
 				default:
 				}
 			}
-			timer.Reset(wait.Jitter(time.Duration(updateInterval)*time.Second, updateJitterFactor))
+			r.reconcile(ctx)
+			timer.Reset(wait.Jitter(updateInterval, updateJitterFactor))
 		case <-timer.C:
 			r.reconcile(ctx)
-			timer.Reset(wait.Jitter(time.Duration(updateInterval)*time.Second, updateJitterFactor))
+			timer.Reset(wait.Jitter(updateInterval, updateJitterFactor))
 		}
 	}
 }
@@ -145,7 +137,8 @@ func (r *resourceCollector) reconcile(ctx context.Context) {
 	clusterinfo := &clusterv1beta1.ManagedClusterInfo{}
 	err := r.client.Get(ctx, types.NamespacedName{Namespace: r.clusterName, Name: r.clusterName}, clusterinfo)
 	if err != nil {
-		klog.Errorf("Failed to get cluster: %v", err)
+		klog.Errorf("Failed to get cluster %s: %v", r.clusterName, err)
+		return
 	}
 
 	if utils.ClusterIsOffLine(clusterinfo.Status.Conditions) {
@@ -154,11 +147,26 @@ func (r *resourceCollector) reconcile(ctx context.Context) {
 
 	nodeList, err := r.getNodeList()
 	if err != nil {
-		klog.Errorf("Failed to get nodes: %v", err)
+		klog.Errorf("Failed to get nodes for cluster %s: %v", r.clusterName, err)
+		return
 	}
 
 	if r.enableNodeCapacity {
-		nodeList = r.updateCapacityByPrometheus(ctx, nodeList)
+		err = r.updateCapacityByPrometheus(ctx, nodeList)
+		if err != nil {
+			errMsg := fmt.Sprintf("Failed to update node capacity for cluster %s", r.clusterName)
+			switch {
+			case r.prometheusErrCount == 0:
+				klog.Errorf("%s: %v", errMsg, err)
+			case r.prometheusErrCount == 5:
+				klog.Errorf("%s (error logs will be throttled until recovery): %v", errMsg, err)
+			case r.prometheusErrCount%20 == 0:
+				klog.Errorf("%s (seen %d times): %v", errMsg, r.prometheusErrCount, err)
+			}
+			r.prometheusErrCount++
+		} else {
+			r.prometheusErrCount = 0
+		}
 	}
 
 	// need sort the slices before compare using DeepEqual
@@ -174,23 +182,20 @@ func (r *resourceCollector) reconcile(ctx context.Context) {
 	}
 }
 
-func (r *resourceCollector) updateCapacityByPrometheus(ctx context.Context, nodes []clusterv1beta1.NodeStatus) []clusterv1beta1.NodeStatus {
-	// get sockert/core from prometheus
+func (r *resourceCollector) updateCapacityByPrometheus(ctx context.Context, nodes []clusterv1beta1.NodeStatus) error {
+	// get socket/core from prometheus
 	caData, err := r.getPrometheusCA(ctx)
 	if err != nil {
-		klog.Errorf("failed to get ca: %v", err)
-		return nodes
+		return fmt.Errorf("failed to get prometheus CA: %w", err)
 	}
 	if len(caData) == 0 {
-		klog.Errorf("CA data does not exist")
-		return nodes
+		return fmt.Errorf("prometheus CA is empty")
 	}
 
 	if !reflect.DeepEqual(r.caData, caData) {
 		apiClient, err := r.newPrometheusClient(caData)
 		if err != nil {
-			klog.Errorf("Failed to create prometheus client: %v", err)
-			return nodes
+			return fmt.Errorf("failed to create prometheus client: %w", err)
 		}
 
 		r.caData = caData
@@ -199,16 +204,16 @@ func (r *resourceCollector) updateCapacityByPrometheus(ctx context.Context, node
 
 	sockets, err := r.queryResource(ctx, r.prometheusClient, "machine_cpu_sockets")
 	if err != nil {
-		klog.Errorf("failed to query resource: %v", err)
+		return fmt.Errorf("failed to query prometheus for %s: %w", resourceSocket, err)
 	}
 
-	for index := range nodes {
-		if capacity, ok := sockets[nodes[index].Name]; ok {
-			nodes[index].Capacity[resourceSocket] = *capacity
+	for i := range nodes {
+		if capacity, ok := sockets[nodes[i].Name]; ok {
+			nodes[i].Capacity[resourceSocket] = *capacity
 		}
 	}
 
-	return nodes
+	return nil
 }
 
 func (r *resourceCollector) getPrometheusCA(ctx context.Context) ([]byte, error) {
@@ -245,11 +250,11 @@ func (r *resourceCollector) queryResource(ctx context.Context, client prometheus
 	}
 
 	if len(warnings) != 0 {
-		klog.Warningf("Get warning from prometheus service: %v", warnings)
+		klog.Warningf("Received a prometheus warning from querying %s: %v", name, warnings)
 	}
 
 	if result.Type() != prometheusmodel.ValVector {
-		return results, fmt.Errorf("the returrn data type is not correct: %v", result.Type())
+		return results, fmt.Errorf("unexpected data type returned: %v", result.Type())
 	}
 
 	vector := result.(prometheusmodel.Vector)
@@ -341,10 +346,10 @@ func (r *resourceCollector) getNodeList() ([]clusterv1beta1.NodeStatus, error) {
 
 		// append capacity of cpu and memory
 		for k, v := range node.Status.Capacity {
-			switch {
-			case k == corev1.ResourceCPU:
+			switch k {
+			case corev1.ResourceCPU:
 				nodeStatus.Capacity[clusterv1beta1.ResourceCPU] = v
-			case k == corev1.ResourceMemory:
+			case corev1.ResourceMemory:
 				nodeStatus.Capacity[clusterv1beta1.ResourceMemory] = v
 			}
 		}

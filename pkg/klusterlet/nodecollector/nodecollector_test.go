@@ -1,7 +1,6 @@
 package nodecollector
 
 import (
-	"context"
 	"encoding/json"
 	"net"
 	"os"
@@ -259,9 +258,9 @@ func TestReconcile(t *testing.T) {
 				enableNodeCapacity: true,
 			}
 
-			ctrl.reconcile(context.TODO())
+			ctrl.reconcile(t.Context())
 			actualInfo := &clusterv1beta1.ManagedClusterInfo{}
-			err := client.Get(context.TODO(), types.NamespacedName{Namespace: "cluster1", Name: "cluster1"}, actualInfo)
+			err := client.Get(t.Context(), types.NamespacedName{Namespace: "cluster1", Name: "cluster1"}, actualInfo)
 			if err != nil {
 				t.Errorf("expected no error: %v", err)
 			}
@@ -370,11 +369,6 @@ func assertActions(t *testing.T, actualActions []clienttesting.Action, expectedV
 			t.Errorf("expected %s action but got: %#v", expected, actualActions[i])
 		}
 	}
-}
-
-// AssertNoActions asserts no actions are happened
-func assertNoActions(t *testing.T, actualActions []clienttesting.Action) {
-	assertActions(t, actualActions)
 }
 
 func newClusterInfo(name string, status metav1.ConditionStatus, nodeList []clusterv1beta1.NodeStatus) *clusterv1beta1.ManagedClusterInfo {
