@@ -20,7 +20,7 @@ require (
 	github.com/spf13/pflag v1.0.10
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20260324114735-8efd4fbacf23
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/net v0.59.0
+	golang.org/x/net v0.60.0
 	k8s.io/api v0.35.8
 	k8s.io/apiextensions-apiserver v0.35.8
 	k8s.io/apimachinery v0.35.8
