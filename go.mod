@@ -17,27 +17,27 @@ require (
 	github.com/prometheus/client_golang v1.18.0
 	github.com/prometheus/common v0.45.0
 	github.com/smartystreets/goconvey v1.8.1
-	github.com/spf13/pflag v1.0.6
+	github.com/spf13/pflag v1.0.10
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20240506072238-d0d33efc0d4e
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/net v0.60.0
-	k8s.io/api v0.33.3
-	k8s.io/apiextensions-apiserver v0.29.2
-	k8s.io/apimachinery v0.33.3
-	k8s.io/apiserver v0.29.2
-	k8s.io/cli-runtime v0.29.2
-	k8s.io/client-go v0.29.2
-	k8s.io/code-generator v0.30.0-alpha.3
-	k8s.io/component-base v0.29.2
+	golang.org/x/net v0.61.0
+	k8s.io/api v0.33.13
+	k8s.io/apiextensions-apiserver v0.29.15
+	k8s.io/apimachinery v0.33.13
+	k8s.io/apiserver v0.29.15
+	k8s.io/cli-runtime v0.29.15
+	k8s.io/client-go v0.29.15
+	k8s.io/code-generator v0.30.14
+	k8s.io/component-base v0.29.15
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kube-aggregator v0.29.2
+	k8s.io/kube-aggregator v0.29.15
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff
 	open-cluster-management.io/addon-framework v0.9.1-0.20240416063208-ecb7f349df05
 	open-cluster-management.io/api v0.13.0
 	open-cluster-management.io/managed-serviceaccount v0.5.0
 	open-cluster-management.io/sdk-go v0.13.1-0.20240416030555-aa744f426379
-	sigs.k8s.io/controller-runtime v0.17.2
+	sigs.k8s.io/controller-runtime v0.17.6
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -127,16 +127,16 @@ require (
 	go.starlark.net v0.0.0-20230525235612-a134d8f9ddca // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1 // indirect
-	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/oauth2 v0.34.0 // indirect
-	golang.org/x/sync v0.23.0 // indirect
-	golang.org/x/sys v0.48.0 // indirect
-	golang.org/x/term v0.46.0 // indirect
-	golang.org/x/text v0.42.0 // indirect
-	golang.org/x/time v0.9.0 // indirect
-	golang.org/x/tools v0.49.0 // indirect
+	golang.org/x/mod v0.42.0 // indirect
+	golang.org/x/oauth2 v0.37.0 // indirect
+	golang.org/x/sync v0.24.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
+	golang.org/x/term v0.47.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
+	golang.org/x/time v0.16.0 // indirect
+	golang.org/x/tools v0.52.0 // indirect
 	golang.org/x/tools/go/packages/packagestest v0.1.1-deprecated // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
@@ -148,11 +148,10 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	helm.sh/helm/v3 v3.14.2 // indirect
-	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
-	k8s.io/gengo/v2 v2.0.0-20240826214909-a7b603a56eb7 // indirect
-	k8s.io/kms v0.29.2 // indirect
+	k8s.io/gengo/v2 v2.0.0-20260408192533-25e2208e0dc3 // indirect
+	k8s.io/kms v0.29.15 // indirect
 	k8s.io/utils v0.0.0-20241210054802-24370beab758 // indirect
-	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.29.0 // indirect
+	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.29.5 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/kustomize/api v0.13.5-0.20230601165947-6ce0bf390ce3 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.14.3-0.20230601165947-6ce0bf390ce3 // indirect
@@ -161,6 +160,6 @@ require (
 )
 
 replace (
-	k8s.io/api => k8s.io/api v0.29.2
-	k8s.io/apimachinery => k8s.io/apimachinery v0.29.2
+	k8s.io/api => k8s.io/api v0.29.15
+	k8s.io/apimachinery => k8s.io/apimachinery v0.29.15
 )
