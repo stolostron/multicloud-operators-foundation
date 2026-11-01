@@ -21,17 +21,17 @@ require (
 	github.com/stolostron/cluster-lifecycle-api v0.0.0-20240813023109-42b5c115d0a3
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/net v0.61.0
-	k8s.io/api v0.34.12
-	k8s.io/apiextensions-apiserver v0.34.12
-	k8s.io/apimachinery v0.34.12
-	k8s.io/apiserver v0.34.12
-	k8s.io/cli-runtime v0.34.12
-	k8s.io/client-go v0.34.12
-	k8s.io/code-generator v0.34.12
-	k8s.io/component-base v0.34.12
+	k8s.io/api v0.34.13
+	k8s.io/apiextensions-apiserver v0.34.13
+	k8s.io/apimachinery v0.34.13
+	k8s.io/apiserver v0.34.13
+	k8s.io/cli-runtime v0.34.13
+	k8s.io/client-go v0.34.13
+	k8s.io/code-generator v0.34.13
+	k8s.io/component-base v0.34.13
 	k8s.io/klog v1.0.0
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kube-aggregator v0.34.12
+	k8s.io/kube-aggregator v0.34.13
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b
 	open-cluster-management.io/addon-framework v0.12.0
 	open-cluster-management.io/api v0.16.0
@@ -145,7 +145,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	helm.sh/helm/v3 v3.18.5 // indirect
 	k8s.io/gengo/v2 v2.0.0-20260408192533-25e2208e0dc3 // indirect
-	k8s.io/kms v0.34.12 // indirect
+	k8s.io/kms v0.34.13 // indirect
 	k8s.io/utils v0.0.0-20251002143259-bc988d571ff4 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.31.4 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
