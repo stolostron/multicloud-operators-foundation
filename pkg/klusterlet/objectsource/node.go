@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	coreinformers "k8s.io/client-go/informers/core/v1"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
@@ -30,12 +32,14 @@ func NewNodeSource(nodeInformer coreinformers.NodeInformer) source.Source {
 var _ source.SyncingSource = &NodeSource{}
 
 func (s *NodeSource) Start(ctx context.Context, queue workqueue.TypedRateLimitingInterface[reconcile.Request]) error {
-	// all predicates are ignored
 	s.nodeInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
 		AddFunc: func(obj interface{}) {
 			s.handler.Create(ctx, event.CreateEvent{}, queue)
 		},
 		UpdateFunc: func(oldObj, newObj interface{}) {
+			if !nodeChanged(oldObj, newObj) {
+				return
+			}
 			s.handler.Update(ctx, event.UpdateEvent{}, queue)
 		},
 		DeleteFunc: func(obj interface{}) {
@@ -44,6 +48,62 @@ func (s *NodeSource) Start(ctx context.Context, queue workqueue.TypedRateLimitin
 	})
 
 	return nil
+}
+
+// nodeChanged reports whether a node update should trigger a reconcile.
+//
+// The kubelet updates node status often (conditions heartbeats, images, volumes),
+// and none of that affects what the consumers of this source compute. Only
+// enqueue when a field they read changes:
+//   - labels (region claim)
+//   - spec.unschedulable, spec.taints, Ready and NetworkUnavailable condition
+//     status (schedulable claim)
+//   - spec.providerID, status.nodeInfo.architecture (node info claims)
+//
+// Informer resyncs (same resourceVersion) are always passed through, so the
+// periodic refresh of claims that do not depend on nodes is kept.
+func nodeChanged(oldObj, newObj interface{}) bool {
+	oldNode, ok := oldObj.(*corev1.Node)
+	if !ok {
+		return true
+	}
+	newNode, ok := newObj.(*corev1.Node)
+	if !ok {
+		return true
+	}
+
+	if oldNode.ResourceVersion == newNode.ResourceVersion {
+		return true
+	}
+
+	if !equality.Semantic.DeepEqual(oldNode.Labels, newNode.Labels) {
+		return true
+	}
+	if oldNode.Spec.Unschedulable != newNode.Spec.Unschedulable ||
+		oldNode.Spec.ProviderID != newNode.Spec.ProviderID ||
+		oldNode.Status.NodeInfo.Architecture != newNode.Status.NodeInfo.Architecture {
+		return true
+	}
+	if !equality.Semantic.DeepEqual(oldNode.Spec.Taints, newNode.Spec.Taints) {
+		return true
+	}
+	for _, t := range []corev1.NodeConditionType{corev1.NodeReady, corev1.NodeNetworkUnavailable} {
+		if conditionStatus(oldNode, t) != conditionStatus(newNode, t) {
+			return true
+		}
+	}
+	return false
+}
+
+// conditionStatus returns the status of the given node condition, or "" if the
+// condition is not set.
+func conditionStatus(node *corev1.Node, t corev1.NodeConditionType) corev1.ConditionStatus {
+	for _, c := range node.Status.Conditions {
+		if c.Type == t {
+			return c.Status
+		}
+	}
+	return ""
 }
 
 func (s *NodeSource) WaitForSync(ctx context.Context) error {
