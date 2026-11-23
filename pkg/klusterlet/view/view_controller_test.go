@@ -28,6 +28,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -129,6 +131,10 @@ func TestReconcile(t *testing.T) {
 		expectedErrorType error
 		req               reconcile.Request
 		requeue           bool
+		requeueAfter      time.Duration
+		// expectedReason is the reason of the processing condition after reconcile,
+		// set only when the reconcile is expected to query the resource.
+		expectedReason string
 	}{
 		{
 			name:         "managedClusterViewNotFound",
@@ -141,7 +147,9 @@ func TestReconcile(t *testing.T) {
 			},
 		},
 		{
-			name: "managedClusterViewWaitOK",
+			// A condition that transitioned recently must not block the query: the
+			// reconcile is only triggered on create, spec change, or RequeueAfter.
+			name: "managedClusterViewRecentConditionStillQueries",
 			existingObjs: []client.Object{
 				&viewv1beta1.ManagedClusterView{
 					ObjectMeta: metav1.ObjectMeta{
@@ -176,7 +184,9 @@ func TestReconcile(t *testing.T) {
 					Namespace: clusterNamespace,
 				},
 			},
-			requeue: true,
+			requeue:        true,
+			requeueAfter:   10 * time.Second,
+			expectedReason: viewv1beta1.ReasonResourceGVKInvalid,
 		},
 	}
 
@@ -198,9 +208,18 @@ func TestReconcile(t *testing.T) {
 
 			if test.requeue {
 				assert.Equal(t, res.Requeue, false)
-				assert.NotEqual(t, res.RequeueAfter, 0*time.Second)
+				assert.Equal(t, test.requeueAfter, res.RequeueAfter)
 			} else {
 				assert.Equal(t, res, reconcile.Result{Requeue: false, RequeueAfter: 0})
+			}
+
+			if test.expectedReason != "" {
+				view := &viewv1beta1.ManagedClusterView{}
+				assert.NoError(t, svrc.Get(ctx, test.req.NamespacedName, view))
+				cond := meta.FindStatusCondition(view.Status.Conditions, viewv1beta1.ConditionViewProcessing)
+				if assert.NotNil(t, cond) {
+					assert.Equal(t, test.expectedReason, cond.Reason)
+				}
 			}
 		})
 	}
@@ -393,4 +412,34 @@ func TestQueryResource(t *testing.T) {
 			validateErrorAndStatusConditions(t, err, test.expectedErrorType, test.expectedConditions, test.managedClusterView)
 		})
 	}
+}
+
+// TestStatusUpdateDoesNotRetrigger checks that the predicate used by the
+// controller drops the update event caused by its own status write, and keeps
+// spec changes.
+func TestStatusUpdateDoesNotRetrigger(t *testing.T) {
+	oldView := &viewv1beta1.ManagedClusterView{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       managedClusterViewName,
+			Namespace:  clusterNamespace,
+			Generation: 1,
+		},
+	}
+
+	statusOnly := oldView.DeepCopy()
+	meta.SetStatusCondition(&statusOnly.Status.Conditions, metav1.Condition{
+		Type:   viewv1beta1.ConditionViewProcessing,
+		Status: metav1.ConditionTrue,
+		Reason: viewv1beta1.ReasonGetResource,
+	})
+
+	specChange := oldView.DeepCopy()
+	specChange.Spec.Scope.Name = "other"
+	specChange.Generation = 2
+
+	p := predicate.GenerationChangedPredicate{}
+	assert.False(t, p.Update(event.UpdateEvent{ObjectOld: oldView, ObjectNew: statusOnly}),
+		"status-only update should not trigger a reconcile")
+	assert.True(t, p.Update(event.UpdateEvent{ObjectOld: oldView, ObjectNew: specChange}),
+		"spec change should trigger a reconcile")
 }
