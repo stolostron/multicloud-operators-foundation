@@ -16,7 +16,9 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
 // ViewReconciler reconciles a ManagedClusterView object
@@ -46,13 +48,6 @@ func (r *ViewReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		updateInterval = time.Duration(managedClusterView.Spec.Scope.UpdateIntervalSeconds) * time.Second
 	}
 
-	if condition := meta.FindStatusCondition(managedClusterView.Status.Conditions, viewv1beta1.ConditionViewProcessing); condition != nil {
-		sub := time.Since(condition.LastTransitionTime.Time)
-		if sub < updateInterval {
-			return ctrl.Result{RequeueAfter: updateInterval - sub}, nil
-		}
-	}
-
 	if err := r.queryResource(managedClusterView); err != nil {
 		log.Error(err, "failed to query resource")
 	}
@@ -67,7 +62,13 @@ func (r *ViewReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 func (r *ViewReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&viewv1beta1.ManagedClusterView{}).
+		// Only reconcile on create and spec changes. The status written by this
+		// controller would otherwise trigger an immediate re-query, so a view of a
+		// frequently changing resource would be polled at the rate the resource
+		// changes instead of every updateIntervalSeconds. Periodic polling is
+		// driven by RequeueAfter.
+		For(&viewv1beta1.ManagedClusterView{},
+			builder.WithPredicates(predicate.GenerationChangedPredicate{})).
 		Complete(r)
 }
 
